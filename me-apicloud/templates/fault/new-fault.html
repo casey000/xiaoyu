@@ -1,0 +1,434 @@
+<!--Add MR-->
+<div class="navbar navbar-app navbar-absolute-top">
+    <div class="navbar-brand navbar-brand-center" ng-if="isNewFault">
+        新建故障
+    </div>
+    <div class="btn-group btn-group-left">
+        <!--<div class="btn" ng-click="go('back','slideRight')">-->
+        <div class="btn" ng-click="gobackToRoot()">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+    </div>
+</div>
+<div class="scrollable-content fault p-newFault" style="-webkit-overflow-scrolling:touch;">
+    <form name="myForm" novalidate>
+        <div class="approver-content-wrap">
+            <div class="select-require-date-wrap pad-style" ng-class="{'no-edit': !isCreateData}">
+                <div class="require-date-title">Date Time<span class="red">*</span></div>
+                <input type="datetime-local"
+                       class="form-control select-require-date framecolor padding-fixed"
+                       name="dateFound"
+                       ng-if="android"
+                       ng-model="mrInfo.dateFound"
+                       ng-max="today"
+                       ng-blur="checkDate()" required ng-disabled="!isCreateData"/>
+                <input type="datetime-local"
+                       class="form-control select-require-date framecolor padding-fixed"
+                       name="dateFound"
+                       ng-if="!android"
+                        style="width: 80%;"
+                       ng-model="mrInfo.dateFound"
+                       ng-max="today"
+                       ng-blur="checkDate()" required ng-disabled="!isCreateData"/>
+                <!--<input type="text"-->
+                       <!--class="form-control select-require-date framecolor padding-fixed"-->
+                       <!--name="dateFound"-->
+                       <!--ng-model="mrInfo.dateFoundDefault"-->
+                       <!--ng-blur="checkDate()" required ng-disabled="!isCreateData"/>-->
+                <div class="triangle-down"></div>
+            </div>
+            <div class="select-require-date-wrap no-edit">
+                <div class="require-date-title">FLT No.</div>
+                <input type="text" class="form-control framecolor padding-fixed" disabled
+                       ng-model="mrInfo.preFlightNo"/>
+            </div>
+            <div class="select-require-date-wrap no-edit">
+                <div class="require-date-title">STA No.</div>
+                <input type="text" class="form-control framecolor padding-fixed" disabled
+                       ng-model="mrInfo.station"/>
+
+            </div>
+            <div class="select-require-date-wrap no-edit">
+                <div class="require-date-title">A/C No.</div>
+                <input type="text" class="form-control framecolor padding-fixed" disabled ng-model="mrInfo.acReg"/>
+            </div>
+
+<!--            <div class="datebox-wrap" ng-class="{'no-edit': !isCreateData}">-->
+<!--                <select-ata ata-info="mrInfo.ata"></select-ata>-->
+
+<!--&lt;!&ndash;                <div class="approver-title">ATA<span class="red">*</span></div>&ndash;&gt;-->
+<!--&lt;!&ndash;                <input type="tel" class="form-control search-textbox framecolor" name="ata" placeholder="4~8位" required maxlength="8"&ndash;&gt;-->
+<!--&lt;!&ndash;                       ng-model="mrInfo.ata"  ng-pattern="/^[\w|-]{4,8}$/" ng-blur="checkError(!myForm['ata'].$error.required && myForm['ata'].$invalid, 'ata')">&ndash;&gt;-->
+<!--            </div>-->
+            <div class="datebox-wrap" style="width: 100%;" ng-class="{'no-edit': !isCreateData}"><select-ata-title ata-info="mrInfo.ata" model="acModel"></select-ata-title></div>
+
+            <select-person person-info="mrInfo" show-title="false" person-title="Finder Sign" is-auto-loginercode="true"></select-person>
+
+<!--            <select-zone zone-info="zoneInfo"> </select-zone>-->
+
+            <!--错误显示-->
+            <span class="red fault-err-info" ng-if="!myForm['dateFound'].$error.required && myForm['dateFound'].$error.max">故障时间不能晚于当前时间</span>
+            <span class="red fault-err-info" ng-if="ataError">ATA不能少于4位(字母,数字-)</span>
+        </div>
+
+        <div class="tail-eng-wrap fault-check-button inline-block" ng-init="active=1; riiActive=1">
+            <div class="tail-eng-title">Report Type</div>
+            <div class="tail-eng-button averageArange">
+                <button type="button" ng-class="{beClicked: active==0}" ng-click="reportType($event);active=0"
+                        ng-disabled="!isCreateData">PILOT
+                </button>
+                <button type="button" ng-class="{beClicked: active==1}" ng-click="reportType($event);active=1"
+                        ng-disabled="!isCreateData">Ground
+                </button>
+            </div>
+        </div>
+
+        <!--新增DM选项-->
+        <div class="tail-eng-wrap fault-check-button inline-block" style="padding-left: 0.35rem;padding-right: .3rem">
+            <div class="tail-eng-title">DM<span class="red" ng-if="mrInfo.dmStatus == 0">*</span></div>
+            <div class="tail-eng-button averageArange">
+                <button type="button" ng-class="{beClicked: mrInfo.dm === 'y'}" ng-click="mrInfo.dm = mrInfo.dm === 'y' ?  '' : 'y';"
+                        ng-disabled="!isCreateData || dmDisable">Y
+                </button>
+                <button type="button" ng-class="{beClicked: mrInfo.dm === 'n'}" ng-click="mrInfo.dm = mrInfo.dm === 'n' ?  '' : 'n';"
+                        ng-disabled="!isCreateData || dmDisable">N
+                </button>
+            </div>
+        </div>
+
+        <div class="approver-content-wrap">
+            <div class="datebox-wrap" ng-class="{'no-edit': !isCreateData}">
+                <div class="approver-title">Affected ENG</div>
+                <select class="form-control review-type-select" ng-model="mrInfo.engineType"
+                        ng-disabled="!isCreateData" ng-change="getSn()">
+                    <option value=""></option>
+                    <option value="1">ENG1</option>
+                    <option value="2">ENG2</option>
+                    <option value="4">ENG3</option>
+                    <option value="5">ENG4</option>
+                    <option value="3">APU</option>
+                </select>
+                <div class="triangle-down"></div>
+            </div>
+            <div class="select-require-date-wrap no-edit">
+                <div class="require-date-title">SN</div>
+                <input type="text" class="form-control framecolor padding-fixed" disabled
+                       ng-model="mrInfo.engineSn"/>
+
+            </div>
+        </div>
+        <div class="add-remark-wrap">
+            <div class="p-name">
+                <div class="name">故障报告(Chinese)</div>
+                <div class="ui-sound-icon" ng-if="!isSound" ng-click="changeSound()"><i class="icon-sound"></i><span>语音录入</span>
+                </div>
+                <div class="ui-sound-icon" ng-if="isSound"><i class="icon-sound"></i><span>录入中...</span></div>
+            </div>
+            <div class="add-remark-content">
+                <textarea ng-model="mrInfo.faultReportChn" maxlength="500"></textarea>
+            </div>
+        </div>
+        <div class="add-remark-wrap">
+            <div class="add-remark-title">Fault Report(English)</div>
+            <div class="add-remark-content">
+                <textarea ng-model="mrInfo.faultReportEng" maxlength="1000"></textarea>
+            </div>
+        </div>
+        <div class="p-process" ng-if="uploadSoundArr.length>0">
+            <sound-item upload-sound-arr="uploadSoundArr" del-sound-id="delSoundId"></sound-item>
+        </div>
+        <div class="p-image">
+            <img-select img-arr="imgArr" file-arr="fileArr" del-img-id="delImgId" is-api-cloud="isApiCloud" attachvo="attachvo"></img-select>
+        </div>
+        <div class="damage-draft-detail">
+            <div class="section-1">
+                <div class="item">
+                    <div class="title" style="vertical-align: middle">
+                        <span>结构类</span>
+                        <span class="red">*</span>
+                    </div>
+                    <div class="right">
+                        <label><input  type="radio" name="isStr" value="y" ng-model="mrInfo.isStructureDamage" ng-checked="mrInfo.isStructureDamage=='y'">YES</label>
+                        <label><input  type="radio" name="isStr" value="n"  ng-model="mrInfo.isStructureDamage" ng-checked="mrInfo.isStructureDamage=='n'">NO</label>
+                    </div>
+                </div>
+                <div class="item" ng-show = "mrInfo.isStructureDamage == 'y'">
+                    <div class="title" style="vertical-align: middle">
+                        <span>区域</span>
+                    </div>
+                    <div class="right ipt">
+                        <input class="right" ng-model="mrInfo.drBaseSubmitAsmsDTO.zone" type="text"  placeholder="请填写区域">
+                    </div>
+                </div>
+<!--                <damage-workorder ng-show = "mrInfo.isStructureDamage == 'y'" info="workOrderInfo" flight-no-info="flightNoInfo"></damage-workorder>-->
+
+
+                <div class="item" ng-show = "mrInfo.isStructureDamage == 'y'">
+                    <div class="title" style="vertical-align: middle">
+                        <span>工作指令号</span>
+                        <span class="red">*</span>
+                    </div>
+                    <div class="right ipt">
+                        <div class="check-method" style="display: inline-block;height: 100%;width: 100%;">
+                             <span ng-repeat="item in woList" ng-if="item.woNo == woList[woNumIndx].woNo">
+                                  {{item.woNo}}
+                              </span>
+                            <select ng-model="woNumIndx" style="display: inline-block;height: 100%;width: 100%;"
+                                     ng-change="woChanged()">
+                                <option value="{{$index}}"
+                                        ng-selected="flawTypeItem.selected"
+                                        ng-repeat="flawTypeItem in woList track by $index ">
+                                    {{flawTypeItem.woNo}}
+                                </option>
+                            </select>
+                        </div>
+                        <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+                    </div>
+                </div>
+                <div class="item" ng-show = "mrInfo.isStructureDamage == 'y'">
+                    <div class="title" style="vertical-align: middle">
+                        <span>维护级别</span>
+                        <span class="red">*</span>
+                    </div>
+                    <div class="right ipt">
+<!--                        {{mrInfo.drBaseSubmitAsmsDTO.maintenanceLevel}}-->
+                        {{mrInfo.drBaseSubmitAsmsDTO.maintenanceLevel}}
+                    </div>
+                </div>
+                <damage-workcard ng-show = "mrInfo.isStructureDamage == 'y'" info="workcardInfo" work-order-info="workOrderInfo"></damage-workcard>
+
+<!--                <div class="item" ng-show = "mrInfo.isStructureDamage == 'y'">-->
+<!--                    <div class="title" style="vertical-align: middle">-->
+<!--                        <span>相关工卡</span>-->
+<!--                    </div>-->
+<!--                    <div class="right ipt">-->
+<!--                        <div class="check-method" style="display: inline-block;height: 100%;width: 100%;">-->
+<!--                              <span ng-repeat="item in cardList" ng-if="item.woNo == mrInfo.drBaseSubmitAsmsDTO.cardNumber">-->
+<!--                              {{item.woNo}}-->
+<!--                          </span>-->
+<!--                            <select ng-model="mrInfo.drBaseSubmitAsmsDTO.cardNumber" style="display: inline-block;height: 100%;width: 100%;" required>-->
+<!--                                <option value="{{flawTypeItem.value}}"-->
+<!--                                        ng-selected="flawTypeItem.selected"-->
+<!--                                        ng-repeat="flawTypeItem in cardList track by $index ">-->
+<!--                                    {{flawTypeItem.name}}-->
+<!--                                </option>-->
+<!--                            </select>-->
+<!--                        </div>-->
+<!--                        <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">-->
+<!--                    </div>-->
+<!--                </div>-->
+                <div class="item" ng-show = "mrInfo.isStructureDamage == 'y'">
+                    <div class="title" style="vertical-align: middle">
+                        <span>外观是否可见</span>
+                        <span class="red">*</span>
+                    </div>
+                    <div class="right">
+                        <label><input  type="radio" name="cansee" value="y" ng-model="mrInfo.drBaseSubmitAsmsDTO.defect" ng-checked="mrInfo.drBaseSubmitAsmsDTO.defect=='y'">可见</label>
+                        <label><input  type="radio" name="cansee" value="n"  ng-model="mrInfo.drBaseSubmitAsmsDTO.defect" ng-checked="mrInfo.drBaseSubmitAsmsDTO.defect=='n'">不可见</label>
+                    </div>
+                </div>
+                <div class="item" ng-show = "mrInfo.isStructureDamage == 'y'">
+                    <div class="title" style="vertical-align: middle">
+                        <span>检查方法</span>
+                        <span class="red">*</span>
+                    </div>
+                    <div class="right ipt">
+                        <div class="check-method" style="display: inline-block;height: 100%;width: 100%;">
+                             <span ng-repeat="item in checkMethods" ng-if="item.value == mrInfo.drBaseSubmitAsmsDTO.checkMethod">
+                              {{item.name}}
+                          </span>
+                            <select ng-model="mrInfo.drBaseSubmitAsmsDTO.checkMethod" style="display: inline-block;height: 100%;width: 100%;"
+                                   >
+                                <option value="{{flawTypeItem.value}}"
+                                        ng-selected="flawTypeItem.selected"
+                                        ng-repeat="flawTypeItem in checkMethods track by $index ">
+                                    {{flawTypeItem.name}}
+                                </option>
+                            </select>
+                        </div>
+                        <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+                    </div>
+                </div>
+                <div class="item" ng-show="mrInfo.isStructureDamage == 'y' && mrInfo.drBaseSubmitAsmsDTO.checkMethod==3">
+                    <span class="title">NDT类别</span>
+                    <div class="right">
+                        <div class="check-method">
+                          <span ng-repeat="item in ndtCategorys" ng-if="item.value == mrInfo.drBaseSubmitAsmsDTO.checkMode">
+                              {{item.name}}
+                          </span>
+                            <select ng-model="mrInfo.drBaseSubmitAsmsDTO.checkMode">
+                                <option ng-repeat="item in ndtCategorys" ng-value="item.value">{{item.name}}</option>
+                            </select>
+                        </div>
+                        <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+
+                    </div>
+                </div>
+                <div class="textarea-item" ng-show=" mrInfo.isStructureDamage == 'y' &&mrInfo.drBaseSubmitAsmsDTO.checkMethod == 4">
+                    <div class="title">其它</div>
+                    <textarea ng-model="mrInfo.drBaseSubmitAsmsDTO.checkModeOther" placeholder="勾选其它请输入详细内容">
+                   </textarea>
+                </div>
+<!--                <div class="item" ng-show = "mrInfo.isStructureDamage == 'y'">-->
+<!--                    <div class="title" style="vertical-align: middle">-->
+<!--                        <span>缺陷类型</span>-->
+<!--                        <span class="red">*</span>-->
+<!--                    </div>-->
+<!--                    <div class="right ipt">-->
+<!--                        <div class="check-method" style="display: inline-block;height: 100%;width: 100%;">-->
+<!--                            <select  multiple="true" ng-model="mrInfo.drBaseSubmitAsmsDTO.defectType" style="display: inline-block;height: 100%;width: 100%;"-->
+<!--                                    ng-change="woChanged()" required>-->
+<!--                                <option value="{{flawTypeItem.value}}"-->
+<!--                                        ng-selected="flawTypeItem.selected"-->
+<!--                                        ng-repeat="flawTypeItem in defectTypeList track by $index ">-->
+<!--                                    {{flawTypeItem.name}}-->
+<!--                                </option>-->
+<!--                            </select>-->
+<!--                        </div>-->
+<!--                        <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">-->
+<!--                    </div>-->
+<!--                </div>-->
+                <div class="item"  ng-show = "mrInfo.isStructureDamage == 'y'">
+                    <div class="title">缺陷类型 <span class="red">*</span></div>
+                    <div class="right">
+                        <div class="check-method">
+                               <span ng-repeat="selectTypeNumber in selectedDamageTypes | orderBy: sortNumberArray">
+                                   <label ng-repeat="typeItem in damageTypes | filter:{value: selectTypeNumber}"
+                                          ng-if="selectTypeNumber == typeItem.value && $parent.$index < selectedDamageTypes.length">
+                                        {{typeItem.name}}　
+                                   </label>
+<!--                                   <label ng-repeat="typeItem in damageTypes | filter:{value: selectTypeNumber}"-->
+<!--                                          ng-if="selectTypeNumber == typeItem.value && $parent.$index == selectedDamageTypes.length - 1">-->
+<!--                                        {{typeItem.name}}-->
+<!--                                   </label>-->
+                               </span>
+                            <select multiple="true" ng-model="selectedDamageTypes">
+                                <option ng-repeat="typeItem in damageTypes"
+                                        ng-value="typeItem.value"
+                                        ng-selected="selectedDamageTypes.indexOf(typeItem.value) != -1">
+                                    {{typeItem.name}}</option>
+                            </select>
+                        </div>
+                        <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+
+                    </div>
+                </div>
+                <div class="textarea-item" ng-show=" mrInfo.isStructureDamage == 'y' && selectedDamageTypes.indexOf('12') != '-1'">
+                    <div class="title">其它</div>
+                    <textarea ng-model="mrInfo.drBaseSubmitAsmsDTO.defectTypeOther" placeholder="勾选其它请输入详细内容">
+                   </textarea>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <button class="submitAddMR ui-disabled"
+            ng-show="isCreateData"
+            ng-class="{'orange-button': myForm.$valid && !mrInfo.diffName
+            && (uploadSoundArr.length || fileArr.length || (mrInfo.faultReportChn
+            && mrInfo.faultReportEng)) && ((mrInfo.dmStatus == 0 && mrInfo.dm) || mrInfo.dmStatus != 0)
+            && (mrInfo.isStructureDamage == 'n' ||
+            (mrInfo.isStructureDamage == 'y'  && mrInfo.drBaseSubmitAsmsDTO.defect.length  && mrInfo.drBaseSubmitAsmsDTO.checkMethod.length  && selectedDamageTypes.length ))
+            }"
+
+            ng-disabled="!myForm.$valid || mrInfo.diffName ||
+            (!uploadSoundArr.length && !fileArr.length && !(mrInfo.faultReportChn && mrInfo.faultReportEng)
+            ) || (mrInfo.dmStatus == 0 && !mrInfo.dm)  ||
+            (mrInfo.isStructureDamage == 'y' && ( mrInfo.drBaseSubmitAsmsDTO.defect.length ==0 || mrInfo.drBaseSubmitAsmsDTO.checkMethod.length == 0 || selectedDamageTypes.length ==0 ))"
+            ng-click="submit(mrInfo)">Submit
+    </button>
+
+    <p class="bg-danger" ng-show="mrError && mrInfo.cardType!='LM'">{{mrError}}</p>
+    <p class="bg-success" ng-show="submitSuccess" translate="mr.saveSuccess"></p>
+</div>
+<div class="ewis-background" ng-if = "flowWindow" style="z-index: 1002">
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">损伤信息确认
+            </div>
+            <div class="btn-group btn-back" style="z-index: 1000">
+                <div class="btn" ng-click="$parent.flowWindow = false">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="oil-scroll">
+        <form name="toolForm" novalidate>
+            <div class="oil-form-wrapper">
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">区域</span>
+                    <div class="inline-block display-result">
+                        {{mrInfo.drBaseSubmitAsmsDTO.zone}}
+                    </div>
+                </div>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">工作指令号</span>
+                    <div class="inline-block display-result">
+                        <span ng-repeat="item in woList" ng-if="item.woNo == woList[woNumIndx].woNo">
+                                  {{item.woNo}}
+                              </span>
+                    </div>
+                </div>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">维护级别</span>
+                    <div class="inline-block display-result">
+                        {{mrInfo.drBaseSubmitAsmsDTO.maintenanceLevel}}
+                    </div>
+                </div>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">相关工卡</span>
+                    <div class="inline-block display-result">
+                        {{workcardInfo.cardNo}}
+                    </div>
+                </div>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">外观是否可见</span>
+                    <div class="inline-block display-result">
+                        {{mrInfo.drBaseSubmitAsmsDTO.defect == 'y' ? '可见' :'不可见'}}
+                    </div>
+                </div>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">检查方法</span>
+                    <div class="inline-block display-result">
+                        <span ng-repeat="item in checkMethods" ng-if="item.value == mrInfo.drBaseSubmitAsmsDTO.checkMethod">
+                              {{item.name}}
+                          </span>
+                        <span style="margin-left: .8rem" ng-repeat="item in ndtCategorys" ng-if="item.value == mrInfo.drBaseSubmitAsmsDTO.checkMode && mrInfo.drBaseSubmitAsmsDTO.checkMethod==3">
+                              {{item.name}}
+                          </span>
+                        <span style="margin-left: .8rem" ng-bind="mrInfo.drBaseSubmitAsmsDTO.checkModeOther"  ng-if="mrInfo.drBaseSubmitAsmsDTO.checkMethod==4"></span>
+                    </div>
+                </div>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">缺陷类型</span>
+                    <div class="inline-block display-result">
+                         <span ng-repeat="selectTypeNumber in selectedDamageTypes | orderBy: sortNumberArray">
+                                   <label ng-repeat="typeItem in damageTypes | filter:{value: selectTypeNumber}"
+                                          ng-if="selectTypeNumber == typeItem.value && $parent.$index < selectedDamageTypes.length">
+                                        {{typeItem.name}}　
+                                   </label>
+                         </span>
+                        <br>
+                         <span  ng-bind="mrInfo.drBaseSubmitAsmsDTO.defectTypeOther"  ng-show="  selectedDamageTypes.indexOf('12') != '-1'"></span>
+                    </div>
+                </div>
+
+                <div class="button-wrapper" >
+
+                    <!--ng-disabled="!myForm.$valid || fileArr.length ==0"-->
+
+                    <button class="submitAddMR "
+                            ng-class="{
+                                'orange-button':true
+                                                 }"
+                            ng-click="addSure()" >
+                        提交
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<sound upload-sound-arr="uploadSoundArr" is-sound="isSound" del-sound-id="delSoundId"></sound>

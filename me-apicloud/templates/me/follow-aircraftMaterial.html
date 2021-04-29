@@ -1,0 +1,151 @@
+<!--<ui-view name="faultInfo"></ui-view>-->
+<div ng-show="!faultInfoView && !ccInfoView && !recordView">
+    <div class="navbar navbar-app navbar-absolute-top fixbar">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">
+                {{title}}
+            </div>
+            <div class="btn-group btn-group-left">
+                <div class="btn" ng-click="goBack()">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+<!--            <div class="group-right">-->
+<!--                <div class="btn record-btn" ng-show="fixedRevtp == '定检'" ng-click = "showDefect()">-->
+<!--                    <span class="record">+D</span>-->
+<!--                </div>-->
+<!--                <div  class="btn record-btn" ng-click="addNrc()">-->
+<!--                    <span class="record">+N</span>-->
+<!--                </div>-->
+<!--            </div>-->
+        </div>
+    </div>
+    <div class="fixed-his">
+<!--        <div class="acSta" ng-click="go('me.meStatus','slideLeft',{acReg: title})">-->
+<!--            A/C Status-->
+<!--            <div class="next-fault-info icon-maoc icon-next-flight "></div>-->
+<!--        </div>-->
+        <div class="main-tab" style="margin-top: 0rem;color: #1989FA;">
+            <div class="acsta" ng-class="{active:navIdx==1}" ng-click="changeMainNav(1)">出港</div>
+            <div class="acsta" ng-class="{active:navIdx==0}" ng-click="changeMainNav(0)">进港</div>
+        </div>
+        <div class="scrollable " style="position: absolute;top: 4.40rem">
+            <div id="scroll" class="scrollable-content follow-aircraft-material" ui-scroll-bottom="getNextPage()">
+                <div class="material-content-wrap">
+                    <div class="list-group material-content">
+                        <div class="backup-airport no-data" ng-hide=" !dataList || loading2 || dataList.length || netWorkErr">暂无随机航材信息</div>
+                        <div class="list-group-item materialitem" ng-repeat="item in dataList">
+                        <div ng-click="go('WayBillDetails', '', {focFlightId: flightId,arrivalOrDeparture:entry,requisitionId:item.requisitionId })" style="padding: 0 .2rem;">
+                            <!--第一行-->
+                            <div class="material-content-top materialname" style="padding: .2rem 0;">
+                                <!--航材/工具-->
+                                <div class="pull-left " ng-show="item.type == '1'" style="padding: 0 .6rem; border-radius: .2rem;color: #fc0d00;border: #fc0d00 .1rem solid;" >{{item.typeShow}}</div>
+                                <div class="pull-left " ng-show="item.type == '2'"  style="padding: 0 .6rem; border-radius: .2rem;color: #00b4ff;border: #00b4ff .1rem solid;" >{{item.typeShow}}</div>
+                                <!--运单编号-->
+                                <div class="pull-left " ><span class="acModel">{{item.code}}</span></div>
+<!--                                <div class="pull-left " style="margin-left: 1rem">{{item.cardProcessStatus || ''}}</div>-->
+                                <!--运单接收状态-->
+                                <div class="pull-right " style="padding: 0 .5rem;">
+                                    <span ng-show="item.requisitionStatus != '1'" >{{item.requisitionStatusShow}}</span>
+                                    <span ng-show="item.requisitionStatus == '1'" style="background-color: #fc0d00;color: #ffffff">{{item.requisitionStatusShow}}</span>
+                                </div>
+                            </div >
+                            <!--第二行-->
+                            <div class="material-content-top materialname text-ellipsis" style="border-bottom: #adadad solid .01rem;padding: .2rem 0; ">
+                                <!--随机备件/随航线备件-->
+                                <span class="pull-left" ng-show="item.ifSparePart=='1'||item.ifSparePart=='2'" style=" font-weight: 500;">{{item.ifSparePartShow}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                <!--一次性运输-->
+                                <span class="pull-left" ng-show="item.ifSparePart=='0'" style=" font-weight: 500;">
+                                    {{item.departureStation}}-{{item.destinationStation}}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                </span>
+                                <!--总重量-->
+                                <span class="pull-left " style=" font-weight: 500;">
+                                    <span> 总重:</span>
+                                    {{item.totalWeight}}
+                                    <span>kg&nbsp;&nbsp;&nbsp;</span>
+                                </span>
+                                <!--装载位置-->
+                                <div class="pull-right " style=" font-weight: 500;">
+                                    <span>装载位置:</span>
+                                    {{item.loadingPosition}}
+                                </div>
+                            </div>
+                            <!--第三行-->
+                            <div  class="text-ellipsis " style="color: #adadad;margin-left: .1rem;padding: .2rem 0;">
+                                <div  ng-show="item.ifSparePart != '0'">
+                                    <!--左侧的备件信息-->
+                                   <span class="pull-left" style="color: #000;">
+                                        <span>备件:</span>
+                                        <!--随飞机备件-->
+                                        <span ng-show="item.ifSparePart == '1'">
+                                           {{item.acNo}}&nbsp;&nbsp;&nbsp;{{item.departureStation}}
+                                        </span>
+                                        <!--随航线备件-->
+                                        <span ng-show="item.ifSparePart == '2'">
+                                            {{item.flightRoute}}
+                                        </span>
+                                   </span>
+                                    <!--右侧的日期信息,起始时间和结束时间是哪个-->
+                                   <div class="pull-right">
+                                       {{item.startDate | date:'yyyy-MM-dd'}}至{{item.endDate | date:'yyyy-MM-dd'}}
+                                   </div>
+                                </div>
+                                <!--随机运输（一次性运输）:分为单程和多程,如果是多程航班会有下程航班,现在的逻辑：如果有下程航班就显示下程航班，否则就显示来源航班，两个都没有就不显示-->
+                                <!--如果有下程航班且有来源航班-->
+                                <div ng-show="item.ifSparePart == '0'&& item.nextFlight && item.sourceFlight"  style="clear: both;">
+                                     <span class="pull-left" >
+                                        <!--如果是单程不需要显示，如果是多段，需要显示下程航班和起飞时间-->
+                                        来源航班:{{item.sourceFlight.flightNo}}&nbsp;{{item.sourceFlight.flightSect}}
+                                    </span>
+                                    <span class="pull-right" ng-show="item.sourceFlight.ata">
+                                        ATA {{item.sourceFlight.ata | date:'yyyy-MM-dd HH:mm'}}
+                                    </span>
+                                    <span class="pull-right" ng-show="item.sourceFlight.sta && !item.sourceFlight.ata">
+                                        STA {{item.sourceFlight.sta | date:'yyyy-MM-dd HH:mm'}}
+                                    </span>
+                                </div>
+                                <!--如果有下程航班-->
+                                <div ng-show="item.ifSparePart == '0'&& item.nextFlight" style="clear: both;">
+                                    <span class="pull-left" >
+                                       <!--如果是单程不需要显示，如果是多段，需要显示下程航班和起飞时间-->
+                                        下程航班:{{item.nextFlight.flightNo}}&nbsp;{{item.nextFlight.flightSect}}
+                                    </span>
+                                    <span class="pull-right" ng-show="item.nextFlight.atd">
+                                        ATD {{item.nextFlight.atd | date:'yyyy-MM-dd HH:mm'}}
+                                    </span>
+                                    <span class="pull-right" ng-show="item.nextFlight.std && !item.nextFlight.atd">
+                                        STD {{item.nextFlight.std | date:'yyyy-MM-dd HH:mm'}}
+                                    </span>
+                                </div>
+                                <!--如果无下程航班但是有来源航班-->
+                                <div ng-show="item.ifSparePart == '0'&& !item.nextFlight && item.sourceFlight" >
+                                    <span class="pull-left" >
+                                        <!--如果是单程不需要显示，如果是多段，需要显示下程航班和起飞时间-->
+                                        来源航班:{{item.sourceFlight.flightNo}}&nbsp;{{item.sourceFlight.flightSect}}
+                                    </span>
+                                    <span class="pull-right" ng-show="item.sourceFlight.ata">
+                                        ATA {{item.sourceFlight.ata | date:'yyyy-MM-dd HH:mm'}}
+                                    </span>
+                                    <span class="pull-right" ng-show="item.sourceFlight.sta && !item.sourceFlight.ata">
+                                        STA {{item.sourceFlight.sta | date:'yyyy-MM-dd HH:mm'}}
+                                    </span>
+                                </div>
+                            </div>
+<!--                            <div class="material-content-middle clearfix">-->
+<!--                                <div class="fixed-descript pull-left">{{item.description}}</div>-->
+<!--&lt;!&ndash;                                <div class="pull-right" ng-if="item.status == '已下发' && item.workType == 'NRC'">&ndash;&gt;-->
+<!--&lt;!&ndash;                                    <span ng-click="toProcess(item.id,$event)" class="" style="display: inline-block;color: #fff;background-color: #1a87ff;border-radius: 0.25rem;text-align: center;height: 1.3rem;line-height: 1.3rem;font-size: .6rem;width: 2.5rem">&ndash;&gt;-->
+<!--&lt;!&ndash;                                        Process&ndash;&gt;-->
+<!--&lt;!&ndash;                                    </span>&ndash;&gt;-->
+<!--&lt;!&ndash;                                </div>&ndash;&gt;-->
+<!--                            </div>-->
+                        </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center" ng-if="noMoreData && dataList.length" translate="loadingDone"></div>
+            </div>
+        </div>
+    </div>
+
+</div>

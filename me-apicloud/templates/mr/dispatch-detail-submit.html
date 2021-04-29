@@ -1,0 +1,251 @@
+<div class="transfer-receiving">
+    <div class="navbar navbar-app navbar-absolute-top fixbar">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">
+                发料详情
+            </div>
+            <div class="btn-group btn-group-left">
+                <div class="btn" ng-click="go('back')">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="fixed-his">
+        <!--        **********-->
+        <div class="scrollable" style="position: absolute;top: 2.5rem">
+            <div class="scrollable-content">
+                <!--on-finish-render-filters-->
+                <div class="flight-wrap">
+                    <div class="pubFlightList">
+                        <div class="top clearfix" style="margin-bottom: .3rem">
+                            <span class="pull-left"  style="font-size: .75rem;font-weight: 600;display: inline-block;">
+                                MR:<span style="font-weight: 500">{{item.mrNo}}</span>
+                                <span style="color: #ce1111" ng-if="prohibitList[0].prohibitedMark === 'JZ'">禁</span>
+                                <span style="color:darkorange" ng-if="prohibitList[0].prohibitedMark === 'XZ'">限</span>
+                            </span>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;line-height: .75rem">
+                                <span style="width: 3.5rem;color: #C2C2C2">需求件号:</span>
+                                <span style="width: 4rem">{{item.pn}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;line-height: .75rem">
+                                <span style="width: 3.5rem;color: #C2C2C2">需求数量:</span>
+                                <span style="width: 4rem">{{item.needQty}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;line-height: .75rem">
+                                <span style="width: 3.5rem;color: #C2C2C2">需求单位:</span>
+                                <span style="width: 4rem">{{item.unit}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;line-height: .75rem">
+                                <span style="width: 3.5rem;color: #C2C2C2">已发数量:</span>
+                                <span style="width: 4rem">{{item.sentQty}}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flight-wrap" ng-if="prohibitList.length > 0 ">
+                    <div class="pubFlightList ">
+                        <div class="lineDet text-ellipsis" style="line-height: .8rem" ng-repeat="data in prohibitList track by $index">
+                            <span ng-click="viewPdf(data)" style="line-height: 1.2rem;color: darkorange" >
+                                {{data.businessNo}};
+                            </span>
+                            <span style="line-height: 1.2rem;color: #1f76ff" ng-click="item.showDes = true;item.refuseReasonPend = data.remark">
+                                {{data.businessType == 'TB' ? data.remark || '请参考TB原文附件' : data.remark}}
+                            </span>
+                        </div>
+                        <div class="category clearfix" ng-if=" prohibitList[0].prohibitedMark != 'JZ'" style="margin-top: .3rem">
+                            <div class="p-fl" style="width: 30%;line-height: 34px">放行类型<span class="red">*</span></div>
+                            <div class="p-fr" style="width: 65%;text-align: right">
+                                <div class="datebox-wrap" style="width: 100%;position: relative;">
+                                    <select
+                                            ng-model="item.releaseType"
+                                            class="form-control search-textbox framecolor"
+                                            style="z-index: 9; display: inline-block;width: 100%;"
+                                            ng-options=" v.VALUE as v.TEXT for v in releaseList"
+                                    >
+                                    </select>
+                                    <img class="triangle" style="width: 10px;margin-right: -.2rem;top: 14px" src="dist/images/oil/Shape1@2x.png">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="textarea" ng-if=" prohibitList[0].prohibitedMark != 'JZ'">
+                            <p style="margin: 10px 0 0 0">放行理由<span class="red">*</span></p>
+                            <textarea style="width: 100% ;padding: .3rem"  ng-model="item.reason"  placeholder="请输入限装放行理由"
+                                      cols="30" maxlength="500"
+                                      rows="7"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div style="position: relative;clear: both;">
+                    <div class="pubFlightList">
+                    <div class="category clearfix flex-layout-between" style="margin-bottom: .3rem">
+                        <div  style="width: 30%;line-height: 34px">发料数量<span class="red">*</span></div>
+                        <input type="number" class="form-control search-textbox framecolor"  placeholder="请输入发料数量" required style="width: 65% ;border-color: #C9C9C9"
+                               ng-model="item.sendQty"  ng-blur="checkNumber()" >
+                    </div>
+                    <div class="category clearfix flex-layout-between" style="margin-bottom: .3rem;">
+                            <div style="width: 30%;line-height: 34px">发料批次<span class="red">*</span></div>
+                            <div  style="width:65%;text-align: right">
+                                <div class="datebox-wrap" style="width: 100%;position: relative;" >
+                                    <input ng-if="batchNoSearchList.length == 0 " class="form-control search-textbox framecolor" readonly="true" ng-click="onclickBatchNoData('')"/>
+                                    <select  ng-if="batchNoSearchList.length > 0 "   ng-model="item.batchNo" class="form-control search-textbox framecolor" style="z-index: 9; display: inline-block;width: 100%;"
+                                            ng-change="onclickBatchNoData(item.batchNo)" required>
+                                        <!--<option value="">全部</option>-->
+                                        <option value="{{batchNoItem.batchNo}}"
+                                                ng-repeat="batchNoItem in batchNoSearchList " >
+                                            {{batchNoItem.batchNo}}
+                                        </option>
+                                    </select>
+                                    <img class="triangle" style="width: 10px;margin-right: -.2rem;top: 14px" src="dist/images/oil/Shape1@2x.png">
+                                </div>
+                            </div>
+                        </div>
+                    <div class="category clearfix flex-layout-between" style="margin-bottom: .3rem;">
+                        <div style="width: 30%;line-height: 34px">发料序号</div>
+                        <div  style="width:65%;text-align: right">
+                            <div class="datebox-wrap" style="width: 100%;position: relative;">
+                                <input ng-if="searchList.length == 0 " class="form-control search-textbox framecolor" readonly="true" ng-click="onclickListData('')"/>
+                                <select  ng-if="searchList.length > 0 "   ng-model="item.sn" class="form-control search-textbox framecolor" style="z-index: 9; display: inline-block;width: 100%;"
+                                         ng-change="onclickListData(item.sn)" required>
+                                    <!--<option value="">全部</option>-->
+                                    <option value="{{snItem.sn}}"
+                                            ng-repeat="snItem in searchList" >
+                                        {{snItem.sn}}
+                                    </option>
+                                </select>
+                                <img class="triangle" style="width: 10px;margin-right: -.2rem;top: 14px" src="dist/images/oil/Shape1@2x.png">
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+
+                <button class="submitAddMR "
+                        ng-show="prohibitList[0].prohibitedMark != 'JZ'"
+                        ng-class="{canSubmitBlueColer: !!item.sendQty &&  ((prohibitList.length > 0 && item.reason && item.releaseType) || prohibitList.length == 0 )}"
+                        ng-disabled = " disabledFlage || !item.sendQty ||  (prohibitList.length > 0 && !item.reason && !item.releaseType)  "
+                        ng-click="submitMr()" style="margin: 1.5rem auto;display: block">提交</button>
+
+                <p style="text-align: center;line-height: .5rem" ng-if ="dataList.length > 0">
+                    ----------  待收料调拨合同  ----------
+                </p>
+                <div class="flight-wrap" ng-repeat="item in dataList track by $index" on-finish-render-filters >
+                    <div class="pubFlightList" swipe-delete-sv ng-class="{'sv-swipe-left-hide': item.status == 'X'}">
+                        <div class="delete-sv " >
+                            <div class="apu" ng-show="flight.type != 2 && !(flight.type == 0 && flight.departureStationJob && flight.departureStationJob.jobType == 'N/A')"
+                                 ng-click="go('receivingDetail', 'slideLeft',{orderItem:item.orderItem,orderNo:item.orderNo})"> 收料
+                            </div>
+                        </div>
+                        <div class="top clearfix">
+                            <span class="pull-left"  style="font-size: .75rem;font-weight: 600;display: inline-block;width: 60%">调配合同:<span style="font-weight: 500">{{item.contract}}</span></span>
+                            <span class="pull-right" style="font-size: .75rem;font-weight: 600;display: inline-block;width: 33.33%;text-align: right">
+                                     <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #cc2131 ;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-if="item.status == ''">
+                                        <span>待收货</span>
+                                    </span>
+                                    <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #5ddc71;text-align: center;padding: 0 .15rem;border-radius: .1rem"ng-if="item.status == 'X'" >
+                                         <span>已收货</span>
+                                    </span>
+                                </span>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">合同行:</span>
+                                <span style="width: 4rem">{{item.contractItem}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">件号:</span>
+                                <span style="width: 4rem;word-wrap:break-word">{{item.pn}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">批次:</span>
+                                <span style="width: 4rem">{{item.batchNo}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">序号:</span>
+                                <span style="width: 4rem">{{item.sn}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">发货数量:</span>
+                                <span style="width: 4rem">{{item.planQty}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">发货单位:</span>
+                                <span style="width: 4rem">{{item.unit}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">收货人:</span>
+                                <span style="width: 4rem">{{item.receiptName}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">收货时间:</span>
+                                <div style="width: 4rem" ng-show="item.receiptDay">
+                                    <span style="width: 4rem">{{item.receiptDay | limitTo: 4 }}.{{item.receiptDay | limitTo: 2:4 }}.{{item.receiptDay | limitTo: -2 }}</span>
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">收货航站:</span>
+                                <span style="width: 4rem">{{item.station}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">&nbsp;&nbsp;</span>
+                                <span style="width: 4rem" ng-show="item.receiptTime">{{item.receiptTime | limitTo: 2}}:{{item.receiptTime | limitTo: 2:2}}:{{item.receiptTime | limitTo:-2}}</span>
+                            </div>
+                        </div>
+                        <div style="margin: .1rem 0;padding: 0 0;">
+                            <div  style="width: 14rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">调配需求原因:</span>
+                                <span style="width: 10rem">{{allReason[item.reason].TEXT}}</span>
+                            </div>
+                        </div>
+                        <div style="margin: .1rem 0;padding: 0 0;">
+                            <div  style="width: 14rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">仓库描述:</span>
+                                <span style="width: 10rem">{{item.storeDescription}}</span>
+                            </div>
+                        </div>
+                        <div style="margin: .1rem 0;padding: 0 0;">
+                            <div  style="width: 14rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">架位:</span>
+                                <span style="width: 10rem">{{item.shelf}}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+            </div>
+        </div>
+        <!--        **********-->
+    </div>
+    <div class="damage-confirm" ng-show="item.showDes">
+        <div class="background"></div>
+        <div class="damage-confirm-box">
+            <div class="damage-confirm-con">
+                <div class="title" style="margin: 15px 0;text-align: center">描述详情</div>
+                <div>
+                    <textarea class="refuseText" readonly name="" style="overflow: scroll;min-height: 120px;margin: 0;"  ng-model="item.refuseReasonPend"></textarea>
+                </div>
+                <div class="buttons" style="border: none">
+                    <button style="width: 100%;border: none;" class="ensure" ng-click="item.showDes = false">确认</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,401 @@
+<div class="navbar navbar-app navbar-absolute-top">
+    <div class="navbar-brand navbar-brand-center">
+<!--        {{isEdit ? 'CC View' : 'Add CC'}}-->
+        查看 CC
+    </div>
+    <div class="btn-group btn-group-left">
+        <div class="btn" ng-click="go('back')">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+    </div>
+</div>
+<moac-body>
+    <div class="new-cc ddi-scrollable-content ccinfo" ng-class="">
+        <div class="cc-base">
+            <div class="title">基本信息</div>
+            <div class="info clearfix">
+                <p class="p-fl">CC NO：{{responObj.ccNo}}</p>
+                <p class="p-fl">状态：{{responObj.status == 'y' ? '已确认' : responObj.middleStatus.toUpperCase() == 'C' ? '待确认':'待提交' }}</p>
+            </div>
+            <div class="info clearfix">
+                <p class="p-fl">航班号：{{responObj.flightNo}}</p>
+                <p class="p-fl">
+                    <span ng-if="responObj.onAcType == 1 || responObj.offAcType == 1">飞机号：</span>
+                    <span ng-if="responObj.onAcType == 2 || responObj.offAcType == 2">序号：</span>
+                    {{responObj.onModel}}</p>
+            </div>
+            <div class="info clearfix" ng-if="responObj.onAcType == 2 || responObj.offAcType == 2">
+                <p class="p-fl">件号：{{responObj.opttype}}</p>
+            </div>
+            <div class="info clearfix" style="padding-bottom: .3rem">
+                <p class="p-fl" ng-switch="responObj.ccType">拆换类型：
+                    <span ng-switch-when="1">拆下</span>
+                    <span ng-switch-when="2">装上</span>
+                    <span ng-switch-when="3">拆换</span>
+                    <span ng-switch-when="4">串件</span>
+                </p>
+                <!--<p class="p-fl">来源文件：{{responObj.docNo}}</p>-->
+            </div>
+            <!--<div class="info clearfix" style="margin-bottom: .5rem">-->
+                <!--<p class="p-fl">TLB号：{{responObj.tlbNo}}</p>-->
+            <!--</div>-->
+        </div>
+
+        <div class="divider"></div>
+
+        <!--拆下部分-->
+        <div class="cc-base" ng-if="responObj.ccType != 2" >
+            <div class="title" style="margin-bottom: .5rem">拆下部件</div>
+            <div class="info clearfix">
+                <p class="p-fl" style="width:100%;">件号：{{responObj.offPn}}</p>
+            </div>
+            <div class="info clearfix">
+                <p style="width: 100%;" class="p-fl text-ellipsis">件号名称：{{responObj.offName}}</p>
+            </div>
+            <div class="info clearfix">
+                <p class="p-fl">序号：{{responObj.offSn}}</p>
+                <p class="p-fl">构型：<span style="font-size: .65rem;">{{responObj.cin}}</span> </p>
+            </div>
+
+            <div class="info clearfix" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">位置：{{responObj.offPosition}}</p>
+            </div>
+            <div class="info clearfix" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">是否退料：{{responObj.giveBack == 'Y' ? '是':'否'}}</p>
+            </div>
+            <div class="category clearfix" ng-if="offComponents.length > 0">
+                <div class="left p-fl">下级组件</div>
+                <div class="right normal p-fl" style="padding-right: .3rem;text-align: right" ng-click="goComponents(1)">
+                    {{offComponents.length}}<div class="next-fault-info icon-maoc icon-next-flight"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="divider"></div>
+
+        <!--装上部分-->
+        <div class="cc-base" ng-if="responObj.ccType != 1">
+            <div class="title" style="margin-bottom: .5rem">装上部件</div>
+            <div class="info clearfix">
+                <p class="p-fl" style="width:100%;">
+                    件号：{{responObj.onPn}}
+<!--                    <span style="color: #ce1111" ng-if="prohibitList[0].prohibitedMark === 'JZ'">禁</span>-->
+                    <span style="color:darkorange" ng-if="prohibitList[0].prohibitedMark === 'XZ'">禁限装</span>
+                </p>
+                <!-- <p class="p-fl">件号名称：{{responObj.onName}}</p> -->
+            </div>
+            <div class="info clearfix">
+                <!-- <p class="p-fl">件号：{{responObj.onPn}}</p> -->
+                <p style="width:100% ;" class="p-fl text-ellipsis">件号名称：{{responObj.onName}}</p>
+            </div>
+            <div class="info clearfix">
+                <p class="p-fl">序号：{{responObj.onSn}}</p>
+                <p class="p-fl">构型：<span style="font-size: .65rem;">{{responObj.onCin}}</span></p>
+            </div>
+
+            <div class="info clearfix" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">位置：{{responObj.onPosition}}</p>
+            </div>
+            <div class="category clearfix" style="height: auto" ng-if="prohibitList.length > 0">
+                <div class="text-ellipsis" style="width: 100%;" ng-repeat="data in prohibitList track by $index">
+                     <span ng-click="viewPdf(data)" style="line-height: 1.2rem;color: darkorange" >
+                        {{data.businessNo}};
+                    </span>
+                    <span style="line-height: 1.2rem;color: #1f76ff" ng-click="forbid.showDes = true;forbid.refuseReasonPend = data.remark">
+                        {{data.businessType == 'TB' ? data.remark || '请参考TB原文附件' : data.remark}}
+                    </span>
+                </div>
+            </div>
+<!--            <div class="category clearfix" ng-if="releaseType">-->
+<!--                <div class="left p-fl">放行类型</div>-->
+<!--                <div class="right normal p-fl" style="padding-right: .3rem;text-align: right" >-->
+<!--                    {{releaseType}}-->
+<!--                </div>-->auto
+<!--            </div>-->
+            <div class="category clearfix" style="height: auto" ng-if="responObj.releaseReason">
+                <p style="margin-bottom: 0">禁限装放行理由：</p>
+                <p>{{responObj.releaseReason}}</p>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!--其他信息-->
+        <div class="cc-base" style="padding-bottom: .5rem">
+            <div class="title" style="margin-bottom: .5rem">其他信息</div>
+            <div class="info clearfix">
+                <p class="p-fl" ng-switch="responObj.planType">计划类型：
+                     <span ng-switch-when="2">计划性</span>
+                     <span ng-switch-when="1">非计划性</span>
+                </p>
+                <p class="p-fl">拆换原因：{{workingReasonText}}</p>
+            </div>
+            <div class="info clearfix">
+                <p class="p-fl" ng-switch="responObj.airMaterialState">航材状态：
+                    <span ng-switch-when="USED">可用件</span>
+                    <span ng-switch-when="UNUSED">不可用件</span>
+                    <span ng-switch-when="WDISPOSE">待观察件</span>
+                </p>
+                <p class="p-fl">工作者：{{responObj.workerName + '(' + responObj.workerId + ')'}}</p>
+            </div>
+
+            <div class="info clearfix" >
+                <p class="p-fl" style="width: 100%">拆换时间：{{responObj.completeDate | date:'yyyy/MM/dd HH:mm'}}</p>
+            </div>
+
+            <div class="input-block clearfix">
+                <p class="p-fl" style="width: 20%">原因：</p>
+                <p class="p-fl" style="width: 80%">{{responObj.reason}}</p>
+            </div>
+
+            <div class="input-block clearfix">
+                <p class="p-fl" style="width: 20%">措施：</p>
+                <p class="p-fl" style="width: 80%">{{responObj.takenAction}}</p>
+
+            </div>
+
+            <div class="input-block clearfix">
+                <p class="p-fl" style="width: 20%">备注：</p>
+                <p class="p-fl" style="width: 80%">{{responObj.remark}}</p>
+
+            </div>
+
+
+        </div>
+        <div class="p-image"  style="padding-bottom: 5rem;">
+            <p>附件：</p>
+            <img-sel img-arr="$parent.imgArr" file-arr="$parent.fileArr" del-img-id="delImgId" attachvo="attachvo" is-edit="$parent.isEdit" ></img-sel>
+        </div>
+        <!--<div class="divider" style="height: 5rem"></div>-->
+        <div class="p-dtl-btn moshow" style="z-index: 9999">
+            <div class="item" ng-if="responObj.status != 'y'">
+                <div ng-click="editCC()">
+                    <i class="icon-edit"></i>
+                    <span>编辑</span>
+                </div>
+            </div>
+
+            <div class="item" ng-if="responObj.middleStatus != 'C'">
+                <div ng-click="delCC()">
+                    <i class="icon-del"></i>
+                    <span>删除</span>
+                </div>
+            </div>
+
+            <div class="item" ng-if="responObj.middleStatus != 'C'">
+                <div ng-click="subSap()">
+                    <i class="icon-to-mcc"></i>
+                    <span>提交附控</span>
+                </div>
+            </div>
+        </div>
+
+        <!--        <cc-install source="insertJson"-->
+<!--                    submit="submitMethod()"-->
+<!--                    ng-if="typeName=='Install'" acid="acid" onoff="onoff"></cc-install>-->
+<!--        <cc-remove source="insertJson"-->
+<!--                   is-detail="detail"-->
+<!--                   is-blur="blur"-->
+<!--                   get-method="method()"-->
+<!--                   submit="submitMethod()"-->
+<!--                   acid="acid"-->
+<!--                   onoff="onoff"-->
+<!--                   ng-if="typeName=='Remove'"></cc-remove>-->
+<!--        <cc-replace source="insertJson"-->
+<!--                    is-detail="detail"-->
+<!--                    is-blur="blur"-->
+<!--                    get-method="method()"-->
+<!--                    submit="submitMethod()"-->
+<!--                    acid="acid"-->
+<!--                    onoff="onoff"-->
+<!--                    ng-if="typeName=='Replace'"></cc-replace>-->
+<!--        <cc-swap source="insertJson"-->
+<!--                 submit="submitMethod()"-->
+<!--                 acid="acid"-->
+<!--                 onoff="onoff"-->
+<!--                 ng-if="typeName=='Swap'"-->
+<!--                ></cc-swap>-->
+
+
+    </div>
+<!--    <div class="p-cc" style="height: auto; background-color: #fff" ng-click="closeCC()" ng-show="!canEdit">-->
+<!--        <button class="cc-submit  mt135 active"  ng-if="isEdit">-->
+<!--            {{canEdit ? '保存' : '提交并关闭CC'}}-->
+<!--        </button>-->
+<!--    </div>-->
+    <!--<div style="height:400px;background-color: #f8f8f8;"></div>-->
+
+</moac-body>
+<div class="ewis-background" ng-if = "offSubComponents" style="z-index: 1002;background-color: #fff;">
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">拆下部件的下级组件
+            </div>
+            <div class="btn-group btn-back" style="z-index: 1000">
+                <div class="btn" ng-click="cancelCom()">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="oil-scroll">
+        <div class="fixed-search" style="background-color: #ccc;padding: 0.5rem 1rem;">
+            <div class="main" style="width: 100%">
+                <!--            <div class="cont" moac-auto-focus="searchVal">-->
+                <div class="cont">
+                    <input  type="text" ng-model="$parent.offSearchVal" name="offSearchVal" moac-ref="$parent.offSearchVal"
+                            placeholder="请输入件号"  ng-keypress="keyEvent($event)" style="padding: 0.2rem ;margin-left: .3rem;display: inline-block;width: 15rem"/>
+
+                </div>
+                <i  class="icon-maoc icon-flightSearch" ng-click="search()"></i>
+
+            </div>
+        </div>
+        <form name="mrForm" novalidate>
+            <div class="acSta oil-form-wrapper ">
+                <div style="margin-bottom:1rem" ng-repeat="item in $parent.offComponents | filter :{pn:$parent.offSearchVal}">
+                    <div class="oil-add-li" style="padding-bottom: 0.4rem">
+                        <div class="clearfix">
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">件号名称：{{item.name}}</p>
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">件号：{{item.onPn}}</p>
+                        </div>
+                        <div class="clearfix" >
+                            <p class="p-fl" style="width: 50%;font-size: .7rem;margin: 0">序号：{{item.onSn}}</p>
+                        </div>
+                    </div>
+                    <div class="oil-add-li">
+                        <span class="tail-eng-title" style="vertical-align:middle;">部件状态</span>
+                        <div class="inline-block display-result" style="color: #333" ng-switch="item.status">
+                            <label style="font-weight: 400" ng-switch-when="3">跟随</label>
+                            <label style="font-weight: 400" ng-switch-when="1">离位</label>
+                            <label style="font-weight: 400" ng-switch-when="2">拆换</label>
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">对应装上件号</span>
+                        <div class="inline-block display-result">
+                           {{item.offPn}}
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">对应装上件序号</span>
+                        <div class="inline-block display-result">
+                            {{item.offSn}}
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2' || item.status == '1'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">航材状态</span>
+                        <div class="inline-block display-result" ng-switch="item.airMaterialState">
+                            <span ng-switch-when="USED">可用件</span>
+                            <span ng-switch-when="UNUSED">不可用件</span>
+                            <span ng-switch-when="WDISPOSE">待观察件</span>
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2' || item.status == '1'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">是否退料</span>
+                        <div class="inline-block display-result" ng-switch="item.giveBack">
+                            <span ng-switch-when="Y">是</span>
+                            <span ng-switch-when="N">否</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="ewis-background" ng-if = "onSubComponents" style="z-index: 1002;background-color: #fff;">
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">装上部件的下级组件
+            </div>
+            <div class="btn-group btn-back" style="z-index: 1000">
+                <div class="btn" ng-click="cancelCom()">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="oil-scroll">
+        <div class="fixed-search" style="background-color: #ccc;padding: 0.5rem 1rem;">
+            <div class="main" style="width: 100%">
+                <!--            <div class="cont" moac-auto-focus="searchVal">-->
+                <div class="cont">
+                    <input  type="text" ng-model="$parent.offSearchVal" name="offSearchVal" moac-ref="$parent.offSearchVal"
+                            placeholder="请输入件号"  ng-keypress="keyEvent($event)" style="padding: 0.2rem ;margin-left: .3rem;display: inline-block;width: 15rem"/>
+
+                </div>
+                <i  class="icon-maoc icon-flightSearch" ng-click="search()"></i>
+
+            </div>
+        </div>
+        <form name="mrForm" novalidate>
+            <div class="acSta oil-form-wrapper ">
+                <div style="margin-bottom:1rem" ng-repeat="item in $parent.onComponents | filter :{pn:$parent.offSearchVal}">
+                    <div class="oil-add-li" style="padding-bottom: 0.4rem">
+                        <div class="clearfix">
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">件号名称：{{item.name}}</p>
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">件号：{{item.onPn}}</p>
+                        </div>
+                        <div class="clearfix" >
+                            <p class="p-fl" style="width: 50%;font-size: .7rem;margin: 0">序号：{{item.onSn}}</p>
+                        </div>
+                    </div>
+                    <div class="oil-add-li">
+                        <span class="tail-eng-title" style="vertical-align:middle;">部件状态</span>
+                        <div class="inline-block display-result" style="color: #333" ng-switch="item.status">
+                            <label style="font-weight: 400" ng-switch-when="3">跟随</label>
+                            <label style="font-weight: 400" ng-switch-when="1">离位</label>
+                            <label style="font-weight: 400" ng-switch-when="2">拆换</label>
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">对应装上件号</span>
+                        <div class="inline-block display-result">
+                            {{item.offPn}}
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">对应装上件序号</span>
+                        <div class="inline-block display-result">
+                            {{item.offSn}}
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2' || item.status == '1'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">航材状态</span>
+                        <div class="inline-block display-result" ng-switch="item.airMaterialState">
+                            <span ng-switch-when="USED">可用件</span>
+                            <span ng-switch-when="UNUSED">不可用件</span>
+                            <span ng-switch-when="WDISPOSE">待观察件</span>
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2' || item.status == '1'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">是否退料</span>
+                        <div class="inline-block display-result" ng-switch="item.giveBack">
+                            <span ng-switch-when="Y">是</span>
+                            <span ng-switch-when="N">否</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="damage-confirm" ng-show="forbid.showDes">
+    <div class="background"></div>
+    <div class="damage-confirm-box">
+        <div class="damage-confirm-con">
+            <div class="title" style="margin: 15px 0;text-align: center">描述详情</div>
+            <div>
+                <textarea class="refuseText" readonly name="" style="overflow: scroll;min-height: 120px;margin: 0;"  ng-model="forbid.refuseReasonPend"></textarea>
+            </div>
+            <div class="buttons" style="border: none">
+                <button style="width: 100%;border: none;" class="ensure" ng-click="forbid.showDes = false">确认</button>
+            </div>
+        </div>
+    </div>
+</div>

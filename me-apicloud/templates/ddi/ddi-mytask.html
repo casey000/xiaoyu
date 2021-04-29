@@ -1,0 +1,128 @@
+<div class="p-ddi-nav navbar-app navbar-absolute-top">
+    <div class=" navbar-brand-center ">
+        我的任务
+    </div>
+</div>
+<!--<moac-body>-->
+    <div class="p-mytask p-ddi">
+        <div class="scrollable">
+            <div class="scrollable-content" im-pull-to-refresh refresh-function="refresher()">
+                <!--下拉刷新时显示 -->
+                <div  ng-show="pullToRefreshActive " ng-class="{'refresh-hide': !pullToRefreshActive}" class="refresh text-center">
+                    <i class="fa fa-refresh fa-spin fa-fw"></i><translate>loading</translate>...
+                </div>
+                <div class="nodata" ng-if="!loading && mytaskData.length<=0">你还没有任务~</div>
+                <div class="mt-box ">
+                    <div class="mt-item " ng-repeat="data in mytaskData">
+                        <div ng-if="data.type != 'mr_approve' && data.type != 'NRC Editing' && data.type != 'NRC Checking' && data.type != 'NRC Approving'&& data.type.indexOf('cancelStock') == -1 && data.type.indexOf('APS') == -1 && data.type != 'FLIGHT_CREW_CHECK_TASK_OBJ_KEY' && data.type != 'ATTENDANCE_REPORT_WARNING'&& data.type != 'ATTENDANCE_REPORT_WARNING_MANGER' " ng-click="approve_go(data.id, data)">
+                            <div class="flex-box flex-box-pack-justify fz20">
+                                <div class="flex-box-flex">DDI{{data.auditStatus==5 ? '驳回' : (data.auditStatus==1 ? '编辑' : '检验')}}</div>
+                                <div class="flex-box-flex">{{data.dueDate | date:'yyyy/MM/dd'}}</div>
+                            </div>
+                            <div class="flex-box  flex-box-pack-justify pd14 fz20 mobile-compatible">
+                                <div class="flex-box-flex"><span class="color87">Defect No:</span>{{data.defectNo}}</div>
+                                <div class="flex-box-flex">
+                                    <span class="color87 ddiline" ng-click="go_faultClose(data,$event)">DDI No:view</span>
+                                </div>
+                                <div class="flex-box-flex fz18 color87">DDI申请日期:{{ data.createTime | date:'yyyy/MM/dd' }}
+                                </div>
+                            </div>
+
+                            <div ng-click="fold($event);mccRemark = !mccRemark"   ng-class="{true:'fold',false:'unfold'}[mccRemark]"  ng-init="mccRemark = true">
+                            <span class="pull-right"  >
+                                <i class="fa "  aria-hidden="true"   ng-class="{true:'fa-angle-down',false:'fa-angle-up'}[mccRemark]"> </i>
+                            </span>
+                                <div class="flex-box text color87">故障描述：{{data.faultReportChn}}</div>
+                            </div>
+                        </div>
+
+                        <!--MR审批经-->
+                        <div ng-if="data.type == 'mr_approve'"
+                             ng-click="go('mrApprove', '', {mrId: data.mrId, type: data.type, processId: data.id})">
+                            <div class="flex-box flex-box-pack-justify fz20">
+                                <div class="flex-box-flex">MR APPROVE</div>
+
+                            </div>
+                            <div class="flex-box  flex-box-pack-justify pd14 fz20 mobile-compatible">
+                                <div class="flex-box-flex"><span class="color87">MR No:</span> {{data.mrNo}}</div>
+                                <div class="flex-box-flex"><span class="color87">AC Reg:</span> {{data.acNo}}</div>
+                                <div class="flex-box-flex fz18"><span class="color87">Station:</span> {{data.station}}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!--NRC审批经-->
+                        <div ng-if="data.type == 'NRC Editing' || data.type == 'NRC Checking' || data.type == 'NRC Approving'"
+                             ng-click="go('nrcDetail', '', {nrcId:data.defectId})">
+                            <div class="flex-box flex-box-pack-justify fz20">
+                                <div class="flex-box-flex">{{data.name}}</div>
+                                <div class="fz18 color87" style="float: right">{{ data.createTime | date:'yyyy/MM/dd HH:mm' }}</div>
+                            </div>
+                            <div class="flex-box  flex-box-pack-justify pd14 fz20 mobile-compatible">
+                                <div class="flex-box-flex"><span class="color87">NRC No:</span> {{data.defectNo}}</div>
+                            </div>
+                        </div>
+
+<!--跟机检查单-->
+                        <div  ng-if="data.type == 'FLIGHT_CREW_CHECK_TASK_OBJ_KEY'" ng-click="go('flightReadyCheck', '', {id:data.businessId})">
+                            <div class="flex-box flex-box-pack-justify fz20" >
+                                <div class="flex-box-flex">跟机前准备</div>
+                                <div class="fz18 color87">{{ data.createTime | date:'yyyy/MM/dd HH:mm' }}</div>
+                            </div>
+<!--                            <div class="flex-box flex-box-pack-justify fz20" >-->
+<!--                                <div><span>{{data.acReg}}</span>({{data.modelSeries}})</div>-->
+<!--                            </div>-->
+                            <div class="flex-box flex-box-pack-justify fz20" style="margin-bottom: .1rem;margin-top: .3rem">
+                                <div class="fz18 color87">起飞时刻:{{ data.actionDate | date:'yyyy/MM/dd HH:mm' }}</div>
+                                <div class="fz18 color87">航班:{{data.flightNo}}</div>
+<!--                                <div>{{data.fromStation}}-{{data.toStation}}</div>-->
+                            </div>
+                        </div>
+
+                        <!--&lt;!&ndash;互必检待办 &ndash;&gt;-->
+                        <div ng-if="data.type.indexOf('APS') != -1" ng-click="go('riirciProcess', '', {type:data.workType,businessId:data.businessId,taskId:data.id,rci:data.isRci,rii:data.isRii,subType:data.subType})">
+                            <div class="flex-box flex-box-pack-justify fz20">
+                                <div class="flex-box-flex" ng-if="data.workType != 'DEFECT' && data.workType != 'TLB'"> <span ng-if="data.isRii">必检</span><span ng-if="data.isRci && !data.isRii">互检</span></div>
+                                <div class="flex-box-flex" ng-if="data.workType == 'DEFECT' || data.workType == 'TLB'"> <span ng-if="data.isRii == 'y'">必检</span><span ng-if="data.isRci == 'y'">互检</span></div>
+                                <div class="fz18 color87" style="float: right">{{ data.actionDate | date:'yyyy/MM/dd HH:mm' }}</div>
+                            </div>
+                            <div class="flex-box  flex-box-pack-justify pd14 fz20 mobile-compatible" style="width: 100%;display: block;margin-top: .25rem">
+                                <div class="flex-box-flex"><span class="color87">{{data.workType != 'FIXED_TASK' && data.workType != 'AIRLINE_TASK' ? data.workType :'LMJC  ' + data.subType  + '  ' + data.flightNo}} <span ng-if="data.workType != 'FIXED_TASK' && data.workType != 'AIRLINE_TASK'"> No:</span> </span> {{(data.workType !='DEFECT' && data.workType !='TLB') ?  (data.workType == 'FIXED_TASK' || data.workType == 'AIRLINE_TASK'? '': data.cardNo ):data.defectNo}}  <span style="float: right">{{data.acReg }}</span></div>
+                            </div>
+                        </div>
+
+                        <!--退料-->
+                        <div ng-if="data.type.indexOf('cancelStock') != -1"
+                             ng-click="go('ccStockReturn', '', {returnId:data.defectNo})">
+                            <div class="flex-box flex-box-pack-justify fz20">
+                                <div class="flex-box-flex">退料单确认</div>
+                                <div class="fz18 color87" style="float: right">{{ data.createTime | date:'yyyy/MM/dd HH:mm' }}</div>
+                            </div>
+                            <div class="flex-box  flex-box-pack-justify pd14 fz20 mobile-compatible">
+                                <div class="flex-box-flex"><span class="color87">退料单 No:</span> {{data.defectNo}}</div>
+                            </div>
+                        </div>
+
+<!-- 工时预警-->
+                        <div  ng-if="data.type == 'ATTENDANCE_REPORT_WARNING'|| data.type == 'ATTENDANCE_REPORT_WARNING_MANGER'" ng-click="go('restMakeUp', '', { id: data.businessId,type:data.type})">
+                            <div class="flex-box flex-box-pack-justify fz20">
+                                <div class="flex-box-flex">{{data.name}}</div>
+                                <div class="fz18 color87">{{data.createTime | date:'yyyy/MM/dd HH:mm:ss' }}</div>
+                            </div>
+                            <div class="flex-box flex-box-pack-justify fz20" style="margin-bottom: .1rem;margin-top: .3rem">
+                                <!--用户-->
+                                <div class="fz18 color87" ng-if="data.type == 'ATTENDANCE_REPORT_WARNING'">您的上班卡时长已达{{ data.count/60 | number:0   }}小时{{ data.count%60 | number:0   }}分</div>
+                                <!--管理员-->
+                                <div class="fz18 color87" ng-if="data.type == 'ATTENDANCE_REPORT_WARNING_MANGER'">[{{data.inspector}}]的上班卡时长已达{{ data.count/60 | number:0}}小时{{ data.count%60 | number:0}}分</div>
+                                <div class="fz18 color87">{{ data.actionDate | date:'yyyy/MM/dd '}}{{data.workType}}</div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <!--<div class="text-center"  ng-if="noMoreData && mytaskData.length" translate="loadingDone"></div>-->
+            </div>
+        </div>
+    </div>
+    </div>
+<!--</moac-body>-->
+

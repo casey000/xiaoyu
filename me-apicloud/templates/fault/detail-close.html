@@ -1,0 +1,252 @@
+﻿<ui-view name="ccInfo" ></ui-view>
+<div ng-show="!ccInfoView && !recordView" style="height: 100%">
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="navbar-brand navbar-brand-center">
+            <div class="ui-nav">
+                <div class="main">
+                    <div ng-class="{active:navIdx==1}" ng-click="changeMainNav(1)">基本信息</div>
+                    <div ng-class="{active:navIdx==2}" ng-click="changeMainNav(2)">处理列表</div>
+                </div>
+            </div>
+            <div style="position: absolute;top:0;right:0;width:3rem;height:100%;background: #4c5e76;z-index: 999;"
+                 ng-if="defectDetail.status.toUpperCase()==='O' || defectDetail.status.toUpperCase()==='M'" ng-click="changeTipState()">
+                <div class="ui-add"></div>
+            </div>
+        </div>
+        <div class="btn-group btn-group-left">
+            <div class="btn" ng-click="goBack()">
+                <i class="icon-maoc icon-back"></i>
+            </div>
+        </div>
+    </div>
+    <moac-body>
+        <div class="p-closeFaultDtl" ng-style="{'-webkit-overflow-scrolling':navIdx==1 ? 'touch':'auto'}">
+            <div class="ui-tip-bg" ng-click="changeTipState()" ng-show="showTipState"></div>
+            <div class="ui-tip" ng-show="showTipState" ng-click="changeTipState()">
+                <div ng-if="defectDetail.status.toUpperCase()==='O'">
+                    <div>
+                        <span  ng-click="go('addEditFaultMr', 'slideLeft', {defectDetail:defectDetail,timeId:curTimeParse,sapTaskId:defectDetail.sapTaskId})">Add MR</span>
+                        <!--<span ng-click="go('cc', 'slideLeft', {defectInfo:defectDetail})">Add CC</span>-->
+                        <span ng-if="defectDetail.category!='DFRL' && defectDetail.btnFlag.defectDeferral"
+                              ng-click="retain()">保留</span>
+<!--                        <span ng-if="defectDetail.btnFlag.defectDeferral"-->
+<!--                              ng-click="retain()">保留</span>-->
+                        <!--<span ng-if="defectDetail.category!='DFRL' && defectDetail.category!='PEND'"-->
+                              <!--ng-click="delay_button()">推迟</span>-->
+                        <span ng-if="defectDetail.btnFlag.defectPend"
+                              ng-click="delay_button()">推迟</span>
+                        <span ng-if="defectDetail.btnFlag.toNrc" ng-click="to_Nrc()">转NRC</span>
+
+                    </div>
+                </div>
+                <div ng-if="defectDetail.status.toUpperCase()==='M'">
+                    <div>
+<!--                        <span ng-click="go('addFaultMr', 'slideLeft', {defectDetail:defectDetail,timeId:curTimeParse})">Add MR</span>-->
+                        <span  ng-click="go('addEditFaultMr', 'slideLeft', {defectDetail:defectDetail,timeId:curTimeParse,sapTaskId:defectDetail.sapTaskId})">Add MR</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-dtl" ng-show="navIdx==1">
+                <fault-dtl fault-info="defectDetail"
+                           fault-data="defectData"
+                           ac-model="acModel"
+                           attach-list ="attachList"
+                           fault-report="faultReport"
+                           pend-list="pendList"
+                           pull-to-refresh-active="pullToRefreshActive"
+                           save-success="getFaultInfo()"
+                           loading="loading"
+                           add-fault="addfile()"
+                           damage-file="go('searchDamageByHand.damageDetail','slideLeft',{id:defectDetail.drBaseSubmitAsmsDTO.drAssessId,from:'searchDamageByHand'})"
+                           outline-file="go('experienceList.defectOutline','slideLeft',{defectId: defectDetail.id,from:'faultDetail'})"
+                           fault-file="go('faultFileRecord', 'slideLeft', {interfaceName: 'defect/findVoicePictureByDefectId', param:{defectId: defectDetail.id}})">
+                    <div class="to-mcc" ng-if="logList.length">
+                        <div class="title" ng-click="isShow=!isShow">
+                            <div class="name">MCC WorkLog</div>
+                            <div class="cont" ng-class="{close:isShow}" ><i class="icon-Shape"></i>
+                            </div>
+                        </div>
+                        <!--<div class="cont pad-show" style="width: 100%" ng-show="isShow">-->
+                            <!--<div style="margin:0.35rem;">-->
+                                <!--<table border="0" class="ui-table" style="margin: 0 auto">-->
+                                    <!--<thead>-->
+                                    <!--<tr>-->
+                                        <!--<td>Identify</td>-->
+                                        <!--<td>Date</td>-->
+                                        <!--<td>Station</td>-->
+                                        <!--<td>Section</td>-->
+                                        <!--<td>Worklog</td>-->
+                                        <!--<td>Description</td>-->
+                                        <!--<td>Analysis</td>-->
+                                        <!--<td>Owner</td>-->
+                                        <!--<td>Relation Defect</td>-->
+                                    <!--</tr>-->
+                                    <!--</thead>-->
+                                    <!--<tbody>-->
+                                    <!--<tr ng-repeat="log in logList">-->
+                                        <!--<td>{{log.flag}}</td>-->
+                                        <!--<td>{{log.troubleDate | date:'yyyy-MM-dd'}}</td>-->
+                                        <!--<td>{{log.station}}</td>-->
+                                        <!--<td>{{log.section}}</td>-->
+                                        <!--<td>{{log.workLog}}</td>-->
+                                        <!--<td>{{log.remark}}</td>-->
+                                        <!--<td>{{log.analysis}}</td>-->
+                                        <!--<td>{{log.userName}}</td>-->
+                                        <!--<td>{{log.relatedDefectNo}}</td>-->
+                                    <!--</tr>-->
+                                    <!--</tbody>-->
+                                <!--</table>-->
+                            <!--</div>-->
+                        <!--</div>-->
+                        <div class="cont" ng-show="isShow" style="width: 100%;">
+                            <!--<div style="margin:0.35rem; padding-bottom: .5rem;">-->
+                                <table border="0" class="ui-table" style="margin: .35rem auto" ng-repeat="log in logList">
+                                    <tr>
+                                        <td><em>Identify</em> </td>
+                                        <td>{{log.flag}}</td>
+                                        <td><em>Date</em></td>
+                                        <td style="width: 26.5%;">{{log.troubleDate | date:'yyyy-MM-dd'}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><em>Station</em></td>
+                                        <td>{{log.station}}</td>
+                                        <td><em>Section</em></td>
+                                        <td>{{log.section}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><em>Worklog</em></td>
+                                        <td class="wrap" colspan="3"> {{log.workLog}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><em>Description</em></td>
+                                        <td class="wrap" colspan="3"> {{log.remark}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><em>Analysis</em></td>
+                                        <td colspan="3" class="wrap">{{log.analysis}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><em>Owner</em></td>
+                                        <td colspan="3">{{log.userName}}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="wrap"><em>Relation Defect</em></td>
+                                        <td colspan="3">{{log.relatedDefectNo}}</td>
+                                    </tr>
+                                </table>
+                            <!--</div>-->
+                        </div>
+                    </div>
+                    <div class="ui-list-tb clearfix" ng-if="!isEdit" style="margin-bottom: 0;line-height: 1.5rem;background-color: #eee;height: 1.5rem;padding: 0 .5rem;position: relative">
+                        <span class="pull-left" style="font-size: .7rem">排故帮助</span>
+                        <span class="" >
+                             <i style="top:-0.2rem;" class="icon-maoc icon-flightSearch" ng-click="helpSearch()"></i>
+                        </span>
+                    </div>
+                    <div class="ui-list-tb" ng-if="!isEdit && defectDetail.relatedDefectList.length > 0" style="background-color:#fff;padding: 0 .2rem">
+                        <div class="tit clearfix" style="height:1.8rem;line-height: 1.8rem;border-bottom: 0.5px solid #ddd ">
+                            <span class="pull-left" style="font-size: 0.8rem;font-weight: 600">相关故障</span>
+                            <span class="pull-right" style="color:#1989FA;font-size: .7rem" ng-click="lookMore('relatedDefectList')">查看更多<i class="icon-maoc icon-next-flight" style="color:#1989FA;margin-left: 0"></i></span>
+                        </div>
+                        <div class="" style="">
+                            <div  class="sec-tit ellipsis-two" ng-repeat="item in defectDetail.relatedDefectList" ng-click="tmcDetail(item.id,'relatedDefectList')" ng-bind-html = "item.title | to_trusted" ng-if="$index < 5" style="padding: 0.5rem 0;font-size: .7rem;line-height: 1.2rem;border-bottom: 0.5px solid #ddd ;color: #333">
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="ui-list-tb" ng-if="!isEdit && defectDetail.tmcExpList.length > 0" style="background-color:#fff;padding: 0 .2rem">
+                        <div class="tit clearfix" style="height:1.8rem;line-height: 1.8rem;border-bottom: 0.5px solid #ddd ">
+                            <span class="pull-left" style="font-size: 0.8rem;font-weight: 600">TMC经验</span>
+                            <span class="pull-right" style="color:#1989FA;font-size: .7rem"  ng-click="lookMore('tmcExperienceList')">查看更多<i class="icon-maoc icon-next-flight" style="color:#1989FA;margin-left: 0"></i></span>
+                        </div>
+                        <div class="" style="">
+                            <div ng-repeat="item in defectDetail.tmcExpList" ng-if="$index < 3" ng-click="tmcDetail(item.id,'tmcExperienceList')" class="sec-tit" style="padding: 0.5rem 0;font-size: .7rem;line-height: 1.3rem;border-bottom: 0.5px solid #ddd ;color: #333">
+                                <div class="ellipsis-two" ng-bind-html = "item.title | to_trusted"></div>
+                                <div class="ellipsis-two" ng-bind-html = "item.content | to_trusted" style="font-size: .6rem;line-height: 1rem;color: #757575;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ui-list-tb" ng-if="!isEdit && defectDetail.airlineExpList.length > 0" style="background-color:#fff;padding: 0 .2rem">
+                        <div class="tit clearfix" style="height:1.8rem;line-height: 1.8rem;border-bottom: 0.5px solid #ddd ">
+                            <span class="pull-left" style="font-size: 0.8rem;font-weight: 600">航线经验</span>
+                            <span class="pull-right" style="color:#1989FA;font-size: .7rem" ng-click="lookMore('airlineExpList')">查看更多<i class="icon-maoc icon-next-flight" style="color:#1989FA;margin-left: 0"></i></span>
+                        </div>
+                        <div class="" style="">
+                            <div ng-repeat="item in defectDetail.airlineExpList" ng-click="tmcDetail(item.id,'airlineExpList')" ng-if="$index < 3" class="sec-tit" style="padding: 0.5rem 0;font-size: .7rem;line-height: 1.3rem;border-bottom: 0.5px solid #ddd ;color: #333">
+                                <div class="ellipsis-two" ng-bind-html = "item.title | to_trusted"></div>
+                                <div class="ellipsis-two" ng-bind-html = "item.content | to_trusted" style="font-size: .6rem;line-height: 1rem;color: #757575;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ui-list-tb" ng-if="!isEdit && defectDetail.relatedDocList.length > 0" style="background-color:#fff;padding: 0 .2rem">
+                        <div class="tit clearfix" style="height:1.8rem;line-height: 1.8rem;border-bottom: 0.5px solid #ddd ">
+                            <span class="pull-left" style="font-size: 0.8rem;font-weight: 600">相关文档</span>
+                            <span class="pull-right" style="color:#1989FA;font-size: .7rem" ng-click="lookMore('relatedDocList')">查看更多<i class="icon-maoc icon-next-flight" style="color:#1989FA;margin-left: 0"></i></span>
+                        </div>
+                        <div class="material-content-top materialname clearfix" style="">
+                            <div ng-repeat="item in defectDetail.relatedDocList" ng-if="$index < 3" style="border-bottom: 0.5px solid #ddd ;color: #333">
+                                <div  class="pull-left " style="font-size: .7rem;font-weight: 500;line-height: 1.5rem;padding: 0.5rem 0;" ng-switch="item.type">
+                                    <span ng-switch-when="EO">[EO]</span>
+                                    <span ng-switch-when="EA">[EA]</span>
+                                    <span ng-switch-when="em_tb">[TB]</span>
+                                    <span ng-switch-when="mp_jc">[MP]</span>
+                                </div>
+                                <div class="sec-tit ellipsis-two"  ng-click="docDetail(item.id,item.type)" ng-bind-html = "item.title | to_trusted"  style="padding: 0.5rem 0;font-size: .7rem;line-height: 1.5rem;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </fault-dtl>
+            </div>
+            <div class="p-list" style="overflow: hidden" ng-show="navIdx==2">
+                <div class="p-list-nav">
+                    <div ng-class="{active:listIdx==1,empty:listIdx!=1 && tlbInfoList.length == 0}" ng-click="changeNav(1)">排故措施</div>
+                    <div ng-class="{active:listIdx==2, empty:listIdx!=2 && mrList.length == 0}" ng-click="changeNav(2)">MR</div>
+                    <div ng-class="{active:listIdx==3, empty:listIdx!=3 && ddiList.length == 0}" ng-click="changeNav(3)">DDI</div>
+                    <div ng-class="{active:listIdx==4, empty:listIdx!=4 && pendingList.length == 0}" ng-click="changeNav(4)">PENDING</div>
+                    <div ng-class="{active:listIdx==5, empty:listIdx!=5 && toList.length == 0}" ng-click="changeNav(5)">TO</div>
+                    <!--<div ng-class="{active:listIdx==6}" ng-click="changeNav(6)">CC</div>-->
+                </div>
+                <div class="p-list-body" style="" im-pull-to-refresh refresh-function="getFaultInfo()" fault-handle="true">
+                    <!--下拉刷新时显示 -->
+                    <div  ng-show="pullToRefreshActive2 " ng-class="{'refresh-hide': !pullToRefreshActive2}" class="refresh text-center">
+                        <i class="fa fa-refresh fa-spin fa-fw"></i><translate>loading</translate>...
+                    </div>
+                    <div class="fault-empty" ng-if="listIdx == 1 && tlbInfoList ==0 || listIdx ==2 && mrList.length ==0
+                    || listIdx == 3 && ddiList.length ==0 || listIdx == 4 && pendingList.length == 0 || listIdx == 5 && toList.length == 0">
+                        暂无数据
+                    </div>
+                    <div ng-show="listIdx==1" style="overflow: visible;">
+                        <fault-handle edit="false" handle-info="handle" to-info="toList" cc-list="ccList"
+                                      fault-info="defectDetail"
+                                      ac-model="acModel"
+                                      fault-report="faultReport"
+                                      save-success="getFaultInfo()"
+                                      ng-repeat="handle in tlbInfoList | orderBy: 'dateAction': true"
+                                      on-finish-render-filters
+                                      fault-handle-file="go('searchFault.faultClose.faultFileRecord', 'slideLeft', {param: {actionId: handle.actionId},interfaceName: 'defect/findPictureByActionId'})"></fault-handle>
+                    </div>
+                    <div ng-show="listIdx==2" style="background: #f8f8f8;overflow: auto">
+                        <fault-mr mr-info="mr" fault-info="defectDetail"
+                                  change-edit="go('addFaultMr', 'slideLeft', {mrInfo:mr,defectDetail:defectDetail,timeId:curTimeParse,sapTaskId:mr.sapTaskId})"
+                                  ng-repeat="mr in mrList"></fault-mr>
+                    </div>
+                    <div ng-show="listIdx==3" style="overflow: auto">
+                        <fault-ddi padding-info="padding" fault-info="defectDetail"
+                                   ng-repeat="padding in pendList" ng-if="padding.category=='DFRL'"></fault-ddi>
+                    </div>
+                    <div ng-show="listIdx==4" style="overflow: auto">
+                        <fault-padding padding-info="padding" fault-info="defectDetail"
+                                       ng-repeat="padding in pendList" ng-if="padding.category=='PEND'"></fault-padding>
+                    </div>
+                    <div ng-show="listIdx==5" style="overflow: auto">
+                        <fault-to to-info="to" fault-info="defectDetail" ng-repeat="to in toList"></fault-to>
+                    </div>
+                    <!--<div ng-show="listIdx==6" style="overflow: auto">-->
+                    <!--<fault-cc cc-info="cc" fault-info="defectDetail" ng-repeat="cc in ccList" cc-file="go('faultFileRecord', 'slideLeft', {interfaceName:'cc/findAttachmenByCCId', param:{ccId: cc.id}})"></fault-cc>-->
+                    <!--</div>-->
+                </div>
+            </div>
+        </div>
+    </moac-body>
+</div>

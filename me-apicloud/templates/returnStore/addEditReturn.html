@@ -1,0 +1,381 @@
+<div class="navbar navbar-app navbar-absolute-top">
+    <div class="navbar-brand navbar-brand-center">
+        {{isEdit ? '编辑退库单' : '新增退库单'}}
+
+    </div>
+    <div class="btn-group btn-group-left">
+        <div class="btn" ng-click="go('back')">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+    </div>
+    <div class="btn-group btn-group-right" style="color: #fff">
+        <div class="btn">
+<!--            <i style="top: 7px;color: #fff" class="tlb-scan tlb-img" ng-click="scan()"></i>-->
+            <img ng-click="scan()" style="position: absolute;top:8px;right:.3rem;z-index: 10; width: 22px;height: 22px;margin: 5px;text-align: center;" class="tlb-img" src="dist/images/whiteScan.png" alt="">
+        </div>
+    </div>
+</div>
+<moac-body>
+    <div class="new-cc ddi-scrollable-content" ng-class="">
+        <div class="cc-base" style="padding-top: 0">
+            <div class="category clearfix">
+                <div class="left p-fl">退料类型<span class="red">*</span></div>
+                <div class="right p-fl" style="text-align: right">
+                    <select ng-show ="!isEdit" ng-model="insertJson.cancelStockType"
+                            class="cateSel"
+                            ng-class = "{'noPick':isEdit}"
+                            ng-options=" v.VALUE as v.TEXT for v in typeData"
+                            <!--ng-change="refChange(typeName)"-->
+                            required
+                    >
+                    </select>
+                    <span ng-show ="isEdit" style="color: #999;text-align: right" ng-switch="insertJson.cancelStockType">
+                        <span ng-switch-when="2">
+                            领出未用退料
+                        </span>
+                        <span ng-switch-when="3">
+                            拆下无序号件退料
+                        </span>
+                        <span ng-switch-when="4">
+                            装机未用退料
+                        </span>
+                        <span ng-switch-when="5">
+                            改装包退料
+                        </span>
+                    </span>
+                </div>
+                <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">件号<span class="red">*</span></div>
+                <div class="right normal p-fl" ng-show="!isEdit">
+                    <select-nrcpn  pn-info="onPn"></select-nrcpn>
+                </div>
+                <div class="right normal p-fl" ng-show="isEdit">
+                    <input ng-readonly="isEdit" type="text" ng-model="insertJson.pn" placeholder="">
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">MR编号<span class="red" ng-if="insertJson.cancelStockType !=3">*</span></div>
+                <div class="right p-fl">
+                    <input type="text" readonly ng-show="!fromHome" ng-click="toMrList()" ng-model="insertJson.mrNo" placeholder="请选择MR编号" style="text-align: center">
+                    <input type="text" ng-show="fromHome" ng-model="insertJson.mrNo" placeholder="请选择MR编号">
+                </div>
+                <img style="width: 9px;top:.9rem;right:8px;" ng-show="!fromHome" class="triangle" src="dist/images/oil/Shape1@2x.png">
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">批次号<span ng-if="insertJson.cancelStockType != 3" class="red">*</span></div>
+                <div class="right normal p-fl">
+                    <input type="text" ng-readonly="isEdit" ng-model="insertJson.batchNo" placeholder="请输入批次号">
+                </div>
+            </div>
+
+            <div class="category clearfix">
+                <div class="left p-fl">序号<span class="red" ng-if="onPn.udro && onPn.udro !== 0 && insertJson.cancelStockType != 3">*</span></div>
+                <div class="right normal p-fl">
+                    <input ng-readonly="isEdit" type="text" ng-model="insertJson.sn" placeholder="请输入序号">
+                </div>
+            </div>
+<!--            <div class="category clearfix">-->
+<!--                <div class="left p-fl">退料单状态<span class="red">*</span></div>-->
+<!--                <div class="right normal p-fl" style="text-align: right">-->
+<!--                    {{insertJson.cancelStockStatus ? '实物登记':'新建'}}-->
+<!--                </div>-->
+<!--            </div>-->
+
+<!--            <div class="category mrShow">-->
+<!--                <p>发料单位：<span class="p-fr" style="padding-right: 10px">{{onPn.chunit}}</span></p>-->
+<!--&lt;!&ndash;                <p>发料单位：<span class="p-fr" style="padding-right: 10px">{{insertJson.unit}}</span></p>&ndash;&gt;-->
+
+<!--            </div>-->
+            <div class="category mrShow" ng-show = "insertJson.mrNo && insertJson.cancelStockType != 5">
+                <p>发料数量：<span class="p-fr" style="padding-right: 10px">{{insertJson.qty}}</span></p>
+            </div>
+            <div class="category mrShow" ng-show = "insertJson.mrNo && insertJson.cancelStockType == 5">
+                <p>发料数量：<span class="p-fr" style="padding-right: 10px"></span></p>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl" style="width: 30%">退料数量<span class="red">*</span></div>
+                <div class="right p-fl" style="width: 70%">
+                    <input style="width: 95%" type="number" ng-model="insertJson.cancelStockQty" placeholder="请输入退料数量（限整数）">
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">退料单位<span class="red">*</span></div>
+                <div class="right p-fl"   ng-click="searchTip()">
+                    <select ng-model="insertJson.unit"
+                            class="cateSel"
+                            style="margin-right: .5rem"
+                            ng-options=" x for x in materialUnit"
+                            ng-disabled="!materialUnit.length"
+                            required>
+                    </select>
+                </div>
+                <img style="width: 9px;top:.9rem;right:4px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">航材状态<span class="red">*</span></div>
+                <div class="right p-fl">
+                    <select ng-model="insertJson.airMaterialState"
+                            class="cateSel"
+                            ng-options=" v.VALUE as v.TEXT for v in materialData"
+                    <!--ng-change="refChange(typeName)"-->
+                    required
+                    >
+                    </select>
+                </div>
+                <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+
+        <div class="cc-base" style="padding-top: 0">
+            <div class="category clearfix" style="border: none">
+                <div class="left p-fl">目的航站<span class="red">*</span></div>
+                <div class="right normal p-fl">
+                    <select-station-three title="toStation" station-info="staInfo"></select-station-three>
+                </div>
+            </div>
+<!--            <div class="category clearfix" ng-hide = "!fromHome">-->
+<!--                <div class="left p-fl">工作航站<span class="red">*</span></div>-->
+<!--                <div class="right normal p-fl">-->
+<!--                    <select-station-three title="toStation" station-info="workStation"></select-station-three>-->
+<!--                </div>-->
+<!--            </div>-->
+            <div class="category clearfix" ng-hide = "fromHome">
+                <div class="left p-fl">工作航站</div>
+                <div class="right normal p-fl">
+                    <input type="text" readonly ng-model="insertJson.fromStation">
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">是否随机<span class="red">*</span></div>
+                <div class="right normal p-fl" style="text-align: right">
+                    <label style="font-weight: 400"><input type="radio" name="comStatus" ng-disabled="staInfo.station.toUpperCase() == insertJson.fromStation.toUpperCase()"  ng-value="1" ng-model="insertJson.transport" ng-checked="insertJson.transport == '1'">YES</label>
+                    <label style="font-weight: 400"><input type="radio" name="comStatus" ng-disabled="staInfo.station.toUpperCase() == insertJson.fromStation.toUpperCase()" ng-value="2"  ng-model="insertJson.transport" ng-checked="insertJson.transport == '2'">NO</label>
+                </div>
+            </div>
+<!--            <div class="category clearfix" ng-if="isEdit">-->
+<!--                <div class="left p-fl">是否退料<span class="red">*</span></div>-->
+<!--                <div class="right normal p-fl">-->
+<!--                    <label style="font-weight: 400"><input type="radio" name="noNeed"  ng-value="y" ng-model="insertJson.noNeed" ng-checked="insertJson.noNeed == 'y'">YES</label>-->
+<!--                    <label style="font-weight: 400"><input type="radio" name="noNeed"  ng-value="n"  ng-model="insertJson.noNeed" ng-checked="insertJson.noNeed == 'n'">NO</label>-->
+<!--                </div>-->
+<!--            </div>-->
+
+
+        </div>
+
+
+
+
+
+        <div class="divider"></div>
+
+        <!--其他信息-->
+        <div class="cc-base" style="padding-top: 0">
+            <div class="category clearfix" style="border: none">
+                <div class="left p-fl" style="width: 20%;">退料人<span class="red">*</span></div>
+                <div class="right normal p-fl" style="width: 80%;">
+                    <select-person  is-auto-loginercode="!isEdit"  person-info="mech"></select-person>
+                </div>
+            </div>
+            <div class="category clearfix" style="border-bottom: .5px solid #eee">
+                <div class="left p-fl">退料时间<span class="red">*</span></div>
+                <div class="right normal p-fl">
+                    <input style="padding-left:0;width: 14em" ng-if="!android" name="dateFound" type="datetime-local" class="fount-date form-control select-require-date framecolor padding-fixed" ng-model="insertJson.sendBackTime" step="1800">
+                    <input style="padding-left:0;width: 12em" ng-if="android" name="dateFound" type="datetime-local" class="fount-date" ng-model="insertJson.sendBackTime" step="1800">
+
+                </div>
+            </div>
+
+            <div class=" clearfix input-block">
+                <p>拆下挂签里的拆下故障原因<span class="red">*</span></p>
+                <textarea ng-model="insertJson.reason"  maxlength="500" placeholder="最多可输入500字"></textarea>
+            </div>
+            <div class="p-image" ng-if="!isEdit">
+                <div>附件：</div>
+                <img-select img-arr="$parent.$parent.imgArr" file-arr="$parent.$parent.fileArr"
+                            attachvo="attachvo" del-img-id="delImgId"></img-select>
+            </div>
+            <div class="p-image" ng-if="isEdit">
+                <div>附件：</div>
+                <img-upload file-id="$parent.$parent.fileId" up-way="$parent.$parent.upWay" is-edit="true"  nrc-id="$parent.$parent.insertJson.id" img-array="$parent.$parent.imgArr" file-arr="$parent.$parent.fileArr2" del-img-id="delImgId"  attachvo="attachvo"></img-upload>
+            </div>
+            <div ng-show="showPack && insertJson.cancelStockType == '2'">
+                <div class="category clearfix" style="border-bottom: .5px solid #eee">
+                    <div class="left p-fl">退库方式<span class="red">*</span></div>
+                    <div class="right normal p-fl">
+                        <label style="font-weight: 400"><input type="radio" name="allPackage"  value="y" ng-model="$parent.allPackage" ng-checked="$parent.allPackage == 'y'">整包</label>
+                        <label style="font-weight: 400"><input type="radio" name="allPackage"  value="n" ng-model="$parent.allPackage" ng-checked="$parent.allPackage == 'n'">余料</label>
+                    </div>
+                </div>
+                <div class="category clearfix" ng-show="allPackage == 'n'" style="border-top: 0;border-bottom: .5px solid #ddd;height: auto" >
+                    <div class="tit p-fl" style="font-size: .65rem">改装包剩余航材清单</div>
+                    <div class="item p-fr" style="font-size: .65rem">
+                        <div style="display:inline-block; width: 100%;text-align: center;vertical-align: middle;font-size: .7rem" ng-click="addMateriate()">
+                            <img src="dist/images/Group2.png" width="20" style="max-width: 100%" alt="" />
+                            添加航材
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="sv-list-wrapper" ng-show="showPack && insertJson.cancelStockType == '2' && allPackage == 'n'">
+                <ul style="width: 100%">
+                    <li class="return" style="border-bottom: .5px solid #ddd;position: relative" ng-repeat="item in mrDto track by $index" swipe-delete-sv-started  >
+<!--                        <div class="zhezhao" ng-if="!item.success"></div>-->
+                        <span ng-if="item.success && item.success == '1'" style="color: #2ac845;font-size: .65rem;position: absolute;right:.4rem;top:1rem;">成功</span>
+                        <span ng-if="item.success && item.success == '0'" style="color: red;font-size: .65rem;position: absolute;right:.4rem;top:1rem;">失败</span>
+                        <div class="start-edit" style="height: 60px;line-height: 60px;width: 110px;margin-right: -125px">
+                            <span class="edit" style="height: 60px;line-height: 60px;width: 55px;" ng-click="editSv(item,$event,$index)">编辑</span>
+                            <span class="started-delete" style="height: 60px;line-height: 60px;width: 55px" ng-click="deleteSv(item,$event,$index)">删除</span>
+                        </div>
+                        <div class="first-line ">
+                            <div class="clearfix" style="width: 100%">
+                                <span class="p-fl" style="font-size: 14px; width: 50%">件号：{{item.childPn}}</span>
+                                <span class="time-length p-fr" style="font-size: 14px; width: 50%">序号：{{item.childSn}}</span>
+                            </div>
+                        </div>
+                        <div class="sec-line">
+                            <div class="clearfix" style="width: 100%">
+                                <span class="p-fl" style="font-size: 14px; width: 50%">退料数量：{{item.childQty}}</span>
+                                <span class="p-fr" style="font-size: 14px; width: 50%">退料单位：{{item.childUnit}}</span>
+                            </div>
+                            <!--<img src="dist/images/special-vehicle/shijian@2x.png">-->
+
+                        </div>
+
+                    </li>
+                </ul>
+            </div>
+            <div class="p-cc" style="height: auto; background-color: #fff"  ng-click="submitMethod()" >
+                <button  class="cc-submit  mt135 active"  style="background-color: #1a87ff;">
+                    提交
+                </button>
+
+            </div>
+            <!--<div class=p-cc" style="height: auto; background-color: #fff"  ng-click="submitSap()" >-->
+                <!---->
+            <!--</div>-->
+            <div style="height:400px;background-color: #f8f8f8;"></div>
+        </div>
+        <div class="divider" style="height: 5rem"></div>
+    </div>
+
+
+</moac-body>
+<div class="ewis-background" ng-if = "chooseMr" style="z-index: 1002;background-color: #fff;">
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">MR选择
+            </div>
+            <div class="btn-group btn-back" style="z-index: 1000">
+                <div class="btn" ng-click="$parent.chooseMr = false">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="oil-scroll">
+        <form name="mrForm" novalidate>
+            <div class="acSta oil-form-wrapper " ng-if="$parent.mrList.length > 0">
+                <div style="margin-bottom:1rem" ng-repeat="item in $parent.mrList track by $index">
+                    <div class="oil-add-li" style="padding-bottom: 0.4rem">
+                        <div class="clearfix">
+                            <label ng-click="takeMr(item)" style="font-weight: 400;line-height: normal;vertical-align: middle"><input type="radio" name="comStatus" ng-checked="$parent.insertJson.mrNo == item.mrNo"  ng-value="item.mrNo">MR号：{{item.mrNo}}</label>
+                        </div>
+                        <div class="clearfix">
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">件号：{{item.pn}}</p>
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">批次号：{{item.batchNo}}</p>
+                        </div>
+                        <div class="clearfix" >
+                            <p class="p-fl" style="width: 50%;font-size: .7rem;">序号：{{item.sn}}</p>
+                            <p class="p-fl" style="width: 50%;font-size: .7rem;">发货数量：{{item.qty}}</p>
+                        </div>
+                        <div class="clearfix" >
+                            <p class="p-fl" style="width: 50%;font-size: .7rem;">发料单位：{{item.unit}}</p>
+                            <p class="p-fl" style="width: 50%;font-size: .7rem;">任务类型：{{item.workType}}</p>
+                        </div>
+                        <div class="clearfix" >
+                            <p class="p-fl" style="width: 50%;font-size: .7rem;">任务编号：{{item.workNumber}}</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="ewis-background" ng-if = "addMrFlow" style="z-index: 1002">
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">添加航材
+            </div>
+            <div class="btn-group btn-back" style="z-index: 1000">
+                <div class="btn" ng-click="$parent.addMrFlow = false">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="oil-scroll">
+        <form name="mrForm" novalidate>
+            <div class="oil-form-wrapper">
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">件号<span class="red">*</span></span>
+                    <div class="inline-block display-result">
+                        <select-nrcpn pn-info="$parent.mrInfo.nrcPn"></select-nrcpn>
+                    </div>
+                </div>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">序号<span class="red" ng-if="$parent.mrInfo.nrcPn.udro && $parent.mrInfo.nrcPn.udro !== 0">*</span></span>
+                    <div class="inline-block display-result">
+                        <input type="text"  style="border: none;" placeholder="请输入序号" class="oil-input" ng-model = "$parent.mrInfo.sn">
+                    </div>
+                </div>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">退料数量<span class="red">*</span></span>
+                    <div class="inline-block display-result">
+                        <input type="text"  style="border: none;" placeholder="请输入数量" ng-readonly="$parent.mrInfo.nrcPn.udro && $parent.mrInfo.nrcPn.udro !== 0"   class="oil-input" ng-model = "$parent.mrInfo.qty">
+                    </div>
+                </div>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title">退料单位<span class="red">*</span></span>
+                    <div class="inline-block display-result">
+
+                        <select name=""
+                                class="b-select-mel b-flex-box remove-type"
+                                ng-model="$parent.mrInfo.nrcPn.chunit"
+                                ng-options=" v as v for v in $parent.mrInfo.nrcPn.unit"
+                                required
+                        >
+                        </select>
+                        <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+
+                    </div>
+                </div>
+
+                <div class="button-wrapper" >
+                    <button class="submitAddMR"
+                            ng-class="{
+                                'orange-button':$parent.mrInfo.nrcPn.partno &&
+                                                $parent.mrInfo.qty
+                                               }"
+                            ng-disabled="$parent.mrInfo.nrcPn.partno.length == 0 || !$parent.mrInfo.nrcPn.partno ||
+                                         $parent.mrInfo.qty.length == 0 || !$parent.mrInfo.qty "
+                            ng-click="addmrSure()" >
+                        提交
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+

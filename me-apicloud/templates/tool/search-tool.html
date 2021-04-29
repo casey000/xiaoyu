@@ -1,0 +1,194 @@
+<!--<div ui-content-for="title"></div>-->
+<ui-view name="record"></ui-view>
+<div class="navbar navbar-app navbar-absolute-top" hide-type-list>
+	<div class="clearfix top-title">
+		<div class="navbar-brand navbar-brand-center tool-nav" ng-class="{'pointer-events':loading}">
+			<div data-type='stock' date-url="me/tool/inventory" class="title-active" switch-title>
+				<span translate="mr.stock"></span>
+			</div>
+			<div data-type='lend' date-url="me/tool/inventory" switch-title>
+				<span translate="tool.lend"></span>
+			</div>
+			<!--<div ng-click="go('searchTool.stock');hoderValue='至少两位 PN,三字码,工具名'" data-type='stock' 
+				date-url="me/tool/inventory" class="title-active" switch-title>
+				<span>库存</span>
+			</div>
+			<div ng-click="go('searchTool.lend');hoderValue='至少两位 PN,三字码,工具名,工号'" data-type='lend' 
+				date-url="me/tool/lending" switch-title >
+				<span>借出</span>
+				
+			</div>-->
+		</div>
+		<div class="btn-group btn-back">
+			<div class="btn" ng-click="go('back')">
+				<i class="icon-maoc icon-back" ></i>
+			</div>
+		</div>
+		<div class="btn-group btn-group-right">
+			<div  class="btn record-btn" unborrowed-record-tips>
+				<span class="record" id="borrowRecord" translate="tool.record"></span>
+				<span class="record-num" ng-hide="myLendingCount==0 || !myLendingCount">{{myLendingCount}}</span>
+
+			</div>
+			
+		</div>
+	</div>
+	<!--搜索页头-->
+	<header class="datebox">
+		<div class="btn-group search-btn-group">
+			<div class="datebox-wrap  wrap-right add-search" >
+				<form action="">
+					<input type="search" class="form-control tool-input-search" ng-attr-placeholder="{{holderValue}}"
+						   ng-blur="rember(searchTxt)"
+						   ng-model="searchTxt" ng-keypress="enter($event,searchTxt)" id="toolSearch">
+					<!--<div class="search-type-name" show-type-list>
+						<div class="type-search">名称</div>
+						<div class="triangle-down"></div>
+					</div>-->
+				</form>
+				<i class="icon-maoc icon-materialsearch" 
+					ng-click="clickBtnSearch(searchTxt)"></i>
+				
+			</div>
+			<!--<div class="search-type-list"> 
+				<div class="triangle-top"></div>
+				<ul>
+					<li data-search-type="toolName" choose-type>名称</li>
+					<li data-search-type="pn"choose-type>PN码</li>
+					<li ng-show="acRegType" data-search-type="acReg" choose-type>机号</li>
+				</ul>
+			</div>-->
+		</div>
+	</header>
+</div>
+
+  <!--库存卡片布局样式-->
+<div class="scrollable" >
+	
+	<!--未找到数据时显示  -->
+	<div class="backup-airport no-data" no-data-load
+		ng-if="((type == 'stock'&& !stockList.length && stockList)
+			 ||(type == 'lend'&& !lendList.length && lendList)) 
+			 && !netWorkErr && !loading2" >
+			<!--未搜索到相应的记录-->
+			<img src="dist/images/noToolInfo-record.png" width="256" alt="No Data" />
+	</div>
+	<!-- 刚进入工具搜索时提示性图片显示 -->
+	<div class="backup-airport no-data" 
+		ng-if="((type == 'stock'&&!stockSearch)||(type == 'lend'&&!lendSearch))
+		&& !netWorkErr && !loading2">
+		<div class="imgDeclare" translate="tool.searchTips"></div>
+		<img id="searchTips" src="dist/images/tool-search-tips.png" width="256" alt="按搜索提示搜索工具" />
+	</div>	
+	<!-- scrollable-content上ng-show ng-if不要合并 ,ng-if保证点击搜索时滚动条回到顶部 -->
+    <div class="scrollable-content" ui-scroll-bottom="getNextPage()" ng-show="type == 'stock'"  ng-if="stockList.length">
+    	   	
+    	<div class="flight-wrap tool-wrap">
+	      
+			<div class="pubFlightList" view-tool-details ng-repeat="oneInfo in stockList" on-finish-render-filters>
+				<div class="first-row fixedHeight tool-name">  
+					{{oneInfo.nameZhcn}}<span ng-hide="oneInfo.nameEnus=='N/A'"> {{oneInfo.nameEnus}}</span>
+				</div>
+	
+				<div class=" clearfix second-row">
+					<div class="pull-left tool-pn"> 
+						PN:{{oneInfo.pn}}
+					</div>
+					<div class="pull-right unify-position tool-num">
+						{{oneInfo.qty}}{{oneInfo.unit}}
+					</div>	
+				</div>
+				<div class="stock-third-row">
+					<div class="pull-left tool-size">
+						Size:{{oneInfo.size}}
+				<!--		<span class="borrower">TINA 56811303</span>-->
+					</div>
+					<div class="pull-right tool-station">{{oneInfo.station}}</div>
+				</div>
+			</div>
+			
+		</div>
+        <div class="text-center" 
+        	ng-if="type == 'stock' && stock.noMoreData && stockList.length && !loading" translate="loadingDone">
+        </div>
+    </div>
+
+
+<!--借出卡片布局样式-->
+<!-- scrollable-content上ng-show ng-if不要合并 ,ng-if保证点击搜索时滚动条回到顶部 -->
+	
+<!--未找到数据时显示  -->
+    <div class="scrollable-content" ui-scroll-bottom="getNextPage()" ng-show="type == 'lend'" ng-if="lendList.length">
+
+	    <div class="flight-wrap tool-wrap">
+	        <div class="pubFlightList" ng-show="lendList.length" view-tool-details ng-repeat="oneInfo in lendList" on-finish-render-filters>
+				<div class="first-row fixedHeight tool-name">
+					{{oneInfo.nameZhcn}}<span ng-hide="oneInfo.nameEnus=='N/A'"> {{oneInfo.nameEnus}}</span>
+				</div>
+				<div class=" clearfix second-row">
+					<div class="pull-left tool-pn">
+						PN:{{oneInfo.pn}}
+					</div>
+					<div class="pull-right unify-position tool-num">
+						{{oneInfo.qty}}{{oneInfo.unit}}
+					</div>
+				</div>
+
+				<div class="stock-third-row">
+					<div class="pull-left tool-size">
+						SFCode:{{oneInfo.code}}
+					</div>
+				</div>
+
+				<div class="stock-third-row">
+					<div class="pull-left tool-size">
+						GJXCode:{{oneInfo.toolSetMemo}}
+					</div>
+				</div>
+
+				<div class="stock-third-row">
+					<div class="pull-left tool-size">
+						Size:{{oneInfo.size}}
+					</div>
+					<div class="pull-right tool-station">{{oneInfo.station}}</div>
+				</div>
+				<div class="last-row">
+					<div class="pull-left borrower">{{oneInfo.workerName}} {{oneInfo.worerkNo}}</div>
+					<div class="pull-right tool-machine-num">{{oneInfo.acReg}}</div>
+				</div>
+			</div>
+		</div>	
+       <div class="text-center" 
+        	ng-if="type == 'lend' && lend.noMoreData && lendList.length" translate="loadingDone">
+        </div>
+    </div>
+</div>
+
+
+
+
+<!--库存、借出中每条卡片详细信息的弹窗界面-->
+<div class="mask" ng-class="{'displayBlock':showMask,'displayNone':!showMask}" cancel-tool-details></div>
+<div class="tool-detail-wrap wonomber-wrap reject-wrap-fixed" ng-style="{'display': 'block'}"  ng-show="showMask" style="background-color: #FFFFFF;">
+	<div class="tool-name">{{popCardData.nameZhcn}}</div>
+	<div class="tool-english-name" ng-hide="popCardData.nameEnus=='N/A'">{{popCardData.nameEnus}}</div>
+	<div class="tool-pn"><span class="tool-pn-title">PN:</span> {{popCardData.pn}}</div>
+	<div class="tool-size"><span class="tool-size-title">Size:</span> {{popCardData.size}}</div>
+	<div class="detail-last-row">
+		<div ng-show="type == 'lend' && !loading2">			
+			<div class="pull-left borrower">{{popCardData.workerName}} {{popCardData.worerkNo}}</div>
+			<div class="pull-right tool-machine-num">{{popCardData.acReg}}</div>
+		</div>
+		<div>
+			<div class="pull-left tool-station">{{popCardData.station}}</div>
+			<div class="pull-right tool-num">{{popCardData.qty}}{{popCardData.unit}}</div>	
+		</div>
+		<!--<div ng-show="type == 'lend' && !loading2">
+			
+			<div class="pull-left">A/C NO:<span class="tool-machine-num">{{popCardData.acReg}}</span></div>
+			<div class="pull-right borrow-time">{{popCardData.lendDate | date:'yyyy-MM-dd'}}</div>
+		</div>-->
+	</div>
+	<div class="cancel-view-details" cancel-tool-details><i class="fa fa-times" aria-hidden="true"></i></div> 
+	<div class="tool-detail-logo"></div>
+</div>

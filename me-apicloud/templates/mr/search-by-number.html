@@ -1,0 +1,128 @@
+<div class="transfer-receiving">
+    <div class="navbar navbar-app navbar-absolute-top fixbar">
+        <div class="clearfix top-title flex-layout-between">
+            <div class="btn-group btn-group-left">
+                <div class="btn" ng-click="go('back')">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+            <div class="navbar-brand navbar-brand-center search-entry" style="width: 70%;text-align: center;background-color: #fff;height:1.6rem">
+                <input type="text" ng-model="number" class="form-control search-textbox framecolor" placeholder="请输入合同号" ng-change="searchByNumber()" style="width: 100%;border: none;text-align: center;" required />
+            </div>
+            <div class="btn-group btn-group-right">
+                <div class="btn" ng-click="searchByNumber()">
+                    搜索
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="fixed-his">
+               <!--        **********-->
+        <div class="scrollable" style="position: absolute;top: 2.5rem">
+            <div class="scrollable-content" ui-scroll-bottom="getNextPage()"
+                 im-pull-to-refresh refresh-function="getAllFlightInfo({time:flightDate})">
+                <!--下拉刷新时显示 -->
+                <div  ng-show="pullToRefreshActive && isList" ng-class="{'refresh-hide': !pullToRefreshActive}" class="refresh text-center">
+                    <i class="fa fa-refresh fa-spin fa-fw"></i><translate>loading</translate>...
+                </div>
+                <!--on-finish-render-filters-->
+                <div class="flight-wrap" ng-repeat="item in dataList track by $index" on-finish-render-filters >
+                    <div class="pubFlightList" swipe-delete-sv ng-class="{'sv-swipe-left-hide': item.status == 'X'}">
+                        <div class="delete-sv " ng-hide="item.status == 'X'">
+                            <div class="apu" ng-show="flight.type != 2 && !(flight.type == 0 && flight.departureStationJob && flight.departureStationJob.jobType == 'N/A')"
+                                 ng-click="go('receivingDetail', 'slideLeft',{orderItem:item.orderItem,orderNo:item.orderNo})"> 收料
+                            </div>
+                        </div>
+                        <div class="top clearfix">
+                            <span class="pull-left"  style="font-size: .75rem;font-weight: 600;display: inline-block;width: 60%">调配合同:<span style="font-weight: 500">{{item.contract}}</span></span>
+                            <span class="pull-right" style="font-size: .75rem;font-weight: 600;display: inline-block;width: 33.33%;text-align: right">
+                                     <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #cc2131 ;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-if="item.status == ''">
+                                        <span>待收货</span>
+                                    </span>
+                                    <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #5ddc71;text-align: center;padding: 0 .15rem;border-radius: .1rem"ng-if="item.status == 'X'" >
+                                         <span>已收货</span>
+                                    </span>
+                                </span>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">合同行:</span>
+                                <span style="width: 4rem">{{item.contractItem}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">件号:</span>
+                                <span style="width: 4rem">{{item.pn}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">批次:</span>
+                                <span style="width: 4rem">{{item.batchNo}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">序号:</span>
+                                <span style="width: 4rem">{{item.sn}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">发货数量:</span>
+                                <span style="width: 4rem">{{item.planQty}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">发货单位:</span>
+                                <span style="width: 4rem">{{item.unit}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">收货人:</span>
+                                <span style="width: 4rem">{{item.receiptSn+ '(' + item.receiptName + ')'}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">收货时间:</span>
+                                <div style="width: 4rem" ng-show="item.receiptDay">
+                                    <span style="width: 4rem">{{item.receiptDay | limitTo: 4 }}.{{item.receiptDay | limitTo: 2:4 }}.{{item.receiptDay | limitTo: -2 }}</span><br>
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">收货航站:</span>
+                                <span style="width: 4rem">{{item.station}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">&nbsp;&nbsp;</span>
+                                <span style="width: 4rem" ng-show="item.receiptTime">{{item.receiptTime | limitTo: 2}}:{{item.receiptTime | limitTo: 2:2}}:{{item.receiptTime | limitTo:-2}}</span>
+                            </div>
+                        </div>
+                        <div style="margin: .1rem 0;padding: 0 0;">
+                            <div  style="width: 14rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">调配需求原因:</span>
+                                <span style="width: 10rem">{{allReason[item.reason].TEXT}}</span>
+                            </div>
+                        </div>
+                        <div style="margin: .1rem 0;padding: 0 0;">
+                            <div  style="width: 14rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">仓库描述:</span>
+                                <span style="width: 10rem">{{item.storeDescription}}</span>
+                            </div>
+                        </div>
+                        <div style="margin: .1rem 0;padding: 0 0;">
+                            <div  style="width: 14rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">架位:</span>
+                                <span style="width: 10rem">{{item.shelf}}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center" ng-if="noMoreData && flights.length" translate="loadingDone"></div>
+            </div>
+        </div>
+        <!--        **********-->
+    </div>
+
+
+</div>

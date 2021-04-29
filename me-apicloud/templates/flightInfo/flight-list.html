@@ -1,0 +1,253 @@
+<ui-view name="detail"></ui-view>
+<!--航班动态-->
+<div class="navbar navbar-app navbar-absolute-top">
+    <div class="navbar-brand navbar-brand-center">
+        {{!isNewFault ? '航班动态' : '新建故障'}}
+    </div>
+    <div class="btn-group btn-group-left" ng-hide="isList && !isNewFault">
+        <div class="btn" ng-click="go('back','slideRight')" ng-if="!isNewFault || !isList">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+        <div class="btn" ng-click="go('index','slideRight')" ng-if="isNewFault && isList">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+    </div>
+</div>
+
+<!--<div ui-content-for="title"></div>-->
+<div class="flightInfo " ng-class="{loading: loading2}" ng-show="!detailView && !detailSubView" ng-init="activeSwitch=2">
+
+    <!--<div class="navbar navbar-app navbar-absolute-top">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">
+                <span ng-show="!isSearch" ng-init="activeSwitch=2" class="night-title" style="font-size: 0;">
+                    <span class="favoriteBtn" ng-class="{'isSwitched':activeSwitch==1}"
+                          ng-click="toMyFavorite()"><translate>flight.myFavorite</translate></span><span class="flightListBtn" ng-class="{'isSwitched':activeSwitch==2}"
+                          ng-click="activeSwitch=2;isList=true;isFavorite=false"><translate>flight.flights</translate></span>
+                </span>
+
+                <new-to-old ng-hide="activeSwitch==1" class="brand-switch">{{brandContext}}</new-to-old>
+
+                <span ng-if="isSearch" translate="search"></span>
+                &lt;!&ndash; <span ng-if="isFavorite">收藏</span> &ndash;&gt;
+            </div>
+            <div class="btn-group btn-group-left">
+                <div class="btn" ng-if="isSearch" ng-click="goBack()">
+                    <i class="icon-maoc icon-back"></i>
+                </div>
+
+            </div>
+        </div>
+    </div>-->
+    <div  class="app-body" ng-show="activeSwitch==2">
+        <!-- 航班列表页头 -->
+        <header class="datebox-list" ng-if="isList">
+            <div class="btn-group pull-left prev-day" ng-click="preDay()">
+                <i class="icon-maoc icon-prev-day"></i><translate>pre</translate>
+            </div>
+            <div class="btn-group" >
+                <div class="inline-block flight-top-tip">
+                    {{(beginDatetime | date:'MM/dd HH:mm') || "00/00 00:00"}} ~ {{(endDatetime | date:'MM/dd HH:mm') || "00/00 00:00"}}
+                </div>
+            </div>
+            <div class="btn-group pull-right next-day" ng-click="nextDay()">
+                <translate>next</translate><i class="icon-maoc icon-next-day"></i>
+            </div>
+        </header>
+        <!--搜索页头-->
+        <header class="datebox" ng-if="isSearch">
+            <div class="btn-group search-btn-group">
+                <div class="datebox-wrap flight-datebox-wrap pull-left">
+                    <i class="icon-maoc icon-search-flight-date"></i>
+                    <input ng-if="!android" type="date" class="form-control select-flight-date search-flight-date" ng-model="$parent.$parent.searchDate" ng-blur="setSearchDate()">
+                    <input ng-if="android" type="date" class="form-control select-flight-date search-flight-date" ng-model="$parent.$parent.searchDate" ng-change="setSearchDate($event)">
+                </div>
+                <div class="datebox-wrap pull-left wrap-right">
+                    <!--<i class="icon-maoc icon-search"></i>-->
+                    <!--<i class="fa fa-times search-clear" ng-click="$parent.searchTxt = ''" ng-show="$parent.searchTxt"></i>-->
+                    <!--加form是把ios键盘上“下一项”改为“搜索”-->
+                    <form action="">
+                        <input type="search" required class="form-control search-textbox" ng-model="$parent.searchTxt" ng-attr-placeholder="{{$parent.holderValue}}" ng-keypress="enter($event,$parent.searchTxt)">
+                    </form>
+                    <i class="icon-maoc icon-flightSearch" ng-click="searchAction($parent.searchTxt)"></i>
+                </div>
+            </div>
+        </header>
+
+        <ul class="nav flight-nav-pills" ng-init="activeNav = flightStatus" ng-if="!isSearch">
+            <li ng-class="{'active': activeNav == 0}" ng-click="changeFilterFlightStatus(0);activeNav = 0"><translate>flight.all</translate><br>{{filterFlightCounts.filterTotalFlights}}/{{flightCounts.totalFlights}}</li>
+            <li ng-class="{'active': activeNav == 1}" ng-click="changeFilterFlightStatus(1);activeNav = 1"><translate>flight.unTakeOff</translate><br>{{filterFlightCounts.filterStandbyNum}}/{{flightCounts.standbyNum}}</li>
+            <li ng-class="{'active': activeNav == 2}" ng-click="changeFilterFlightStatus(2);activeNav = 2"><translate>flight.takeOff</translate><br>{{filterFlightCounts.filterTakeoffNum}}/{{flightCounts.takeoffNum}}</li>
+            <li ng-class="{'active': activeNav == 3}" ng-click="changeFilterFlightStatus(3);activeNav = 3"><translate>flight.landing</translate><br>{{filterFlightCounts.filterLandedNum}}/{{flightCounts.landedNum}}</li>
+            <li ng-class="{'active': activeNav == 4}" ng-click="changeFilterFlightStatus(4);activeNav = 4"><translate>flight.abnormal</translate><br>{{filterFlightCounts.filterAbnormalNum}}/{{flightCounts.abnormalNum}}</li>
+        </ul>
+        <!-- 航班动态新版 -->
+        <div ng-show="isNewBrand" class="app-body" ng-class="{'has-prf': isNewFault}">
+            <ul class="nav flight-nav-pills-more flag-bar" >
+                <!--<li ng-if="isNewFault">T/R</li>-->
+                <li ng-if="isNewFault">  </li>
+                <li translate="flight.flightNo"></li>
+                <li translate="flight.departurePos"></li>
+                <li translate="flight.arrivalPos"></li>
+                <li translate="flight.takeOff"></li>
+                <li translate="flight.landing"></li>
+                <li translate="flight.status"></li>
+                <!--<li ng-if="isNewFault">Po/F</li>-->
+                <li ng-if="isNewFault">  </li>
+            </ul>
+
+            <div class="scrollable">
+                <div class="scrollable-content" ui-scroll-bottom="getNextPage()" im-pull-to-refresh refresh-function="getAllFlightInfo({time:flightDate})">
+                    <!--下拉刷新时显示 -->
+                    <div ng-show="pullToRefreshActive && (isList || isFlightSearch)" ng-class="{'refresh-hide': !pullToRefreshActive}" class="refresh text-center">
+                        <i class="fa fa-refresh fa-spin fa-fw"></i> <translate>loading</translate>...
+                    </div>
+
+                    <!-- 数据为空时显示 -->
+                    <div class="backup-airport no-data" ng-if="flights && !flights.length && !netWorkErr" no-data-load>
+                        <div class="imgDeclare declareRotate" translate="flight.noFlight"></div>
+                        <img src="dist/images/no-favorite-flight.png" width="256" alt="No Data" />
+                    </div>
+
+                    <!--on-finish-render-filters-->
+                    <div class="flight-wrap" ng-repeat="flight in flights track by $index" on-finish-render-filters>
+                        <!-- 收藏按钮 -->
+                        <div class="flight-favorite-list" click-favorite>
+                            <i class="icon-maoc " ng-class="{true:'icon-favorite-orange', false:'icon-favorite-blue'}[!!flight.favorite]">
+                                <input type="hidden" ng-model="flightId" ng-value="flight.flightId">
+                            </i>
+                        </div>
+
+                        <div ng-include="'flightInfo/flight-list-new.html'"></div>
+
+                    </div>
+                    <!--<div class="text-center light-color" ng-show="loadMore && !noMoreData && flights.length"><i class="fa fa-refresh fa-spin fa-fw"></i> <translate>loading</translate>...</div>-->
+                    <div class="text-center light-color" ng-if="noMoreData && flights.length" translate="loadingDone"></div>
+                </div>
+            </div>
+        </div>
+        <!-- 航班動態旧版 -->
+        <div class="scrollable" ng-show="!isNewBrand">
+            <div class="scrollable-content" ui-scroll-bottom="getNextPage()" im-pull-to-refresh refresh-function="getAllFlightInfo({time:flightDate})">
+                <!--下拉刷新时显示 -->
+                <div ng-show="pullToRefreshActive && isList" ng-class="{'refresh-hide': !pullToRefreshActive}" class="refresh text-center">
+                    <i class="fa fa-refresh fa-spin fa-fw"></i> <translate>loading</translate>...
+                </div>
+
+                <!-- 数据为空时显示 -->
+                <div class="backup-airport no-data" ng-if="flights && !flights.length && !netWorkErr" no-data-load>
+                    <div class="imgDeclare declareRotate" translate="flight.noFlight"></div>
+                    <img src="dist/images/no-favorite-flight.png" width="256" alt="No Data" />
+                </div>
+
+                <!--on-finish-render-filters-->
+                <div class="flight-wrap" ng-repeat="flight in flights track by $index" on-finish-render-filters>
+                    <!-- 收藏按钮 -->
+                    <div class="flight-favorite-list favor-tag" click-favorite>
+                        <i class="icon-maoc " ng-class="{true:'icon-favorite-orange', false:'icon-favorite-blue'}[!!flight.favorite]">
+                            <input type="hidden" ng-model="flightId" ng-value="flight.flightId">
+                        </i>
+                    </div>
+
+                    <div ng-include="'flightInfo/flight-list-old.html'"></div>
+
+                </div>
+                <!--<div class="text-center light-color" ng-show="loadMore && !noMoreData && flights.length"><i class="fa fa-refresh fa-spin fa-fw"></i> <translate>loading</translate>...</div>-->
+                <div class="text-center light-color" ng-if="noMoreData && flights.length" translate="loadingDone"></div>
+            </div>
+        </div>
+
+    </div>
+    <!-- 我的關注 -->
+    <div class="scrollable" ng-show="activeSwitch==1">
+        <div class="scrollable-content">
+
+            <!-- 数据为空时显示 -->
+            <div class="backup-airport no-data" ng-if="allFavorFlights && !allFavorFlights.length && !netWorkErr" no-data-load>
+                <div class="imgDeclare" translate="flight.noFavorite"></div>
+                <img src="dist/images/no-favorite-flight.png" width="256" alt="No Data" />
+            </div>
+
+            <!--on-finish-render-filters-->
+            <div class="flight-wrap" ng-repeat="flight in allFavorFlights " on-finish-render-filters>
+                <!-- 收藏按钮 -->
+                <div class="flight-favorite" click-favorite>
+                    <i class="icon-maoc " ng-class="{true:'icon-favorite-orange', false:'icon-favorite-blue'}[!!flight.favorite]">
+                        <input type="hidden" ng-model="flightId" ng-value="flight.flightId">
+                    </i>
+                </div>
+
+                <div ng-include="'flightInfo/flight-list-old.html'"></div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧图标  ng-if="isList && !isNewFault"-->
+    <div class="more-operate" ng-if="isList">
+        <div class="add-wrap" ng-class="{rote: operate}" direction-move-fault ng-if="isNewFault">
+            <i class="icon-maoc icon-add">
+				<span class="circle"
+                      ng-show="filterData.filterAirPorts.length
+					|| filterData.filterFlightNos.length
+					|| filterData.filterAcRegs.length
+					|| filterData.direction
+					|| filterData.filterAbnormal.length
+					|| filterData.filterDelayReasons.length"></span>
+            </i>
+        </div>
+        <div class="add-wrap" ng-class="{rote: operate}" direction-move ng-if="!isNewFault">
+            <i class="icon-maoc icon-add">
+				<span class="circle"
+                      ng-show="filterData.filterAirPorts.length
+					  || filterData.filterFlightNos.length
+					  || filterData.filterAcRegs.length
+					  || filterData.direction
+					  ||filterData.filterAbnormal.length
+					  || filterData.filterDelayReasons.length
+					  || filterData.filterBeginDate!=0
+					  || filterData.filterEndDate!=0">
+
+				</span>
+            </i>
+        </div>
+        <div class="san text-center"  ng-if="!isNewFault">
+            <div class="sai-wrap ng-hide" ng-class="{'slide-up': operate}" ng-show="operate"
+                 ng-click="go('flightStatus.flightFilter', 'slideLeft')">
+                <i class="icon-maoc icon-sai">
+                    <span class="circle" ng-show="filterData.filterAirPorts.length || filterData.filterFlightNos.length || filterData.filterAcRegs.length|| filterData.direction || filterData.filterBeginDate!=0 || filterData.filterEndDate!=0"></span>
+                </i>
+                <br><translate>filter</translate>
+            </div>
+            <div class="search-wrap  ng-hide" ng-class="{'slide-up': operate}" ng-show="operate" ng-click="go('search', 'slideLeft', {time:flightDate.getTime()})">
+                <i class="icon-maoc icon-so"></i><br><translate>search</translate>
+            </div>
+            <!-- <div class="favorite-wrap ng-hide" ng-class="{'slide-up': operate}" ng-show="operate" ng-click="go('flightFavorite', 'slideLeft')">
+                <i class="icon-maoc icon-favorite"></i><br>收藏
+            </div> -->
+        </div>
+        <div class="san text-center"  ng-if="isNewFault">
+            <div class="sai-wrap ng-hide" ng-class="{'slide-up': operate}" ng-show="operate"
+                 ng-click="go('faultFlight.flightFaultFilter', 'slideLeft')">
+                <i class="icon-maoc icon-sai">
+                    <span class="circle" ng-show="filterData.filterAirPorts.length || filterData.filterFlightNos.length || filterData.filterAcRegs.length|| filterData.direction"></span>
+                </i>
+                <br><translate>filter</translate>
+            </div>
+            <div class="search-wrap  ng-hide" ng-class="{'slide-up': operate}" ng-show="operate" ng-click="go('faultSearchFlight', 'slideLeft', {time:flightDate.getTime()})">
+                <i class="icon-maoc icon-so"></i><br><translate>search</translate>
+            </div>
+            <!-- <div class="favorite-wrap ng-hide" ng-class="{'slide-up': operate}" ng-show="operate" ng-click="go('flightFavorite', 'slideLeft')">
+                <i class="icon-maoc icon-favorite"></i><br>收藏
+            </div> -->
+        </div>
+
+
+    </div>
+    <!--<div class="more-operate" ng-if="isList && isNewFault">-->
+    <!--<div class="search-wrap slide-up fault-flight-search" direction-move-fault-->
+    <!--ng-click="go('search', 'slideLeft', {time:flightDate.getTime(), isNewFault: true})">-->
+    <!--<i class="icon-maoc icon-so"></i><br><translate>search</translate>-->
+    <!--</div>-->
+    <!--</div>-->
+</div>

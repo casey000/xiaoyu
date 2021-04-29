@@ -1,0 +1,124 @@
+<!--<ui-view name="faultInfo"></ui-view>-->
+<div ng-show="!faultInfoView && !ccInfoView && !recordView">
+    <div class="navbar navbar-app navbar-absolute-top fixbar">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">
+               机队维修状况总览
+            </div>
+            <div class="btn-group btn-group-left">
+                <div class="btn" ng-click="go('back')">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="fixed-his">
+        <div class="acSta clearfix" style="padding: 0;overflow: hidden">
+            <div class="pull-left" style="width: 33.33%;position: relative; text-align: center">
+                <div class="check-method" style="display: inline-block;height: 2rem;width: 100%;position: relative">
+                    <span ng-if="airportChosen.length > 0" ng-repeat="item in airportChosen" style="display: inline-block;overflow: hidden;-ms-text-overflow: ellipsis;text-overflow: ellipsis;white-space: nowrap;">
+                        {{item}}
+                    </span>
+                    <span ng-if="airportChosen.length == 0 || !airportChosen" style="display: inline-block;width: 100%">
+                        站点选择
+                    </span>
+                    <select  multiple="true" ng-model="airportChosen" style="z-index: 9; position: absolute;left: 0;top: 0;display: inline-block;height: 100%;width: 100%;border: none;overflow: hidden;-ms-text-overflow: ellipsis;text-overflow: ellipsis;white-space: nowrap;opacity: 0"
+                             ng-change="stationChange()" required>
+                        <!--<option value="">全部</option>-->
+                        <option value="{{flawTypeItem}}"
+                                ng-selected="flawTypeItem.selected"
+                                ng-repeat="flawTypeItem in airportArr track by $index ">
+                            {{flawTypeItem}}
+                        </option>
+                    </select>
+                </div>
+                <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+            </div>
+            <div class="pull-left" style="width: 33.33%;position: relative;text-align: center">
+                <div class="check-method" style="display: inline-block;height: 100%;width: 100%;">
+                    <select  ng-model="queryJSON.maintenanceStatus" style="display: inline-block;height: 100%;width:auto;border: none;"
+                             ng-change="init()">
+                        <option value="">维修状态</option>
+                        <option value="Pr/F">Pr/F</option>
+                        <option value="Po/F">Po/F</option>
+                        <option value="TR">TR</option>
+                        <option value="飞行中">In Flight</option>
+                        <option value="A/Po">A/Po</option>
+                        <option value="C/Po">C/Po</option>
+                    </select>
+                </div>
+                <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+            </div>
+            <div class="pull-left" style="width: 33.33%;position: relative;text-align: center">
+                <div class="check-method" style="display: inline-block;height: 100%;width: 100%;">
+                    <select  ng-model="queryJSON.releaseStatus" style="display: inline-block;height: 100%;width: auto;border: none;"
+                             ng-change="init()">
+                        <option value="">放行状态</option>
+                        <option value="UNRELEASED">未放行</option>
+                        <option value="RELEASED">已放行</option>
+                    </select>
+                </div>
+                <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+            </div>
+        </div>
+        <div class="acSta clearfix" style="font-size: .7rem; padding: 0;text-align: center;border-top:.5px solid #CCCCCC;">
+            当前站点已放行 <span>{{allRelease}}</span>，未放行 <span>{{allUnrelease}}</span>，预警 <span>{{allWarn}}</span>
+        </div>
+        <div class="scrollable" style="position: absolute;top: 6.9rem">
+            <div id="scroll" class="scrollable-content" >
+                <div class="material-content-wrap">
+                    <div class="list-group material-content">
+                        <div class="backup-airport no-data" ng-hide=" !dataList || loading2 || dataList.length || netWorkErr">暂无任务</div>
+<!--                        <div class="list-group-item materialitem" ng-repeat="item in dataList"  ng-click="toDetail(item)"></div>-->
+                        <div class="list-group-item materialitem" ng-repeat="item in dataList" style="padding-left: .2rem">
+                            <div class="top clearfix">
+                                <span class="pull-left"  style="font-size: .75rem;font-weight: 600;display: inline-block;width: 33.33%">{{item.acReg}}<span style="font-weight: 500">({{item.maintenanceStatus}})</span></span>
+                                <span class="pull-left text-center"  style="color:#cccccc;font-size: .75rem;display: inline-block;width: 33.33%">{{item.station}}<span style="display: inline-block;padding: 0 .15rem;text-align: center;line-height: 1rem;height: 1rem;border: 0.5px solid #ddd;border-radius: .1rem;margin-left: .2rem" ng-if="item.standBay">{{item.standBay}}</span></span>
+                                <span class="pull-left" style="font-size: .75rem;font-weight: 600;display: inline-block;width: 33.33%;text-align: right">
+                                     <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #5ddc71;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-if="item.releaseStatus == 'RELEASED'">
+                                        <span>已放行</span>
+                                    </span>
+                                    <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #cc2131;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-if="item.isNoGo == 'y'&& item.releaseStatus == 'UNRELEASED' && !item.overTime" >
+                                         <span>未放行</span>
+                                    </span>
+                                    <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #cc2131;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-if="item.isNoGo == 'y'&& item.releaseStatus == 'UNRELEASED' && item.overTime" >
+                                         <span>未放行</span>
+                                    </span>
+                                    <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #ff9000;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-if="item.isNoGo == 'n'&& item.releaseStatus == 'UNRELEASED' && !item.overTime && item.maintenanceStatus.indexOf('Po') == '-1'" >
+                                         <span>未放行</span>
+                                    </span>
+                                     <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #ff9000;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-if="item.isNoGo == 'n'&& item.releaseStatus == 'UNRELEASED' && item.overTime && item.maintenanceStatus.indexOf('Po') == '-1'" >
+                                         <span>未放行</span>
+                                    </span>
+                                    <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #ff9000;text-align: center;padding: 0 .15rem;border-radius: .1rem; " ng-if="item.isNoGo == 'n'&& item.releaseStatus == 'UNRELEASED' && !item.overTime && item.maintenanceStatus.indexOf('Po') != '-1' " >
+                                         <span>未放行</span>
+                                    </span>
+                                     <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;background-color: #ff9000;text-align: center;padding: 0 .15rem;border-radius: .1rem;border:2px solid red" ng-if="item.isNoGo == 'n'&& item.releaseStatus == 'UNRELEASED' && item.overTime && item.maintenanceStatus.indexOf('Po') != '-1' ">
+                                       <span>未放行</span>
+                                    </span>
+                                     <span style="font-size: .6rem;color:#333;display: inline-block;height:1rem;line-height: 1rem;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-if="item.releaseStatus == '-'">
+                                         <span>飞行中</span>
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="bottom clearfix" style="margin-top: .4rem">
+                                <span class="pull-left" style="color: #333; font-size: .7rem;display: inline-block;width: 45%">
+                                    {{item.technicalStatus == 'AIRWORTHY' ? '适航':'不适航'}}
+                                    <span ng-if="item.isNoGo =='y'" style="color: #CC2D50;margin-left: .3rem" >NO GO</span>
+                                    <span class="p-fr red">{{item.apu || ''}}</span>
+                                </span>
+                                <span class="pull-left" style="color: #ccc; font-size: .7rem;display: inline-block;width: 55%;text-align: right;">
+                                    明天16点前是否有航班:<span style="font-size: .7rem;color:#333;display: inline-block;">{{item.hasFlight?'有':'无'}}</span>
+                                </span>
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+<!--                <div class="text-center" ng-if="noMoreData && dataList.length" translate="loadingDone"></div>-->
+            </div>
+        </div>
+    </div>
+
+</div>

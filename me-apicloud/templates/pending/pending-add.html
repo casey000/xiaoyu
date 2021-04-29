@@ -1,0 +1,531 @@
+<!--<moac-header ng-show="!showEwis && !showOil" fn-back="go('searchFault.faultClose', '', {navIdx: defectNavIdx, handleIdx: defectListIdx, defectId: defectId})">-->
+<!--<moac-header ng-show="!showEwis && !showOil" fn-back="goBack()">-->
+    <!--{{pendingTitle}}-->
+<!--</moac-header>-->
+<div ng-show="!showEwis && !showOil" class="p-ddi-nav navbar-app navbar-absolute-top">
+    <div class=" navbar-brand-center ">
+        {{pendingTitle}}
+    </div>
+    <div class="btn-group btn-group-left">
+        <div class="btn" ng-click="goBack()">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+    </div>
+</div>
+<moac-body ng-show="!showEwis && !showOil">
+    <div ng-show="!isNextStep" class="p-pendng ddi-scrollable-content">
+        <div class="b-top">
+            <div class="p-base-box">
+                <span class="b-left">Defect No.</span><span class="b-right cblack" ng-bind="initData.defectId"></span>
+            </div>
+            <div class="p-base-box">
+                <span class="b-left">Total FLT Hours</span><span class="b-right" ng-bind="initData.totalFh"></span>
+            </div>
+            <div class="p-base-box">
+                <span class="b-left">Total FLT Cycle</span><span class="b-right" ng-bind="initData.totalCy"></span>
+            </div>
+            <div class="p-base-box">
+                <span class="b-left">飞机号</span><span class="b-right" ng-bind="initData.acId"></span>
+            </div>
+            <div class="p-base-box">
+                <span class="b-left">机型</span><span class="b-right" ng-bind="initData.minorModel"></span>
+            </div>
+            <div class="p-base-box">
+                <span class="b-left">Affected ENG</span><span class="b-right" ng-bind="initData.engSn"></span>
+            </div>
+        </div>
+        <form name="addPendngSubmit" novalidate class="b-bottom">
+            <div class="pendng-top">
+                <div class="tlb-box tlb-scan-wrapper" ng-class="{'disabled': pendingData.noTlbNo}">
+                    <span>TLB No.<i class="cred">*</i></span>
+                    <input name="tlbNo" type="text"
+                           ng-change="change()"
+                           ng-model="pendingData.tlbNo"
+                           ng-minlength="6"
+                           ng-class="{'disabled': pendingData.noTlbNo}"
+                           ng-disabled="pendingData.noTlbNo"
+                           required
+                           style="width: 8.8rem; padding-right:.3rem"
+                    />
+                    <i class="tlb-scan" ng-click="scan()" ng-if="!pendingData.noTlbNo"></i>
+                </div>
+
+                <span class="cred" ng-show="addPendngSubmit.tlbNo.$error.minlength">最少为6位数</span>
+                <div class="b-new-box">
+<!--                    <p class="tip-title dly-title">DLY/CNL<i class="cred">*</i></p>-->
+                    <div class="b-flex mg14 dly-bottom">
+<!--                        <div class="b-flex-box">-->
+<!--                            <div class="button-flex">-->
+<!--                                <button type="button"-->
+<!--                                        ng-class="{active: resultActive==0}"-->
+<!--                                        ng-click="setResult($event);resultActive=0"-->
+<!--                                >YES</button>-->
+<!--                                <button type="button" class=""-->
+<!--                                        ng-class="{active: resultActive==1}"-->
+<!--                                        ng-click="setResult($event);resultActive=1"-->
+<!--                                >NO</button>-->
+<!--                            </div>-->
+<!--                        </div>-->
+                        <div class="b-flex-box border-color">
+                            <span>M-HRS<i class="cred">*</i></span>
+                            <input type="number" ng-model="pendingData.manHours" required >
+                        </div>
+                    </div>
+
+                    <div class="ui-list">
+                        <div class="ui-list-item ui-check-item" style="margin-top: 3px;">
+                            <span>RII</span>
+                            <div class="checkbox">
+                                <div class="item" ng-click="pendingData.rii='y'; pendingData.rci='n'" ng-class="{active: pendingData.rii=='y'}">YES</div>
+                                <div class="item" ng-click="pendingData.rii='n'" ng-class="{active: pendingData.rii=='n'}">NO</div>
+                            </div>
+                        </div>
+
+                        <div class="ui-list-item ui-check-item" style="margin-top: 3px;" ng-if="pendingData.rii=='n'">
+                            <span>RCI</span>
+                            <div class="checkbox">
+                                <div class="item" ng-click="pendingData.rci='y'" ng-class="{active: pendingData.rci=='y'}">YES</div>
+                                <div class="item" ng-click="pendingData.rci='n'" ng-class="{active: pendingData.rci=='n'}">NO</div>
+                            </div>
+                        </div>
+
+                        <div class="ui-list-item ui-ipt-item visibility" ng-if="(pendingData.rii == 'y')"></div>
+                    </div>
+
+                    <div class="ui-list" ng-if="pendingData.rii.toUpperCase() == 'Y' || pendingData.rci.toUpperCase() == 'Y'">
+                        <div class="ui-list-item" >
+                            <span class="name" ng-if="pendingData.rii=='y'">RII Sign.<span class="require">*</span></span>
+                            <span class="name" ng-if="pendingData.rci=='y'">RCI Sign.<span class="require">*</span></span>
+                            <div class="ipt">
+                                <select-person person-info="$parent.RiiSign"></select-person>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <select-zone zone-info="zoneInfo" > </select-zone>
+
+                <oil-ewis  edit="$parent.edit"
+                           ac-reg="initData.acId"
+                           is-has-ewis="$parent.isHasEwis" ewis-show="$parent.showEwis"
+                           ewis-state="$parent.ewisState" ewis-dto="$parent.ewisDTO"
+                           ewis-index="$parent.selectedEwisIndex" ewis-info="$parent.ewisInfo"
+                           is-has-oil="$parent.isHasOil" oil-show="$parent.showOil"
+                           oil-state="$parent.oilState" oil-dto="$parent.oilDTO"
+                           oil-index="$parent.selectedOilIndex" oil-info="$parent.oilInfo"
+                ></oil-ewis>
+
+                <div class="b-reason">
+                    <p class="tip-title">Reason<i class="cred">*</i></p>
+                    <div class="reason-button">
+                        <button type="button" ng-class="{active: pendingData['lackMater']=='y'}"
+                                ng-click="selectTab('lackMater')">Material
+                        </button>
+                        <button type="button" ng-class="{active: pendingData['lackTime']=='y'}"
+                                ng-click="selectTab('lackTime')">
+                            Ground Time
+                        </button>
+                        <button type="button" ng-class="{active: pendingData['lackTool']=='y'}"
+                                ng-click="selectTab('lackTool')">
+                            Tooling
+                        </button>
+                        <button type="button" ng-class="{active: pendingData['lackTech']=='y'}"
+                                ng-click="selectTab('lackTech')">
+                            Engineering
+                        </button>
+                    </div>
+<!--                    <input ng-model="pendingData.reasonOther" type="text" placeholder="Others" name="Others"-->
+<!--                           class="b-others"/>-->
+                </div>
+
+                <div class="ui-list">
+                    <div class="ui-list-item ui-textarea-item">
+                        <span>FAULT REPORT(CHN)<span class="require">*</span></span>
+                        <div class="textarea">
+                            <textarea name="faultReportChn" ng-model="pendingData.faultReportChn" required placeholder="FAULT REPORT(CHN)"
+                                      cols="30" maxlength="500" rows="10"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="ui-list">
+                    <div class="ui-list-item ui-textarea-item">
+                        <span>FAULT REPORT(ENG)<span class="require">*</span></span>
+                        <div class="textarea">
+                            <textarea name="faultReportEng" maxlength="500" ng-model="pendingData.faultReportEng" placeholder="FAULT REPORT(CHN)"
+                                      required cols="30" rows="10"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="b-reference ">
+                    <span class="b-flex-box">Reference<i class="cred">*</i></span>
+                    <select name="" class="b-select-mel b-flex-box"
+                            ng-model="reference"
+                            ng-init="reference = ''"
+                            ng-options="x for x in referenceData"
+                            ng-change="refChange(reference)"
+                            required
+                    >
+                    </select>
+                    <!--<i class="cred">*</i>&ndash;&gt;-->
+<!--                    <input type="text"-->
+<!--                           placeholder="{{selectRefData}}"-->
+<!--                           ng-model="pendingData.referItem"-->
+<!--                           name="referencsNo"-->
+<!--                           class="b-mel b-flex-box"-->
+<!--                           required/>-->
+
+<!-- 下拉选择-->
+                    <div class="" style="width: 50%;position: relative;border-radius: 4px;border: 1px solid #e6e6e6;">
+                        <input type="text"
+                               placeholder="{{selectRefData}}"
+                               lass="b-mel b-flex-box"
+                               ng-model="pendingData.referItem"
+                               ng-blur="lostFocus()"
+                               ng-change="searchByInput()"
+                               name="referencsNo"
+                               style="width: 100%; border: none;"
+                               required/>
+                        <ul ng-show="dropdown && logChapterData.length > 0" class="dropdown-menu mr-dropdown" style="z-index:1000;max-height: 10rem">
+                            <li  ng-repeat="numberList in logChapterData" style="margin: .02rem 0 .02rem 0" ng-click="onclickListData(numberList)">
+                                <a >{{ numberList.melNumber }}</a>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+<!--                <div class="b-reference ">-->
+<!--                    <span class="b-flex-box">Reference<i class="cred">*</i></span>-->
+<!--                    <select name="" class="b-select-mel b-flex-box"-->
+<!--                            ng-model="reference"-->
+<!--                            ng-init="reference = ''"-->
+<!--                            ng-options="x for x in referenceData"-->
+<!--                            ng-change="refChange(reference)"-->
+<!--                            required-->
+<!--                    >-->
+<!--                    </select>-->
+<!--                    &lt;!&ndash;<i class="cred">*</i>&ndash;&gt;&ndash;&gt;-->
+<!--                    <select name="" class="b-select-mel b-flex-box"-->
+<!--                            ng-model="pendingData.referItem"-->
+<!--                            ng-init="referencsNo = ''"-->
+<!--                            ng-options="x for x in mel_cdl"-->
+<!--                            required-->
+<!--                            ng-show="mel_true"-->
+<!--                    >-->
+<!--                    </select>-->
+<!--                    <input type="text"-->
+<!--                           placeholder="{{selectRefData}}"-->
+<!--                           ng-model="pendingData.referItem"-->
+<!--                           name="referencsNo"-->
+<!--                           class="b-mel b-flex-box"-->
+<!--                           required ng-show="!mel_true"/>-->
+<!--                </div>-->
+            </div>
+            <p class="b-deferral" style="margin-bottom: 5px;">
+                Deferral Action
+            </p>
+            <div class="b-must-select">
+                <div class="measure-box">
+                    <span class="b-text">Placard</span>
+                    <ui-switch ng-class="{active: pendingData['isPlacard']=='y'}" ng-model="isPlacard"
+                               ng-click="deferral('isPlacard')">
+                        <div class="switch-handle"></div>
+                    </ui-switch>
+                </div>
+                <div class="measure-box">
+                    <span class="b-text">Maintenace Caution Item</span>
+                    <ui-switch ng-class="{active: pendingData['isCaution']=='y'}" ng-model="isCaution"
+                               ng-click="deferral('isCaution')" class="b-select">
+                        <div class="switch-handle"></div>
+                    </ui-switch>
+                </div>
+                <div class="measure-box">
+                    <span class="b-text">(M)Item</span>
+                    <ui-switch ng-class="{active: pendingData['isM']=='y'}" ng-model="isM" ng-click="deferral('isM')"
+                               class="b-select">
+                        <div class="switch-handle"></div>
+                    </ui-switch>
+                </div>
+                <div class="measure-box">
+                    <span class="b-text">Special Requirement</span>
+                    <ui-switch ng-class="{active: pendingData['isSpecial']=='y'}" ng-model="isSpecial"
+                               ng-click="deferral('isSpecial')" class="b-select">
+                        <div class="switch-handle"></div>
+                    </ui-switch>
+                </div>
+                <div class="measure-box">
+<!--                    <span class="b-text">Review Before Each Take Off</span>-->
+                    <span class="b-text">REVIEW EACH PREFLIGHT</span>
+                    <ui-switch ng-class="{active: pendingData['isCheck']=='y'}" ng-model="isCheck"
+                               ng-click="deferral('isCheck')" class="b-select">
+                        <div class="switch-handle"></div>
+                    </ui-switch>
+                </div>
+                <div class="measure-box">
+<!--                    <span class="b-text">Review During Transit</span>-->
+                    <span class="b-text">REVIEW EACH FLYING DAY</span>
+                    <ui-switch ng-class="{active: pendingData['isReview']=='y'}" ng-model="isReview"
+                               ng-click="deferral('isReview')" class="b-select">
+                        <div class="switch-handle"></div>
+                    </ui-switch>
+                </div>
+                <div class="measure-box">
+                    <span class="b-text">(O)Item</span>
+                    <ui-switch ng-class="{active: pendingData['isO']=='y'}" ng-model="isO" ng-click="deferral('isO')"
+                               class="b-select">
+                        <div class="switch-handle"></div>
+                    </ui-switch>
+                </div>
+                <div class="measure-box">
+                    <span class="b-text">Fight Crews Notified</span>
+                    <ui-switch ng-class="{active: pendingData['isNotify']=='y'}" ng-model="isNotify"
+                               ng-click="deferral('isNotify')" class="b-select">
+                        <div class="switch-handle"></div>
+                    </ui-switch>
+                </div>
+
+                <div class="measure-box">
+                    <span class="b-text">(DM)Dual Maintenance</span>
+                    <ui-switch ng-class="{active: pendingData['dm']=='y'}" ng-model="dm"
+                               ng-click="deferral('dm')" class="b-select">
+                        <div class="switch-handle"></div>
+                    </ui-switch>
+                </div>
+            </div>
+
+            <div class="b-authorization">
+                <div class="b-flex">
+                    <div class="b-flex-box" style="position:relative">
+                        <span>Apply Date <i class="cred">*</i>
+                            <i style="padding-left:1.5rem">{{applyDate|date:'yyyy-MM-dd HH:mm:ss'}}</i></span>
+                    </div>
+                    <div class="b-flex-box">
+                        <span>Category<i class="cred">*</i></span>
+                        <select
+                                ng-model="$parent.category"
+                                ng-init="$parent.category=4"
+                                ng-change="categoryChange($parent.category)"
+                                ng-disabled = "limtDate"
+                                class="b-border"
+                                ng-options="obj.key as obj.value for obj in categoryData"
+                        ></select>
+                    </div>
+                </div>
+
+                <!--选择A或OTHER有弹窗点击确定后不显示b-expired,选其他几个选项后显示截止日期-->
+                <div class="b-conform" ng-show="expiredDate != ''">
+                    Expired Date: <span style="padding-left:4.3rem;">{{expiredDate}}截止</span>
+                </div>
+                <div class="b-flex mg14">
+                    <div class="b-flex-box">
+                        <span>Requested by<i class="cred">*</i></span>
+                        <div class="par">
+                            <select-person class="select-person db"
+                                           name="requester"
+                                           person-info="requested"
+                                           is-auto-loginercode="true"
+                            ></select-person>
+                        </div>
+                        <!--<span class="pd-par pab db"></span>-->
+                    </div>
+                    <div class="b-flex-box">
+                        <span>License No.</span>
+                        <input type="text"  name="requesterLice" ng-model="pendingData.requesterLice"/>
+                    </div>
+                </div>
+            </div>
+<!--            <button class="cc-submit  mt135 " ng-click="ceshi()">测试</button>-->
+            <button class="cc-submit  mt135 " ng-if="initData.rii == 'y'"
+                    ng-class="{active: addPendngSubmit.$valid &&
+                    ((isHasEwis == 'y' && ewisDTO.length > 0) || isHasEwis == 'n' ) && ((isHasOil == 'y' && oilDTO.length > 0) || isHasOil == 'n' )
+                    && !requested.diffName &&(category=='0'||category=='1'||category=='3'||category=='10'||category=='120')&&
+                    (requested.approverName!=''&&requested.approverName!=undefined&&requested.approverSn!=''&&requested.approverSn!=undefined)&&
+                    (RiiSign.approverName!=''&&RiiSign.approverName!=undefined&&RiiSign.approverSn!=''&&RiiSign.approverSn!=undefined)&&
+                    (pendingData.faultReportChn != ''&&pendingData.faultReportChn != undefined)&&
+                    (pendingData.faultReportEng != ''&&pendingData.faultReportEng != undefined)&&
+                    (
+                    pendingData['lackMater']=='y'||
+                    pendingData['lackTech']=='y' ||
+                    pendingData['lackTime']=='y' ||
+                    pendingData['lackTool']=='y')}"
+                    ng-click="goNext()"
+                    ng-disabled="!addPendngSubmit.$valid"
+            >下一步
+            </button>
+            <button class="cc-submit  mt135 " ng-if="initData.rii != 'y'"
+                 ng-class="{active: addPendngSubmit.$valid &&
+                    ((isHasEwis == 'y' && ewisDTO.length > 0) || isHasEwis == 'n' ) && ((isHasOil == 'y' && oilDTO.length > 0) || isHasOil == 'n' )
+                    && !requested.diffName &&(category=='0'||category=='1'||category=='3'||category=='10'||category=='120') &&
+                    (requested.approverName!=''&&requested.approverName!=undefined&&requested.approverSn!=''&&requested.approverSn!=undefined)&&
+                    (pendingData.faultReportChn != ''&&pendingData.faultReportChn != undefined)&&
+                    (pendingData.faultReportEng != ''&&pendingData.faultReportEng != undefined)&&
+                    (
+                    pendingData['lackMater']=='y'||
+                    pendingData['lackTech']=='y' ||
+                    pendingData['lackTime']=='y' ||
+                    pendingData['lackTool']=='y')}"
+                 ng-click="goNext()"
+                 ng-disabled="!addPendngSubmit.$valid"
+            >下一步
+            </button>
+        </form>
+        <div class="b-base-prop" ng-show="isProp">
+            <div class="b-content">
+                <div class="b-title">DD Due Date</div>
+                <div class="b-form">
+                    <div class="p-flex-box">
+                        <span class="b-db">FH</span>
+                        <input class="b-db" type="number" ng-model="ddDueDatas.fh" placeholder="请输入"/>
+                    </div>
+                    <div class="p-flex-box">
+                        <span class="b-db">FC</span>
+                        <input class="b-db" type="number" ng-model="ddDueDatas.fc" placeholder="请输入"/>
+                    </div>
+                    <div class="p-flex-box">
+                        <span class="b-db">日历日</span>
+                        <input class="b-db" type="number" ng-model="ddDueDatas.calendarDay" placeholder="请输入"/>
+                    </div>
+                    <div class="p-flex-box">
+                        <span class="b-db">飞行日</span>
+                        <input class="b-db" type="number" ng-model="ddDueDatas.flightDay" placeholder="请输入"/>
+                    </div>
+                    <p class="red"> 请至少填写一项数据</p>
+                </div>
+                <div class="p-flex-box p-flex-btn">
+                    <div class="btn-s" ng-click="okProp()">确定</div>
+                    <div class="btn-s" ng-click="cleanProp()">取消</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div ng-show="isNextStep" class="damage-detail-wrapper p-pendng ddi-scrollable-content">
+        <div class="damage-draft-detail">
+            <div class="section-1">
+                <div class="item">
+                    <span class="title">TLB NO</span>
+                    <div class="right">{{pendingData.tlbNo}}</div>
+                </div>
+
+                <div class="item" ng-if="pendingData.rii == 'y' && pendingData.rci == 'n'">
+                    <span class="title">RII</span>
+                    <div class="right">YES</div>
+                </div>
+
+                <div class="item" ng-if="pendingData.rci == 'y' && pendingData.rii == 'n'">
+                    <span class="title">RCI</span>
+                    <div class="right">YES</div>
+                </div>
+
+                <div class="item" ng-if="pendingData.rii == 'n' && pendingData.rci == 'n'">
+                    <span class="title">RII/RCI</span>
+                    <div class="right">NO</div>
+                </div>
+
+                <div class="item">
+                    <span class="title">Reason</span>
+                    <div class="right">
+                        {{selReasonStr}}
+                    </div>
+                </div>
+
+<!--                <div class="item" ng-if="pendingData.reasonOther && pendingData.reasonOther != ''">-->
+<!--                    <span class="title">Other</span>-->
+<!--                    <div class="right">-->
+<!--                        {{pendingData.reasonOther}}-->
+<!--                    </div>-->
+<!--                </div>-->
+
+                <div class="item">
+                    <span class="title">Reference</span>
+                    <div class="right">{{reference}}&nbsp;{{pendingData.referItem}}</div>
+                </div>
+
+                <div class="item">
+                    <span class="title">Category</span>
+                    <div class="right">
+                            <span ng-repeat="categoryItem in categoryData" ng-if="categoryItem.key == category">
+                                {{categoryItem.value}}
+                            </span>
+                    </div>
+                </div>
+
+            </div>
+            <div class="section-2" ng-if="pendingData['isPlacard']=='y' ||
+                                    pendingData['isCaution']=='y'
+                                    || pendingData['isM']=='y'
+                                    || pendingData['isSpecial']=='y'
+                                    || pendingData['isCheck']=='y'
+                                    || pendingData['isReview']=='y'
+                                    || pendingData['isO']=='y'
+                                    || pendingData['isNotify']=='y'
+                                    || pendingData['dm']=='y'">
+                <div class="header">Deferral Action</div>
+                <div class="whole-top-line"></div>
+
+                <div class="item" ng-if="pendingData['isPlacard']=='y'">
+                    <span class="title">Placard</span>
+                    <img class="sel-image" src="dist/images/ddi-select.png">
+                </div>
+                <div class="item" ng-if="pendingData['isCaution']=='y'">
+                    <span class="title">Maintenace Caution Item</span>
+                    <img class="sel-image" src="dist/images/ddi-select.png">
+                </div>
+                <div class="item" ng-if="pendingData['isM']=='y'">
+                    <span class="title">(M)Item</span>
+                    <img class="sel-image" src="dist/images/ddi-select.png">
+                </div>
+
+                <div class="item" ng-if="pendingData['isSpecial']=='y'">
+                    <span class="title">SPECIAL Requirement</span>
+                    <img class="sel-image" src="dist/images/ddi-select.png">
+                </div>
+                <div class="item" ng-if="pendingData['isCheck']=='y'">
+                    <span class="title">REVIEW EACH PREFLIGHT</span>
+                    <img class="sel-image" src="dist/images/ddi-select.png">
+                </div>
+                <div class="item" ng-if="pendingData['isReview']=='y'">
+                    <span class="title">REVIEW EACH FLYING DAY</span>
+                    <img class="sel-image" src="dist/images/ddi-select.png">
+                </div>
+                <div class="item" ng-if="pendingData['isO']=='y'">
+                    <span class="title">(O)ITEM</span>
+                    <img class="sel-image" src="dist/images/ddi-select.png">
+                </div>
+
+                <div class="item" ng-if="pendingData['isNotify']=='y'">
+                    <span class="title">Fight Crews Notified</span>
+                    <img class="sel-image" src="dist/images/ddi-select.png">
+                </div>
+
+                <div class="item" ng-if="pendingData['dm']=='y'">
+                    <span class="title">(DM)Dual Maintenance</span>
+                    <img class="sel-image" src="dist/images/ddi-select.png">
+                </div>
+
+            </div>
+            <div class="section-3">
+                <div class="header">故障报告</div>
+                <div class="whole-top-line"></div>
+                <div class="textarea-item">
+                    <div class="title"></div>
+                    <div>
+                        <p style="border: 1px solid #d3dbdf;padding: 4px;">
+                            {{pendingData.faultReportChn}}
+                        </p>
+                        <!--<textarea disabled style="height: auto !important;" ng-model="pendingData.faultReportChn"></textarea>-->
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="ddi-submit mt434 active"
+                ng-click="pendingSubmit()"
+        >提交</button>
+    </div>
+
+
+</moac-body>
+<ewis ac-reg="initData.acId" ng-show="showEwis" ewis-show="showEwis" state="ewisState" ewis-dto="ewisDTO" index="selectedEwisIndex" ewis-info="ewisInfo" is-edit="edit"></ewis>
+<oil ng-show="showOil" oil-show="showOil" state="oilState" oil-dto="oilDTO" index="selectedOilIndex" oil-info="oilInfo" is-edit="edit"></oil>
+
+

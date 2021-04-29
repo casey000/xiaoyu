@@ -1,0 +1,554 @@
+<ui-view name="subDetail"></ui-view>
+<div ng-show='!subDetailView' class="app-body">
+    <!--releaseTask放行任务-->
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="navbar-brand navbar-brand-center">
+            <span style="color: red" ng-show="tasks.minorModelShort">({{tasks.minorModelShort}}{{tasks.flightSituation}})</span> {{tasks.acReg}}<span ng-show="tasks.checkType=='STA'">{{tasks.checkType}}</span>
+        </div>
+        <div class="btn-group btn-group-left">
+            <div class="btn" ng-click="goBack()">
+                <i class="icon-maoc icon-back"></i>
+            </div>
+        </div>
+<!--        <div class="btn-group btn-group-right" ng-show="addguzhang">-->
+<!--            <div class="btn btn-refresh" ng-click="go('faultFlight.newfault', '', {flight: ac_guzhang, tr: prFlag, dmStatus:true})">-->
+<!--              <span>新建故障</span>-->
+<!--            </div>-->
+<!--        </div>-->
+        <div class="btn-group btn-group-right" style="right: .5rem">
+            <div class="btn btn-refresh" ng-click="flowShow = true">
+                <i style="color: #fff;font-size: 1.2rem;font-style: normal"> + </i>
+            </div>
+        </div>
+    </div>
+    <div ng-show="flowShow">
+        <div class="ui-tip-bg" ng-click="flowShow = false"></div>
+        <div class="fixme-tip" style="right: .65rem" ng-click="flowShow = false">
+            <div>
+                <div ng-hide="centerStationFlage">
+                    <span ng-click="go('dispatchList', '',{workOrderId:workOrderId,station:nowStation})" >发料</span>
+                </div>
+                <div style="">
+                    <span ng-click="returnMr()">退库</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="scrollable">
+        <div class="scrollable-content release-content"  im-pull-to-refresh refresh-function="initMeJobDetail()">
+            <!--下拉刷新时显示 -->
+            <div ng-show="pullToRefreshActive" ng-class="{'refresh-hide': !pullToRefreshActive}" class="refresh text-center">
+                <i class="fa fa-refresh fa-spin fa-fw"></i><translate>loading</translate>...
+            </div>
+            <ul class=" flight-nav-status release-padding">
+                <li>{{tasks.flightNo|| tasks.station}} <span ng-if="tasks.checkType!='STA'">{{tasks.checkType}}</span>
+                </li>
+                <li class="pull-right text-right"><span class="releaseTime">{{tasks.date | date:'yyyy/MM/dd HH:mm'}}</span></li>
+                <li class="working-tip" ng-if="limitNames">运行限制:<span>{{limitNames}}</span></li>
+            </ul>
+
+            <!-- LMJC & FLB -->
+            <div class="flb card-title" switch-card ng-hide="loading2 || tasks.checkType=='STA' || !tasks.lineJob">
+                LMJC & FLB
+                <div class="pull-right" style="height: 2.1rem;">
+                    <span>({{tasks.lineJobFinished}}/{{tasks.lineJobTotal}})</span>
+                    <span><i class="fa fa-angle-down fac fac1" aria-hidden="true"></i></span>
+
+                </div>
+            </div>
+            <!--go('me.releaseTask.meForm','',{'formId':tasks.lineJob.formId, cardInfo: tasks})-->
+            <div class="flight-wrap flight-task-wrap"  ng-hide="loading2 || tasks.checkType=='STA' || !tasks.lineJob"
+                 id="fac11">
+                <div class="pubFlightList flbCard" style="overflow: visible" ng-click="flbEditAction()" swipe-left>
+                    <div ng-if="!tasks.lineJob.canProcess && !tasks.released" class="delete" style="background-color:#1a87ff;height: 3rem;line-height: 3rem;margin-right: -3.8rem;z-index: 9;font-size: .6rem" ng-click="editFixed($event)">编辑</div>
+                    <span class="task-title" ng-class="{'fontBlue':!tasks.lineJob.canProcess}">
+                        LMJC & FLB
+                    </span>
+                    <button type="button" class="pull-right"
+                            ng-show="tasks.lineJob.canProcess">
+                        process
+                    </button>
+                    <!--<button type="button" class="pull-right" ng-click="toDet($event)"-->
+                            <!--&gt;-->
+                        <!--detail-->
+                    <!--</button>-->
+
+                    <span class="pull-right task-process" ng-if="!tasks.lineJob.canProcess"
+                          ng-class="{'overColor':tasks.lineJob.status=='Close'||tasks.lineJob.status=='Defer'||tasks.lineJob.status=='Cancel'}">
+						{{tasks.lineJob.status}}</span>
+                    <div class="task-user" ng-hide="tasks.lineJob.canProcess">
+                        <span>{{tasks.lineJob.workerName}}</span>
+                        {{tasks.lineJob.workerNo}}
+                    </div>
+                    <div class="closeCardTips"></div>
+                </div>
+            </div>
+
+            <!-- Routine Maintenance -->
+            <div class="flb card-title" switch-card>
+                Routine Maintenance
+                <div class="pull-right" style="height: 2.1rem;">
+                    <span>({{tasks.routineFinished}}/{{tasks.routineTotal}})</span>
+                    <span><i class="fa fa-angle-down fac fac2" aria-hidden="true"></i></span>
+
+                </div>
+            </div>
+            <div class="flight-wrap flight-task-wrap" id="fac22">
+                <div class="pubFlightList flbCard" style="overflow: visible" ng-repeat="routineItem in tasks.routineList track by $index" >
+                    <div swipe-left ng-if="!routineItem.canProcess && !tasks.released && !routineItem.checked && routineItem.status !='Cancel' && routineItem.status !='Postpone'" style="height: 3rem;position: relative;right: 0; transition: right .3s;background-color: #fff;">
+                        <div  class="delete" style="background-color:#1a87ff;height: 3.85rem;line-height:3.85rem;margin-right: -3.8rem;z-index: 9;font-size: .6rem" ng-click="go('airLineProcessDetail','',{workId:routineItem.itemId,cardType:routineItem.cardType,isEdit:true})">编辑</div>
+                        <div class="flbCard-first-row" >
+                            <div class="pull-left jobCard-wrap">
+                                <span class="task-title"
+                                      ng-class="{'fontBlue':!routineItem.canProcess}"
+                                      ng-if="routineItem.cardType=='NRC' && routineItem.cardNo.indexOf('NRC')==-1"
+                                      ng-click="go('nrcDetail','',{nrcId:routineItem.cardId,status:routineItem.status,processId:''})">
+                                    {{routineItem.cardType}}-{{routineItem.cardNo}}
+                                </span>
+                                <span class="task-title"
+                                      ng-class="{'fontBlue':!routineItem.canProcess,'no-link':routineItem.canProcess}"
+                                      ng-click="go('airLineProcessDetail','',{workId:routineItem.itemId,cardType:routineItem.cardType})"
+                                      ng-if="routineItem.cardType!='NRC' || routineItem.cardNo.indexOf('NRC')!=-1 "><span ng-if="routineItem.cardType=='CCO'">{{routineItem.cardType}}-</span>{{routineItem.cardNo}}
+                                </span>
+                            </div>
+                            <div class="pull-right button-wrap">
+                                <button type="button" class="marginright tbm_routine"
+                                        ng-show="routineItem.canReject &&(routineItem.cardType!='ReviewTLB'||routineItem.cardType!='ReviewDD')"
+                                        reject-card>reject
+                                </button>
+                                <button type="button" class="pull-right"
+                                        ng-click="goTlbAdd(tasks, routineItem)"
+                                        ng-show="routineItem.canProcess">
+                                    process
+                                </button>
+
+                            </div>
+                            <div class="pull-right task-process" ng-hide="routineItem.canProcess"
+                                 ng-class="{'overColor':routineItem.status=='Close'||routineItem.status=='Defer'||routineItem.status=='Cancel'}">
+                                {{routineItem.status}}
+                            </div>
+                        </div>
+                        <div class="task-user" ng-if="routineItem.status!='Open'">
+                            <span>{{routineItem.workerName}}</span>
+                            {{routineItem.workerNo}}
+                        </div>
+                        <div class="task-user" >
+                            <span>任务日期：</span>
+                            {{routineItem.jobDate}}
+                        </div>
+                    </div>
+                    <div ng-if="routineItem.canProcess || tasks.released || routineItem.checked || routineItem.status =='Cancel' || routineItem.status =='Postpone'" style="position: relative;right: 0; transition: right .3s;background-color: #fff;">
+                        <div class="flbCard-first-row" >
+                            <div class="pull-left jobCard-wrap">
+                                <span class="task-title"
+                                      ng-class="{'fontBlue':!routineItem.canProcess}"
+                                      ng-if="routineItem.cardType=='NRC' && routineItem.cardNo.indexOf('NRC')==-1"
+                                      ng-click="go('nrcDetail','',{nrcId:routineItem.cardId,status:routineItem.status,processId:''})">
+                                    {{routineItem.cardType}}-{{routineItem.cardNo}}
+                                </span>
+                                <span class="task-title"
+                                      ng-class="{'fontBlue':!routineItem.canProcess,'no-link':routineItem.canProcess}"
+                                      ng-click="go('airLineProcessDetail','',{workId:routineItem.itemId,cardType:routineItem.cardType})"
+                                      ng-if="routineItem.cardType!='NRC' || routineItem.cardNo.indexOf('NRC')!=-1"><span ng-if="routineItem.cardType=='CCO'">{{routineItem.cardType}}-</span>{{routineItem.cardNo}}
+                                </span>
+                            </div>
+                            <div class="pull-right button-wrap">
+                                <button type="button" class="marginright tbm_routine"
+                                        ng-show="routineItem.canReject &&(routineItem.cardType!='ReviewTLB'||routineItem.cardType!='ReviewDD')"
+                                        reject-card>reject
+                                </button>
+                                <button type="button" class="pull-right"
+                                        ng-click="goTlbAdd(tasks, routineItem)"
+                                        ng-show="routineItem.canProcess">
+                                    process
+                                </button>
+
+                            </div>
+                            <div class="pull-right task-process" ng-hide="routineItem.canProcess"
+                                 ng-class="{'overColor':routineItem.status=='Close'||routineItem.status=='Defer'||routineItem.status=='Cancel'}">
+                                {{routineItem.status}}
+                            </div>
+                        </div>
+                        <div class="task-user" ng-if="routineItem.status!='Open'">
+                            <span>{{routineItem.workerName}}</span>
+                            {{routineItem.workerNo}}
+                        </div>
+                        <div class="task-user" >
+                            <span>任务日期：</span>
+                            {{routineItem.jobDate}}
+                        </div>
+                    </div>
+                    <div class="dash-border" ng-if="routineItem.description"></div>
+                    <div class="task-content">{{routineItem.description}}</div>
+                    <a class="view-pdf" ng-click="openNewPageWithData({param: {cardType: routineItem.cardType, cardId: routineItem.cardId,workOrderId:routineItem.itemId, },
+                                    title: routineItem.cardNo, type: 'pdf', interfaceUrl: 'rs/pdf/findDPFByCardTypeAndCardId'})">View PDF</a>
+                    <a class="view-pdf" ng-click="go_mrlist(routineItem,tasks.station)" style="margin-left: 15px">MR List</a>
+                </div>
+            </div>
+
+            <div class="flb card-title" switch-card>
+                Non-Routine Maintenance
+                <div class="pull-right" style="height: 2.1rem;">
+                    <span>({{tasks.nonRoutineFinished}}/{{tasks.nonRoutineTotal}})</span>
+                    <span><i class="fa fa-angle-down fac fac3" aria-hidden="true"></i></span>
+                </div>
+            </div>
+            <div class="flight-wrap flight-task-wrap" id="fac33">
+                <div class="pubFlightList flbCard" style="overflow: visible" ng-repeat="nonRoutineItem in tasks.nonRoutineList track by $index">
+                    <div swipe-left ng-if="!nonRoutineItem.canProcess && !tasks.released && !nonRoutineItem.checked && nonRoutineItem.status !='Cancel' && nonRoutineItem.status !='Postpone'" style="height: 3.3rem;position: relative;right: 0; transition: right .3s;background-color: #fff;">
+                        <div  class="delete" style="background-color:#1a87ff;height: 4.15rem;line-height:4.15rem;margin-right: -3.8rem;z-index: 9;font-size: .6rem" ng-click="go('airLineProcessDetail','',{workId:nonRoutineItem.itemId,cardType:nonRoutineItem.cardType,isEdit:true})">编辑</div>
+                        <div class="flbCard-first-row">
+                            <div class="pull-left jobCard-wrap">
+                                <span class="task-title"
+                                      ng-if="nonRoutineItem.cardType=='DEFECT'"
+                                      ng-click="go('searchFault.faultClose','',{defectId: nonRoutineItem.cardId,  pt: false})">
+                                    {{nonRoutineItem.cardType}}-{{nonRoutineItem.cardType=='DEFECT'?nonRoutineItem.docNo
+                                    :nonRoutineItem.cardNo}}
+                                </span>
+                                <span class="task-title red"
+                                      ng-if="nonRoutineItem.cardType=='ReviewDefect'"
+                                      ng-class="{'fontBlue':!nonRoutineItem.canProcess,'no-link':nonRoutineItem.canProcess}"
+                                      ng-click="go('airLineProcessDetail','',{workId:nonRoutineItem.itemId,cardType:nonRoutineItem.cardType})">
+                                    {{nonRoutineItem.cardType}}-{{nonRoutineItem.cardNo}}
+                                </span>
+                                <!--<span class="task-title" ng-if="nonRoutineItem.cardType=='ReviewTLB'">Re TLB-</span>-->
+                                <!--<span class="task-title" ng-if="nonRoutineItem.cardType=='DD'">DEFECT-</span>-->
+                                <!--<span class="task-title" ng-if="nonRoutineItem.cardType=='ReviewDD'">Re DD-</span>-->
+                                <span class="task-title"
+                                      ng-class="{'fontBlue':!nonRoutineItem.canProcess}"
+                                      ng-if="nonRoutineItem.cardType=='NRC' && nonRoutineItem.cardNo.indexOf('NRC')==-1"
+                                      ng-click="go('nrcDetail','',{nrcId:nonRoutineItem.cardId,status:nonRoutineItem.status,processId:''})">
+                                    {{nonRoutineItem.cardType}}-{{nonRoutineItem.cardNo}}
+                                </span>
+                                <span class="task-title"
+                                      ng-class="{'fontBlue':!nonRoutineItem.canProcess,'no-link':nonRoutineItem.canProcess}"
+                                      ng-click="go('airLineProcessDetail','',{workId:nonRoutineItem.itemId,cardType:nonRoutineItem.cardType})"
+                                      ng-if="nonRoutineItem.cardType!='DEFECT'&&nonRoutineItem.cardType!='ReviewDefect'&&
+                                      nonRoutineItem.cardType!='NRC' || nonRoutineItem.cardNo.indexOf('NRC')!=-1">
+                                    <span ng-if="nonRoutineItem.cardType=='CCO'">{{nonRoutineItem.cardType}}-</span>
+                                {{nonRoutineItem.cardType!='DEFECT' && nonRoutineItem.cardType!='TO' ? nonRoutineItem.cardNo : nonRoutineItem.docNo}}
+                            </span>
+                        </div>
+                        <div class="pull-right button-wrap">
+                            <button type="button" class="marginright tbm_non_routine"
+                                    ng-show="nonRoutineItem.canReject && nonRoutineItem.cardType!='ReviewTLB' && nonRoutineItem.cardType!='ReviewDD' && nonRoutineItem.cardType != 'ReviewDefect'"
+                                    reject-card>reject
+                            </button>
+                            <button type="button" class="pull-right"
+                                    ng-show="nonRoutineItem.canProcess && nonRoutineItem.cardType=='DEFECT'"
+                                    ng-click="go('searchFault.faultClose','', {defectId: nonRoutineItem.cardId,  pt: false, defectDetail: {defectNo: nonRoutineItem.docNo, cardId: nonRoutineItem.cardId, acReg: tasks.acReg, station: tasks.station, rii: nonRoutineItem.rii, itemId: nonRoutineItem.itemId},
+									toList: nonRoutineItem.toList})">
+                                process
+                            </button>
+                            <button type="button" class="pull-right"
+                                    ng-show="nonRoutineItem.canProcess && nonRoutineItem.cardType=='ReviewDefect'"
+                                    ng-click="goNonroutineForm(nonRoutineItem)">
+                                process
+                            </button>
+                            <button type="button" class="pull-right"
+                                    ng-click="goNonroutineForm(nonRoutineItem);"
+                                    ng-show="nonRoutineItem.canProcess && nonRoutineItem.cardType!='DEFECT' && nonRoutineItem.cardType!='ReviewDefect'">
+                                process
+                            </button>
+                            <!--<button type="button" class="pull-right"-->
+                                    <!--ng-click="goNonroutineForm(nonRoutineItem);"-->
+                                    <!--ng-show="nonRoutineItem.canProcess && nonRoutineItem.cardType!='DEFECT'">-->
+                                <!--process-->
+                            <!--</button>-->
+
+                            </div>
+                            <div class="pull-right task-process" ng-hide="nonRoutineItem.canProcess"
+                                 ng-class="{'overColor':nonRoutineItem.status=='Close'||nonRoutineItem.status=='Defer'||nonRoutineItem.status=='Cancel'}">
+                                {{nonRoutineItem.status}}
+                            </div>
+                        </div>
+                        <div class="task-user">
+                            <span>{{nonRoutineItem.workerName}}</span>
+                            {{nonRoutineItem.workerNo}}
+                        </div>
+                        <div class="task-user" >
+                            <span>任务日期：</span>
+                            {{nonRoutineItem.jobDate}}
+                        </div>
+                    </div>
+                    <div ng-if="nonRoutineItem.canProcess || tasks.released || nonRoutineItem.checked || nonRoutineItem.status =='Cancel' || nonRoutineItem.status =='Postpone'" style="position: relative;right: 0; transition: right .3s;background-color: #fff;">
+                        <div class="flbCard-first-row">
+                            <div class="pull-left jobCard-wrap">
+                                <span class="task-title"
+                                      ng-if="nonRoutineItem.cardType=='DEFECT'"
+                                      ng-click="go('searchFault.faultClose','',{defectId: nonRoutineItem.cardId,  pt: false})">
+                                    {{nonRoutineItem.cardType}}-{{nonRoutineItem.cardType=='DEFECT'?nonRoutineItem.docNo
+                                    :nonRoutineItem.cardNo}}
+                                </span>
+                                <span class="task-title red"
+                                      ng-if="nonRoutineItem.cardType=='ReviewDefect'"
+                                      ng-class="{'fontBlue':!nonRoutineItem.canProcess,'no-link':nonRoutineItem.canProcess}"
+                                      ng-click="go('airLineProcessDetail','',{workId:nonRoutineItem.itemId,cardType:nonRoutineItem.cardType})">
+                                    {{nonRoutineItem.cardType}}-{{nonRoutineItem.cardNo}}
+                                </span>
+                                <!--<span class="task-title" ng-if="nonRoutineItem.cardType=='ReviewTLB'">Re TLB-</span>-->
+                                <!--<span class="task-title" ng-if="nonRoutineItem.cardType=='DD'">DEFECT-</span>-->
+                                <!--<span class="task-title" ng-if="nonRoutineItem.cardType=='ReviewDD'">Re DD-</span>-->
+                                <span class="task-title"
+                                      ng-class="{'fontBlue':!nonRoutineItem.canProcess}"
+                                      ng-if="nonRoutineItem.cardType=='NRC' && nonRoutineItem.cardNo.indexOf('NRC')==-1"
+                                      ng-click="go('nrcDetail','',{nrcId:nonRoutineItem.cardId,status:nonRoutineItem.status,processId:''})">
+                                    {{nonRoutineItem.cardType}}-{{nonRoutineItem.cardNo}}
+                                </span>
+                                <span class="task-title"
+                                      ng-class="{'fontBlue':!nonRoutineItem.canProcess,'no-link':nonRoutineItem.canProcess}"
+                                      ng-click="go('airLineProcessDetail','',{workId:nonRoutineItem.itemId,cardType:nonRoutineItem.cardType})"
+                                      ng-if="nonRoutineItem.cardType!='DEFECT'&&nonRoutineItem.cardType!='ReviewDefect'&&
+                                      (nonRoutineItem.cardType!='NRC' || nonRoutineItem.cardNo.indexOf('NRC')!=-1)">
+                                    <span ng-if="nonRoutineItem.cardType=='CCO'">{{nonRoutineItem.cardType}}-</span>
+                                    {{nonRoutineItem.cardType!='DEFECT' && nonRoutineItem.cardType!='TO' ? nonRoutineItem.cardNo : nonRoutineItem.docNo}}
+                                </span>
+                            </div>
+                            <div class="pull-right button-wrap">
+                                <button type="button" class="marginright tbm_non_routine"
+                                        ng-show="nonRoutineItem.canReject && nonRoutineItem.cardType!='ReviewTLB' && nonRoutineItem.cardType!='ReviewDD' && nonRoutineItem.cardType != 'ReviewDefect'"
+                                        reject-card>reject
+                                </button>
+                                <button type="button" class="pull-right"
+                                        ng-show="nonRoutineItem.canProcess && nonRoutineItem.cardType=='DEFECT'"
+                                        ng-click="go('searchFault.faultClose','', {defectId: nonRoutineItem.cardId,  pt: false, defectDetail: {defectNo: nonRoutineItem.docNo, cardId: nonRoutineItem.cardId, acReg: tasks.acReg, station: tasks.station, rii: nonRoutineItem.rii, itemId: nonRoutineItem.itemId},
+                                        toList: nonRoutineItem.toList})">
+                                    process
+                                </button>
+                                <button type="button" class="pull-right"
+                                        ng-show="nonRoutineItem.canProcess && nonRoutineItem.cardType=='ReviewDefect'"
+                                        ng-click="goNonroutineForm(nonRoutineItem)">
+                                    process
+                                </button>
+                                <button type="button" class="pull-right"
+                                        ng-click="goNonroutineForm(nonRoutineItem);"
+                                        ng-show="nonRoutineItem.canProcess && nonRoutineItem.cardType!='DEFECT' && nonRoutineItem.cardType!='ReviewDefect'">
+                                    process
+                                </button>
+                                <!--<button type="button" class="pull-right"-->
+                                <!--ng-click="goNonroutineForm(nonRoutineItem);"-->
+                                <!--ng-show="nonRoutineItem.canProcess && nonRoutineItem.cardType!='DEFECT'">-->
+                                <!--process-->
+                                <!--</button>-->
+
+                            </div>
+                            <div class="pull-right task-process" ng-hide="nonRoutineItem.canProcess"
+                                 ng-class="{'overColor':nonRoutineItem.status=='Close'||nonRoutineItem.status=='Defer'||nonRoutineItem.status=='Cancel'}">
+                                {{nonRoutineItem.status}}
+                            </div>
+                        </div>
+                        <div class="task-user">
+                            <span>{{nonRoutineItem.workerName}}</span>
+                            {{nonRoutineItem.workerNo}}
+                        </div>
+                        <div class="task-user" >
+                            <span>任务日期：</span>
+                            {{nonRoutineItem.jobDate}}
+                        </div>
+                    </div>
+
+                    <div class="dash-border" ng-if="nonRoutineItem.description"></div>
+                    <div class="task-content"  ng-if="nonRoutineItem.cardType != 'TO'">故障描述：{{nonRoutineItem.description}}</div>
+                    <div class="task-content" style="color:#414141; " ng-if="nonRoutineItem.cardType == 'TO'">任务描述：{{nonRoutineItem.description}}</div>
+                    <div class="dash-border"></div>
+                    <div class="task-content">MCC Remark：{{nonRoutineItem.mccRemark}}</div>
+                    <div class="task-content" ng-if="nonRoutineItem.cardType!='DEFECT'&&  nonRoutineItem.cardType!='ReviewDefect' && nonRoutineItem.cardType!='ReviewDD'">
+                        <a ng-if="nonRoutineItem.cardType == 'TO'" class="view-pdf" ng-click="openNewPageWithData({param: {cardType: nonRoutineItem.cardType, cardId: nonRoutineItem.cardId,workOrderId:nonRoutineItem.itemId, },
+                                    title: nonRoutineItem.cardNo, type: 'pdf', interfaceUrl: 'rs/pdf/findDPFByCardTypeAndCardId'})">View PDF</a>&#12288;&#12288;
+                        <a class="view-pdf" ng-click="go_mrlist(nonRoutineItem,tasks.station)" >MR List</a></div>
+                </div>
+
+            </div>
+
+            <!--航班故障待处理-->
+            <div class="flb card-title" switch-card>
+                航班故障待处理
+                <div class="pull-right">
+                    <span>({{tasks.defectListFinished}}/{{tasks.defectListTotal}})</span>
+                    <span><i class="fa fa-angle-down fac fac2" aria-hidden="true"></i></span>
+                </div>
+            </div>
+            <div class="flight-wrap flight-task-wrap" id="fac44">
+                <div class="pubFlightList flbCard" ng-repeat="defect in tasks.defectList track by $index">
+                    <div class="task-title">
+                        Defect: <span class="red" ng-click="go('searchFault.faultClose','',{defectId: defect.id, pt: true})">{{defect.defectNo}}</span>
+                    </div>
+                    <!--<span class="pull-right" ng-click="mccRemark = !mccRemark"   ng-init="mccRemark=true" >-->
+                        <!--<i class="fa "  aria-hidden="true"   ng-class="{true:'fa-angle-down',false:'fa-angle-up'}[mccRemark]"> </i>-->
+                    <!--</span>-->
+                    <!--<div ng-click="mccRemark = !mccRemark"   ng-class="{true:'fold',false:'unfold'}[mccRemark]" >-->
+                        <!--&lt;!&ndash;<span>{{meJobDetails.mccRemark}}</span>&ndash;&gt;-->
+                        <!--<span>MCC下发任务时的备注信息：mccRemark  {{task.meJobDetails.mccRemark}}</span>-->
+                    <!--</div>-->
+                    <!--<span class="pull-right task-process" ng-if="defect.category && defect.category!='MCC' && defect.status && defect.status!='C'&& defect.assignFlag  && defect.assignFlag!=1">已推迟或已保留 </span>-->
+                    <span class="pull-right task-process" ng-if="defect.category && (defect.category=='PEND' || defect.category=='DFRL') && defect.status && defect.status!='C'">已推迟或已保留 </span>
+                    <span class="pull-right task-process" ng-if="(defect.category=='MCC' && defect.status && defect.status!='C') || defect.assignFlag==1">已转MCC </span>
+
+                    <span class="pull-right task-process" ng-if="defect.status == 'C' || defect.status == 'M'">Close </span>
+                    <button type="button" class="pull-right" ng-if="(!defect.category || defect.category == '无') && defect.status =='O' && defect.assignFlag!=1"
+                            ng-click="go('searchFault.faultClose','', {defectId: defect.id, pt: true, defectDetail: {defectNo: defect.defectNo, cardId: defect.cardId, acReg: defect.acReg, station: defect.station, rii: defect.rii, itemId:defect.jobId}})">
+                        process
+                    </button>
+                    <div class="task-user">
+                        {{defect.faultReportChn}}
+                    </div>
+                </div>
+            </div>
+
+            <!--航班故障待处理-->
+            <div class="flb card-title" switch-card>
+                故障推迟转NRC处理
+                <div class="pull-right">
+                    <span>({{tasks.nrcListFinished}}/{{tasks.nrcListTotal}})</span>
+                    <span><i class="fa fa-angle-down fac fac2" aria-hidden="true"></i></span>
+                </div>
+            </div>
+            <div class="flight-wrap flight-task-wrap" id="fac55">
+                <div class="pubFlightList flbCard" ng-repeat="nrc in tasks.nrcList track by $index">
+                    <div class="task-title" ng-click="go('nrcDetail','',{nrcId:nrc.id,status:nrc.status,processId:''})">
+                        NRC: <span class="red">{{nrc.nrcNo}}</span>
+                    </div>
+                    <span class="pull-right task-process" >{{nrc.nrcProcessStatus}} </span>
+
+                    <!--<span class="pull-right task-process" ng-if="defect.category && (defect.category=='PEND' || defect.category=='DFRL') && defect.status && defect.status!='C'">已推迟或已保留 </span>-->
+                    <!--<span class="pull-right task-process" ng-if="(defect.category=='MCC' && defect.status && defect.status!='C') || defect.assignFlag==1">已转MCC </span>-->
+
+                    <!--<span class="pull-right task-process" ng-if="defect.status == 'C' || defect.status == 'M'">Close </span>-->
+                    <!--<button type="button" class="pull-right" ng-if="(!defect.category || defect.category == '无') && defect.status =='O' && defect.assignFlag!=1"-->
+                            <!--ng-click="go('searchFault.faultClose','', {defectId: defect.id, pt: true, defectDetail: {defectNo: defect.defectNo, cardId: defect.cardId, acReg: defect.acReg, station: defect.station, rii: defect.rii, itemId:defect.jobId}})">-->
+                        <!--process-->
+                    <!--</button>-->
+                    <div class="task-user">
+                        {{nrc.descChn}}
+                    </div>
+                </div>
+            </div>
+
+            <!--Release 开始-->
+            <div class="flb border-bottom card-title ng-hide" switch-card ng-hide="hideType || (!ME_RELEASE && !ADMIN)">
+                Release
+                <div class="pull-right">
+
+                    <span><i class="fa fa-angle-down fac" aria-hidden="true"></i></span>
+                </div>
+            </div>
+
+            <div class="flight-task-wrap" ng-hide=" hideType || (!ME_RELEASE && !ADMIN)">
+                <div class="flb check-release-title">
+                    Check List
+                </div>
+                <div class="checkList-group">
+                    <ul class="list-group">
+                        <li class="list-group-item checklist-item" ng-repeat="item in tasks.checkList">
+                            <div class="check-list-title pull-left">{{item.description}}</div>
+                            <div class="pull-right wrap-switch">
+                                <ui-switch ng-model="item.isCheck" ng-disabled="tasks.released">
+                                    <div class="switch-handle"></div>
+                                </ui-switch>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="flb check-release-title">
+                    Release
+                </div>
+                <div class="checkList-group">
+
+                    <div class="flb check-list releaser">
+                        {{releaseInfo.releaser || myName}} {{releaseInfo.releaserNo}}
+
+                        <div class="pull-right ">
+                            {{tasks.checkType}}
+                        </div>
+                    </div>
+                    <div class="check-border-bottom"></div>
+                    <div class="flb check-list license-number">
+                        <!-- <span>License No.</span> ng-disabled="tasks.released || licenseDisabled"-->
+                        License No.
+                        <input type="text" class="form-control release-input" ng-model="releaseInfo.licenseNo"
+                               ng-disabled="tasks.released" placeholder="请输入执照号"
+                               on-input-license-limit required maxlength="18">
+
+
+                    </div>
+                    <div class="check-border-bottom"></div>
+                    <div class="flb check-list check-list-last">
+                        Release Date
+                        <input type="text" ng-if="!android" class="form-control releaseTime-unandroid"
+                               ng-value="releaseTime2" placeholder="请选择日期" readonly>
+                        <input type="text" ng-if="android" class="form-control" ng-value="releaseTime2"
+                               placeholder="请选择日期" readonly>
+                        <input ng-if="!android" type="date" ng-click="licenseBlur()" class="form-control mask-date date-unandroid"
+                               ng-change="formatTime($event)" ng-model="releaseInfo.releaseTime" ng-disabled="tasks.released">
+                        <input ng-if="android" type="date" class="form-control mask-date" ng-change="formatTime($event)"
+                               ng-model="releaseInfo.releaseTime" ng-disabled="tasks.released">
+                        <div class="triangle-down"></div>
+                    </div>
+                    <div class="check-border-bottom"></div>
+                    <div class="flb check-list releaser-time">
+                        Release Time
+                        <input type="tel" id="T1" ng-change="T1_onkeyup()" ng-model="releaseHours" placeholder="00"
+                               ng-disabled="tasks.released"
+                               ng-focus="selectAll($event)">:
+                        <input type="tel" id="T2" ng-change="T2_onkeyup()" ng-model="releaseMinutes" placeholder="00"
+                               ng-disabled="tasks.released"
+                               ng-focus="selectAll($event)" ng-keyup="cursorForward($event)">:
+                        <input type="tel" id="T3" ng-change="T3_onkeyup()" ng-model="releaseSeconds" placeholder="00"
+                               ng-disabled="tasks.released"
+                               ng-focus="selectAll($event)" ng-keyup="cursorForward($event)"
+                               ng-keydown="preventTab($event)">
+                    </div>
+                </div>
+                <button class="release-btn" ng-if="!tasks.released && tasks.checkList.length==7" ng-disabled="!tasks.checkList[0].isCheck || !tasks.checkList[1].isCheck
+					|| !tasks.checkList[2].isCheck || !tasks.checkList[3].isCheck || !tasks.checkList[4].isCheck
+					|| !tasks.checkList[5].isCheck || !tasks.checkList[6].isCheck|| tasks.lineJobTotal !=tasks.lineJobFinished || tasks.routineTotal != tasks.routineFinished
+					|| tasks.nonRoutineTotal != tasks.nonRoutineFinished || tasks.defectListFinished != tasks.defectListTotal || tasks.nrcListFinished != tasks.nrcListTotal || !releaseInfo.releaseTime || !releaseInfo.licenseNo
+					 ||!releaseHours || !releaseMinutes ||!releaseSeconds"
+                        ng-click="clickRelease()">
+
+                    Release
+                </button>
+                <button class="release-btn" ng-if="!tasks.released && tasks.checkList.length==6" ng-disabled="!tasks.checkList[0].isCheck || !tasks.checkList[1].isCheck
+					|| !tasks.checkList[2].isCheck || !tasks.checkList[3].isCheck || !tasks.checkList[4].isCheck
+					|| !tasks.checkList[5].isCheck || tasks.lineJobTotal !=tasks.lineJobFinished || tasks.routineTotal != tasks.routineFinished
+					|| tasks.nonRoutineTotal != tasks.nonRoutineFinished || tasks.defectListFinished != tasks.defectListTotal || tasks.nrcListFinished != tasks.nrcListTotal || !releaseInfo.releaseTime || !releaseInfo.licenseNo
+				     ||!releaseHours || !releaseMinutes ||!releaseSeconds"
+                        ng-click="clickRelease()">
+
+                    Release
+                </button>
+                <button class="release-btn" ng-if="!tasks.released && tasks.checkList.length==5" ng-disabled="!tasks.checkList[0].isCheck || !tasks.checkList[1].isCheck
+					|| !tasks.checkList[2].isCheck || !tasks.checkList[3].isCheck || !tasks.checkList[4].isCheck
+					|| tasks.lineJobTotal !=tasks.lineJobFinished || tasks.routineTotal != tasks.routineFinished
+					|| tasks.nonRoutineTotal != tasks.nonRoutineFinished || tasks.defectListFinished != tasks.defectListTotal || tasks.nrcListFinished != tasks.nrcListTotal || !releaseInfo.releaseTime || !releaseInfo.licenseNo
+					||!releaseHours || !releaseMinutes ||!releaseSeconds"
+                        ng-click="clickRelease()">
+
+                    Release
+                </button>
+
+                <p class="bg-success" ng-show="submitSuccess">放行成功！</p>
+            </div>
+            <!--重开放行-->
+            <button class="release-btn" ng-if="tasks.released"
+                    ng-click="reRelease()">
+                Cancel Release
+            </button>
+        </div>
+    </div>
+
+</div>
+<!--me页面中的弹窗reject-->
+<div class="reject-wrap wonomber-wrap reject-wrap-fixed" ng-style="{'display': 'block'}" ng-show="showMask">
+    <form action="" name="rejectForm">
+        <div class="reject-title">Reject {{cardNo}}</div>
+        <div class="reject-reason">
+            <textarea ng-model="feedBackContent" required placeholder="请输入reject原因"></textarea>
+        </div>
+    </form>
+    <div class="confirm-cancle">
+        <div class="confirm-reject" confirm-reject ng-class="{'diabledGray':!rejectForm.$valid}">确定</div>
+        <div class="cancel-reject" cancel-reject>取消</div>
+    </div>
+</div>
+<div class="mask" ng-class="{'displayBlock':showMask,'displayNone':!showMask}"></div>

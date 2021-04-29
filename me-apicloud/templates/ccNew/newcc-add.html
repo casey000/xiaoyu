@@ -1,0 +1,542 @@
+<div class="navbar navbar-app navbar-absolute-top">
+    <div class="navbar-brand navbar-brand-center">
+<!--        {{isEdit ? 'CC View' : 'Add CC'}}-->
+        Add CC
+    </div>
+    <div class="btn-group btn-group-left">
+        <div class="btn" ng-click="go('back')">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+    </div>
+</div>
+<moac-body>
+    <div class="new-cc ddi-scrollable-content" ng-class="">
+        <div class="cc-base">
+            <div class="title">基本信息</div>
+            <div class="info clearfix">
+                <p class="p-fl">航班号：{{insertJson.flightNo}}</p>
+                <p class="p-fl" ng-if="insertJson.onAcType == 1">飞机号：{{insertJson.onModel}}</p>
+            </div>
+            <div class="category" style="border-bottom: .5px solid #eee;">
+                <div class="left p-fl" style="width: 35%!important;">
+                    <span class="">来源</span>
+                </div>
+                <div style="position: relative" class="right p-fl" style="width: 63% !important;">
+                    <div ng-if="isEdit || isStationWork" class="zhezhao"></div>
+                    <label  style="font-weight: 400"><input  type="radio" name="way" value="1" ng-model="insertJson.onAcType" ng-checked="insertJson.onAcType==1">飞机</label>
+                    <label  style="font-weight: 400"><input  type="radio" name="way" value="2" ng-model="insertJson.onAcType" ng-checked="insertJson.onAcType==2">部件</label>
+                </div>
+            </div>
+            <div class="category clearfix" ng-show="insertJson.onAcType == 2" style="position: relative">
+                <div ng-if="isEdit" class="zhezhao"></div>
+                <div class="left p-fl" style="width: 20%">件号<span class="red">*</span></div>
+                <div class="right normal p-fl" style="width:75%;text-align: right">
+                    <select-engpn  pn-info="mainPn"></select-engpn>
+                </div>
+            </div>
+            <div class="category clearfix" style="border-bottom: .5px solid #eee" ng-show="insertJson.onAcType == 2">
+                <div ng-if="isEdit" class="zhezhao"></div>
+                <div class="left p-fl">序号<span class="red">*</span></div>
+                <div class="right p-fl" style="position: relative;width: 60%">
+                    <select
+                            class="b-select-mel b-flex-box"
+                            ng-model="$parent.unitSn"
+                            ng-change="snChange($parent.unitSn)"
+                            ng-options=" v.assetNum as v.sn for v in snList"
+                            style="padding-right: 16px"
+                    >
+                    </select>
+                    <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+
+                </div>
+            </div>
+            <div class="clearfix fault">
+                <div class="approver-content-wrap" style="margin:  0">
+                    <div class="ataSel" style="margin-top: 0;border: none;width: 100%;">
+                        <select-ata ata-info="insertJson.ata"></select-ata>
+                    </div>
+                </div>
+<!--                <div class="left p-fl">章节号</div>-->
+<!--                <div class="right normal p-fl">-->
+<!--                    <input type="text" ng-model="insertJson.ata" placeholder="章节号">-->
+<!--                </div>-->
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">拆换类型</div>
+                <div class="right p-fl" style="position: relative;width: 58%">
+                    <select ng-model="$parent.typeName"
+                            style="padding-right: 1.5rem"
+                            class="cateSel"
+                            ng-options=" x for x in typeData"
+                            ng-change="refChange(typeName)"
+                            required
+                    >
+                    </select>
+                    <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+                </div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!--拆下部分-->
+        <div class="cc-base" ng-if = "ccType != 2">
+            <div class="title" style="margin-bottom: .5rem">拆下部件</div>
+            <div class="category clearfix">
+                <div class="left p-fl" style="width: 20%">件号<span class="red">*</span></div>
+                <div class="right normal p-fl" style="width:75%;text-align: right">
+                   <select-nrcpn  pn-info="offPn"></select-nrcpn>
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl" style="width: 30%">件号名称</div>
+                <div class="right normal p-fr" style="width:65%">
+                    <input  style="width: 100%;font-size: .6rem;" type="text" ng-model="offPn.description" placeholder="" readonly = 'readonly'>
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl" style="width: 30%">序号<span class="red">*</span></div>
+                <div class="right normal p-fl clearfix" style="width: 70%">
+                    <input style="width: 70%;text-align:left;" type="text" ng-blur="gouxindiandian2()" ng-readonly="insertJson.unknowSn == 'Y'" ng-model="insertJson.offSn" placeholder="请输入序号">
+                    <!--<input type="checkbox" ng-model="unknowSn">未知-->
+                    <label ng-show="ccType == '1' || ccType == '3'" style="width: 30%;float:right" class="is-fill-tlb">
+                        <input type="checkbox" class="ipt-no-tlb" ng-checked="insertJson.unknowSn == 'Y'" ng-model="unknowSn" ng-click="insertJson.unknowSn == 'Y' ? insertJson.unknowSn='N' : insertJson.unknowSn='Y'" /> 未知
+                    </label>
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">构型<span class="red">*</span></div>
+                <div class="right p-fl" style="position: relative;width: 60%">
+                    <select
+                            class="b-select-mel b-flex-box"
+                            ng-model="insertJson.cin"
+                            ng-options=" x for x in offgouxinlist"
+                            ng-change="offgouxinChange(insertJson.cin)"
+                            style="padding-right: 16px"
+                    >
+                    </select>
+                    <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl" style="width: 20%">位置<span class="red">*</span></div>
+                <div class="right normal p-fl" style="width: 75%;text-align: right">
+<!--                    <input type="text" ng-model="insertJson.offPosition" readonly="readonly">-->
+                    <input style="width: 100%" type="text" ng-if = "insertJson.cin != '其他' && offActualCin" ng-model="insertJson.offPosition" readonly="readonly">
+                    <input style="width: 100%" type="text" ng-if = "insertJson.cin == '其他' || !offActualCin" ng-model="insertJson.offPosition">
+                </div>
+            </div>
+            <div class="category clearfix" ng-show="ccType == '1' || ccType == '3'">
+                <div class="left p-fl">是否退料<span class="red">*</span></div>
+                <div class="right normal p-fl">
+                    <label style="font-weight: 400"><input style="color: #333" type="radio" name="firstGiveBack"  value="Y" ng-model="insertJson.giveBack" ng-checked="insertJson.giveBack == 'Y'">是</label>
+                    <label style="font-weight: 400"><input style="color: #333" type="radio" name="firstGiveBack"  value="N" ng-model="insertJson.giveBack" ng-checked="insertJson.giveBack == 'N'">否</label>
+                </div>
+            </div>
+            <div class="input-block" ng-show="(ccType == '1' || ccType == '3') && insertJson.giveBack == 'Y'" style="display: block;">
+                <p>拆下挂签里的拆下故障原因<span class="red">*</span></p>
+                <textarea ng-model="insertJson.defectReason"  maxlength="500" placeholder="最多可輸入500字"></textarea>
+            </div>
+            <div class="category clearfix" ng-if="offComponents.length > 0">
+                <div class="left p-fl">下级组件</div>
+                <div class="right normal p-fl"  style="padding-right: .3rem;text-align: right" ng-click="goComponents(1)">
+                    {{offComponents.length}}<div class="next-fault-info icon-maoc icon-next-flight"></div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="divider" ng-if = "ccType != 2"></div>
+
+        <!--装上部分-->
+        <div class="cc-base" ng-if = "ccType != 1">
+            <div class="title" style="margin-bottom: .5rem">装上部件</div>
+            <div class="category clearfix">
+                <div class="left p-fl" style="width: 20%">件号<span class="red">*</span></div>
+                <div class="right normal p-fl" style="text-align: right;width: 80%">
+<!--                    <span style="color: #ce1111;position: absolute;right: 0" ng-if="prohibitList[0].prohibitedMark === 'JZ'">禁</span>-->
+                    <span style="color:darkorange;display: inline-block;float: right" ng-if="prohibitList[0].prohibitedMark === 'XZ'">禁限装</span>
+                    <div style="display: inline-block;float: right">
+                        <select-nrcpn  pn-info="onPn"></select-nrcpn>
+                    </div>
+
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl" style="width: 30%">件号名称</div>
+                <div class="right normal p-fr" style="width: 65%">
+                    <input style="width: 100%;font-size: .6rem;text-align: right" type="text" ng-model="onPn.description" placeholder="" readonly = 'readonly'>
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">序号<span class="red">*</span></div>
+                <div class="right normal p-fl" style="text-align: right;padding-right: 1rem">
+                    <input type="text" ng-blur="gouxindiandian1()" ng-model="insertJson.onSn" placeholder="请输入序号">
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl">构型<span class="red">*</span></div>
+                <div class="right p-fl" style="position: relative;width: 60%">
+                    <select
+                            class="b-select-mel b-flex-box"
+                            ng-model="insertJson.onCin"
+                            ng-options=" x for x in ongouxinlist"
+                            ng-change="ongouxinChange(insertJson.onCin)"
+                            style="padding-right: 16px"
+                    >
+                    </select>
+                    <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl" style="width: 20%">位置<span class="red">*</span></div>
+                <div class="right normal p-fl" style="width: 75%;text-align: right">
+
+<!--                    <input type="text" ng-model="insertJson.onPosition">-->
+
+                    <input style="width: 100%" type="text" ng-if = "insertJson.onCin != '其他' && onActualCin" ng-model="insertJson.onPosition" readonly="readonly">
+                    <input style="width: 100%" type="text" ng-if = "insertJson.onCin == '其他' || !onActualCin" ng-model="insertJson.onPosition">
+                </div>
+
+            </div>
+            <div class="category clearfix" ng-if="onComponents.length > 0">
+                <div class="left p-fl">下级组件</div>
+                <div class="right normal p-fl"  style="padding-right: .3rem;text-align: right" ng-click="goComponents(2)">
+                    {{onComponents.length}}<div class="next-fault-info icon-maoc icon-next-flight"></div>
+                </div>
+            </div>
+            <div class="category clearfix" style="height: auto" ng-if="prohibitList.length > 0">
+                <div class="text-ellipsis" style="width: 100%;" ng-repeat="data in prohibitList track by $index">
+                     <span ng-click="viewPdf(data)" style="line-height: 1.2rem;color: darkorange" >
+                        {{data.businessNo}};
+                    </span>
+                    <span style="line-height: 1.2rem;color: #1f76ff" ng-click="forbid.showDes = true;forbid.refuseReasonPend = data.remark">
+                        {{data.businessType == 'TB' ? data.remark || '请参考TB原文附件' : data.remark}}
+                    </span>
+                </div>
+            </div>
+
+<!--            <div class="category clearfix" ng-show = "prohibitList.length >0 && prohibitList[0].prohibitedMark != 'JZ'" style="border-bottom: .5px solid #eee;">-->
+<!--                <div class="left p-fl">放行类型<span class="red">*</span></div>-->
+<!--                <div class="right p-fl" style="position: relative;width: 60%">-->
+<!--                    <select-->
+<!--                            class="b-select-mel b-flex-box"-->
+<!--                            ng-model="insertJson.releaseType"-->
+<!--                            ng-options=" v.VALUE as v.TEXT for v in $parent.releaseList"-->
+<!--                            style="padding-right: 16px"-->
+<!--                    >-->
+<!--                    </select>-->
+
+<!--                    <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">-->
+
+<!--                </div>-->
+<!--            </div>-->
+
+            <div class="input-block" ng-show = "prohibitList.length >0 && prohibitList[0].prohibitedMark != 'JZ'" >
+                <p>禁限装放行理由<span class="red">*</span></p>
+                <textarea ng-model="insertJson.releaseReason"  maxlength="500" placeholder="请输入禁限装放行理由"></textarea>
+            </div>
+
+
+        </div>
+
+        <div class="divider" ng-if = "ccType != 1"></div>
+
+        <!--其他信息-->
+        <div class="cc-base">
+            <div class="title" style="margin-bottom: .5rem">其他信息</div>
+            <div class="category clearfix">
+                <div class="left p-fl">计划性<span class="red">*</span></div>
+                <div class="right p-fl" style="position: relative;width: 60%">
+                    <select
+                            class="b-select-mel b-flex-box"
+                            ng-model="insertJson.planType"
+                            ng-options=" v.VALUE as v.TEXT for v in $parent.planList"
+                            style="padding-right: 16px"
+                    >
+                    </select>
+                    <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+
+                </div>
+            </div>
+            <div class="category clearfix" ng-if = "ccType == 1 || ccType == 3">
+                <div class="left p-fl">拆换原因<span class="red">*</span></div>
+                <div class="right p-fl" style="position: relative;width: 60%">
+                    <select
+                            class="b-select-mel b-flex-box"
+                            ng-model="insertJson.workingReason"
+                            ng-options=" v.VALUE as v.TEXT for v in $parent.reasonList"
+                            style="padding-right: 16px"
+                    >
+                    </select>
+                    <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+
+                </div>
+            </div>
+            <div class="category clearfix" ng-if = "ccType == 1 || ccType == 3">
+                <div class="left p-fl">航材状态<span class="red">*</span></div>
+                <div class="right p-fl" style="position: relative;width: 60%">
+                    <select
+                            class="b-select-mel b-flex-box"
+                            ng-model="insertJson.airMaterialState"
+                            ng-options=" v.VALUE as v.TEXT for v in $parent.mrList"
+                            style="padding-right: 16px"
+                    >
+                    </select>
+                    <img style="width: 9px;top:.9rem;right:8px;" class="triangle" src="dist/images/oil/Shape1@2x.png">
+
+                </div>
+            </div>
+            <div class="category clearfix">
+                <div class="left p-fl" style="width: 20%;">工作者<span class="red">*</span></div>
+                <div class="right normal p-fl" style="width: 80%; text-align: right">
+                    <select-person is-required="false"  person-info="mech"></select-person>
+                </div>
+            </div>
+            <div class="category clearfix" style="border-bottom: .5px solid #eee">
+                <div class="left p-fl">拆换时间<span class="red">*</span></div>
+                <div class="right normal p-fl">
+                    <input style="padding-left:0;text-align: right" ng-if="!android"   name="dateFound" type="datetime-local" class="fount-date form-control select-require-date framecolor padding-fixed" ng-model="insertJson.completeDate" step="1800">
+                    <input style="padding-left:0;width: 12em;" ng-if="android"   name="dateFound" type="datetime-local" class="fount-date" ng-model="insertJson.completeDate" step="1800">
+
+                </div>
+            </div>
+
+            <div class="input-block">
+                <p>原因描述<span class="red">*</span></p>
+                <textarea ng-model="insertJson.reason"  maxlength="500" placeholder="最多可輸入500字"></textarea>
+            </div>
+
+            <div class="input-block">
+                <p>措施<span class="red">*</span></p>
+                <textarea ng-model="insertJson.takenAction"  maxlength="500" placeholder="最多可輸入500字"></textarea>
+            </div>
+
+            <div class="input-block">
+                <p>备注</p>
+                <textarea ng-model="insertJson.remark"  maxlength="500" placeholder="最多可輸入500字"></textarea>
+            </div>
+            <div class="p-image" ng-if="!isEdit">
+                <img-select img-arr="$parent.$parent.imgArr" file-arr="$parent.$parent.fileArr"
+                            attachvo="attachvo" del-img-id="delImgId"></img-select>
+            </div>
+            <div class="p-image" ng-if="isEdit">
+                <img-upload file-id="$parent.$parent.fileId" up-way="$parent.$parent.upWay" is-edit="true"  nrc-id="$parent.$parent.insertJson.id" img-array="$parent.$parent.imgArr" file-arr="$parent.$parent.fileArr2" del-img-id="delImgId"  attachvo="attachvo"></img-upload>
+            </div>
+            <div class="p-cc" style="height: auto; background-color: #fff"  ng-click="isRaft()" >
+                <button ng-if="insertJson.middleStatus != 'C'" class="cc-submit  mt135 active"  style="background-color: #1a87ff;">
+                    保存
+                </button>
+                <button ng-if="insertJson.middleStatus == 'C' && insertJson.status == 'n'" class="cc-submit  mt135 active"  style="background-color: #1a87ff;">
+                    提交至附控
+                </button>
+            </div>
+            <!--<div class="p-cc" style="height: auto; background-color: #fff"  ng-click="submitSap()" >-->
+                <!---->
+            <!--</div>-->
+            <div style="height:400px;background-color: #f8f8f8;"></div>
+        </div>
+        <div class="divider" style="height: 5rem"></div>
+    </div>
+
+
+</moac-body>
+<div class="ewis-background" ng-if = "offSubComponents" style="z-index: 1002;background-color: #fff;">
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">拆下部件的下级组件
+            </div>
+            <div class="btn-group btn-back" style="z-index: 1000">
+                <div class="btn" ng-click="cancelCom('off')">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="oil-scroll">
+        <div class="fixed-search" style="background-color: #ccc;padding: 0.5rem 1rem;">
+            <div class="main" style="width: 100%">
+                <!--            <div class="cont" moac-auto-focus="searchVal">-->
+                <div class="cont">
+                    <input  type="text" ng-model="$parent.offSearchVal" name="offSearchVal" moac-ref="$parent.offSearchVal"
+                            placeholder="请输入件号"  ng-keypress="keyEvent($event)" style="padding: 0.2rem ;margin-left: .3rem;display: inline-block;width: 15rem"/>
+
+                </div>
+                <i  class="icon-maoc icon-flightSearch" ng-click="search()"></i>
+
+            </div>
+        </div>
+        <form name="mrForm" novalidate>
+            <div class="acSta oil-form-wrapper " ng-if="$parent.offComponents.length > 0">
+                <div style="margin-bottom:1rem" ng-repeat="item in $parent.offComponents | filter :{pn:$parent.offSearchVal} track by $index">
+                    <div class="oil-add-li" style="padding-bottom: 0.4rem">
+                        <div class="clearfix">
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">件号名称：{{item.pnName}}</p>
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">件号：{{item.pn}}</p>
+                        </div>
+                        <div class="clearfix" >
+                            <p class="p-fl" style="width: 50%;font-size: .7rem;margin: 0">序号：{{item.sn}}</p>
+                        </div>
+                    </div>
+                    <div class="oil-add-li">
+                        <span class="tail-eng-title" style="vertical-align:middle;">部件状态<span class="red">*</span></span>
+                        <div class="inline-block display-result" style="color: #333">
+                            <label style="font-weight: 400"><input style="color: #333"  type="radio" name = "comStatus{{$index}}" ng-value="3" ng-model="item.status" ng-checked="item.status == 3">跟随</label>
+                            <label style="font-weight: 400"><input style="color: #333"  type="radio" name = "comStatus{{$index}}" ng-value="1"  ng-model="item.status" ng-checked="item.status == 1">离位</label>
+                            <label style="font-weight: 400"><input style="color: #333"  type="radio" name = "comStatus{{$index}}" ng-value="2"  ng-model="item.status" ng-checked="item.status == 2">拆换</label>
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">对应装上件号<span class="red">*</span></span>
+                        <div class="inline-block display-result">
+                            <select-nrcpn  pn-info="item.NextonPn"></select-nrcpn>
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">对应装上件序号<span class="red">*</span></span>
+                        <div class="inline-block display-result">
+                            <input type="tel"  ng-model="item.offSn"  style="border: none;" placeholder=""    class="oil-input" >
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2' || item.status == '1'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">航材状态<span class="red">*</span></span>
+                        <div class="inline-block display-result">
+
+                            <select name=""
+                                    style="color: #333; direction: rtl;padding-right:1rem;"
+                                    class="b-select-mel b-flex-box remove-type"
+                                    ng-model="item.airMaterialState"
+                                    ng-options=" v.VALUE as v.TEXT for v in $parent.mrList"
+                                    required
+                            >
+                            </select>
+                            <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2' || item.status == '1'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">是否退料<span class="red">*</span></span>
+                        <div class="inline-block display-result" style="color: #333">
+                            <label style="font-weight: 400"><input style="color: #333" type="radio" name="secOffGiveBack{{$index}}"  value="Y" ng-model="item.giveBack" ng-checked="item.status == 'Y'">是</label>
+                            <label style="font-weight: 400"><input style="color: #333"  type="radio" name="secOffGiveBack{{$index}}" value="N"  ng-model="item.giveBack" ng-checked="item.status == 'N'">否</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div class="p-cc" style="height: auto; background-color: #fff;margin-top: 3rem;text-align: center"  ng-click="cancelCom('off')" >
+            <button  class="cc-submit  mt135 active"  style="background-color: #1a87ff;display: inline-block">
+                保存
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="ewis-background" ng-if = "onSubComponents" style="z-index: 1002;background-color: #fff;">
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">装上部件的下级组件
+            </div>
+            <div class="btn-group btn-back" style="z-index: 1000">
+                <div class="btn" ng-click="cancelCom('on')">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="oil-scroll">
+        <div class="fixed-search" style="background-color: #ccc;padding: 0.5rem 1rem;">
+            <div class="main" style="width: 100%">
+                <!--            <div class="cont" moac-auto-focus="searchVal">-->
+                <div class="cont">
+                    <input  type="text" ng-model="$parent.offSearchVal" name="offSearchVal" moac-ref="$parent.offSearchVal"
+                            placeholder="请输入件号"  ng-keypress="keyEvent($event)" style="padding: 0.2rem ;margin-left: .3rem;display: inline-block;width: 15rem"/>
+
+                </div>
+                <i  class="icon-maoc icon-flightSearch" ng-click="search()"></i>
+
+            </div>
+        </div>
+        <form name="mrForm" novalidate>
+            <div class="acSta oil-form-wrapper " style="margin-bottom: 3rem" ng-if="$parent.onComponents.length > 0">
+                <div style="margin-bottom:1rem" ng-repeat="item in $parent.onComponents | filter :{pn:$parent.offSearchVal} track by $index">
+                    <div class="oil-add-li" style="padding-bottom: 0.4rem">
+                        <div class="clearfix">
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">件号名称：{{item.pnName}}</p>
+                            <p class="p-fl" style="width: 50%;font-size: .7rem">件号：{{item.pn}}</p>
+                        </div>
+                        <div class="clearfix" >
+                            <p class="p-fl" style="width: 50%;font-size: .7rem;margin: 0">序号：{{item.sn}}</p>
+                        </div>
+                    </div>
+                    <div class="oil-add-li">
+                        <span class="tail-eng-title" style="vertical-align:middle;">部件状态<span class="red">*</span></span>
+                        <div class="inline-block display-result" style="color: #333">
+                            <label style="font-weight: 400"><input style="color: #333" type="radio" name="coStatus{{$index}}" ng-value='3' ng-model="item.status" ng-checked="item.status == '3'">跟随</label>
+                            <label style="font-weight: 400"><input style="color: #333"  type="radio" name="coStatus{{$index}}" ng-value='1'  ng-model="item.status" ng-checked="item.status == '1'">离位</label>
+                            <label style="font-weight: 400"><input style="color: #333"  type="radio" name="coStatus{{$index}}" ng-value='2' ng-model="item.status" ng-checked="item.status == '2'">拆换</label>
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">对应装上件号<span class="red">*</span></span>
+                        <div class="inline-block display-result">
+                            <select-nrcpn  pn-info="item.NextonPn"></select-nrcpn>
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">对应装上件序号<span class="red">*</span></span>
+                        <div class="inline-block display-result">
+                            <input type="tel"  ng-model="item.offSn"  style="border: none;" placeholder=""    class="oil-input" >
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2' || item.status == '1'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">航材状态<span class="red">*</span></span>
+                        <div class="inline-block display-result">
+
+                            <select name=""
+                                    style="color: #333; direction: rtl;padding-right:1rem;"
+                                    class="b-select-mel b-flex-box remove-type"
+                                    ng-model="item.airMaterialState"
+                                    ng-options=" v.VALUE as v.TEXT for v in $parent.mrList"
+                                    required
+                            >
+                            </select>
+                            <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+
+                        </div>
+                    </div>
+                    <div class="oil-add-li" ng-show = "item.status == '2' || item.status == '1'">
+                        <span class="tail-eng-title" style="vertical-align:middle;">是否退料<span class="red">*</span></span>
+                        <div class="inline-block display-result" style="color: #333">
+                            <label style="font-weight: 400"><input style="color: #333" type="radio" name="secOnGiveBack{{$index}}"  value="Y" ng-model="item.giveBack" ng-checked="item.status == 'Y'">是</label>
+                            <label style="font-weight: 400"><input style="color: #333"  type="radio" name="secOnGiveBack{{$index}}" value="N"  ng-model="item.giveBack" ng-checked="item.status == 'N'">否</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <div class="p-cc" style="height: auto; background-color: #fff;text-align: center"  ng-click="cancelCom('on')" >
+            <button  class="cc-submit  mt135 active"  style="background-color: #1a87ff;display:inline-block;">
+                保存
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="damage-confirm" ng-show="forbid.showDes">
+    <div class="background"></div>
+    <div class="damage-confirm-box">
+        <div class="damage-confirm-con">
+            <div class="title" style="margin: 15px 0;text-align: center">描述详情</div>
+            <div>
+                <textarea class="refuseText" readonly name="" style="overflow: scroll;min-height: 120px;margin: 0;"  ng-model="forbid.refuseReasonPend"></textarea>
+            </div>
+            <div class="buttons" style="border: none">
+                <button style="width: 100%;border: none;" class="ensure" ng-click="forbid.showDes = false">确认</button>
+            </div>
+        </div>
+    </div>
+</div>

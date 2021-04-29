@@ -1,0 +1,284 @@
+<ui-view name="detail"></ui-view>
+<!--me列表-->
+<!--<div ui-content-for="title"></div>-->
+
+<div class="flightInfo app-body " ng-class="{loading: loading}" ng-show="!detailView && !subDetailView">
+	
+	<div class="navbar navbar-app navbar-absolute-top" >
+		<div class="clearfix top-title">
+			<div class="navbar-brand navbar-brand-center" >
+				<span ng-if="isList" translate="me.me"></span>
+				<span ng-if="isSearch" translate="search"></span>
+				<!-- <span ng-if="isFavorite">收藏</span> ng-click="goTopRootViewController()"-->
+			</div>
+			<div class="btn-group btn-group-left">
+				<div  class="btn" ng-if="!isList" ng-click="goBack()">
+					<i class="icon-maoc icon-back" ></i>
+				</div>
+				<div  class="btn" ng-click="go('index')" ng-if="isList">
+					<i class="icon-maoc icon-back" ></i>
+				</div>
+			</div>
+			
+			<!--<div class="btn-group btn-group-right">
+				<div  class="btn " ng-click="go('flightStatus')">
+					<i class="icon-maoc icon-flight-maintenance"></i>
+				</div>
+			</div>-->
+		</div>
+		<!-- 维修列表页头 -->
+		<header class="datebox" ng-if="isList">
+			<div class="btn-group pull-left prev-day-me" ng-click="preDay()">
+				<i class="icon-maoc icon-prev-day"></i><translate>pre</translate>
+			</div>
+			<div class="btn-group flight-date-wrap">
+				<i class="icon-maoc icon-select-flight-date"></i>
+				<input ng-if="!android && isIos14" type="date" class="form-control select-flight-date blue" ng-model="$parent.$parent.flightDate"  ng-change="setDay($event)">
+				<input ng-if="!android && !isIos14" type="date" class="form-control select-flight-date blue" ng-model="$parent.$parent.flightDate"  ng-blur="setDay($event)">
+				<input ng-if="android" type="date" class="form-control select-flight-date blue" ng-model="$parent.$parent.flightDate"  ng-change="setDay($event)">
+				<!--<input type="text" class="form-control select-flight-date blue mask-date" value="{{beginDatetime | date:'MM/dd HH:mm' + '~'}}{{ endDatetime| date:'MM/dd HH:mm'}}" >-->
+			</div>
+			<div class="btn-group pull-right next-day-me" ng-click="nextDay()">				
+				<translate>next</translate><i class="icon-maoc icon-next-day"></i>
+			</div>
+		</header>
+		
+		<!--搜索页头-->
+		<header class="datebox" ng-if="isSearch">
+			<div class="btn-group search-btn-group">
+				<div class="datebox-wrap flight-datebox-wrap pull-left">
+					<i class="icon-maoc icon-search-flight-date"></i>
+					<input ng-if="!android && isIos14" type="date" class="form-control select-flight-date search-flight-date"
+						ng-model="$parent.$parent.searchDate" ng-change="setSearchDate()">
+					<input ng-if="!android && !isIos14" type="date" class="form-control select-flight-date search-flight-date"
+						ng-model="$parent.$parent.searchDate" ng-blur="setSearchDate()">
+					<input ng-if="android" type="date" class="form-control select-flight-date search-flight-date" 
+						ng-model="$parent.$parent.searchDate" ng-change="setSearchDate($event)">
+					
+				</div>
+				<div class="datebox-wrap pull-left wrap-right">
+					<!--<i class="icon-maoc icon-search"></i>-->
+					<!--<i class="fa fa-times search-clear" ng-click="searchTxt = ''" ng-show="searchTxt"></i>-->
+					<!--加form是把ios键盘上“下一项”改为“搜索”-->
+					<form action="">
+						<input type="search" class="form-control search-textbox" ng-model="$parent.searchTxt" 					
+							ng-attr-placeholder="{{holderValue}}"
+							ng-keypress="enterSearch($event)">
+					</form>	
+					<i class="icon-maoc icon-flightSearch"
+						ng-click="searchAction($parent.searchTxt)"></i>	
+				</div>	
+			</div>
+		</header>
+	
+	</div>
+	
+	<div class="scrollable">
+		<div class="scrollable-content" ui-scroll-bottom="getNextPage()"
+			 im-pull-to-refresh refresh-function="getAllFlightInfo({time:flightDate})">
+			
+			<!--下拉刷新时显示 -->
+			<div  ng-show="pullToRefreshActive && isList" ng-class="{'refresh-hide': !pullToRefreshActive}" class="refresh text-center">
+				<i class="fa fa-refresh fa-spin fa-fw"></i><translate>loading</translate>...
+			</div>
+
+			<!-- 数据为空时显示 -->
+			<div class="backup-airport no-data" ng-if="flights && !flights.length && !netWorkErr" no-data-load>
+				<div class="imgDeclare declareRotate" translate="flight.noFlight"></div>
+				<img src="dist/images/no-favorite-flight.png" width="256" alt="No Data" />
+			</div>
+			
+			<div class="text-center" ng-show="beginDatetime">
+				<div class="blue inline-block flight-top-tip-me">
+					{{beginDatetime | date:'MM/dd HH:mm'}} ~ {{ endDatetime| date:'MM/dd HH:mm'}}
+					<span ng-if="isList" translate="me.flight"></span>
+					<span ng-if="isSearch" translate="me.searchResults"></span>
+				</div>
+			</div>
+			<!--on-finish-render-filters-->
+			<div class="flight-wrap" ng-repeat="flight in flights track by $index" on-finish-render-filters >
+				<div class="pubFlightList" swipe-delete-sv>
+					<div class="delete-sv" >
+						<div class="apu" ng-show="flight.type != 2 && !(flight.type == 0 && flight.departureStationJob && flight.departureStationJob.jobType == 'N/A')"
+							 ng-click="goUseApu(flight,$event)"> APU使用
+						</div>
+						<div class="planeMr" ng-show="flight.type != 2 && !(flight.type == 0 && flight.departureStationJob && flight.departureStationJob.jobType == 'N/A')"
+							 ng-click="goFollowMr(flight,$event)"> 随机航材工具
+						</div>
+						<div class="vehicle" ng-show="flight.type != 2 && !(flight.type == 0 && flight.departureStationJob && flight.departureStationJob.jobType == 'N/A')"
+							 ng-click="goUseSv(flight,$event)">
+							车辆使用
+						</div>
+					</div>
+
+					<div style="margin-top: -10px;height: 12px;line-height: 12px" ng-if="flight.favorite"><img src="dist/images/favorite1.png" ></div>
+<!--第一行内容					-->
+					<div class="first-row fixedHeight">
+						<span class="jh" ng-show="flight.type == 0">{{flight.flightNo}}</span>
+						<span class="deviceNumber" ng-show="flight.type == 0">{{flight.acReg}}</span>
+						<span class="jh bg" ng-show="flight.type != 2">{{flight.position}}</span>
+						<span class="jh" ng-show="flight.type == 2">{{flight.jobDate | date:'HH:mm'}}</span>
+						<!--运行能力提醒-->
+						<span class="yx-tip" ng-repeat="tip in flight.lestLimitNames.split(',')">{{tip}}</span>
+						<span class="yx-tip" ng-if="flight.departureStationJob.prfWarnTime">{{flight.departureStationJob.prfWarnTime}}</span>
+						<!--<span class="yx-tip">T</span>-->
+						<!--<span class="yx-tip">R</span>-->
+
+						<div class="pull-right flight-date">{{ flight.date | date:'yyyy-MM-dd'}}</div>
+					</div>
+<!--第二行内容					-->
+					<div class="flight-time clearfix second-row">
+						<div class="pull-left unify-line-position"> 
+							<span ng-show="flight.type == 0" >{{flight.atd || flight.etd || flight.std | date:'HH:mm'}}</span>
+							<span ng-show="flight.type == 1 || flight.type == -1" >{{flight.acReg}}</span>
+							<span ng-show="flight.type == 2" >{{flight.station}}</span>
+							<i class="real" ng-show="flight.atd" translate="flight.actual"></i>
+							<i class="advance" ng-show="!flight.atd && flight.etd" translate="flight.projected"></i>
+							<i class="advance" ng-show="!flight.atd && !flight.etd && flight.std" translate="flight.planned"></i>
+
+						</div>
+				<!--中间的线-->
+						<div class="line pull-left maintenance-line"
+							ng-class="{'gray-line':flight.flgCs, 'yellow-line':!flight.flgCs && !flight.flgVr && flight.flgDelay,'red-line': !flight.flgCs && flight.flgVr}"
+							ng-show="flight.type != 2 && flight.jobType!='O/G'">
+
+							<div class="backup" >
+								
+								<span ng-show="flight.flgCs" translate="flight.cancel"></span>
+								<!--<span ng-show="!flight.flgCs && flight.flgVr">
+									{{ (flight.flgVr | uppercase) == 'VC' ? '备降' : '返航'}}
+								</span>-->
+								<span ng-show="!flight.flgCs && (flight.flgVr | uppercase) == 'VC'" translate="flight.vc">
+								</span>
+								<span ng-show="!flight.flgCs && (flight.flgVr | uppercase) == 'RC'" translate="flight.rc">
+								</span>
+								<span ng-show="!flight.flgCs && ((flight.flgVr | uppercase).indexOf('R') !=-1||(flight.flgVr | uppercase).indexOf('V') !=-1)&&(flight.flgVr | uppercase).indexOf('C') ==-1" ng-bind="flight.flgVr.chose()"> 
+									
+								</span>
+								<span ng-show="!flight.flgCs && !flight.flgVr && flight.flgDelay" translate="flight.delay"></span>
+							</div>
+
+						</div>
+						<div class="pull-right unify-position" ng-class="{'noFlight':flight.type == 2}">
+							<span ng-show="flight.type == 1 || flight.type == -1">{{flight.station}}</span>
+							{{flight.ata || flight.eta || flight.sta | date:'HH:mm'}}
+							<button type="button" ng-show="flight.type == 2"
+								ng-class="{'finishColor':flight.jobStatus == 2,'unfinishColor':flight.jobStatus != 2}"
+								ng-click="go('me.releaseTask', '', {jobId: flight.jobId})">
+								{{flight.jobType}}
+							</button>	
+							
+							
+							<i class="real" ng-show="flight.ata" translate="flight.actual"></i>
+							<i class="advance" ng-show="!flight.ata && flight.eta" translate="flight.projected"></i>
+							<i class="advance" ng-show="!flight.ata && !flight.eta && flight.sta" translate="flight.planned"></i>
+
+						</div>
+						
+					</div>
+					
+					<div class="place clearfix" ng-show="flight.type == 0">
+						<div class="pull-left place-offsetRight">
+							<div class=" text-ellipsis  inline-block vertical-bottom  city-width">	
+								{{ _4codeCityName[flight.departureAirport]||flight.departureAirport3Code }}
+							</div>
+							<i class="air-position" ng-if="flight.departurePosition">{{ flight.departurePosition }}</i>
+						</div>
+						
+						
+						<div class="pull-right place-offsetLeft">
+							<div class=" text-ellipsis inline-block vertical-bottom city-width">
+								{{ _4codeCityName[flight.arrivalAirport]||flight.arrivalAirport3Code}}
+							</div>
+							<i class="air-position" ng-if="flight.arrivalPosition">{{ flight.arrivalPosition }}</i>
+						</div>
+						
+						
+					</div>
+			<!--虚线-->
+					<div class="dash-border" ng-hide="flight.type == 2"></div>
+<!--底部的按钮       -->
+					<div class="task-button"  ng-hide="flight.type == 2">
+					<!--左边按钮start-->
+						<!--逻辑：当离开后不滑回且存在jobType;样式：完成后背景色改变为finishColor（绿色），未完成为unfinishColor（橘黄色）-->
+						<button type="button" ng-if="flight.type == 0 && flight.departureStationJob.jobType.indexOf('滑回')==-1 && flight.departureStationJob.jobType!='N/A'"
+							ng-click="go('me.releaseTask','',{jobId:flight.departureStationJob.jobId, oneFlight: flight, prFlag:'prf'})" class="pull-left"
+							ng-class="{'finishColor':flight.departureStationJob.jobStatus == 2,
+							'unfinishColor':flight.departureStationJob.jobStatus != 2,
+							'blueCheckColor':flight.departureStationJob.hasDailyCard,
+							'unfinishCheckColor':(flight.departureStationJob.jobStatus != 2 && flight.departureStationJob.dailyInspectionCardOver )}">{{flight.departureStationJob.jobType}}</button>
+						<!--滑回类型时点击-->
+						<!--逻辑：当有离开的类型且又滑回来了的时候，代表没有完成，底色为橘黄色-->
+						<button type="button" ng-if="flight.type == 0 && flight.departureStationJob.jobType && flight.departureStationJob.jobType.indexOf('滑回')!=-1"
+							ng-click="slipAlert()"
+							class="unfinishColor">{{flight.departureStationJob.jobType}}</button>
+
+						<button type="button" ng-if="flight.departureStationJob.jobType == 'N/A'" class="unfinishColor"
+							style="background-color:#ccc">{{flight.departureStationJob.jobType}}</button>
+					<!--左边按钮end-->
+						<div class="pull-right buttons-right">
+							<!--  Status-->
+							<button type="button" class="pull-left " 
+								ng-click="go('me.meStatus','slideLeft',{acReg: flight.acReg})">Status</button>
+							<!--底部右边按钮-->
+							<button type="button" class="pull-left " ng-show="flight.jobType || flight.arrivalStationJob.jobType"
+								ng-class="{'unfinishColor':flight.arrivalStationJob.jobStatus != 2||flight.jobStatus != 2,
+								'blueCheckColor':flight.arrivalStationJob.hasDailyCard,
+								'unfinishCheckColor':(flight.arrivalStationJob.jobStatus != 2 && flight.arrivalStationJob.dailyInspectionCardOver ),
+								'finishColor':flight.arrivalStationJob.jobStatus == 2||flight.jobStatus == 2}"
+								ng-click="go('me.releaseTask', '', {jobId: flight.arrivalStationJob.jobId || flight.jobId, oneFlight: flight, prFlag:'pof' })">
+								{{flight.jobType || flight.arrivalStationJob.jobType}}
+							</button>
+
+						</div>
+					</div>
+<!--					&lt;!&ndash;随机航材临时进入口&ndash;&gt;-->
+<!--					<div class="pull-right" style="margin-left: 1.5rem;background-color: #00b4ff;color: #fff" ng-click="go('followAircraftMaterial', '', {flightNo: flight.flightNo,flightId:flight.flightId })">-->
+<!--						随机航材临时进入点-->
+<!--					</div>-->
+				</div>	
+			</div>
+			
+			<div class="text-center" ng-if="noMoreData && flights.length" translate="loadingDone"></div>
+		</div>
+	</div>
+	
+	<!-- 右侧图标  -->
+	<div class="more-operate"  ng-if="isList" >
+		<div class="add-wrap" ng-class="{rote: operate}" direction-move>
+			<i class="icon-maoc icon-add">
+				<span class="circle" ng-show="filterData.filterAirPorts.length || filterData.filterFlightNos.length || filterData.filterAcRegs.length|| filterData.direction"></span>
+			</i>
+		</div>
+		<div class="san text-center " >
+			<div class="sai-wrap ng-hide" ng-class="{'slide-up': operate}" ng-show="operate"  ng-click="go('me.meFilter', 'slideLeft')">
+				<i class="icon-maoc icon-sai">
+					<span class="circle" ng-show="filterData.filterAirPorts.length || filterData.filterFlightNos.length || filterData.filterAcRegs.length|| filterData.direction"></span>
+				</i>
+				<br><translate>filter</translate>
+			</div>
+			<div class="search-wrap  ng-hide" ng-class="{'slide-up': operate}" ng-show="operate" ng-click="go('searchMeJob', 'slideLeft', {time:flightDate.getTime()})">
+				<i class="icon-maoc icon-so"></i><br><translate>search</translate>
+			</div>
+
+		</div>
+	</div>
+
+</div>
+<div class="sv-option-background" ng-show="showOptions">
+	<div class="sv-option-wrapper">
+		<div class="sv-options">
+			<ul class="">
+				<li ng-repeat="svTypeItem in svTypes" ng-click="selectOption(svTypeItem)">
+					{{svTypeItem.name}}
+				</li>
+			</ul>
+		</div>
+
+		<div class="sv-cancel" ng-click="showOptions = false">
+			<div class="cancel">取消</div>
+		</div>
+	</div>
+</div>
+
+ 

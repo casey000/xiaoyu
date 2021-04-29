@@ -1,0 +1,270 @@
+<!--<ui-view name="detail"></ui-view>-->
+<ui-view name="record" ></ui-view>
+<div ng-show="!recordView" style="height: 100%">
+<div class="navbar navbar-app navbar-absolute-top" style="position: fixed">
+    <div class="navbar-brand navbar-brand-center">
+        {{title}}
+    </div>
+    <div class="btn-group btn-group-left">
+        <div class="btn" ng-click="go('back');">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+    </div>
+</div>
+<div class="nrc-detail">
+    <div class="main-content scrollable" style="top: 2.4rem;">
+        <div class="scrollable-content" im-pull-to-refresh refresh-function="initInfo()">
+            <!--下拉刷新时显示 -->
+            <div  ng-show="pullToRefreshActive" ng-class="{'refresh-hide': !pullToRefreshActive}" class="refresh text-center">
+                <i class="fa fa-refresh fa-spin fa-fw"></i><translate>loading</translate>...
+            </div>
+            <div class="section">
+                <p class="title">
+                    基础信息
+                </p>
+                <div class="content">
+                    <p>
+                        <span class="left">飞机号</span>
+                        <span class="right">{{info.acReg}}</span>
+                    </p>
+                    <p ng-if="workType.toUpperCase() != 'DEFECT' && workType.toUpperCase() != 'FIXED_TASK' && workType.toUpperCase() != 'AIRLINE_TASK'">
+                        <span class="left">{{workType}} NO</span>
+                        <span class="right">{{info.cardNumber || info.defectNo}}</span>
+                    </p>
+                    <p ng-if="workType.toUpperCase() == 'DEFECT' ">
+                        <span class="left">DEFECT NO</span>
+                        <span class="right">{{info.defectNo}}</span>
+                    </p>
+                    <p ng-if="workType.toUpperCase() == 'FIXED_TASK' || workType.toUpperCase() == 'AIRLINE_TASK'">
+                        <span class="left" style="width: auto">两套救生筏是否在位</span>
+                        <span class="right" style="width: auto;margin-left: 1rem">{{info.staftState == 1 ?'在位':'离位'}}</span>
+                    </p>
+                    <p ng-if="workType == 'FIXED_TASK' || workType == 'AIRLINE_TASK'">
+                        <span class="left">FLB NO</span>
+                        <span class="right">{{info.flbNo}}</span>
+                    </p>
+                    <p ng-if="workType != 'FIXED_TASK' && workType != 'AIRLINE_TASK'">
+                        <span class="left">{{workType.toUpperCase() == 'DEFECT' || workType.toUpperCase() == 'DD REVIEW' ? '故障描述' : '任务描述'}}</span>
+                        <span class="right" style="word-break: break-all">{{workType.toUpperCase() == 'DEFECT' || workType.toUpperCase() == 'TLB' ? info.defectDesc : info.cardDesc}}</span>
+                    </p>
+                </div>
+            </div>
+            <div class="section p-closeFaultDtl" ng-if="workType != 'FIXED_TASK' && workType != 'AIRLINE_TASK'">
+                <p class="title">
+                    排故措施
+                </p>
+                <div class="content p-dtl">
+                    <p>
+                        <span class="left">处理措施</span>
+                        <span class="right" style="word-break: break-all">{{info.solutionDesc}}</span>
+                    </p>
+                </div>
+            </div>
+            <!--.p-closeFaultDtl .p-dtl .p-main .btn-->
+            <div class="section p-closeFaultDtl">
+                <p class="title">
+                    图片记录
+                </p>
+                <div class="content p-dtl clearfix">
+                    <div class="p-main" style="overflow: visible" ng-show="workType != 'JC' ">
+                        <div style="float: left;position: relative" class="btn" ng-click="$parent.$parent.showFlow()">
+                            <i ng-if="relateImg.length > 0 || pdfList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                            查看图片记录
+                        </div>
+                    </div>
+                    <div ng-show="workType == 'JC' && info.isRequiredFeedback">
+                        <div class="p-main clearfix" style="overflow: visible" >
+                            <div style="float: left;position: relative" class="btn" ng-click="goImg('feedback')">
+                                <i ng-if="info.attachmentList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                                查看非APS图片记录
+                            </div>
+                        </div>
+                        <div class="p-main clearfix" style="overflow: visible">
+                            <div style="float: left;position: relative" class="btn" ng-click="goImg('aps')">
+                                <i ng-if="info.apsFeedbackAttachmentList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                                查看APS图片记录
+                            </div>
+                        </div>
+
+                    </div>
+                    <div ng-show="workType == 'JC' && !info.isRequiredFeedback">
+                        <div class="p-main clearfix" style="overflow: visible" >
+                            <div style="float: left;position: relative" class="btn" ng-click="goImg('feedback')">
+                                <i ng-if="info.attachmentList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                                查看APS图片记录
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="title" style="margin-top: 1rem">
+                    无照片备注
+                </p>
+                <div class="card-remark-content">
+                    <textarea readonly ng-model="info.mechanicNoPhotoRemark"></textarea>
+                </div>
+            </div>
+            <div class="section" ng-show="workType != 'FIXED_TASK' && workType != 'AIRLINE_TASK'" style="margin-bottom:0;">
+                <p class="title">
+                    {{title}}
+                </p>
+                <div class="content">
+                    <div class="p-image">
+                        <div>附件</div>
+                        <newimg-upload is-api-cloud="false"  nrc-id="$parent.$parent.nrcId" is-edit="true" up-way="$parent.$parent.taskupWay" file-list = "$parent.$parent.fileList" img-array="$parent.$parent.imgArrTask" file-arr="$parent.$parent.fileArrTask" del-img-id="delImgId"  attachvo="attachvo"></newimg-upload>
+
+                        <!--<img-select img-arr="imgArr" file-arr="fileArr" del-img-id="delImgId" is-api-cloud="isApiCloud" attachvo="attachvo"></img-select>-->
+                    </div>
+                </div>
+            </div>
+            <div class="section" ng-show="workType != 'FIXED_TASK' && workType != 'AIRLINE_TASK'" style="margin-bottom:0;">
+                <p class="title">
+                    无照片备注
+                </p>
+                <div class="card-remark-content">
+                    <textarea ng-model="info.inspectorNoPhotoRemark"></textarea>
+                </div>
+            </div>
+            <div class="section" ng-if="workType == 'FIXED_TASK' || workType == 'AIRLINE_TASK'" style="margin-bottom:0;">
+                <p class="title">
+                    责任放行工程师复核
+                </p>
+                <div class="content">
+                    <div class="checkList-group" style="border: none">
+                        <ul class="list-group">
+                            <li class="list-group-item checklist-item" ng-repeat="item in checkList">
+                                <div class="check-list-title pull-left" style="font-size: .7rem">{{item.text}}</div>
+                                <div class="pull-right wrap-switch aps">
+                                    <ui-switch ng-model="item.isChecked">
+                                        <div class="switch-handle"></div>
+                                    </ui-switch>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="button-wrapper section" style="margin-bottom: 1.5rem" >
+
+                <!--ng-disabled="!myForm.$valid || fileArr.length ==0"-->
+                <button class="submitAddMR submitBlue" style="width: 46%;margin-right: 2%;"
+                        ng-click="$parent.$parent.transOther = true">
+                    转办
+                </button>
+                <button ng-if="workType == 'FIXED_TASK' || workType == 'AIRLINE_TASK'" class="submitAddMR" ng-class="{submitBlue :checkList[0].isChecked}"
+                        ng-disabled = "!checkList[0].isChecked"
+                        style="width: 46%;margin-left: 0"
+                        ng-click="helpSure()">
+                    提交
+                </button>
+                <button ng-if="workType != 'FIXED_TASK' && workType != 'AIRLINE_TASK'" class="submitAddMR submitBlue"
+                        style="width: 46%;margin-left: 0"
+                        ng-click="helpSure()">
+                    提交
+                </button>
+            </div>
+
+
+
+        </div>
+    </div>
+</div>
+
+<div class="ewis-background" ng-show = "writeSum" >
+    <div class="navbar navbar-app navbar-absolute-top">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">图片记录
+            </div>
+            <div class="btn-group btn-back" style="z-index: 1000">
+                <div class="btn" ng-click="writeSum = false">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="oil-scroll" style="background-color:#fff;-webkit-overflow-scrolling:touch;overflow: auto">
+        <div class="p-faultFileRecord" style="height: auto">
+            <div class="nodata" ng-if="relateImg.length<=0 && pdfList.length <=0">暂无数据</div>
+            <div class="ui-img" ng-class="{show:imgUrl!=null}">
+                <p ng-click="closeImg()"></p>
+                <div>
+                    <img ng-src="{{imgUrl}}"/>
+                </div>
+            </div>
+            <div class="p-item" ng-if="relateImg.length>0 && item.type.indexOf('image') != -1" ng-repeat="item in relateImg track by $index">
+                <div class="time" ng-bind="item.createDate | date:'yyyy-MM-dd HH:mm'"></div>
+                <div class="main left" >  <!--ng-class="{right:item.change,left:!item.change}"-->
+                    <div class="icon" >  <!--ng-if="!item.change"   -->
+                        <i class="icon-other"></i>
+                    </div>
+                    <div class="cont">
+                        <div class="title" ng-bind="item.uploadByName"></div>
+                        <div class="file">
+                            <div class="img">
+                                <div ng-click="showBig(relateImg, $index)">
+                                    <p>
+                                        <img ng-src="data:image/png;base64,{{item.content}}"
+                                             alt="">
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-item" ng-if="pdfList.length>0 " ng-repeat="item in pdfList track by $index">
+                <div class="time" ng-bind="item.createDate | date:'yyyy-MM-dd HH:mm'"></div>
+                <div class="main left" >  <!--ng-class="{right:item.change,left:!item.change}"-->
+                    <div class="icon" >  <!--ng-if="!item.change"   -->
+                        <i class="icon-other"></i>
+                    </div>
+                    <div class="cont">
+                        <div class="title" ng-bind="item.uploadByName"></div>
+                        <div class="file">
+                            <div class="img">
+                               <p style="font-size: .7rem;color: #00b4ff;" ng-click="showPdf(item)">{{item.name}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div class="ewis-background" ng-show = "transOther" >
+        <div class="navbar navbar-app navbar-absolute-top">
+            <div class="clearfix top-title">
+                <div class="navbar-brand navbar-brand-center">转办
+                </div>
+                <div class="btn-group btn-back" style="z-index: 1000">
+                    <div class="btn" ng-click="transOther = false">
+                        <i class="icon-maoc icon-back" ></i>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <div class="oil-scroll" style="background-color:#fff;-webkit-overflow-scrolling:touch;overflow: auto">
+            <form name="myForm" novalidate>
+                <div class="oil-add-li">
+                    <span class="tail-eng-title" style="vertical-align: middle;padding-left: .6rem">转办对象</span>
+                    <div class="inline-block display-result">
+                        <select-person person-info="mech"></select-person>
+                    </div>
+                </div>
+                <div class="button-wrapper">
+
+
+                    <button class="submitAddMR submitBlue"
+                            ng-click="transSure()"
+                    >
+                        提交
+                    </button>
+                </div>
+            </form>
+
+
+        </div>
+    </div>
+</div>

@@ -1,0 +1,123 @@
+<!-- 弹出筛选层 -->
+<!--<div ng-include="filter.html" ng-init="cancelFilter = true" class="filter-wrap"></div>-->
+<div class="filter-wrap">
+    <div class="modal filter slide-up">
+        <header>
+            <button ng-click="cancelAction()" translate="cancel"></button>
+            <button class="clear-filter" fault-reset-filter><translate>flight.clear</translate></button>
+            <button fault-confirm-filter><translate>confirm</translate></button>
+        </header>
+
+        <div class='section' ng-init="activeTab = 1">
+
+            <ul class="nav nav-tabs pull-left">
+                <li ng-class="{'active': activeTab == 1}" ng-click="activeTab = 1;searchText='';searchPlaceholder=lanConfig.inputAirport">
+                    <span class="circle" ng-show='filterAirports.length'></span><translate>flight.airport</translate>
+                </li>
+                <li ng-class="{'active': activeTab == 2}" ng-click="activeTab = 2;searchText='';searchPlaceholder=lanConfig.inputFlightNo">
+                    <span class="circle" ng-show='filterFlightnos.length'></span><translate>flight.flightNo</translate>
+                </li>
+                <li ng-class="{'active': activeTab == 3}" ng-click="activeTab = 3;searchText='';searchPlaceholder=lanConfig.inputAcReg">
+                    <span class="circle" ng-show='filterAcregs.length'></span><translate>flight.acTypeAndReg</translate>
+                </li>
+                <li id="extraLi"></li>
+            </ul>
+
+            <div class="tab-content-top">
+                <i class="icon-maoc icon-filterSearch"></i>
+                <input ng-if="android" type="search" class="form-control" ng-model="$parent.searchText" 
+                 ng-attr-placeholder="{{$parent.searchPlaceholder}}">
+                <input ng-if="!android" type="search" class="form-control line-height-fixed" ng-model="$parent.searchText" 
+                 ng-attr-placeholder="{{$parent.searchPlaceholder}}">
+            </div>
+
+            <div class="tab-content" ng-show="activeTab == 1" >
+                <div class="scrollable">
+                 <!-- 进出港移至机场条件内 -->
+                    <div class="directionBtn text-center">
+                        <button type="button" class="btn btn-direction-default pull-left margin-1-left tag" name="arrivalDirection" value="arrival"
+                        ng-class={'beClicked':direction=='arrival'} ng-disabled="!filterAirports.length" ng-click="directionSwitch($event)" ng-model="direction" translate="flight.arrival"></button>
+
+                        <button type="button" class="btn btn-direction-default inline-block tag" name="departureDirection" value="departure"
+                        ng-class={'beClicked':direction=='departure'} ng-disabled="!filterAirports.length" ng-click="directionSwitch($event)" ng-model="direction" translate="flight.departure"></button>
+
+                        <button type="button" class="btn btn-direction-default pull-right margin-1-right" name="noDirection" value="noDirection" ng-click="        directionSwitch($event)" ng-class={'beClicked':!direction} ng-model="direction" translate="flight.noLimit"></button>
+                    </div>
+                    <ul class="scrollable-content">
+                        <li check-condition ng-class="{'checkColor':!filterAirports.length}"><translate>flight.all</translate>
+                            <i class="pull-right no-limit" ng-model="filterAirports.length"
+                               ng-class="{'icon-maoc icon-checked checked': !filterAirports.length, 'no-check': filterAirports.length}">
+                            </i>
+                        </li>
+                        <li ng-show="android" ng-repeat="airport in airports | filter:searchText as airportResults" check-condition
+                            ng-class="{'checkColor':-1!=filterAirports.indexOf(airport.airport4Code)}">
+                            <span>{{airport.airport4Code}}</span>&nbsp;&nbsp;<span class="airportNameLimitForAndroid">{{airport.airportName}}<span ng-show="airport.airport4Code==locationAirport">(<translate>flight.locationAirport</translate>)</span></span>
+                            <i class="pull-right" ng-model="$parent.airport.airport4Code"
+                               ng-class="{true: 'icon-maoc icon-checked checked', false: 'no-check'}[-1!=filterAirports.indexOf(airport.airport4Code)]">
+                            </i>
+                        </li>
+                        <li ng-show="!android" ng-repeat="airport in airports | filter:searchText as airportResults" check-condition
+                            ng-class="{'checkColor':-1!=filterAirports.indexOf(airport.airport4Code)}">
+                            <span>{{airport.airport4Code}}</span>&nbsp;&nbsp;<span class="airportNameLimit">{{airport.airportName}}<span ng-show="airport.airport4Code==locationAirport">(<translate>flight.locationAirport</translate>)</span></span>
+                            <i class="pull-right" ng-model="$parent.airport.airport4Code"
+                               ng-class="{true: 'icon-maoc icon-checked checked', false: 'no-check'}[-1!=filterAirports.indexOf(airport.airport4Code)]">
+                            </i>
+                        </li>
+                        <!--未满足搜索条件时显示-->
+                        <li ng-if="airportResults.length === 0" translate="flight.noAirport"></li>
+                    </ul>
+                </div>
+            </div>
+
+            <ul class="tab-content" ng-show="activeTab == 2">
+                <ul class="scrollable">
+                    <ul class="scrollable-content">
+                        <li check-condition ng-class="{'checkColor':!filterFlightnos.length}"><translate>flight.all</translate>
+                            <i class="pull-right" ng-model="filterFlightnos.length"
+                               ng-class="{'icon-maoc icon-checked checked': !filterFlightnos.length, 'no-check': filterFlightnos.length}">
+                            </i>
+
+                        </li>
+                        <li ng-repeat="flightNo in flightNos | filter:searchText as flightNoResults" check-condition
+                            ng-class="{'checkColor':-1!=filterFlightnos.indexOf(flightNo)}">
+
+                            {{ flightNo }}
+                            <i class="pull-right" ng-model="$parent.flightNo"
+                               ng-class="{true: 'icon-maoc icon-checked checked', false: 'no-check'}[-1!=filterFlightnos.indexOf(flightNo)]">
+                            </i>
+                        </li>
+                        <li ng-if="flightNoResults.length === 0" translate="flight.noFlightNo"></li>
+                    </ul>
+                </ul>
+            </ul>
+
+            <div class="tab-content" ng-show="activeTab == 3" >
+                <div class="tab-content-left">
+                    <ul ng-init="acTypeTab=1">
+                        <li ng-class="{'checkColor':acTypeTab==1}" ng-click="acTypeToReg($event);acTypeTab=1">737<i ng-class="{'caret checkColor':acTypeTab==1}"></i></li>
+                        <li ng-class="{'checkColor':acTypeTab==2}" ng-click="acTypeToReg($event);acTypeTab=2">757<i ng-class="{'caret checkColor':acTypeTab==2}"></i></li>
+                        <li ng-class="{'checkColor':acTypeTab==3}" ng-click="acTypeToReg($event);acTypeTab=3">767<i ng-class="{'caret checkColor':acTypeTab==3}"></i></li>
+                        <li ng-class="{'checkColor':acTypeTab==4}" ng-click="acTypeToReg($event);acTypeTab=4">747<i ng-class="{'caret checkColor':acTypeTab==4}"></i></li>
+
+                    </ul>
+                </div>
+                <div class="scrollable tab-content-right">
+                    <ul class="scrollable-content">
+                        <li ng-repeat="acReg in acRegsArray | filter:searchText as acRegResults" check-condition
+                            ng-class="{'checkColor':-1!=filterAcregs.indexOf(acReg)}">
+
+                            {{ acReg }}
+                            <i class="pull-right" ng-model="$parent.acReg"
+                               ng-class="{true: 'icon-maoc icon-checked checked', false: 'no-check'}[-1!=filterAcregs.indexOf(acReg)]">
+                            </i>
+
+                        </li>
+                        <li ng-if="acRegResults.length === 0" translate="flight.noAcReg"></li>
+                    </ul>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>

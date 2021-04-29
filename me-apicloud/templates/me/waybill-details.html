@@ -1,0 +1,178 @@
+<!--<ui-view name="faultInfo"></ui-view>-->
+<div ng-show="!faultInfoView && !ccInfoView && !recordView">
+    <div class="navbar navbar-app navbar-absolute-top fixbar">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">
+                运单详情
+            </div>
+            <div class="btn-group btn-group-left">
+                <div class="btn" ng-click="goBack()">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="fixed-his" >
+        <div class="scrollable" style="position: absolute;top: 2.40rem" >
+            <div id="scroll" class="scrollable-content" ui-scroll-bottom="getNextPage()" >
+                <div class="material-content-wrap" >
+                    <div class="list-group material-content" style = "padding-right:0;padding-left: 0;margin-left: 0rem;margin-right: 0rem ">
+                        <div class="backup-airport no-data" ng-hide=" !detailsList || loading2 || detailsList.length || netWorkErr">暂无运单信息</div>
+                        <div  ng-repeat="items in detailsList"  style = "padding-right:0;padding-left: 0;margin-left: 0rem;margin-right: 0rem ">
+                            <!--头部-->
+                            <div class="list-group-item materialitem" style = "padding-left: .5rem;padding-right: .5rem ">
+                                <div class="text-ellipsis material-content-top" style = "padding: .2rem 0;margin-left: 0rem;margin-right: 0rem; ">
+                                    <!--运单编号-->
+                                    <span class="pull-left ">运单号&nbsp;{{items.code}}</span>
+                                    <!--随机备件/随航线备件/随机运输-->
+                                    <span class="pull-right" style="margin-right: 0" ng-show="items.ifSparePart == '1'||items.ifSparePart == '2'">{{items.ifSparePartShow}}</span>
+                                    <span class="pull-right" style="margin-right: 0" ng-show="items.ifSparePart == '0'"> {{items.departureStation}}-{{items.destinationStation}}</span>
+                                </div>
+                                <div class="text-ellipsis" style = "margin-bottom: 0;padding: .2rem 0;border-bottom: #adadad solid .01rem;">
+                                    <span class="pull-left ">总重:{{items.totalWeight}}kg&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                    <span class="pull-left ">装载位置:{{items.loadingPosition}}</span>
+                                    <span class="pull-right ">散件{{items.bulkNum}}</span>
+                                    <span class="pull-right ">箱{{items.boxNum}}&nbsp;</span>
+                                </div>
+                                <!--第三行-->
+                                <div class=" text-ellipsis" style="color: #adadad;margin-top: 0;padding: .2rem 0;" >
+                                    <div  ng-show="items.ifSparePart != '0'" >
+                                        <!--左侧的备件信息-->
+                                        <div class="pull-left" style="color: #000;">
+                                            <span>备件:</span>
+                                            <!--随飞机备件-->
+                                            <span ng-show="items.ifSparePart == '1'">
+                                                {{items.acNo}}&nbsp;&nbsp;&nbsp;{{items.departureStation}}
+                                            </span>
+                                            <!--随航线备件-->
+                                            <span ng-show="items.ifSparePart == '2'">
+                                            {{items.flightRoute}}
+                                            </span>
+                                        </div>
+                                        <!--右侧的日期信息,起始时间和结束时间是哪个-->
+                                        <div class="pull-right">
+                                            {{items.startDate | date:'yyyy-MM-dd'}}至{{items.endDate | date:'yyyy-MM-dd'}}
+                                        </div>
+                                    </div>
+                                    <!--随机运输（一次性运输）:分为单程和多程,如果是多程航班会有下程航班,现在的逻辑：如果有下程航班就显示下程航班，否则就显示来源航班，两个都没有就不显示-->
+                                    <!--如果有下程航班且有来源航班-->
+                                    <div ng-show="items.ifSparePart == '0'&& items.nextFlight && items.sourceFlight" style="clear: both;" >
+                                         <span class="pull-left" >
+                                            <!--如果是单程不需要显示，如果是多段，需要显示下程航班和起飞时间-->
+                                            来源航班:{{items.sourceFlight.flightNo}}&nbsp;{{items.sourceFlight.flightSect}}
+                                        </span>
+                                            <span class="pull-right" ng-show="items.sourceFlight.ata">
+                                            ATA {{items.sourceFlight.ata | date:'yyyy-MM-dd HH:mm'}}
+                                        </span>
+                                            <span class="pull-right" ng-show="items.sourceFlight.sta && !items.sourceFlight.ata">
+                                            STA {{items.sourceFlight.sta | date:'yyyy-MM-dd HH:mm'}}
+                                        </span>
+                                    </div>
+                                    <!--如果只有下程航班-->
+                                    <div ng-show="items.ifSparePart == '0'&& items.nextFlight" style="clear: both;">
+                                        <div class="pull-left" >
+                                            <!--如果是单程不需要显示，如果是多段，需要显示下程航班和起飞时间-->
+                                            下程航班:{{items.nextFlight.flightNo}}&nbsp;{{items.nextFlight.flightSect}}
+                                        </div>
+                                        <!--如果有下程航班，有实际的起飞时间就显示实际的，没有就显示计划的-->
+                                        <div class="pull-right" ng-show="items.nextFlight.atd">
+                                            ATD {{items.nextFlight.atd | date:'yyyy-MM-dd HH:mm'}}
+                                        </div>
+                                        <div class="pull-right" ng-show="items.nextFlight.std && !items.nextFlight.atd">
+                                            STD {{items.nextFlight.std | date:'yyyy-MM-dd HH:mm'}}
+                                        </div>
+                                    </div>
+                                    <!--如果无下程航班但是有来源航班-->
+                                    <div ng-show="items.ifSparePart == '0'&& !items.nextFlight && items.sourceFlight" >
+                                        <div class="pull-left" >
+                                            <!--如果是单程不需要显示，如果是多段，需要显示下程航班和起飞时间-->
+                                            来源航班:{{items.sourceFlight.flightNo}}&nbsp;{{items.sourceFlight.flightSect}}
+                                        </div>
+                                        <!-- 如果有实际落地时间就取实际的，如果没有就取计划-->
+                                        <div class="pull-right" ng-show="items.sourceFlight.ata">
+                                            ATA {{items.sourceFlight.ata | date:'yyyy-MM-dd HH:mm'}}
+                                        </div>
+                                        <div class="pull-right" ng-show="items.sourceFlight.sta && !items.sourceFlight.ata">
+                                            STA {{items.sourceFlight.sta | date:'yyyy-MM-dd HH:mm'}}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--一个运单-->
+                            <div class="list-group-item materialitem"  ng-repeat="itemsChildList in items.amProperShips" style = "padding-left: 0rem;padding-right: 0rem;background-color: inherit;">
+                                <!--箱-->
+                                <div class="text-ellipsis" ng-show="itemsChildList.type=='1'" style="margin: .5rem 0;background-color: #FFFFFF;padding: .3rem .8rem;">
+                                    <!--箱/箱号一行-->
+                                    <div class="text-ellipsis material-content-top" style = "margin-left: 0rem;margin-right: 0rem;padding: 0 0 .3rem 0; ">
+                                        <!--判断箱或散件通过type,截取-->
+                                        <span class="pull-left ">箱-{{ items.code | limitTo:-4}}&nbsp;&nbsp;</span>
+                                        <span class="pull-left " ng-show="items.requisitionStatus == '2'|| items.requisitionStatus == '4'" >{{items.requisitionStatusShow}}</span>
+                                        <div class="pull-left " ng-show="items.requisitionStatus == '3'" style="position: relative;display: block;width: 2rem;height: 1rem;"> <img class="triangle" style="width: 15px;height: 15px;top: 3px;left: 5px;" src="dist/images/damage/follow-aircraft.png"></div>
+                                        <span class="pull-left " ng-show="items.requisitionStatus == '1'" style="background-color: #fc0d00;color: #ffffff">{{items.requisitionStatusShow}}</span>
+                                        <span class="pull-right " style="margin-right: 0"> 箱号:{{itemsChildList.caseNo}}</span>
+                                    </div>
+                                    <div class="text-ellipsis">
+                                        <span class="pull-left">总重:{{itemsChildList.weight}}kg</span>
+                                        <span class="pull-right">尺寸:{{itemsChildList.measure}}</span>
+                                    </div>
+                                </div>
+                                <div class="text-ellipsis"  ng-repeat="itemsSonList in itemsChildList.boxDetails"  ng-show="itemsChildList.type=='1'" style="background-color: #FFFFFF;padding: .3rem .4rem;border-radius: 5px;margin: .3rem .3rem;">
+
+                                    <!--箱下里面的东西（不止一件）-->
+                                    <div style="margin-top: 0rem;">
+                                        <div class="text-ellipsis material-content-top" style = "padding-right:0;padding-left: 0;margin-left: 0rem;margin-right: 0rem; font-size: .65rem;font-weight: 500"><span class="pull-left" >{{itemsSonList.tradeName}}</span></div>
+                                        <div class="text-ellipsis "><span class="pull-left" >件号:<span class="red">{{itemsSonList.partNumber}}</span></span></div>
+                                        <div class="text-ellipsis" style="padding-top: .3rem;padding-bottom: .3rem;">
+                                            <span class="pull-left">重量:{{itemsSonList.weight||'0'}}kg</span>
+                                            <span class="pull-right">尺寸:{{itemsSonList.measure || ""}}</span>
+                                        </div>
+                                        <div class="text-ellipsis" style="border-top: #adadad dashed .03rem;margin: .3rem 0;padding-top: .5rem">
+<!--                                            <span class="pull-left">{{itemsSonList.ifHazardous?'危险品':'非危险品'}}</span>-->
+                                            <span class="pull-left" ng-show="!!itemsSonList.ifHazardous" style="color: #fc0d00;">危险品</span>
+                                            <span class="pull-left" ng-show="!itemsSonList.ifHazardous" >非危险品</span>
+                                            <span class="pull-right" ng-show="itemsSonList.ifHazardous">类别:<span ng-class="{red: !!itemsSonList.ifHazardous}">{{itemsSonList.hazardType}}</span> &nbsp;包装:<span ng-class="{red: !!itemsSonList.ifHazardous}">{{itemsSonList.hazardPack}}</span></span>
+                                        </div>
+                                        <div class="text-ellipsis"><span class="pull-left">备注:{{itemsSonList.remark}}</span></div>
+                                    </div>
+                                </div>
+                                <!--散件-->
+                                <div  ng-show="itemsChildList.type=='2'" style="margin: .1rem 0;padding: 0 0;">
+                                    <!--散件条目-->
+                                    <div class="text-ellipsis material-content-top" style="margin: .5rem 0;background-color: #FFFFFF;padding: .5rem .8rem;">
+                                        <span class="pull-left">散件-{{items.code | limitTo:-4 }}&nbsp;&nbsp;</span>
+                                        <span class="pull-left " ng-show="items.requisitionStatus == '2'|| items.requisitionStatus == '4'" >{{items.requisitionStatusShow}}</span>
+                                        <div class="pull-left " ng-show="items.requisitionStatus == '3'" style="position: relative;background-color: #a6e1ec;display: block;"> <img class="triangle" style="width: 15px;height: 15px;top: 3px;left: 5px;" src="dist/images/icon/follow-aircraft.png"></div>
+                                        <span class="pull-left " ng-show="items.requisitionStatus == '1'" style="background-color: #fc0d00;color: #ffffff">{{items.requisitionStatusShow}}</span>
+                                        <span class="pull-right" style="margin-right: 0" >件号:<span class="red">{{itemsChildList.partNumber}}</span></span>
+                                    </div>
+                                    <!--散件内容-->
+                                    <div style="background-color: #FFFFFF;padding: .3rem .4rem;border-radius: 5px;margin: .3rem .3rem;">
+                                        <div class="text-ellipsis">
+                                            <span class="pull-left">{{itemsChildList.tradeName}}/{{itemsChildList.tradeNameEn}}</span>
+                                        </div>
+                                        <div class="text-ellipsis" style="border-bottom: #adadad solid .03rem;padding: .3rem 0 .5rem 0">
+                                            <span class="pull-left">重量:{{itemsChildList.weight}}</span>
+                                            <span class="pull-right">尺寸:{{itemsChildList.measure}}</span>
+                                        </div>
+                                        <div class="text-ellipsis" style="padding: .6rem 0 0 0">
+    <!--                                        <span class="pull-left">{{itemsChildList.ifHazardous?'危险品':'非危险品'}}</span>-->
+                                            <span class="pull-left" ng-show="!!itemsChildList.ifHazardous" style="color: #fc0d00;">危险品</span>
+                                            <span class="pull-left" ng-show="!itemsChildList.ifHazardous" >非危险品</span>
+                                            <span class="pull-right" ng-show="itemsChildList.ifHazardous">类别:<span ng-class="{red: !!itemsSonList.ifHazardous}">{{itemsChildList.hazardType}}</span>&nbsp;&nbsp;&nbsp;包装:<span ng-class="{red: !!itemsSonList.ifHazardous}">{{itemsChildList.hazardPack}}</span></span>
+                                        </div>
+                                        <div class="text-ellipsis">
+                                            <span class="pull-left">备注:{{itemsChildList.remark}}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center" ng-if="noMoreData && detailsList.length" translate="loadingDone"></div>
+            </div>
+        </div>
+    </div>
+
+</div>

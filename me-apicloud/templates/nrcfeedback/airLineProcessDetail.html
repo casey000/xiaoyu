@@ -1,0 +1,273 @@
+<ui-view name="record" ></ui-view>
+<div ng-show="!recordView" style="height: 100%">
+<div class="navbar navbar-app navbar-absolute-top">
+    <div class="navbar-brand navbar-brand-center">
+<!--        {{isEdit ? 'CC View' : 'Add CC'}}-->
+        <!--{{acReg}}-->
+        {{typeName + '反馈详情'}}
+    </div>
+    <div class="btn-group btn-group-left">
+        <div class="btn" ng-click="go('back')">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+    </div>
+</div>
+<moac-body>
+    <div class="new-cc ddi-scrollable-content ccinfo" style="word-break: break-all" ng-class="">
+        <div class="cc-base">
+            <div class="title">基本信息</div>
+            <div class="info clearfix">
+                <p class="p-fl">飞机号：{{info.acReg }}</p>
+                <p class="p-fl">航班号：{{info.flightNo}}</p>
+            </div>
+            <!--<div class="info clearfix">-->
+                <!--<p class="p-fl">航班号：{{info.flightNo}}</p>-->
+                <!--<p class="p-fl">飞机号：{{responObj.onModel}}</p>-->
+            <!--</div>-->
+            <div class="info clearfix">
+                <p class="p-fl">航站：
+                    <span >{{info.station}}</span>
+                </p>
+                <p class="p-fl">任务类型：<span style="font-size: .65rem">{{info.workType}}</span></p>
+            </div>
+            <div class="info clearfix" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">航班日期：{{info.flightDate | date:'yyyy-MM-dd HH:mm'}}</p>
+            </div>
+            <div class="info clearfix" ng-if="info.workType != 'DEFECT_REVIEW'" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">任务文件号：{{info.cardNumber}}</p>
+            </div>
+            <div class="info clearfix" ng-if="info.workType == 'DEFECT_REVIEW'" style="margin-bottom: .5rem" ng-click="go('searchFault.faultClose','',{defectId: info.cardId,  pt: false})">
+                <p class="p-fl" style="width: 100%">故障号：<span class="fontBlue">{{info.cardNumber}}</span></p>
+            </div>
+            <div class="info clearfix" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">任务描述：{{info.description}}</p>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="cc-base" style="padding-bottom: .2rem">
+            <div class="title" style="margin-bottom: .5rem">反馈信息</div>
+            <div class="info clearfix" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">工作者：{{info.mechanicName + '(' + info.mechanicSn + ')'}}</p>
+            </div>
+            <div class="info clearfix" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">完工日期：{{info.completeDate | date:'yyyy-MM-dd HH:mm'}}</p>
+            </div>
+            <div class="info clearfix" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">校验员：{{info.inspector + '(' + info.inspectorNo + ')'}}</p>
+            </div>
+            <div class="info clearfix">
+                <p class="p-fl">人工时：{{info.hours}}</p>
+                <p class="p-fl">校验类型：
+                    <span ng-if="info.isRci == '1' && info.isRii == '0'">互检</span>
+                    <span ng-if="info.isRii == '1'">必检</span>
+                </p>
+            </div>
+            <div class="info clearfix" style="margin-bottom: .5rem">
+                <p class="p-fl" style="width: 100%">反馈信息：{{info.feedbackCh}}</p>
+            </div>
+            <div class="input-block clearfix p-closeFaultDtl">
+                <!--<p class="">TLB：</p>-->
+                <div class="content p-dtl">
+                    <!-- $rootScope.go('tlbDetail', 'slideLeft', {tlbId: cc.tlbId});
+-->
+                    <div class="p-main" >
+                        <p ng-repeat="item in info.tlbList" ng-click="go('tlbDetail', 'slideLeft', {tlbId: item.tlbId})">TLB NO: <span class="fontBlue">{{item.tlbNo}}</span> </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="divider"></div>
+
+        <!--其他信息-->
+        <div class="cc-base" style="padding-bottom: 5rem">
+            <div ng-show="!isEdit" class="title" style="margin-bottom: .5rem">图片信息</div>
+            <div ng-show="isEdit" class="title" style="margin-bottom: .5rem">编辑图片</div>
+
+            <div class="p-image" ng-show="isEdit">
+
+                <newimg-upload is-api-cloud="false"  nrc-id="$parent.info.id" is-edit="true" up-way="$parent.apsWay" file-list = "$parent.fileList" img-array="$parent.imgArr" file-arr="$parent.fileArr" del-img-id="delImgId"  attachvo="attachvo"></newimg-upload>
+
+            </div>
+
+            <div class="input-block clearfix p-closeFaultDtl" ng-show="!isEdit">
+                <p class="">反馈图片：</p>
+                <div class="content p-dtl" style="display: block">
+                    <div class="p-main clearfix" style="overflow: visible" ng-if="info.workType !='JC'">
+                        <div style="float: left;position: relative" class="btn" ng-click="go('airLineProcessDetail.fileRecord','',{imgArr:info.attachmentList})">
+                            <i ng-if="info.attachmentList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                            查看图片记录
+                        </div>
+                    </div>
+
+                </div>
+                <div class="content p-dtl" ng-if="info.workType =='JC' && info.isRequiredFeedback" style="display: block">
+                    <div class="p-main clearfix" style="overflow: visible" >
+                        <div style="float: left;position: relative" class="btn" ng-click="go('airLineProcessDetail.fileRecord','',{imgArr:info.attachmentList})">
+                            <i ng-if="info.attachmentList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                            查看非APS图片记录
+                        </div>
+                    </div>
+                    <div class="p-main clearfix" style="overflow: visible" >
+                        <div style="float: left;position: relative" class="btn" ng-click="go('airLineProcessDetail.fileRecord','',{imgArr:info.apsFeedbackAttachmentList})">
+                            <i ng-if="info.apsFeedbackAttachmentList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                            查看APS图片记录
+                        </div>
+                    </div>
+                </div>
+                <div class="content p-dtl" ng-if="info.workType =='JC' && !info.isRequiredFeedback" style="display: block">
+                    <div class="p-main clearfix" style="overflow: visible" >
+                        <div style="float: left;position: relative" class="btn" ng-click="go('airLineProcessDetail.fileRecord','',{imgArr:info.attachmentList})">
+                            <i ng-if="info.attachmentList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                            查看APS图片记录
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+            <div class="input-block clearfix p-closeFaultDtl" ng-show="!isEdit">
+                <p class="">无照片备注：</p>
+                <div class="content p-dtl">
+                    <div class="p-main" style="overflow: visible">
+                        {{info.mechanicNoPhotoRemark}}
+                    </div>
+                </div>
+            </div>
+            <div class="input-block clearfix p-closeFaultDtl" ng-show="!isEdit">
+                <p class=""><span>{{info.isRci == '1' ? '互检' : '必检'}}</span>结果：</p>
+                <div class="content p-dtl">
+                    <div class="p-main" style="overflow: visible">
+                        <div style="float: left;position:relative;" class="btn" ng-click="go('airLineProcessDetail.fileRecord','',{imgArr:info.apsAttachmentList})">
+                            <i ng-if="info.apsAttachmentList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                            查看图片记录
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="input-block clearfix p-closeFaultDtl" ng-show="!isEdit">
+                <p class="">无照片备注：</p>
+                <div class="content p-dtl">
+                    <div class="p-main" style="overflow: visible">
+                        {{info.inspectorNoPhotoRemark}}
+                    </div>
+                </div>
+            </div>
+            <!--.p-closeFaultDtl .p-dtl .p-main .btn-->
+
+         </div>
+    </div>
+</div>
+</moac-body>
+<!--<div class="ewis-background" ng-show = "writeSum" style="z-index:1002;background-color: #fff">-->
+    <!--<div class="navbar navbar-app navbar-absolute-top">-->
+        <!--<div class="clearfix top-title">-->
+            <!--<div class="navbar-brand navbar-brand-center">图片记录-->
+            <!--</div>-->
+            <!--<div class="btn-group btn-back" style="z-index: 1000">-->
+                <!--<div class="btn" ng-click="writeSum = false">-->
+                    <!--<i class="icon-maoc icon-back" ></i>-->
+                <!--</div>-->
+            <!--</div>-->
+        <!--</div>-->
+
+    <!--</div>-->
+    <!--<div class="oil-scroll" style="background-color:#fff;">-->
+        <!--<div class="p-faultFileRecord" style="height: auto">-->
+            <!--<div class="nodata" ng-if="relateImg.length<=0 && pdfList.length <=0">暂无数据</div>-->
+            <!--<div class="ui-img" ng-class="{show:imgUrl!=null}">-->
+                <!--<p ng-click="closeImg()"></p>-->
+                <!--<div>-->
+                    <!--<img ng-src="{{imgUrl}}"/>-->
+                <!--</div>-->
+            <!--</div>-->
+            <!--<div class="p-item" ng-if="relateImg.length>0 && item.type.indexOf('image') != -1" ng-repeat="item in relateImg track by $index">-->
+                <!--<div class="time" ng-bind="item.createDate | date:'yyyy-MM-dd HH:mm'"></div>-->
+                <!--<div class="main left" >  &lt;!&ndash;ng-class="{right:item.change,left:!item.change}"&ndash;&gt;-->
+                    <!--<div class="icon" >  &lt;!&ndash;ng-if="!item.change"   &ndash;&gt;-->
+                        <!--<i class="icon-other"></i>-->
+                    <!--</div>-->
+                    <!--<div class="cont">-->
+                        <!--<div class="title" ng-bind="item.uploadByName"></div>-->
+                        <!--<div class="file">-->
+                            <!--<div class="img">-->
+                                <!--<div ng-click="showBig(relateImg, $index)">-->
+                                    <!--<p>-->
+                                        <!--<img ng-src="data:image/png;base64,{{item.content}}"-->
+                                             <!--alt="">-->
+                                    <!--</p>-->
+                                <!--</div>-->
+                            <!--</div>-->
+                        <!--</div>-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</div>-->
+            <!--<div class="p-item" ng-if="pdfList.length>0 " ng-repeat="item in pdfList track by $index">-->
+                <!--<div class="time" ng-bind="item.createDate | date:'yyyy-MM-dd HH:mm'"></div>-->
+                <!--<div class="main left" >  &lt;!&ndash;ng-class="{right:item.change,left:!item.change}"&ndash;&gt;-->
+                    <!--<div class="icon" >  &lt;!&ndash;ng-if="!item.change"   &ndash;&gt;-->
+                        <!--<i class="icon-other"></i>-->
+                    <!--</div>-->
+                    <!--<div class="cont">-->
+                        <!--<div class="title" ng-bind="item.uploadByName"></div>-->
+                        <!--<div class="file">-->
+                            <!--<div class="img">-->
+                                <!--<p style="font-size: .7rem;color: #00b4ff;" ng-click="showPdf(item)">{{item.name}}</p>-->
+                            <!--</div>-->
+                        <!--</div>-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</div>-->
+        <!--</div>-->
+    <!--</div>-->
+<!--</div>-->
+<!--<div class="ewis-background" ng-show = "apswriteSum" style="z-index:1002;background-color: #fff">-->
+    <!--<div class="navbar navbar-app navbar-absolute-top">-->
+        <!--<div class="clearfix top-title">-->
+            <!--<div class="navbar-brand navbar-brand-center">图片记录-->
+            <!--</div>-->
+            <!--<div class="btn-group btn-back" style="z-index: 1000">-->
+                <!--<div class="btn" ng-click="apswriteSum = false">-->
+                    <!--<i class="icon-maoc icon-back" ></i>-->
+                <!--</div>-->
+            <!--</div>-->
+        <!--</div>-->
+
+    <!--</div>-->
+    <!--<div class="oil-scroll" style="background-color:#fff;">-->
+        <!--<div class="p-faultFileRecord" style="height: auto">-->
+            <!--<div class="nodata" ng-if="apsrelateImg.length<=0">暂无数据</div>-->
+            <!--<div class="ui-img" ng-class="{show:imgUrl!=null}">-->
+                <!--<p ng-click="closeImg()"></p>-->
+                <!--<div>-->
+                    <!--<img ng-src="{{imgUrl}}"/>-->
+                <!--</div>-->
+            <!--</div>-->
+            <!--<div class="p-item" ng-if = "apsrelateImg.length>0" ng-repeat="item in apsrelateImg track by $index">-->
+                <!--<div class="time" ng-bind="item.createDate | date:'yyyy-MM-dd HH:mm'"></div>-->
+                <!--<div class="main left" >  &lt;!&ndash;ng-class="{right:item.change,left:!item.change}"&ndash;&gt;-->
+                    <!--<div class="icon" >  &lt;!&ndash;ng-if="!item.change"   &ndash;&gt;-->
+                        <!--<i class="icon-other"></i>-->
+                    <!--</div>-->
+                    <!--<div class="cont">-->
+                        <!--<div class="title" ng-bind="item.uploadByName"></div>-->
+                        <!--<div class="file">-->
+                            <!--<div class="img">-->
+                                <!--<div ng-click="showBig(apsrelateImg, $index)">-->
+                                    <!--<p>-->
+                                        <!--<img ng-src="data:image/png;base64,{{item.content}}"-->
+                                             <!--alt="">-->
+                                    <!--</p>-->
+                                <!--</div>-->
+                            <!--</div>-->
+                        <!--</div>-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</div>-->
+        <!--</div>-->
+    <!--</div>-->
+<!--</div>-->
+

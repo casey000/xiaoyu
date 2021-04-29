@@ -1,0 +1,262 @@
+<!--Add MR-->
+<div class="navbar navbar-app navbar-absolute-top">
+    <div class="navbar-brand navbar-brand-center">
+        {{title}}
+    </div>
+    <div class="btn-group btn-group-left">
+        <div class="btn" ng-click="goBackToSvList()">
+            <i class="icon-maoc icon-back"></i>
+        </div>
+    </div>
+    <div class="btn-group btn-group-right" ng-if="info.svInfo.status == 2 && state == 2 && userCode == info.svInfo.creater">
+        <div class="btn" ng-if="!edit" ng-click="startEdit()">
+            编辑
+        </div>
+        <div class="btn" ng-if="edit" ng-click="cancelEdit()">
+            取消
+        </div>
+
+    </div>
+
+</div>
+<div class="scrollable-content sv-detal-wrapper">
+    <form name="myForm" novalidate>
+        <div class="">
+            <div class="sec-1">
+                <div class="content">
+                    <div class="item">
+                        <div>{{info.svInfo.vehicleTitle}}</div>
+                        <div>
+                            <span>使用时长</span>
+                            <span class="time-length">{{info.svInfo.lengthDateStr}}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sec-2">
+                <div class="header"></div>
+                <div class="content">
+                    <div class="item">
+                        <div>开始时间 <span class="red">*</span></div>
+                        <div ng-if="edit">
+                            <!--<input type="datetime-local" ng-model="info.toolInfos.startDate | date:'yyyy/MM/dd hh:mm'">-->
+                            <input type="datetime-local" ng-model="info.toolInfos.startDate">
+                        </div>
+                        <div ng-if="!edit">
+                            <span>{{info.toolInfos.startDate | date:'yyyy/MM/dd hh:mm'}}</span>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <div>结束时间 <span class="red">*</span></div>
+                        <div ng-if="edit">
+                            <input type="datetime-local" ng-model="info.toolInfos.endDate">
+                        </div>
+                        <div ng-if="!edit">
+                            <span>{{info.toolInfos.endDate | date:'yyyy/MM/dd hh:mm'}}</span>
+                        </div>
+                    </div>
+                    <div class="item">
+                        <div>航段站点</div>
+                        <div ng-if="!containPo">{{info.svInfo.checkType}} {{info.svInfo.station}}</div>
+                        <div ng-if="containPo">
+                            <select ng-model="toolInfos.selectJob" required>
+                                <option ng-value="$index" ng-repeat="job in toolInfos.jobs">{{job.jobType}} {{job.station}}</option>
+                            </select>
+                            <img src="dist/images/damage/Triangle@2x.png" class="triangle-img">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sec-3" ng-if="requiredNote">
+                <div class="header">
+                    <div>
+                        备注 <span class="red" ng-if="requiredNote">*</span>
+                    </div>
+                </div>
+                <div class="remark"  ng-if="edit">
+                    <div class="remark-input">
+                        <textarea ng-model="info.svInfo.remark" ng-change="textChange()" ng-required="requiredNote" required placeholder="因为用车时长已经超过阀值，请填写超时原因"></textarea>
+                    </div>
+                    <div class="remark-limit">
+                        <span>限制200字</span>
+                    </div>
+                </div>
+                <div class="remark" ng-if="!edit">
+                    <div>{{info.svInfo.remark}}</div>
+                </div>
+            </div>
+            <div ng-if="info.svInfo.vehicleType == 5">
+                <div class="sec-2">
+                    <div class="header"></div>
+                    <div class="content">
+                        <select-sv info="info.toolInfos.selectSvInfo" sv-detail="info.svInfo" task-info="taskInfo" edit="edit"></select-sv>
+                        <div class="item">
+                            <div>计量单位 <span class="red">*</span> </div>
+                            <div ng-if="edit" class="right">
+                                <select ng-model="info.svInfo.meteUnit" required>
+                                    <option value="1">L</option>
+                                    <option value="2">KG</option>
+                                    <option value="3">GAL</option>
+                                </select>
+                                <img src="dist/images/damage/Triangle@2x.png">
+                            </div>
+                            <div ng-if="!edit">
+                                <div ng-switch="info.svInfo.meteUnit">
+                                    <div ng-switch-when="1">L</div>
+                                    <div ng-switch-when="2">KG</div>
+                                    <div ng-switch-when="3">GAL</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="item">
+                            <div>外界温度 <span class="red">*</span> </div>
+                            <div ng-if="edit">
+                                <input type="number" ng-model="info.svInfo.temperature" placeholder="如果零下请在数字前加'—'" required>
+                                <span>℃</span>
+                            </div>
+                            <div ng-if="!edit">
+                                <span>{{info.svInfo.temperature}}</span>
+                                <span>℃</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="icing-sec">
+                    <div class="icing-item" ng-repeat="item in info.svInfo.antiIcingFluidVOs">
+                        <div class="header">
+                            <span>除防冰液{{$index + 1}}</span>
+                            <button ng-if="edit" ng-click="deleteIcingSv(item,$index)">删除</button>
+                        </div>
+                        <div class="icing-content">
+                            <div class="first-unit">
+                                <div class="icing-unit bottom-line">
+                                    <div>类型</div>
+                                    <div class="right">
+                                        <div ng-show="edit">
+                                            <select ng-model="item.icingType">
+                                                <option value="1" ng-selected="item.icingType==1">I型</option>
+                                                <option value="2" ng-selected="item.icingType==2">II型</option>
+                                            </select>
+                                            <img src="dist/images/damage/Triangle@2x.png">
+                                        </div>
+                                        <div ng-if="!edit" ng-switch="item.icingType" class="detail-color">
+                                            <span ng-switch-when="1">I型</span>
+                                            <span ng-switch-when="2">II型</span>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="sec-unit">
+                                <div class="icing-unit bottom-line">
+                                    <div>厂商</div>
+                                    <div class="right">
+                                        <div ng-if="edit">
+                                            <select ng-model="item.icingManufacturer">
+                                                <option value="1" ng-selected="item.icingManufacturer==1">西安高科</option>
+                                                <option value="2" ng-selected="item.icingManufacturer==2">成都六维</option>
+                                                <option value="3" ng-selected="item.icingManufacturer==3">其它</option>
+                                            </select>
+                                            <img src="dist/images/damage/Triangle@2x.png">
+                                        </div>
+                                        <div ng-if="!edit" ng-switch="item.icingManufacturer" class="detail-color">
+                                            <span ng-switch-when="1">西安高科</span>
+                                            <span ng-switch-when="2">成都六维</span>
+                                            <span ng-switch-when="3">其它</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="third-unit">
+                                <div class="icing-unit">
+                                    <div>用量</div>
+                                    <div class="right">
+                                        <div ng-if="edit" class="edit-color">
+                                            <input type="text" ng-model="item.dosage" placeholder="请输入用量">
+                                            <div ng-switch="info.svInfo.meteUnit" style="display: inline-block">
+                                                <span ng-switch-when="1">L</span>
+                                                <span ng-switch-when="2">KG</span>
+                                                <span ng-switch-when="3">GAL</span>
+                                            </div>
+                                        </div>
+                                        <div ng-if="!edit" class="detail-color" >
+                                            <span>{{item.dosage}}</span>
+                                            <div ng-switch="info.svInfo.meteUnit" style="display: inline-block">
+                                                <span ng-switch-when="1">L</span>
+                                                <span ng-switch-when="2">KG</span>
+                                                <span ng-switch-when="3">GAL</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="fourth-unit">
+                                <div class="icing-unit">
+                                    <div>效果持续</div>
+                                    <div class="right" ng-if="edit" ng-click="showModifyTime(item,$index)">
+                                        <div class="edit-color" style="padding-right: 10px">
+                                            <div ng-class="{'transparent':item.hour == 0 && item.minute==0,'display-normal':item.hour > 0 || item.minute>0}">
+                                                <span class="number-font">{{item.hour}}</span><span class="unit-font">h</span><span class="number-font">{{item.minute}}</span><span class="unit-font">m</span>
+                                            </div>
+                                            <img src="dist/images/damage/Triangle@2x.png">
+                                        </div>
+                                    </div>
+                                    <div class="right" ng-if="!edit">
+                                        <div  class="detail-color">
+                                            <span class="number-font">{{item.hour}}</span><span class="unit-font">h</span><span class="number-font">{{item.minute}}</span><span class="unit-font">m</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-6 add-button-sec" ng-if="edit">
+                    <div class="header"></div>
+                    <div class="add-size" ng-click="addIcingSv()">
+                        <i class="button-add"></i>
+                        <span>增加除防冰液</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="save-button-section" ng-if="edit">
+                <!--<button class="button-active" ng-click="submit()">-->
+                <button ng-class="{'button-active':myForm.$valid}" ng-disabled="!myForm.$valid" ng-click="submit()">
+                    提交保存
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="sv-option-background" ng-show="editTime">
+    <div class="modify-time-length">
+        <div class="title">时长设置</div>
+        <div class="bussiness-title">设置时间</div>
+        <div class="enter-time-title">请输入时间</div>
+        <div class="time">
+            <div class="time-item">
+                <div>
+                    <input type="number" ng-model="info.toolInfos.timeInfo.hour">
+                </div>
+                <div class="unit">
+                    <span>小时</span>
+                </div>
+            </div>
+            <span>:</span>
+            <div class="time-item">
+                <div>
+                    <input type="number" ng-model="info.toolInfos.timeInfo.minute">
+                </div>
+                <div class="unit">
+                    <span>分钟</span>
+                </div>
+            </div>
+
+        </div>
+        <div class="choice">
+            <button ng-click="modifyTime(2)">取消</button>
+            <button ng-click="modifyTime(1)">确定</button>
+        </div>
+    </div>
+</div>

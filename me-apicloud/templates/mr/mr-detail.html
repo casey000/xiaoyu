@@ -1,0 +1,140 @@
+<!--mr详情-->
+<!--<div ui-content-for="title">-->
+<div class="navbar navbar-app navbar-absolute-top">
+	<div class="navbar-brand navbar-brand-center">
+		MR{{ mrDetail.no | limitTo:-9 }}
+	</div>
+	<div class="btn-group btn-group-left">
+<!--		<div class="btn" ng-click="go('back', 'slideRight')">-->
+		<div class="btn" ng-click="newgoBack()">
+			<i class="icon-maoc icon-back" ></i>
+		</div>
+	</div>
+</div>
+<!--</div>	-->
+<div class="scrollable">
+	<div class="scrollable-content mr-detail">
+<!--		<div ng-show="showInterface" class="approver-content-wrap" style="background-color: #ffffff; margin: 0 0;padding: 0 .2rem;">-->
+<!--			<div class="approver-title">Approver</div>-->
+<!--			<div class="require-date-title">Require Date</div>-->
+<!--			<select-person person-info="mrDetail"  ng-class="{ 'no-trpo': !!logId }"></select-person>-->
+<!--			<div class="select-require-date-wrap">-->
+<!--				<input style="font-size: .55rem" type="datetime-local" ng-if="!android" class="form-control select-require-date framecolor padding-fixed " ng-class="{ 'no-trpo': !!logId }"-->
+<!--					   ng-model="mrDetail.requireDate"  ng-blur="checkDate()" required />-->
+<!--				<input style="font-size: .55rem" ng-if="android" type="datetime-local" class="form-control select-require-date framecolor"  ng-class="{ 'no-trpo': !!logId }"-->
+<!--					   ng-model="mrDetail.requireDate" ng-change="checkDate()" required />-->
+<!--				<div class="triangle-down"></div>-->
+<!--				<span class="red require-date-err" ng-show="showDateTip" translate="mr.dateLimit"></span>-->
+<!--			</div>-->
+<!--		</div>-->
+		<div class="detail-content-wrap" style="margin-top: 0;padding-top: 0;">   <!--		ng-show="mrDetail.approverName"-->
+			<dl class="personDate " style="margin-top: .5rem;">
+				<dt>Approver
+					<div class="pull-right"><select-person person-info="mrDetail" ng-class="{ 'no-trpo': !!logId }"></select-person>
+					</div>
+				</dt>
+				<dt>Require Date
+					<div class="pull-right"  style="margin-right: 0rem;">
+						<input  type="datetime-local" ng-if="!android" class="form-control select-require-date framecolor padding-fixed " ng-class="{ 'no-trpo': !!logId }"
+						   ng-model="mrDetail.requireDate"  ng-blur="checkDate()" required />
+						<input ng-if="android" type="datetime-local" class="form-control select-require-date framecolor"  ng-class="{ 'no-trpo': !!logId }"
+						   ng-model="mrDetail.requireDate" ng-change="checkDate()" required />
+					</div>
+				</dt>
+				<dt ng-if="mrDetail.acInfo">{{mrDetail.acType}}<div class="pull-right acInfo">{{mrDetail.acInfo}}</div></dt>
+				<dt ng-if="mrDetail.cardNo">{{mrDetail.cardType}}<div class="pull-right cardNo">{{mrDetail.cardNo}}</div></dt>
+<!--				<li ><span>状态</span><div class="pull-right cardNo">{{mrDetail.status}}</div></li>-->
+				<dt class="new-cc">
+					航站/三字码
+					<div class="pull-right cardNo cc-base" style="padding: 0">
+						<select-station ng-class="{ 'no-trpo': !!logId }" title="insertStation.title" station-info="insertStation"></select-station>
+					</div>
+				</dt>
+			</dl>
+			<div class="add-remark-wrap" style="padding-left: .5rem">
+			</div>
+<!--			SAP没有remark这一项故注释-->
+<!--			<ul class="remark-wrap" ng-show="mrDetail.remark">-->
+<!--				<li class="remark">Remark</li>-->
+<!--				<li class="remark-content">{{mrDetail.remark}}</li>-->
+<!--			</ul>-->
+<!--航材需求-->
+			<div class="add-maintenance-header">
+				<div class="add-maintenance-title pull-left" ng-show="mrDetail.item" ng-class="{'no-top-border':!mrDetail.remark}">Material Requirements</div>
+			</div>
+			<div style="color: #fc0d00;" ng-show="!!logId">提交未成功，请重新提交!!</div>
+			<div class="d-faultMr-list"  >
+				<div class="edit-item" ng-repeat="maintenance in mrDetail.item" ng-if="material.revRemark != 'D'">
+<!--					logId代表数据上传到了移动机务的系统，但是没有传到SAP情况下产生，这种类型需要重新提交；meMrPlanId代表的是从源头下发下来规定使用的航材，这个不可以删除-->
+					<div class="main" swipe-del ng-class="{'swipe-del-left-hide': !!logId || mrDetail.item.length < 2 || (mrDetail.cardType != 'LM' && !!maintenance.meMrPlanId) }">
+						<div class="title">
+							<div class="num">P/N：{{maintenance.pn}}</div>
+							<div class="staion">{{maintenance.location}}</div>
+						</div>
+						<div class="flex-layout-between">
+							<!--件名-->
+							<div>{{maintenance.pnname}}</div>
+							<!--单位-->
+							<div>{{maintenance.qty}}&#12288;unit: {{maintenance.unit}}</div>
+						</div>
+					</div>
+					<!--原有数据删除按钮-->
+					<div class="edit-item-delete" ng-click="delItem(maintenance,$index)">
+						<div>删除</div>
+					</div>
+				</div>
+			</div>
+<!--再次提交条目-->
+			<div ng-show="showInterface"  class="add-maintenance-wrap">
+<!--再次提交条目（可编辑）-->
+				<div class="add-maintenance-content" ng-repeat="material in newMrList.item">
+					<div class="delete-addMaintenance" ng-click="deleteAdd($event,$index)" translate="delete" style="padding-bottom: 3rem;">
+					</div>
+					<div class="maintenance-item" swipe-del style="padding-bottom: .5rem;">
+						<div class="maintenance-item-top">
+							<div class="maintenance-name pull-left">{{material.pn}}
+							</div>
+							<span class="maintenance-station pull-right">{{material.station}}
+	    					</span>
+						</div>
+						<p>{{material.pnname}}</p>
+						<div class="maintenance-edit">
+<!--减号-->
+							<span class="minus" ng-click="minusmaterials(material.qty,material,1,$event,$index)" ng-class="{'forbidColorMinus':material.qty==0}">－</span>
+<!--数值输入框-->
+							<input type="text" ng-model="material.qty" min="0" input-material-num
+								   ng-change="overStock(material,$event,$index)" ng-focus="rememberNumber(material,$event,$index)"
+								   ng-blur="returnLastNumber(material,$event,$index)" required />
+<!--减号-->
+							<span class="plus" ng-click="plusmaterials(material.qty,material,1)">＋</span>
+						</div>
+						<div class="ui-select mr-add-select" style = "width:3.5rem; height: 1.5rem ; line-height: 1.5rem;margin-top: .25rem;">
+							<select  ng-init="material.allunit = (material.allunits.length == 1)?material.allunits[0]:material.allunit" ng-model="material.allunit" required ng-options="x for x in material.allunits">
+							</select>
+						</div>
+					</div>
+				</div>
+				<div class="add-maintenance-header">
+<!--					<div class="add-maintenance-title pull-left">Material Requirements</div>-->
+<!--航材需求添加-->
+					<div class="add-icon pull-right" ng-show="insertStation.station && !logId"  ng-click="go('searchMaterial','slideLeft',{timeId: timeId, station: insertStation.station,acReg:mrDetail.acInfo,cardType:mrDetail.cardType})">
+						<i class="icon-maoc icon-plus"></i>
+					</div>
+				</div>
+			</div>
+
+		</div>
+
+		<button class="submitAddMR "
+				ng-class="{'orange-button':mrDetail.nameAndId && mrDetail.requireDate}"
+				ng-disabled = "!abledclick || !mrDetail.nameAndId || !mrDetail.requireDate"
+				ng-show="showInterface && !logId"
+				ng-click="submitMr()">Submit</button>
+        <!--		重新提交按钮-->
+        <button class="submitAddMR orange-button" ng-click="renewSubmit()" ng-disabled="!abledclick" ng-show="!!logId">重新提交</button>
+        <!--		************-->
+		<p class="bg-danger" ng-show="mrError && mrInfo.cardType!='LM'">{{mrError}}</p>
+		<p class="bg-success" ng-show="submitSuccess" translate="mr.saveSuccess"></p>
+
+	</div>
+</div>

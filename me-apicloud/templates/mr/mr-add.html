@@ -1,0 +1,215 @@
+<!--Add MR-->
+<div class="navbar navbar-app navbar-absolute-top">
+	<div class="navbar-brand navbar-brand-center">
+		Add MR
+	</div>
+	<div class="btn-group btn-group-left">
+		<div class="btn" ng-click="goBack()">
+			<i class="icon-maoc icon-back"></i>
+		</div>
+	</div>
+</div>
+<div class="scrollable">
+	<div class="scrollable-content mr-add">
+		<form name="myForm" action="">
+			<div class="approver-content-wrap">
+				<div class="approver-title">Approver</div>
+				<div class="require-date-title">Require Date</div>
+
+				<select-person person-info="mrInfo"></select-person>
+				<!--<div class="datebox-wrap">
+					<input type="text" on-input class="form-control search-textbox framecolor" ng-paste="searchNameOrId(mrInfo.nameAndId)"
+						 ng-blur="dropdown=false;" ng-keyup="setNameId($event)"
+						ng-model="mrInfo.nameAndId"
+						ng-attr-placeholder="{{holderValue}}" required />
+					<span class="loading-approver" ng-show="loadApprover">
+						<i class="fa fa-spin loading-spinner" >
+							<img src="dist/images/loading.png" width="60%">
+						</i>
+					</span>
+					<span class="red require-date-err" ng-show="diffName" translate="mr.inputNameErr"></span>
+					&lt;!&ndash;<span class="error yellow" ng-init='empty=false' ng-show="empty">搜索条件不能为空</span>&ndash;&gt;
+					<ul ng-show="dropdown && workInfoList.length" class="dropdown-menu mr-dropdown">
+						<li work-info-select ng-repeat="item in workInfoList">
+							<a>{{ item.cnName }} {{item.workNo}}</a>
+						</li>
+					</ul>
+
+					<input type="hidden" ng-model="mrInfo.approverName" />
+					<input type="hidden" ng-model="mrInfo.approverSn" />
+
+				</div>-->
+				<div class="select-require-date-wrap">
+					<input style="font-size: .55rem" type="datetime-local" ng-if="!android" class="form-control select-require-date framecolor padding-fixed"
+						   ng-model="mrInfo.requireDate" ng-blur="checkDate()" required />
+					<input style="font-size: .55rem" ng-if="android" type="datetime-local" class="form-control select-require-date framecolor"
+						   ng-model="mrInfo.requireDate" ng-change="checkDate()" required />
+					<div class="triangle-down"></div>
+					<span class="red require-date-err" ng-show="showDateTip" translate="mr.dateLimit"></span>
+				</div>
+			</div>
+			<div class="tail-eng-wrap">
+				<!--<div class="tail-eng-title">Card No.</div>-->
+				<div class="tail-eng-button averageArange">
+					<button type="button" ng-click="switchType('LM')" ng-class="{'beClicked': mrInfo.cardType == 'LM'}" id="lm_but" ng-show="lm_data">LM</button>
+					<button type="button"  class="beClicked" id="type_but" ng-show="!lm_data">{{mrInfo.cardType}}</button>
+					<input type="hidden" ng-model="mrInfo.cardType" >
+				</div>
+<!---->
+				<div class="tail-eng-content scan-wrap" ng-show="lm_data">
+					<input class="workno" type="text" ng-model="mrInfo.worknoTxt" ng-attr-placeholder="{{hoderValueWorkno}}" ng-init="hoderValueWorkno='Work Order NO.'"
+						   ng-keyup="workNoEnter($event)" ng-show="mrInfo.cardType == 'LMJC' || mrInfo.cardType == 'LMEO'"
+						   ng-class="{'border-orange': (mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC') && !worknoTxt}"
+						   on-input-workno/>
+
+					<i class="icon-scan" ng-class="{'displayBlock': mrInfo.cardType == 'LMJC' || mrInfo.cardType == 'LMEO'}" ng-click="scanLineCode()"></i>
+					<p class="worknoerr" ng-if="cardNoError&&!cardNoInfo" translate="mr.cardNoErr"></p>
+					<!--输入WO No.后，自动查询出对应work data, time, begin time...-->
+					<input type="hidden" ng-model="mrInfo.status" >
+					<input type="hidden" ng-model="mrInfo.checkType" >
+					<input type="hidden" ng-model="mrInfo.unit" >
+					<input type="hidden" ng-model="mrInfo.woStation" >
+					<input type="hidden" ng-model="mrInfo.planStartDate" >
+					<input type="hidden" ng-model="mrInfo.planEndDate" >
+					<input type="hidden" ng-model="mrInfo.type" >
+
+
+					<input type="text" class="lmcardno border-gray" maxlength="60" ng-required="mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC'"
+						   ng-readonly="!mrInfo.cardType || mrInfo.cardType=='LM' || mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC'" ng-model="mrInfo.cardNo"
+						   ng-class="{'disableColor':!mrInfo.cardType || mrInfo.cardType=='LM' || mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC'}" on-input-cardno maxlength="60"
+						   ng-attr-placeholder="{{hoderValuerNO}}" ng-init="hoderValuerNO='Card NO.'"/>
+					<input type="hidden" id="cardNoLength" ng-value="mrInfo.cardNo.length">
+					<p class="red" style="position:absolute;" ng-if="inputCardNoErr" translate="mr.cardNoErr"></p>
+				</div>
+				<div class="tail-eng-content scan-wrap" ng-show="!lm_data">
+					<input type="text" class="lmcardno border-gray" maxlength="60"
+						   ng-disabled="!lm_data" ng-model="mrInfo.cardNo"
+						   class="disableColor" />
+				</div>
+			</div>
+			<div class="tail-eng-wrap">
+				<!--<div class="tail-eng-title">Tail/ENG</div>-->
+				<div class="tail-eng-button averageArange2">
+<!--A/C-->
+					<button type="button" ng-click="ac($event)" ng-class="{'active': mrInfo.acType=='a/c' || mrInfo.acInfo,'disableColor':mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC' || mrInfo.cardType == 'NA'}"
+							ng-disabled="mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC' || mrInfo.acInfo" ng-show="mrInfo.acInfoFlage == true">A/C</button>
+<!--ENG-->
+					<button type="button" ng-click="ac($event)" ng-class="{'active': mrInfo.acType=='eng'|| mrInfo.acInfoFlage == false,'disableColor':mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC' }"
+							ng-disabled="mrInfo.cardType == 'LMEO' ||mrInfo.cardType == 'LMJC' || mrInfo.acInfo" ng-show="mrInfo.acInfoFlage == false && fromIndex == false">ENG</button>
+<!--N/A-->
+					<button type="button" ng-click="ad($event)" ng-class="{'active': mrInfo.acType=='NA' }"
+							ng-show=" fromIndex == false && mrInfo.acInfoFlage == true">N/A</button>
+
+					<input type="hidden" ng-model="mrInfo.acType" >
+				</div>
+<!--输入飞机号/发动机号-->
+<!--				<div class="tail-eng-content">-->
+<!--					<input type="text" ng-readonly="!mrInfo.acType || mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC'"-->
+<!--						   ng-hide="mrInfo.acType=='NA'"-->
+<!--						   ng-model="mrInfo.acInfo" ng-required="mrInfo.cardType == 'LMTLB' || mrInfo.cardType == 'LMNRC'"-->
+<!--						   class="border-gray"-->
+<!--						   ng-attr-placeholder="{{hoderValueAC}}" ng-init="hoderValueAC='A/C(ENG)'"-->
+<!--						   ng-class="{'disableColor':!mrInfo.acType || mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC'}"/>-->
+<!--				</div>-->
+<!--改造输入按钮为下拉选择输入-->
+				<div class="par">
+					<div class="datebox-wrap" style="width: 100%;margin-top: .3rem;">
+						<input type="text"  class="form-control search-textbox"
+							   ng-readonly="!mrInfo.acType || mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC'"
+							   ng-paste="getAc()"
+							   ng-hide="mrInfo.acType=='NA'"
+							   ng-keyup="getAc()"
+							   ng-required="mrInfo.cardType == 'LMTLB' || mrInfo.cardType == 'LMNRC'"
+							   ng-blur="hideDrop()"
+							   ng-attr-placeholder="{{hoderValueAC}}"
+							   ng-init="hoderValueAC='A/C(ENG)'"
+							   ng-class="{'disableColor':!mrInfo.acType || mrInfo.cardType == 'LMEO' || mrInfo.cardType == 'LMJC'}"
+							   ng-model="mrInfo.acInfo" required >
+						<span class="loading-approver ng-hide" ng-show="loadAc">
+									<i class="fa fa-spin loading-spinner">
+										<img src="dist/images/loading.png" width="60%">
+									</i>
+								</span>
+						<ul ng-show="dropdownAc && acList.length" class="dropdown-menu mr-dropdown">
+							<li ng-repeat="item in acList" ng-touchend="selectAc(item.tail,item)">
+								<a>{{ item.tail}}</a>
+							</li>
+						</ul>
+						<!--<span ng-show="acList.length==0 || haveAC" class="cred  dropdown-menu mr-dropdown">输入飞机号</span>-->
+					</div>
+					<!--<span class="pab db ac-icon" ></span>-->
+				</div>
+			</div>
+
+			<div class="add-remark-wrap">
+				<!--增加航站-->
+				<select-station station-info="mrInfo"></select-station>
+
+<!--				<div class="add-remark-title">Remark</div>-->
+<!--				<div class="add-remark-content">-->
+<!--					<textarea ng-model="mrInfo.remark"></textarea>-->
+<!--				</div>-->
+			</div>
+			<div class="add-maintenance-wrap">
+				<div class="add-maintenance-header">
+					<div class="add-maintenance-title pull-left">Material Requirements</div>
+
+<!--					<div class="add-icon pull-right" style="margin-right: 0" ng-class="{'add-disabled': !mrInfo.station}" ng-click="go('searchMaterial','slideLeft',{timeId: timeId, station: mrInfo.station,acReg:mrInfo.acInfo})">-->
+					<div class="add-icon pull-right" style="margin-right: 0" ng-class="{'add-disabled': !mrInfo.station}" ng-click="checkStation(timeId,mrInfo.station.toUpperCase(),mrInfo.acInfo)">
+						<i class="icon-maoc icon-plus"></i>
+					</div>
+				</div>
+				<div class="add-maintenance-content" ng-repeat="material in mrInfo.item">
+
+					<div class="delete-addMaintenance" ng-click="deleteAdd($event,$index)" translate="delete" style="padding-bottom: 3rem;">
+					</div>
+
+					<div class="maintenance-item" swipe-del style="padding-bottom: .5rem;">
+
+						<div class="maintenance-item-top">
+							<div class="maintenance-name pull-left">{{material.pn}}
+							</div>
+							<span class="maintenance-station pull-right">{{material.station}}
+	    					</span>
+						</div>
+<!--						<div class="material-content-middle materialdescript">-->
+<!--							<span class="material serial-num" ng-show="material.serialNum"><translate>mr.sn</translate> {{material.serialNum}}</span>-->
+<!--							<span class="material" ng-show="material.lotNum"><translate>mr.lotNum</translate> {{material.lotNum}}</span>-->
+<!--						</div>-->
+						<p>{{material.pnname}}</p>
+						<div class="maintenance-edit" >
+<!--							<span class="minus" ng-click="minusmaterials(material.availableQty,material.qty,material,1,$event,$index)" ng-class="{'forbidColorMinus':material.qty==0}">－</span>-->
+
+<!--							<input type="text" ng-model="material.qty" min="0" input-material-num-->
+<!--								   ng-change="overStock(material,$event,$index)" ng-focus="rememberNumber(material,$event,$index)"-->
+<!--								   ng-blur="returnLastNumber(material,$event,$index)" required />-->
+
+<!--							<span class="plus" ng-click="plusmaterials(material.availableQty,material.qty,material,1)" ng-class="{'forbidColorAdd':material.qty==material.availableQty}">＋</span>-->
+
+							<span class="minus" ng-click="minusmaterials(material.qty,material,1,$event,$index)" ng-class="{'forbidColorMinus':material.qty==0}">－</span>
+
+							<input type="text" ng-model="material.qty" min="0" input-material-num
+								   ng-change="overStock(material,$event,$index)" ng-focus="rememberNumber(material,$event,$index)"
+								   ng-blur="returnLastNumber(material,$event,$index)" required />
+
+							<span class="plus" ng-click="plusmaterials(material.qty,material,1)">＋</span>
+
+						</div>
+						<div class="ui-select mr-add-select " style = "width:2.5rem; height: 1.5rem ; line-height: 1.5rem;margin-top: .25rem;">
+							<select  ng-init="material.unit = (material.allunits.length == 1)?material.allunits[0]:material.unit" ng-model="material.unit" required ng-options="x for x in material.allunits">
+							</select>
+						</div>
+					</div>
+				</div>
+
+			</div>
+
+		</form>
+
+		<button class="submitAddMR" ng-disabled="!mrInfo.item.length || !myForm.$valid || inputCardNoErr || nomaterialqty ||material.qty==0 || mrInfo.cardType == undefined || diffName || !mrInfo.acType || (mrInfo.acType != 'NA' && !mrInfo.acInfo)"
+				ng-class="{'orange-button': mrInfo.item.length && myForm.$valid && !inputCardNoErr && !nomaterialqty && material.qty !=0 && mrInfo.cardType != undefined && !diffName &&  !!mrInfo.acType && !(mrInfo.acType != 'NA' && !mrInfo.acInfo) }" ng-click="submitMr(mrInfo)">Submit</button>
+		<p class="bg-danger" ng-show="mrError && mrInfo.cardType!='LM'">{{mrError}}</p>
+		<p class="bg-success" ng-show="submitSuccess" translate="mr.saveSuccess"></p>
+	</div>
+</div>
+ 			

@@ -1,0 +1,690 @@
+<form name="editFault" ng-submit="saveFault()" novalidate>
+    <!--下拉刷新时显示 -->
+    <div  ng-show="pullToRefreshActive " ng-class="{'refresh-hide': !pullToRefreshActive}" class="refresh text-center">
+        <i class="fa fa-refresh fa-spin fa-fw"></i><translate>loading</translate>...
+    </div>
+    <div class="p-main fault" im-pull-to-refresh refresh-function="saveSuccess()" fault-dtl="true">
+        <div class="ui-list">
+            <div class="ui-list-item ui-ipt-item defect-no disabled">
+                <span>DE No. </span>
+                <div ng-bind="faultInfo.defectNo"></div>
+            </div>
+            <div class="ui-list-item ui-ipt-item fault-status disabled">
+                <span>Status.</span>
+                <div ng-hide="loading" ng-if="faultInfo.status.toUpperCase() == 'O'">OPEN</div>
+                <div ng-hide="loading" ng-if="faultInfo.status.toUpperCase() == 'C'">CLOSE</div>
+                <div ng-hide="loading" ng-if="faultInfo.status.toUpperCase() == 'M'">MONITOR</div>
+            </div>
+        </div>
+        <div class="ui-list">
+            <div class="ui-list-item ui-ipt-item defect-no disabled">
+                <span>Category.</span>
+                <div ng-bind="faultInfo.category"></div>
+            </div>
+            <div class="ui-list-item ui-ipt-item fault-status visibility"></div>
+        </div>
+
+        <!--時間放一行显示不全,mobile下放成两行-->
+        <div class="pad-show" style="width: 100%">
+            <div class="ui-list">
+                <div class="ui-list-item ui-ipt-item" ng-class="{disabled: !isEdit}">
+                    <span>Date Time <span ng-if="isEdit" class="red">*</span></span>
+                    <div ng-if="isEdit">
+                        <input type="datetime-local"
+                               name="dateFound"
+                               ng-model="info.dateFound"
+                               ng-max="today" required ng-blur="checkDate()"/>
+                    </div>
+                    <div ng-if="!isEdit">{{faultInfo.dateFound | date: 'yyyy-MM-dd HH:mm' }}</div>
+                </div>
+                <div class="ui-list-item ui-ipt-item disabled">
+                    <span>FLT No. </span>
+                    <div ng-bind="faultInfo.preFlightNo"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mobile-show" style="width: 100%;">
+            <div class="ui-list" style="width: 100%;">
+                <div class="ui-list-item ui-ipt-item" ng-class="{disabled: !isEdit}">
+                    <span>Date Time <span ng-if="isEdit" class="red">*</span></span>
+<!--                    <div ng-if="isEdit">-->
+<!--                        <input type="datetime-local"-->
+<!--                               name="dateFound"-->
+<!--                               ng-model="info.dateFound"-->
+<!--                               ng-max="today" required ng-blur="checkDate()"/>-->
+<!--                    </div>-->
+<!--                    <div ng-if="!isEdit">{{faultInfo.dateFound | date: 'yyyy-MM-dd HH:mm' }}</div>-->
+                    <div>{{faultInfo.dateFound | date: 'yyyy-MM-dd HH:mm' }}</div>
+                </div>
+            </div>
+            <div class="ui-list" style="width: 100%">
+                <div class="ui-list-item ui-ipt-item disabled">
+                    <span>FLT No. </span>
+                    <div ng-bind="faultInfo.preFlightNo"></div>
+                </div>
+            </div>
+        </div>
+        <!---时间兼容结束-->
+
+        <div class="ui-list">
+            <div class="ui-list-item ui-ipt-item disabled">
+                <span>STA No.</span>
+                <div ng-bind="faultInfo.station"></div>
+            </div>
+            <div class="ui-list-item ui-ipt-item disabled">
+                <span>A/C No.</span>
+                <div ng-bind="faultInfo.acReg"></div>
+            </div>
+        </div>
+        <div class="ui-list" ng-if="!isEdit">
+            <div class="ui-list-item ui-ipt-item disabled">
+                <span>Finder Sign.</span>
+                <div ng-bind="faultInfo.technicianFoundNo"></div>
+            </div>
+            <div class="ui-list-item ui-ipt-item disabled">
+                <span>ATA.</span>
+                <div ng-bind="faultInfo.ata"></div>
+            </div>
+        </div>
+
+        <!--大屏下与小屏下用不同的结构-->
+        <div class="ui-list-ex pad-show" ng-if="isEdit">
+            <div class="ui-list-item">
+                <span class="name">Finder Sign.</span>
+                <div class="ipt">
+                    <select-person person-info="info.technician"></select-person>
+                </div>
+            </div>
+
+            <div class="ui-list-item ui-ipt-item">
+                <select-ata ata-info="info.ata"></select-ata>
+
+<!--                <span>ATA <span class="red">*</span> </span>-->
+<!--                <div moac-auto-focus="ata">-->
+<!--                    <input type="tel" name="ata" placeholder="4~8位" required maxlength="8" ng-model="info.ata"-->
+<!--                           moac-ref="ata"-->
+<!--                           ng-pattern="/^[\w|-]{4,8}$/"-->
+<!--                           ng-blur="checkError(!editFault['ata'].$error.required && editFault['ata'].$invalid, 'ata')">-->
+<!--                </div>-->
+            </div>
+        </div>
+<!--        <div class="ui-list-ex pad-show" ng-if="isEdit">-->
+<!--            <div class="ui-list-item">-->
+<!--                <span class="name">Zone</span>-->
+<!--                <div class="ipt">-->
+<!--                    <select-zone zone-info="info.zoneInfo"></select-zone>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+
+        <div class="ui-list-ex mobile-show" ng-if="isEdit" style="width: 100%">
+            <div class="ui-list-item auto-width">
+                <span class="name">Finder Sign.</span>
+                <div class="ipt">
+                    <select-person person-info="info.technician"></select-person>
+                </div>
+            </div>
+        </div>
+
+<!--        <div class="ui-list-ex mobile-show" ng-if="isEdit" style="width: 100%; margin-top: .5rem;">-->
+<!--            <div class="ui-list-item ui-ipt-item auto-width">-->
+<!--                <select-ata ata-info="info.ata"></select-ata>-->
+
+<!--&lt;!&ndash;                <span>ATA <span class="red">*</span> </span>&ndash;&gt;-->
+<!--&lt;!&ndash;                <div moac-auto-focus="ata">&ndash;&gt;-->
+<!--&lt;!&ndash;                    <input type="tel" name="ata" placeholder="4~8位" required maxlength="8" ng-model="info.ata"&ndash;&gt;-->
+<!--&lt;!&ndash;                           moac-ref="ata"&ndash;&gt;-->
+<!--&lt;!&ndash;                           ng-pattern="/^[\w|-]{4,8}$/"&ndash;&gt;-->
+<!--&lt;!&ndash;                           ng-blur="checkError(!editFault['ata'].$error.required && editFault['ata'].$invalid, 'ata')">&ndash;&gt;-->
+<!--&lt;!&ndash;                </div>&ndash;&gt;-->
+<!--            </div>-->
+<!--        </div>-->
+        <div class="approver-content-wrap mobile-show"  style="margin: 0 0;width: 100%"  ng-if="isEdit">
+            <div class="datebox-wrap" style="width: 100%;" ><select-ata-title ata-info="info.ata" model="acModel"></select-ata-title></div>
+        </div>
+<!--        <div class="ui-list-ex mobile-show" ng-if="isEdit" style="width: 100%">-->
+<!--            <div class="ui-list-item auto-width">-->
+<!--                <span class="name">Zone</span>-->
+<!--                <div class="ipt">-->
+<!--                    <select-zone zone-info="info.zoneInfo"></select-zone>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+        <!--区域end-->
+
+
+        <span class="red fault-err-info"
+              ng-if="!editFault['dateFound'].$error.required && editFault['dateFound'].$error.max">故障时间不能晚于当前时间</span>
+        <span class="red fault-err-info" ng-if="ataError">ATA不能少于4位(字母,数字-)</span>
+
+        <!--<div class="ui-list">-->
+            <!--<div class="ui-list-item ui-ipt-item disabled" ng-if="!isEdit">-->
+                <!--<span>Type.</span>-->
+                <!--<div ng-bind="faultInfo.faultType"></div>-->
+            <!--</div>-->
+            <!--<div class="ui-list-item" ng-class="{'ui-ipt-item disabled':!isEdit,'ui-check-item':isEdit}">-->
+                <!--<span>Reported By.</span>-->
+                <!--<div ng-bind="faultInfo.defectOrigin" ng-if="!isEdit"></div>-->
+                <!--<div class="checkbox" ng-if="isEdit">-->
+                    <!--<div class="item" ng-click="info.defectOrigin='PILOT'"-->
+                         <!--ng-class="{active:info.defectOrigin=='PILOT'}">PILOT-->
+                    <!--</div>-->
+                    <!--<div class="item" ng-click="info.defectOrigin='GND'"-->
+                         <!--ng-class="{active:info.defectOrigin=='GND'}">Ground-->
+                    <!--</div>-->
+                <!--</div>-->
+            <!--</div>-->
+        <!--</div>-->
+
+        <div class="ui-list">
+<!--            <div class="ui-list-item ui-ipt-item disabled" ng-if="!isEdit">-->
+<!--                <span>Zone</span>-->
+<!--                <div ng-bind="faultData.zone_no"></div>-->
+<!--            </div>-->
+            <div class="ui-list-item ui-ipt-item disabled" ng-if="!isEdit">
+                <span>Type.</span>
+                <div ng-bind="faultInfo.faultType"></div>
+            </div>
+        </div>
+
+        <div class="ui-list">
+            <div class="ui-list-item" ng-class="{'ui-ipt-item disabled':!isEdit,'ui-check-item':isEdit}">
+                <span>Reported By.</span>
+                <div ng-bind="faultInfo.defectOrigin" ng-if="!isEdit"></div>
+                <div class="checkbox" ng-if="isEdit">
+                    <div class="item" ng-click="info.defectOrigin='PILOT'"
+                         ng-class="{active:info.defectOrigin=='PILOT'}">PILOT
+                    </div>
+                    <div class="item" ng-click="info.defectOrigin='GND'"
+                         ng-class="{active:info.defectOrigin=='GND'}">Ground
+                    </div>
+                </div>
+            </div>
+
+            <!--新增DM选项-->
+            <div class="ui-list-item" ng-class="{'ui-ipt-item disabled':!isEdit,'ui-check-item':isEdit}">
+                <span>DM<i class="red" ng-if="isEdit && info.dmStatus === 0">*</i></span>
+                <div ng-bind="faultInfo.dm | uppercase" ng-if="!isEdit"></div>
+                <div class="checkbox new-cc" ng-if="isEdit">
+                    <div class="item" ng-click="info.dm = info.dm === 'y' ?  '' : 'y' "
+                         ng-class="{active:info.dm=='y','noPick': dmDisable}">Y
+                    </div>
+                    <div class="item" ng-click="info.dm= info.dm === 'n' ?  '' : 'n'"
+                         ng-class="{active:info.dm=='n','noPick': dmDisable}">N
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!--<div class="ui-list">
+            <div class="ui-list-item" ng-class="{'ui-ipt-item disabled':!isEdit,'ui-check-item':isEdit}">
+                <span>RII.</span>
+                <div ng-if="!isEdit">{{(faultInfo.rii.toUpperCase()=='Y'?'YES':'NO')}}</div>
+                <div class="checkbox" ng-if="isEdit">
+                    <div class="item" ng-click="info.rii='y'" ng-class="{active:info.rii.toUpperCase()=='Y'}">YES</div>
+                    <div class="item" ng-click="info.rii='n'" ng-class="{active:info.rii.toUpperCase()=='N'}">NO</div>
+                </div>
+            </div>
+            <div class="ui-list-item ui-ipt-item visibility" ng-if="isEdit"></div>
+            <div class="ui-list-item ui-ipt-item disabled" ng-if="!isEdit">
+                <span>Type.</span>
+                <div ng-bind="faultInfo.faultType"></div>
+            </div>
+        </div>-->
+        <div class="ui-list">
+            <div class="ui-list-item ui-ipt-item" ng-class="{disabled:!isEdit}">
+                <span>Affected ENG.</span>
+                <section ng-if="!isEdit" ng-switch="faultInfo.engineType">
+                    <div ng-switch-when="1">ENG1</div>
+                    <div ng-switch-when="2">ENG2</div>
+                    <div ng-switch-when="4">ENG3</div>
+                    <div ng-switch-when="5">ENG4</div>
+                    <div ng-switch-when="3">APU</div>
+                    <div ng-switch-default></div>
+                </section>
+                <div ng-if="isEdit">
+                    <div class="ui-select">
+                        <select name="engineType" ng-model="info.engineType" ng-change="getSn()">
+                            <option value=""></option>
+                            <option value="1">ENG1</option>
+                            <option value="2">ENG2</option>
+                            <option value="4">ENG3</option>
+                            <option value="5">ENG4</option>
+                            <option value="3">APU</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="ui-list-item ui-ipt-item disabled">
+                <span>SN.</span>
+                <div ng-bind="faultInfo.engineSn=='{}' ? '' : faultInfo.engineSn"></div>
+            </div>
+        </div>
+
+        <div class="ui-list-tb" >
+            <div class="title">
+                <div>概要信息</div>
+                <div>
+                    <div class="btn" ng-click="outlineFile()">点击查看</div>
+                </div>
+            </div>
+        </div>
+        <div class="ui-list-tb" ng-if="!isEdit && faultInfo.drBaseSubmitAsmsDTO">
+            <div class="title">
+                <div>结构信息</div>
+                <div>
+                    <div class="btn" ng-click="damageFile()">点击查看</div>
+                </div>
+            </div>
+        </div>
+        <div class="ui-list-tb" ng-if="!isEdit && faultInfo.isStructureDamage =='y' &&faultInfo.drBaseSubmitAsmsDTO && faultInfo.drBaseSubmitAsmsDTO.nrcDtoList.length > 0">
+            <div class="title" ng-repeat="item in faultInfo.drBaseSubmitAsmsDTO.nrcDtoList">
+                <div>NRC:{{item.nrcNo}}</div>
+                <div>
+                    <div class="btn" ng-click="nrcFile($index)">点击查看</div>
+                </div>
+            </div>
+        </div>
+        <div class="ui-list-tb" ng-if="!isEdit && faultInfo.isStructureDamage !='y' && faultInfo.nrcNo">
+            <div class="title">
+                <div>NRC:{{faultInfo.nrcNo}}</div>
+                <div>
+                    <div class="btn" ng-click="nrcFile(faultInfo.nrcNo,'pend')">点击查看</div>
+                </div>
+            </div>
+        </div>
+        <div class="ui-list-tb" ng-if="!isEdit">
+            <div class="title">
+                <div>故障报告(Chinese)</div>
+                <div style="overflow: visible">
+                    <div class="btn" ng-click="faultFile()" style="position: relative">
+                        <i ng-if="attachList.length > 0" style="position: absolute;display: inline-block;width: 7px;height: 7px;border-radius: 50%;background-color: #ff3b30;top: -3px;right: 1px"></i>
+                        查看语音、图片记录
+                    </div>
+                </div>
+            </div>
+            <div>
+                <p class="ui-remark" ng-bind="faultInfo.faultReportChn"></p>&nbsp;
+            </div>
+        </div>
+        <div class="ui-list-tb" ng-if="!isEdit">
+            <div class="title">
+                <div style="word-break: break-all">Fault Report(English)</div>
+            </div>
+            <div>
+                <p class="ui-remark" ng-bind="faultInfo.faultReportEng"></p>&nbsp;
+            </div>
+        </div>
+<!--        <div class="ui-list-tb clearfix" ng-if="!isEdit" style="margin-bottom: 0;line-height: 1.5rem;background-color: #eee;height: 1.5rem;padding: 0 .5rem;position: relative">-->
+<!--            <span class="pull-left" style="font-size: .7rem">排故帮助</span>-->
+<!--            <span class="" >-->
+<!--                 <i style="top:-0.2rem;" class="icon-maoc icon-flightSearch" ng-click="helpSearch()"></i>-->
+<!--            </span>-->
+<!--        </div>-->
+<!--        <div class="ui-list-tb" ng-if="!isEdit" style="background-color:#fff;padding: 0 .2rem">-->
+<!--            <div class="tit clearfix" style="height:1.8rem;line-height: 1.8rem;border-bottom: 0.5px solid #ddd ">-->
+<!--                <span class="pull-left" style="font-size: 0.8rem;font-weight: 600">相关故障</span>-->
+<!--                <span class="pull-right" style="color:#1989FA;font-size: .7rem" ng-click="lookMore('relatedDefectList')">查看更多<i class="icon-maoc icon-next-flight" style="color:#1989FA;margin-left: 0"></i></span>-->
+<!--            </div>-->
+<!--            <div class="" style="">-->
+<!--                <div  class="sec-tit" ng-repeat="item in faultInfo.relatedDefectList" ng-click="tmcDetail(item.id,'relatedDefectList')" ng-bind-html = "item.title | to_trusted" ng-if="$index < 5" style="padding: 0.5rem 0;font-size: .7rem;line-height: 1.2rem;border-bottom: 0.5px solid #ddd ;color: #333">-->
+<!--                </div>-->
+
+<!--            </div>-->
+<!--        </div>-->
+<!--        <div class="ui-list-tb" ng-if="!isEdit" style="background-color:#fff;padding: 0 .2rem">-->
+<!--            <div class="tit clearfix" style="height:1.8rem;line-height: 1.8rem;border-bottom: 0.5px solid #ddd ">-->
+<!--                <span class="pull-left" style="font-size: 0.8rem;font-weight: 600">TMC经验</span>-->
+<!--                <span class="pull-right" style="color:#1989FA;font-size: .7rem"  ng-click="lookMore('tmcExperienceList')">查看更多<i class="icon-maoc icon-next-flight" style="color:#1989FA;margin-left: 0"></i></span>-->
+<!--            </div>-->
+<!--            <div class="" style="">-->
+<!--                <div ng-repeat="item in faultInfo.tmcExpList" ng-if="$index < 3" ng-click="tmcDetail(item.id,'tmcExperienceList')" class="sec-tit" style="padding: 0.5rem 0;font-size: .7rem;line-height: 1.3rem;border-bottom: 0.5px solid #ddd ;color: #333">-->
+<!--                    <div ng-bind-html = "item.title | to_trusted"></div>-->
+<!--                    <div ng-bind-html = "item.content | to_trusted" style="font-size: .6rem;line-height: 1rem;color: #757575;"></div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--        <div class="ui-list-tb" ng-if="!isEdit" style="background-color:#fff;padding: 0 .2rem">-->
+<!--            <div class="tit clearfix" style="height:1.8rem;line-height: 1.8rem;border-bottom: 0.5px solid #ddd ">-->
+<!--                <span class="pull-left" style="font-size: 0.8rem;font-weight: 600">航线经验</span>-->
+<!--                <span class="pull-right" style="color:#1989FA;font-size: .7rem" ng-click="lookMore('airlineExpList')">查看更多<i class="icon-maoc icon-next-flight" style="color:#1989FA;margin-left: 0"></i></span>-->
+<!--            </div>-->
+<!--            <div class="" style="">-->
+<!--                <div ng-repeat="item in faultInfo.airlineExpList" ng-click="tmcDetail(item.id,'airlineExpList')" ng-if="$index < 3" class="sec-tit" style="padding: 0.5rem 0;font-size: .7rem;line-height: 1.3rem;border-bottom: 0.5px solid #ddd ;color: #333">-->
+<!--                    <div ng-bind-html = "item.title | to_trusted"></div>-->
+<!--                    <div ng-bind-html = "item.content | to_trusted" style="font-size: .6rem;line-height: 1rem;color: #757575;"></div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--        <div class="ui-list-tb" ng-if="!isEdit" style="background-color:#fff;padding: 0 .2rem">-->
+<!--            <div class="tit clearfix" style="height:1.8rem;line-height: 1.8rem;border-bottom: 0.5px solid #ddd ">-->
+<!--                <span class="pull-left" style="font-size: 0.8rem;font-weight: 600">相关文档</span>-->
+<!--                <span class="pull-right" style="color:#1989FA;font-size: .7rem" ng-click="lookMore('relatedDocList')">查看更多<i class="icon-maoc icon-next-flight" style="color:#1989FA;margin-left: 0"></i></span>-->
+<!--            </div>-->
+<!--            <div class="" style="">-->
+
+<!--                <div class="sec-tit" ng-repeat="item in faultInfo.relatedDocList" ng-click="docDetail(item.id,item.type)" ng-bind-html = "item.title | to_trusted" ng-if="$index < 3" style="padding: 0.5rem 0;font-size: .7rem;line-height: 1.5rem;border-bottom: 0.5px solid #ddd ;color: #333">-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+        <div ng-if="isEdit">
+            <div class="add-remark-wrap">
+                <div class="p-name">
+                    <div class="name">故障报告(Chinese)</div>
+                    <div class="ui-sound-icon" ng-if="!isSound" ng-click="changeSound()">
+                        <i class="icon-sound"></i><span>语音录入</span>
+                    </div>
+                    <div class="ui-sound-icon" ng-if="isSound"><i class="icon-sound"></i><span>录入中...</span></div>
+                </div>
+                <div class="add-remark-content">
+                    <textarea name="faultReportChn" ng-model="info.faultReportChn" maxlength="500"></textarea>
+                </div>
+            </div>
+            <div class="add-remark-wrap">
+                <div class="add-remark-title">Fault Report(Engish)</div>
+                <div class="add-remark-content">
+                    <textarea name="faultReportEng" ng-model="info.faultReportEng" maxlength="1000"></textarea>
+                </div>
+            </div>
+            <div class="p-process" ng-if="uploadSoundArr.length>0">
+                <sound-item upload-sound-arr="uploadSoundArr" edit-sound="editSound" del-sound-Id="imgInfo.delSoundId"></sound-item>
+            </div>
+            <div class="p-image">
+                <img-select img-arr="imgInfo.imgArr" file-arr="imgInfo.fileArr" is-api-cloud="isApiCloud"
+                            attachvo="imgInfo.attachvo" del-img-id="imgInfo.delImgId"></img-select>
+            </div>
+            <div class="damage-draft-detail" >
+                <div class="section-1">
+                    <div class="item">
+                        <div class="title" style="vertical-align: middle">
+                            <span>结构类</span>
+                            <span class="red">*</span>
+                        </div>
+                        <div class="right" style="position: relative;">
+                            <div class="zhezhao" ng-show="faultInfo.btnFlag.toNrcFlag" style="position: absolute;width: 100%;height: 100%;top: 0;left: 0;opacity: 0;z-index: 9"></div>
+                            <label><input ng-click="chooseY()"  type="radio" ng-disabled="isStructureDamage == 'y'" name="isStr" value="y" ng-model="faultInfo.isStructureDamage" ng-checked="faultInfo.isStructureDamage=='y'">YES</label>
+                            <label><input  type="radio" ng-disabled="isStructureDamage == 'y'" name="isStr" value="n"  ng-model="faultInfo.isStructureDamage" ng-checked="faultInfo.isStructureDamage=='n'">NO</label>
+                        </div>
+                    </div>
+                    <div class="item" ng-show = "faultInfo.isStructureDamage == 'y'">
+                        <div class="title" style="vertical-align: middle">
+                            <span>区域</span>
+                        </div>
+                        <div class="right ipt">
+                            <input class="right" ng-readonly="isStructureDamage == 'y'" ng-model="faultInfo.drBaseSubmitAsmsDTO.zone" type="text"  placeholder="请填写区域">
+                        </div>
+                    </div>
+                    <!--                <damage-workorder ng-show = "mrInfo.isStructureDamage == 'y'" info="workOrderInfo" flight-no-info="flightNoInfo"></damage-workorder>-->
+
+
+                    <div class="item" ng-show = "faultInfo.isStructureDamage == 'y'">
+                        <div class="title" style="vertical-align: middle">
+                            <span>工作指令号</span>
+                            <span class="red">*</span>
+                        </div>
+                        <div class="right ipt">
+                            <div class="check-method" style="display: inline-block;height: 100%;width: 100%;">
+                             <span ng-repeat="item in woList" ng-if="item.woNo == woList[woNumIndx].woNo">
+                                  {{item.woNo}}
+                              </span>
+                                <select ng-show="isStructureDamage == 'n'" ng-model="woNumIndx" style="display: inline-block;height: 100%;width: 100%;"
+                                        ng-change="woChanged(woNumIndx)">
+                                    <option value="{{$index}}"
+                                            ng-selected="flawTypeItem.selected"
+                                            ng-repeat="flawTypeItem in woList track by $index ">
+                                        {{flawTypeItem.woNo}}
+                                    </option>
+                                </select>
+                            </div>
+                            <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+                        </div>
+                    </div>
+                    <div class="item" ng-show = "faultInfo.isStructureDamage == 'y'">
+                        <div class="title" style="vertical-align: middle">
+                            <span>维护级别</span>
+                            <span class="red">*</span>
+                        </div>
+                        <div class="right ipt">
+                            {{faultInfo.drBaseSubmitAsmsDTO.maintenanceLevel}}
+                        </div>
+                    </div>
+                    <damage-workcard ng-show = "isStructureDamage == 'n' && faultInfo.isStructureDamage == 'y'" info="workcardInfo" work-order-info="workOrderInfo"></damage-workcard>
+                    <div class="item" ng-show = "isStructureDamage == 'y'">
+                        <div class="title" style="vertical-align: middle">
+                            <span>工卡号</span>
+                        </div>
+                        <div class="right ipt">
+                            {{faultInfo.drBaseSubmitAsmsDTO.cardNumber}}
+                        </div>
+                    </div>
+                    <div class="item" ng-show = "faultInfo.isStructureDamage == 'y'">
+                        <div class="title" style="vertical-align: middle">
+                            <span>外观是否可见</span>
+                            <span class="red">*</span>
+                        </div>
+                        <div class="right">
+                            <label><input ng-disabled="isStructureDamage == 'y'"  type="radio" name="cansee" value="y" ng-model="faultInfo.drBaseSubmitAsmsDTO.defect" ng-checked="faultInfo.drBaseSubmitAsmsDTO.defect=='y'">可见</label>
+                            <label><input ng-disabled="isStructureDamage == 'y'"  type="radio" name="cansee" value="n"  ng-model="faultInfo.drBaseSubmitAsmsDTO.defect" ng-checked="faultInfo.drBaseSubmitAsmsDTO.defect=='n'">不可见</label>
+                        </div>
+                    </div>
+                    <div class="item" ng-show = "faultInfo.isStructureDamage == 'y'">
+                        <div class="title" style="vertical-align: middle">
+                            <span>检查方法</span>
+                            <span class="red">*</span>
+                        </div>
+                        <div class="right ipt">
+                            <div class="check-method" style="display: inline-block;height: 100%;width: 100%;">
+                             <span ng-repeat="item in checkMethods" ng-if="item.value == faultInfo.drBaseSubmitAsmsDTO.checkMethod">
+                              {{item.name}}
+                          </span>
+                                <select ng-show="isStructureDamage == 'n'" ng-model="faultInfo.drBaseSubmitAsmsDTO.checkMethod" style="display: inline-block;height: 100%;width: 100%;"
+                                >
+                                    <option value="{{flawTypeItem.value}}"
+                                            ng-selected="flawTypeItem.selected"
+                                            ng-repeat="flawTypeItem in checkMethods track by $index ">
+                                        {{flawTypeItem.name}}
+                                    </option>
+                                </select>
+                            </div>
+                            <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+                        </div>
+                    </div>
+                    <div class="item" ng-show="faultInfo.isStructureDamage == 'y' && faultInfo.drBaseSubmitAsmsDTO.checkMethod==3">
+                        <span class="title">NDT类别</span>
+                        <div class="right">
+                            <div class="check-method">
+                          <span ng-repeat="item in ndtCategorys" ng-if="item.value == faultInfo.drBaseSubmitAsmsDTO.checkMode">
+                              {{item.name}}
+                          </span>
+                                <select  ng-show="isStructureDamage == 'n'"  ng-model="faultInfo.drBaseSubmitAsmsDTO.checkMode">
+                                    <option ng-repeat="item in ndtCategorys" ng-value="item.value">{{item.name}}</option>
+                                </select>
+                            </div>
+                            <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+
+                        </div>
+                    </div>
+                    <div class="textarea-item" ng-show=" faultInfo.isStructureDamage == 'y' &&faultInfo.drBaseSubmitAsmsDTO.checkMethod == 4">
+                        <div class="title">其它</div>
+                        <textarea ng-readonly="isStructureDamage == 'y'" ng-model="faultInfo.drBaseSubmitAsmsDTO.checkModeOther" placeholder="勾选其它请输入详细内容">
+                   </textarea>
+                    </div>
+                    <div class="item"  ng-show = "faultInfo.isStructureDamage == 'y'">
+                        <div class="title">缺陷类型 <span class="red">*</span></div>
+                        <div class="right">
+                            <div class="check-method">
+                               <span ng-repeat="selectTypeNumber in info.selectedDamageTypes | orderBy: sortNumberArray">
+                                   <label ng-repeat="typeItem in damageTypes | filter:{value: selectTypeNumber}"
+                                          ng-if="selectTypeNumber == typeItem.value && $parent.$index < info.selectedDamageTypes.length">
+                                        {{typeItem.name}}　
+                                   </label>
+                                   <!--                                   <label ng-repeat="typeItem in damageTypes | filter:{value: selectTypeNumber}"-->
+                                   <!--                                          ng-if="selectTypeNumber == typeItem.value && $parent.$index == selectedDamageTypes.length - 1">-->
+                                   <!--                                        {{typeItem.name}}-->
+                                   <!--                                   </label>-->
+                               </span>
+                                <select ng-show="isStructureDamage == 'n'" multiple="true" ng-model="info.selectedDamageTypes">
+                                    <option ng-repeat="typeItem in damageTypes"
+                                            ng-value="typeItem.value"
+                                            ng-selected="info.selectedDamageTypes.indexOf(typeItem.value) != -1">
+                                        {{typeItem.name}}</option>
+                                </select>
+                            </div>
+                            <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+
+                        </div>
+                    </div>
+                    <div class="textarea-item" ng-show=" faultInfo.isStructureDamage == 'y' && info.selectedDamageTypes.indexOf('12') != '-1'">
+                        <div class="title">其它</div>
+                        <textarea ng-readonly="isStructureDamage == 'y'" ng-model="faultInfo.drBaseSubmitAsmsDTO.defectTypeOther" placeholder="勾选其它请输入详细内容">
+                   </textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="ui-container" ng-if="isEdit">
+            <div>
+                <button class="ui-submit"
+                        ng-class="{'ui-disabled':!(editFault.$valid&&(uploadSoundArr.length>0 || imgInfo.fileArr.length>0 ||(info.faultReportEng!='' &&
+            info.faultReportChn!='')) && (!(info.dmStatus == 1) ||!(info.dmStatus == 0 && info.dm)))}"
+                        ng-disabled="!(editFault.$valid&&(uploadSoundArr.length>0 || imgInfo.fileArr.length>0 ||(info.faultReportEng!='' &&
+            info.faultReportChn!='')) && (!(info.dmStatus == 0 && info.dm) || !(info.dmStatus == 1)))">
+                    提交数据
+                </button>
+            </div>
+            <div>
+                <div class="ui-submit" ng-click="cancelEdit()">取消</div>
+            </div>
+        </div>
+        <ng-transclude ng-if="!isEdit" style="height: auto;"></ng-transclude>
+    </div>
+    <sound upload-sound-arr="uploadSoundArr" is-sound="isSound" ></sound>
+
+    <!--底部菜单,为了兼顾PAD下与Mobile下UI不同, 做了不同结构,若修改,考虑两处-->
+    <!--Mobile下-->
+    <div class="p-dtl-btn mobile-show" ng-if="faultInfo.status.toUpperCase()!='C'&&!isEdit">
+        <div class="item" ng-if="faultInfo.isEdit==1">
+            <div ng-click="startEidt()">
+                <i class="icon-edit"></i>
+            </div>
+        </div>
+
+        <div class="item" ng-if="faultData.ccList.length==0&&faultData.mrList.length==0&&faultData.pendList.length==0&&faultData.tlbInfoList.length==0&&
+        faultData.toList.length==0">
+            <div ng-click="delFault()">
+                <i class="icon-del"></i>
+                <!--<span>删除</span>-->
+            </div>
+        </div>
+        <div class="item" ng-if="faultInfo.isToMcc==1">
+<!--        <div class="item" ng-if="faultInfo.isToMcc==1 && faultInfo.isAssign=='n'">-->
+            <div ng-click="toMcc()">
+                <i class="icon-to-mcc"></i>
+                <span>转MCC</span>
+            </div>
+
+        </div>
+<!--        <div class="item" ng-if="faultInfo.status.toUpperCase() =='O' && faultInfo.isAssign=='y' && faultInfo.assignType=='pend'">-->
+        <div class="item" ng-if="faultInfo.btnFlag.structureDefectClose">
+            <div ng-click="closeFault(true)">
+                <i class="icon-to-mcc"></i>
+                <span>TO结构</span>
+            </div>
+        </div>
+        <div class="item" ng-if="faultInfo.btnFlag.continuePend">
+            <div ng-click="toContinue('pend')">
+                <i class="icon-to-mcc"></i>
+                <span>C-Pend</span>
+            </div>
+        </div>
+        <div class="item" ng-if="faultInfo.btnFlag.continueDd">
+<!--        <div class="item" ng-if="faultInfo.status.toUpperCase() =='O' && faultInfo.isAssign=='y' && faultInfo.assignType=='ddi' && (deferredNo !='View' && deferredNo !='')">-->
+            <div ng-click="toContinue('ddi')">
+                <i class="icon-to-mcc"></i>
+                <span>C-DD</span>
+            </div>
+        </div>
+        <div class="item" ng-if="faultInfo.isClose==1">
+            <div ng-click="closeFault(false)">
+                <i class="icon-close"></i>
+                <span>关闭</span>
+            </div>
+        </div>
+        <div class="item" >
+            <div ng-click="addFault()">
+                <i class="icon-upload"></i>
+                <span>排故措施</span>
+            </div>
+        </div>
+    </div>
+    <!--isBackCard退卡标识符，==0时不可以操作 ==1时可以操作-->
+    <div class="p-dtl-btn mobile-show p-dtl-btn-cover" ng-if="faultInfo.isBackCard == 0" ng-click="showBackCardTip()"></div>
+
+    <!--PAD下结构-->
+    <div class="p-dtl-btn pad-show" ng-if="faultInfo.status.toUpperCase()!='C'&&!isEdit">
+        <div class="pull-left">
+            <div class="item" ng-if="faultInfo.isEdit==1">
+                <div ng-click="startEidt()">
+                    <i class="icon-edit"></i>
+                    <!--<span>编辑</span>-->
+                </div>
+            </div>
+
+            <div class="item" ng-if="faultData.ccList.length==0&&faultData.mrList.length==0&&faultData.pendList.length==0&&faultData.tlbInfoList.length==0&&
+        faultData.toList.length==0">
+                <div ng-click="delFault()">
+                    <i class="icon-del"></i>
+                    <!--<span>删除</span>-->
+                </div>
+            </div>
+        </div>
+        <div class="pull-right" >
+            <div class="item" ng-if="faultInfo.btnFlag.structureDefectClose">
+                <div ng-click="closeFault(true)">
+                    <i class="icon-to-mcc"></i>
+                    <span>TO结构</span>
+                </div>
+            </div>
+            <div class="item" ng-if="faultInfo.isToMcc==1">
+<!--            <div class="item" ng-if="faultInfo.isToMcc==1 && faultInfo.isAssign=='n'">-->
+                <div ng-click="toMcc()">
+                    <i class="icon-to-mcc"></i>
+                    <span>转MCC</span>
+                </div>
+
+            </div>
+
+                <!--        <div class="item" ng-if="faultInfo.status.toUpperCase() =='O' && faultInfo.isAssign=='y' && faultInfo.assignType=='pend'">-->
+                <div class="item" ng-if="faultInfo.btnFlag.continuePend">
+                <div ng-click="toContinue('pend')">
+                    <i class="icon-to-mcc"></i>
+                    <span>C-Pend</span>
+                </div>
+            </div>
+            <div class="item" ng-if="faultInfo.btnFlag.continueDd">
+<!--            <div class="item" ng-if="faultInfo.status.toUpperCase() =='O' && faultInfo.isAssign=='y' && faultInfo.assignType=='ddi' && (deferredNo !='View' && deferredNo !='')">-->
+                <div ng-click="toContinue('ddi')">
+                    <i class="icon-to-mcc"></i>
+                    <span>C-DD</span>
+                </div>
+            </div>
+            <div class="item" ng-if="faultInfo.isClose==1">
+                <div ng-click="closeFault(false)">
+                    <i class="icon-close"></i>
+                    <span>关闭</span>
+                </div>
+            </div>
+            <div class="item" >
+                <div ng-click="addFault()">
+                    <i class="icon-upload"></i>
+                    <span>排故措施</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="p-dtl-btn pad-show p-dtl-btn-cover" ng-if="faultInfo.isBackCard == 0" ng-click="showBackCardTip()"></div>
+
+</form>

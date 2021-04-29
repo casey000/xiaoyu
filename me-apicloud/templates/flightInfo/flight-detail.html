@@ -1,0 +1,241 @@
+<ui-view name="detailSub"></ui-view>
+<div class="app-body ng-hide" ng-show="!detailSubView">
+	<div class="navbar navbar-app navbar-absolute-top" ng-hide="isPreFlight">
+		<div class="navbar-brand navbar-brand-center" translate="flight.detail">
+		</div>
+
+		<div ng-if="openInFlightInfo" class="btn-group btn-group-left">
+			<div class="btn" ng-click="gobackToFlightStatus()">
+				<i class="icon-maoc icon-back" ></i>
+			</div>
+		</div>
+		<div ng-if="!openInFlightInfo||openInNewPage" class="btn-group btn-group-left">
+			<div class="btn" ng-click="gobackToFlightTimes()">
+				<i class="icon-maoc icon-back" ></i>
+			</div>
+		</div>
+
+<!--		<div ng-if="openInFlightInfo||openInNewPage" class="btn-group btn-group-right">-->
+<!--			<div  class="btn" ng-click="infoDetail()" style="font-size: 16px;padding-right: 15px;text-transform: none;" translate="message.message"></div>-->
+<!--		</div>-->
+		<div  class="btn-group btn-group-right">
+			<div  class="btn" ng-click="infoDetail()" style="font-size: 16px;padding-right: 15px;text-transform: none;" translate="message.message"></div>
+			<!--<div  class="btn" ng-click="go('messageDetail', 'slideLeft', {flightId: flightId})" style="font-size: 16px;padding-right: 15px;text-transform: none;" translate="message.message"></div>-->
+		</div>
+
+	</div>
+	<div class="scrollable" ng-hide="isPreFlight">
+		<div class="scrollable-content flight-detail-wrap">
+			<!-- 头部航班信息 -->
+			<div class="flight-detail">
+				<div class="info-top">
+					<div class="flight-time clearfix">
+						<div class="pull-left airport text-ellipsis text-right">
+							{{ getAirportByLan(flightInfo.departureAirport) }}
+						</div>
+						<div class="line pull-left">
+
+							<div class="backup">
+								{{ flightInfo.flightNo }}
+							</div>
+							<div class="backup air-position">
+								{{ flightInfo.acReg }} <span ng-show="flightInfo.acReg"> / </span>{{ flightInfo.acType }}
+							</div>
+						</div>
+						<div class="pull-left airport text-ellipsis">
+							{{ getAirportByLan(flightInfo.arrivalAirport) }}
+						</div>
+					</div>
+				</div>
+
+				<!-- 航班时刻 -->
+				<div class="flight-info">
+					<div class="vertical-line">
+						<i class="air-info" translate="flight.planned"></i>
+						{{flightInfo.std ? (flightInfo.std |date:'HH:mm') : '--:--'}}
+						/ {{flightInfo.sta ? (flightInfo.sta |date:'HH:mm') : '--:--'}}
+					</div>
+					<div class="vertical-line">
+						<i class="air-info" translate="flight.projected"></i>
+						{{flightInfo.etd ? (flightInfo.etd |date:'HH:mm') : '--:--'}}
+						/ {{flightInfo.eta ? (flightInfo.eta |date:'HH:mm') : '--:--'}}
+					</div>
+					<i class="air-info" translate="flight.actual"></i>
+					{{flightInfo.atd ? (flightInfo.atd |date:'HH:mm') : '--:--'}}
+					/ {{flightInfo.ata ? (flightInfo.ata |date:'HH:mm') : '--:--'}}
+				</div>
+			</div>
+
+			<!-- 机场天气情况 -->
+			<div class="info-wrap info-wrap-change" >
+				<div class="list-group-item  border-half" ng-class="{'no-bottom-border':$last}"
+					ng-repeat="weather in flightWeather"
+					ng-click = "go('flightStatus.flightDetail.flightReport' ,'slideLeft', {cityReport:weather.airport4Code})">
+					<div class="place">
+						<span class="weather-place">{{ getAirportByLan(weather.airport4Code) }}</span>
+						<span class="pull-right" style="margin-right:.65rem" ng-class="{red: 'red', yellow: 'yellow', green: 'green'}[weather.warningLevel]">
+							{{ weather.warning }}
+						</span>
+					</div>
+			        <div class="btn-group report-info">
+			          <span class="btn-navbar">
+			          	<i class="icon-maoc icon-see"></i>
+			          	{{ weather.visibility || '----' }}
+			          </span>
+			          <span class="btn-navbar">
+			          	<i class="icon-maoc icon-cloud"></i>
+			          	{{ weather.clound || '----' }}
+			          </span>
+			          <span class="btn-navbar text-right windy">
+			          	<i class="icon-maoc icon-windy"></i>
+			          	{{ (weather.windDirection + ' '+ weather.windSpeed)}}
+			          	<span ng-if="!weather.windDirection">----</span>
+			          </span>
+			        </div>
+			        <!-- 右侧>图标 -->
+					<i class="icon-maoc icon-next-flight pull-right" ></i>
+				</div>
+			</div>
+
+			<!-- 备降航班 -->
+			<div class="list-group-item no-bottom-border" style="margin-bottom:0" ng-show="!flightInfo.flgCs && flightInfo.flgVr && !flightInfo.flgPatch">
+				<!--备降  -->
+				<span class="info-flag">
+		        	{{ (flightInfo.flgVr | uppercase).indexOf('V') != -1 ? $parent.localConfig.vc : $parent.localConfig.rc}}
+		        </span>
+		        {{ getAirportByLan(flightInfo.divertAirport) }}
+				<i class="pull-right">{{ flightInfo.reasonForDivert }}</i>
+
+			</div>
+			<div class="info-wrap info-wrap-change" ng-show="flightInfo.divertFlightInfos">
+				<div class="flightList list-group-item clearfix border-half" ng-class="{'no-bottom-border':$last}"
+					ng-repeat="flight in flightInfo.divertFlightInfos"
+					ng-click="go('flightStatus.flightDetail', 'slideLeft', {flightId: flight.flightId, openInFlightInfo:true})">
+
+					<div class=" pull-left">
+						<span class="time">{{flight.atd || flight.etd || flight.std | date:'HH:mm'}}</span>
+						<i class="real" ng-show="flight.atd" translate="flight.actual"></i>
+						<i class="advance" ng-show="!flight.atd && flight.etd" translate="flight.projected"></i>
+						<i class="advance" ng-show="!flight.atd && !flight.etd && flight.std" translate="flight.planned"></i>
+					</div>
+					<div class="clearfix">
+						<div class="line pull-left">
+							<div class="backup detail-backup" >
+								{{flight.acReg}}
+								<br>
+								<span ng-show="flight.flgCs" translate="flight.cancel"></span>
+								<span ng-show="!flight.flgCs && !flight.flgVr && flight.flgDelay" translate="flight.delay"></span>
+
+							</div>
+
+						</div>
+						<div class="pull-right">
+							<span class="time">{{flight.ata || flight.eta || flight.sta | date:'HH:mm'}}</span>
+							<i class="real" ng-show="flight.ata" translate="flight.actual"></i>
+							<i class="advance" ng-show="!flight.ata && flight.eta" translate="flight.projected"></i>
+							<i class="advance" ng-show="!flight.ata && !flight.eta && flight.sta" translate="flight.planned"></i>
+
+						</div>
+					</div>
+
+					<div class="place">
+						{{ getAirportByLan(flight.departureAirport) }}<i class="air-position" ng-show="flight.departurePosition">{{ flight.departurePosition }}</i>
+						<div class="pull-right">{{ getAirportByLan(flight.arrivalAirport) }}<i class="air-position" ng-show="flight.arrivalPosition">{{ flight.arrivalPosition }}</i></div>
+					</div>
+				</div>
+			</div>
+			
+			<!-- 异常原因信息 -->
+			<div class="info-wrap info-wrap-change">
+				<div class="list-group-item border-half" ng-show="flightInfo.flgCs">
+					<span class="info-flag flag-cs" translate="flight.cancel"></span>
+					<i class="pull-right">{{ flightInfo.reasonForCancel }}</i>
+				</div>
+				<div class="list-group-item border-half" ng-show="!flightInfo.flgVr && !flightInfo.flgCs && flightInfo.flgDelay">
+					<span class="info-flag"><translate>flight.delay</translate></span> {{flightInfo.arrivalDelayTime ? localConfig.landing : localConfig.takeOff}}{{localConfig.delay}}{{ flightInfo.arrivalDelayTime || flightInfo.departureDelayTime }}{{localConfig.min}}
+					<i class="pull-right">{{ flightInfo.reasonForDelay }}</i>
+				</div>
+	
+				
+				<!-- 异常原因信息end -->
+				
+				<!-- 前序航班 -->
+	
+				<div class="list-group-item info-font border-half" ng-show="!preFlightInfo.flightNo">
+					<translate>flight.first</translate>
+					<span class="pull-right" translate="flight.noPre">
+					</span>
+				</div> 
+				
+				<div class="list-group-item info-font border-half" ng-show="preFlightInfo.flightNo"
+					ng-click = "go('flightStatus.flightDetail', 'slideLeft', {flightId: preFlightInfo.flightId,openInFlightInfo:true});">
+						
+					<!-- 异常信息状态 (以后可能会加，不要删除)-->
+					<!--<i class=" info-flag" 
+						ng-if="!preFlightInfo.flgVr && !preFlightInfo.flgCs && !preFlightInfo.flgDelay">正{{preFlightInfo.flgDelay}}</i>-->
+					<i class="info-flag" ng-if="!preFlightInfo.flgCs && !preFlightInfo.flgVr && preFlightInfo.flgDelay" translate="flight.delay"></i>
+					
+					<i class="info-flag-red" 
+						ng-if="!preFlightInfo.flgCs && preFlightInfo.flgVr">
+			       		{{ (flightInfo.flgVr | uppercase).indexOf('VC') != -1 ? $parent.localConfig.vc : $parent.localConfig.rc}}
+			       	</i>
+					<i class="info-flag-gray" ng-if="preFlightInfo.flgCs" translate="flight.cancel"></i>
+					
+					<translate>flight.pre</translate>{{ preFlightInfo.flightNo }}
+					
+					<!-- 右侧>图标 -->
+					<i class="icon-maoc icon-next-flight pull-right"></i>
+		
+					<!-- 未起飞 -->
+					<span class="pull-right" ng-show="preFlightInfo.flyStatus == 'STAND_BY'">
+				       	<span ng-class="{'air-status': lanZh}" translate="flight.unTakeOffLong"></span>
+				       	<span ng-if="preFlightInfo.etd"><translate>flight.etd</translate>{{ preFlightInfo.etd | date:'HH:mm' }}</span>
+						<span ng-if="!preFlightInfo.etd"><translate>flight.std</translate>{{ preFlightInfo.std | date:'HH:mm' }}</span>
+					</span>
+		
+					<!-- 已起飞 -->
+					<span class="pull-right" ng-show="preFlightInfo.flyStatus == 'TAKE_OFF'">
+				       	<span ng-class="{'air-status': lanZh}" translate="flight.takeOffLong"></span>
+				       	<span ng-if="preFlightInfo.eta"><translate>flight.eta</translate>{{preFlightInfo.eta | date:'HH:mm'}}</span>
+				       	<span ng-if="!preFlightInfo.eta"><translate>flight.sta</translate>{{preFlightInfo.sta | date:'HH:mm'}}</span>
+					</span>
+		
+					<!-- 已降落 -->
+					<span class="pull-right" ng-show="preFlightInfo.flyStatus == 'LANDED'">
+				       <span ng-class="{'air-status': lanZh}" translate="flight.landingLong"></span> <translate>flight.ata</translate> {{ preFlightInfo.ata | date:'HH:mm' }}
+					
+					</span>
+					
+				</div>
+				<!-- 前序航班end -->
+				
+				<!--DD-->
+				<!--<span class="info-flag icon-maoc icon-flight-flag"></span>-->
+				<div class="list-group-item no-bottom-border border-half" ng-class="{'no-link': !ddLen && !pendLen}"  ng-show="acReg"
+					ng-click="go('flightStatus.flightDetail.ddDetail', '', {acReg: acReg, acStatus: acStatus})">
+					 {{ flightInfo.acReg}}({{flightInfo.acType}})
+					<!-- 右侧>图标 -->
+					<i class="icon-maoc icon-next-flight pull-right"></i>
+					<span class="pull-right dd-span">
+						DD/Pend
+						<i class="dd-number">{{ allLen }}</i>
+					</span>
+				</div>
+			</div>
+			
+			<!-- 机组信息 -->
+			<div class="info-wrap info-wrap-change" ng-show="crewInfos.length">
+				<div class="list-group-item border-half" ng-class="{'no-bottom-border':$last}" ng-repeat="crewInfo in crewInfos">
+					<!--<span class="info-flag">{{ crewInfo.nation }}</span>-->
+					<span ng-show="lanZh" ng-class="{'red': crewInfo.newCaptain}">{{crewInfo.cnRankName}}：{{crewInfo.cnName}}</span>
+					<span ng-show="!lanZh" ng-class="{'red': crewInfo.newCaptain}">{{crewInfo.enRankName}}：{{crewInfo.cnName}}</span>
+
+					<a href="tel:{{crewInfo.phone}}" class="pull-right">
+						{{ crewInfo.phone }}
+					</a>
+				</div>
+			</div>
+		</div>
+		
+	</div>
+</div>

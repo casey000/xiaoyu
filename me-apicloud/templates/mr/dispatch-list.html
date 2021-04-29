@@ -1,0 +1,169 @@
+<!--<ui-view name="faultInfo"></ui-view>-->
+<div ng-show="!faultInfoView && !ccInfoView && !recordView" class="transfer-receiving">
+    <div class="navbar navbar-app navbar-absolute-top fixbar">
+        <div class="clearfix top-title">
+            <div class="navbar-brand navbar-brand-center">
+                发料列表
+            </div>
+            <div class="btn-group btn-group-left">
+                <div class="btn" ng-click="go('back')">
+                    <i class="icon-maoc icon-back" ></i>
+                </div>
+            </div>
+            <div class="btn-group btn-group-right">
+                <div class="btn" style="width: 2.2rem;height: 2.2rem;margin-right: .5rem;" ng-click="go('searchByPn', 'slideLeft',{workOrderId:workOrderId,station:station})">
+                    <i class="icon-search-find"   ></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="fixed-his">
+        <div class="acSta clearfix" style="padding: 0;overflow: hidden">
+            <div class="pull-left" style="width: 33.33%;position: relative; text-align: center">
+                <div class="check-method" style="display: inline-block;height: 2rem;width: 100%;position: relative">
+                    <span ng-if="fileTypeChosen.length > 0" ng-repeat="item in fileTypeChosen" style="display: inline-block;overflow: hidden;-ms-text-overflow: ellipsis;text-overflow: ellipsis;white-space: nowrap;">
+                        {{item}}
+                    </span>
+                    <span ng-if="fileTypeChosen.length == 0 || !fileTypeChosen" style="display: inline-block;width: 100%">
+                        全部文件类型
+                    </span>
+                    <select  multiple="true" ng-model="fileTypeChosen" style="z-index: 9; position: absolute;left: 0;top: 0;display: inline-block;height: 100%;width: 100%;border: none;overflow: hidden;-ms-text-overflow: ellipsis;text-overflow: ellipsis;white-space: nowrap;opacity: 0"
+                             ng-change="selectByTypeNumberStatue()" required>
+                        <!--<option value="">全部</option>-->
+                        <option value="{{fileTypeItem}}"
+                                ng-selected="fileTypeItem.selected"
+                                ng-repeat="fileTypeItem in mrInfo.fileType track by $index ">
+                            {{fileTypeItem}}
+                        </option>
+                    </select>
+                </div>
+                <img class="triangle" style="width: 10px;margin-right: -0.5rem;float: right" src="dist/images/oil/Shape1@2x.png">
+            </div>
+            <div class="pull-left" style="width: 33.33%;position: relative; text-align: center">
+                <div class="check-method" style="display: inline-block;height: 2rem;width: 100%;position: relative">
+                    <span ng-if="airportChosen.length > 0" ng-repeat="item in airportChosen" style="display: inline-block;overflow: hidden;-ms-text-overflow: ellipsis;text-overflow: ellipsis;white-space: nowrap;">
+                        {{item}}
+                    </span>
+                    <span ng-if="airportChosen.length == 0 || !airportChosen" style="display: inline-block;width: 100%">
+                        全部文件编号
+                    </span>
+                    <select multiple="true" ng-model="airportChosen" style="z-index: 9; position: absolute;left: 0;top: 0;display: inline-block;height: 100%;width: 100%;border: none;overflow: hidden;-ms-text-overflow: ellipsis;text-overflow: ellipsis;white-space: nowrap;opacity: 0"
+                             ng-change="selectByTypeNumberStatue()" required>
+                        <!--<option value="">全部</option>-->
+                        <option value="{{flawTypeItem}}"
+                                ng-selected="flawTypeItem.selected"
+                                ng-repeat="flawTypeItem in mrInfo.fileNumber track by $index ">
+                            {{flawTypeItem}}
+                        </option>
+                    </select>
+                </div>
+                <img class="triangle" style="width: 10px;margin-right: -0.5rem;float: right" src="dist/images/oil/Shape1@2x.png">
+            </div>
+            <div class="pull-left" style="width: 33.33%;position: relative;text-align: center">
+                <div class="check-method" style="display: inline-block;height: 100%;width: 100%;">
+                    <select  ng-model="mrInfo.status" style="display: inline-block;height: 100%;width: auto;border: none;"
+                             ng-change="selectByTypeNumberStatue()">
+                        <option value="open">open</option>
+                        <option value="">状态</option>
+                        <option value="close">close</option>
+                    </select>
+                </div>
+                <img class="triangle" style="width: 10px" src="dist/images/oil/Shape1@2x.png">
+            </div>
+        </div>
+        <!--        **********-->
+        <div class="scrollable" style="position: absolute;top: 4.5rem">
+            <div class="scrollable-content" ui-scroll-bottom="getNextPage()"
+                 im-pull-to-refresh refresh-function="getAllFlightInfo({time:flightDate})">
+                <!--下拉刷新时显示 -->
+                <div  ng-show="pullToRefreshActive && isList" ng-class="{'refresh-hide': !pullToRefreshActive}" class="refresh text-center">
+                    <i class="fa fa-refresh fa-spin fa-fw"></i><translate>loading</translate>...
+                </div>
+                <!--on-finish-render-filters-->
+                <div class="flight-wrap" ng-repeat="item in dataList track by $index" on-finish-render-filters >
+                    <div class="pubFlightList" swipe-delete-sv ng-class="{'sv-swipe-left-hide': item.status == false || station != item.requireStation}">
+                        <div class="delete-sv " >
+                            <div class="apu" ng-show="flight.type != 2 && !(flight.type == 0 && flight.departureStationJob && flight.departureStationJob.jobType == 'N/A')"
+                                 ng-click="go('dispatchDetail', 'slideLeft',{pn:item.pn,mrNo:item.mrNo,needQty:item.needQty,unit:item.unit,sapTaskId:item.sapTaskId,mrItem:item.mrItem,sentQty:item.sentQty,sn:item.sn,batchNo:item.batchNo,station:station})"> 发料
+                        </div>
+                        </div>
+                        <div class="top clearfix">
+                            <span class="pull-left"  style="font-size: .75rem;font-weight: 600;display: inline-block;width: 60%">
+                                MR:<span style="font-weight: 500">{{item.mrNo}}</span>
+                                <span style="color: #ce1111" ng-if="item.prohibitedMark === 'JZ'">禁</span>
+                                <span style="color:darkorange" ng-if="item.prohibitedMark === 'XZ'">限</span>
+                            </span>
+                            <span class="pull-right" style="font-size: .75rem;font-weight: 600;display: inline-block;width: 33.33%;text-align: right">
+                                     <span style="display: inline-block;">{{item.requireStation}}</span>
+                                     <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #cc2131 ;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-hide="item.status">
+                                        <span>Close</span>
+                                    </span>
+                                    <span style="font-size: .6rem;color:#fff;display: inline-block;height:1rem;line-height: 1rem;background-color: #5ddc71;text-align: center;padding: 0 .15rem;border-radius: .1rem" ng-show="item.status" >
+                                         <span>Open</span>
+                                    </span>
+                            </span>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <span style="color: red ;display: inline-block;" ng-show="station != item.requireStation ">非本站点航材需求,不能发料!</span>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">需求件号:</span>
+                                <span style="width: 4rem">{{item.pn}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">需求数量:</span>
+                                <span style="width: 4rem">{{item.needQty}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">需求单位:</span>
+                                <span style="width: 4rem">{{item.unit}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">已发数量:</span>
+                                <span style="width: 4rem">{{item.sentQty}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">发料批次:</span>
+                                <span style="width: 4rem">{{item.batchNo}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">发料数量:</span>
+                                <span style="width: 4rem">{{item.sendQty}}</span>
+                            </div>
+                        </div>
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">文件编号:</span>
+                                <span style="width: 4rem">{{item.workNumber}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">文件类型:</span>
+                                <span style="width: 4rem">{{item.workType}}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex-layout-between"  style="margin: .1rem 0;padding: 0 0;">
+                            <div class="flex-layout-between" style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">发料序号:</span>
+                                <span style="width: 4rem">{{item.sn}}</span>
+                            </div>
+                            <div class="flex-layout-between"  style="width: 7.5rem; justify-content: flex-start;">
+                                <span style="width: 3.5rem;color: #C2C2C2">&nbsp;</span>
+                                <span style="width: 4rem">&nbsp;</span>
+                            </div>
+                        </div>
+
+                </div>
+                </div>
+                <div class="text-center" ng-if="noMoreData" translate="loadingDone"></div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
