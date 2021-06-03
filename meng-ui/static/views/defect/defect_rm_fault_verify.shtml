@@ -1,0 +1,510 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <!-- 禁止浏览器从本地缓存中调阅页面。网页不保存在缓存中，每次访问都刷新页面。  -->
+    <meta http-equiv="pragram" content="no-cache"/>
+    <!-- 同上面意思差不多，必须重新加载页面  -->
+    <meta http-equiv="cache-control" content="no-cache, must-revalidate"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>无标题文档</title>
+    <!-- load css -->
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" type="text/css" href="/css/dwm/source.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/jquery-ui-1.8.2.custom.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/dialog_default.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/easyui.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/icon.css"/>
+    <link rel="stylesheet" type="text/css" href="/js/jquery/ztree/zTreeStyle.css"/>
+    <style type="text/css">
+        .errorMessage {
+            color: red
+        }
+
+        .td-font-red {
+            color: red
+        }
+
+        a {
+            color: #6e6e6e;
+            text-decoration: none;
+        }
+
+        .td-line-hight-background {
+            background: #f2f2f2;
+        }
+
+        .defect-block {
+            cursor: pointer;
+            margin: 5px 5px 0px 0px;
+            display: inline-block;
+            width: 120px;
+            height: 30px;
+            background-color: #eee;
+            border: 1px solid #aaa;
+            text-align: center;
+        }
+
+        .defect-block .content {
+            display: inline-block;
+            width: 100px;
+            color: green;
+        }
+
+        .defect-block img {
+            vertical-align: middle;
+        }
+    </style>
+    <!-- load js -->
+    <script type="text/javascript" src="/js/jquery/easyui/jquery-1.8.0.min.js"></script>
+    <script type="text/javascript" src="/js/workflow/json2.js"></script>
+    <script type="text/javascript" src="/js/jquery/ztree/jquery.ztree.core-3.4.js"></script>
+    <script type="text/javascript" src="/js/jquery/ztree/jquery.ztree.excheck-3.4.js"></script>
+    <script type="text/javascript" src="/js/jquery/easyui/jquery.easyui.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="/js/jquery/lhgdialog/lhgdialog.js"></script>
+    <script type="text/javascript" src="/js/jquery.form.js"></script>
+    <script type="text/javascript" src="/js/global_var.js"></script>
+    <script type="text/javascript" src="/js/jquery.validate.js"></script>
+    <script type="text/javascript" src="/js/custom-validate.js"></script>
+
+    <script type="text/JavaScript" src="/js/sfa-query-1.0.js"></script>
+    <script type="text/JavaScript" src="/js/common.js"></script>
+
+    <script type="text/javascript">
+
+    </script>
+</head>
+
+<body>
+<form action="" method="post" id="verify_result">
+    <input type="hidden" name="taskId" value="" id="taskId"/>
+    <input type="hidden" name="type" value="" id="type"/>
+    <input type="hidden" name="faultNo" value="" id="faultNo"/>
+    <input type="hidden" value="" id="replacedFaults"/>
+    <input type="hidden" value="" id="defectChangedInfo"/>
+    <input type="hidden" value="" id="mergingFaults"/><!-- 审核后将要被当前故障合并的故障 -->
+    <input type="hidden" value="" id="mergingDefectIds"/><!-- 审核后将要被当前故障合并的Defect ID -->
+    <input type="hidden" value="" id="ids"/><!-- 当前故障合包含的Defect ID -->
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" bordercolor="#B2C9E0" class="post_table"
+           style="padding-top:10px">
+        <tr>
+            <td class="td-line-hight-background ">Fault No</td>
+            <td>
+                <span id="span_faultNo"></span>
+                <input type="button" value="View Defect" id="view_defect" style="display: inline-block;float: right"/>
+            </td>
+        </tr>
+        <tr>
+            <td class="td-line-hight-background" width="23%">Fault Type</td>
+            <td width="77%">
+                <span id="span_type"></span>
+            </td>
+        </tr>
+        <tr>
+            <td class="td-line-hight-background" width="23%">Fault Source</td>
+            <td width="77%" id="td_src"></td>
+        </tr>
+        <tr id="mergingFaultTr">
+            <td class="td-line-hight-background ">Merging Fault</td>
+            <td href="javascript:void(0)" id="td_mergingFault"></td>
+        </tr>
+        <tr id="updatedDefectsTr">
+            <td class="td-line-hight-background ">Defect Changed Info</td>
+            <td id="td_defectChangedInfo"></td>
+        </tr>
+        <tr>
+            <td class="td-line-hight-background ">Defect Nos</td>
+            <td id="defects">
+            </td>
+        </tr>
+        <tr>
+            <td class="td-line-hight-background"><span id="confirmType"></span></td>
+            <td>
+                <select id="verifyResult" class="required" name="verifyResult" onchange="verifyChange(this.options[this.options.selectedIndex].value)">
+                    <option value="">---select---</option>
+                    <option value="y">Yes</option>
+                    <option value="n">No</option>
+                </select>
+                <div id="errorMessage" class="errorMessage"></div>
+            </td>
+        </tr>
+        <tr>
+            <td class="td-line-hight-background ">Remark</td>
+            <td>
+                <textarea id="remark" rows="3" name="remark"></textarea>
+            </td>
+        </tr>
+        <tr id="reasonTr">
+            <td class="td-line-hight-background ">Reason<span id="reasonNes" style="display: none" class='td-font-red'>*</span></td>
+            <td>
+                <textarea class="required" id="reason" rows="5" name="reason"></textarea>
+                <div  class="errorMessage"></div>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <div class="button_a" style="position: fixed;bottom: 10px;right: 50px;">
+                    <input class="btn" style="padding: 5px 20px;" onclick="save(this);" type="button" value="确认"/>
+                </div>
+            </td>
+        </tr>
+    </table>
+</form>
+</body>
+
+<script type="text/javascript">
+    var api, W,defectType;
+    if(frameElement.api) {
+        api = frameElement.api;
+        W = api.opener;
+    }
+    var dlg = null;
+    var currentDefectIds = [];
+    var mergingDefectIds = [];
+    var allDefectIds = [];
+    var url = '';
+    $(function () {
+        //隐藏顶级iframe的确认按钮
+        $(top.window.document.getElementById("canSubmit")).hide();
+        //初始化页面数据
+        initData();
+        if($("#ids").val()) {
+            currentDefectIds = $("#ids").val().split(',');
+        }
+        if($("#mergingDefectIds").val()) {
+            mergingDefectIds = $("#mergingDefectIds").val().split(',');
+        }
+        allDefectIds = currentDefectIds.concat(mergingDefectIds);
+        if($("#type").val() == 'REPEAT') {
+            $("#confirmType").html("确认是重复性故障<span class='td-font-red'>*</span>");
+        } else if($("#type").val() == 'MULTIPLE') {
+            $("#confirmType").html("确认是多发性故障<span class='td-font-red'>*</span>");
+        }
+        if($("#taskId").val()) {
+            //审核重复性多发性故障
+            url = basePath + "/api/v1/defect/completeVerify";
+            $("#remark").attr("readonly", "readonly");
+        } else {
+            //编辑重复性多发性故障校验结果
+            url = basePath + "/api/v1/defect/verify";
+            $("#reasonTr").hide();
+        }
+        if($("#defectChangedInfo").val() == '') {
+            $("#updatedDefectsTr").hide();
+        }
+        if($("#mergingFaults").val() == '') {
+            $("#mergingFaultTr").hide();
+        }
+
+        $("#mergingFaultTr a").click(function () {
+            if($("#type").val() == 'REPEAT') {
+                showRepeatFaultsDefectNo($.trim($(this).text()));
+            } else if($("#type").val() == 'MULTIPLE') {
+                showMultipleFaultsDefectNo($.trim($(this).text()));
+            }
+        });
+
+        $("#view_defect").click(function () {
+            let viewName;
+            if($("#type").val() == 'REPEAT') {
+                viewName = 'DEFECT_FOR_VERIFY_REPEAT_FAULT';
+            } else if($("#type").val() == 'MULTIPLE') {
+                viewName = 'DEFECT_FOR_VERIFY_MULTIPLE_FAULT';
+            }
+            dlg = $(this).sfaQueryDialog({
+                dialogId: "view_defects",
+                dialogTitle: "View Defect",
+                view: viewName,
+                dialogWidth: 1000,
+                qcOptions: {
+                    qcBoxId: 'qc_box',
+                    showSavedQueries: false
+                },
+                defaultParam: {
+                    'qname': ["id"],
+                    'qoperator': ["in"],
+                    'qvalue': [allDefectIds.join(',')]
+                },
+                gridOptions: {},
+                close: function () {
+                    dlg = null;
+                }
+            });
+        });
+    });
+    function verifyChange(v) {
+        if(v == 'n'){
+            if(defectType.toUpperCase()  == 'MULTIPLE') {
+                $('#reason').addClass('required');
+                $("#reasonNes").css('display','inline');
+            }
+            if(defectType.toUpperCase()  == 'REPEAT') {
+                $('#reason').removeClass('required');
+                $("#reasonNes").css('display','none');
+            }
+        }else{
+            $("#reasonNes").css('display','none');
+            $('#reason').removeClass('required')
+        }
+    }
+
+    function initData() {
+        let params, url;
+        if($.getUrlParam("taskId")) {
+            url = basePath + "/api/v1/defect/defectRMFaultVerify";
+            params = {
+                "taskId": $.getUrlParam("taskId"),
+                "faultNo": $.getUrlParam("defectRMFault.faultNo")
+            };
+        } else {
+            url = basePath + "/api/v1/defect/editVerifyResult";
+            params = {
+                "faultNo": $.getUrlParam("faultNo")
+            };
+        }
+
+        $.ajax({
+            url: url,
+            type: 'post',
+            cache: false,
+            contentType: "application/json; charset=UTF-8",
+            data: JSON.stringify(params),
+            async: false,
+            success: function (dataMsg) {
+                let taskId = dataMsg.data.taskId;
+                let defectRMFault = dataMsg.data.defectRMFault;
+                let replacedFaults = dataMsg.data.replacedFaults;
+                let defects = dataMsg.data.defects;
+                let defectIds = dataMsg.data.defectIds;
+                let mergingFaults = dataMsg.data.mergingFaults;
+                let mergingDefectIds = dataMsg.data.mergingDefectIds;
+                defectType = defectRMFault.type;
+                $("#taskId").val(taskId);
+                $("#replacedFaults").val(replacedFaults);
+                $("#mergingFaults").val(mergingFaults);
+                $("#mergingDefectIds").val(mergingDefectIds);
+                $("#ids").val(defectIds);
+                $("#type").val(defectRMFault.type);
+                $("#defectChangedInfo").val(defectRMFault.defectChangedInfo);
+
+                $("#faultNo").val(defectRMFault.faultNo);
+                $("#span_faultNo").text(defectRMFault.faultNo);
+                $("#span_type").text(defectRMFault.type);
+                if(defectRMFault.src == "USER") {
+                    $("#td_src").text("手动");
+                } else {
+                    $("#td_src").text("系统");
+                }
+                let mergingFaultHTML = [];
+                if(mergingFaults) {
+                    $.each(mergingFaults, function (i, v) {
+                        mergingFaultHTML.push("<a>" + v.faultNo + "</a>");
+                    });
+                }
+                $("#td_mergingFault").append(mergingFaultHTML.toString());
+                $("#td_defectChangedInfo").html(defectRMFault.defectChangedInfo);
+                let defectsHTML = [];
+                $.each(defects, function (i, v) {
+                    if(v.reliabilityType == 'Unscheduled') {
+                        defectsHTML.push('<div class="defect-block">');
+                        defectsHTML.push('<div class="content" onclick="viewDefect(this)" id="' + v.id + '">' + v.defectNo + '</div>');
+                        defectsHTML.push('<input class="value" type="hidden" name="defects[' + i + '].id" value="' + v.id + '"/>');
+                        defectsHTML.push('<img src="/images/no.png" onclick="deleteDefect(this)"/>');
+                        defectsHTML.push('</div>');
+                    } else {
+                        defectsHTML.push('<input class="value" type="hidden" name="defects.id" value="' + v.id + '"/>');
+                    }
+                });
+                $("#defects").append(defectsHTML.join("").toString());
+                $("#verifyResult option").each(function () {
+                    if($(this).val() == defectRMFault.verifyResult) {
+                        $(this).attr("selected", "selected");
+                    }
+                });
+                (defectRMFault.verifyResult == 'n') && $("#reasonNes").css('display','inline');
+                if(defectRMFault.verifyResult == 'n' && defectRMFault.type.toUpperCase() == 'MULTIPLE'){
+                    $('#reason').addClass('required')
+                }
+                $("#remark").val(defectRMFault.remark);
+            }
+        });
+    }
+
+    function deleteDefect(_this) {
+        var deleteDefectId = $(_this).prev().val();
+        if($.inArray(deleteDefectId, mergingDefectIds) >= 0) {
+            window.alert("无法删除将要合并故障编号包含的Defect");
+            return;
+        }
+
+        allDefectIds = $.grep(allDefectIds, function (val) {
+            return val != deleteDefectId;
+        });
+
+        if(dlg != null) {
+            let defaultParam = {
+                'qname': ["id"],
+                'qoperator': ["in"],
+                'qvalue': [allDefectIds.join(',')]
+            };
+
+            dlg.sfaQuery().settings.defaultParam = defaultParam;
+            dlg.sfaQuery().submit();
+        }
+
+        $(_this).parent().remove();
+    }
+
+    function viewDefect(_this) {
+        let curHeight;
+        if(window.screen.height < 800) {
+            curHeight = $(window).height() * 1.1.toString()
+        } else {
+            curHeight = '700'
+        }
+        let id = $(_this).attr("id");
+        let defectNo = $.trim($(_this).text());
+        let title = "故障详情----" + defectNo;
+        ShowWindowIframe({
+            width: "1000",
+            height: curHeight,
+            title: title,
+            param: {defectId: id, defectNo: defectNo},
+            url: "/views/defect/defectDetails.shtml"
+        });
+    }
+
+    function showRepeatFaultsDefectNo(repeatFaults) {
+        $.ajax({
+            url: basePath + "/api/v1/defect/repeat/" + repeatFaults + "/faults",
+            type: 'get',
+            cache: false,
+            dataType: "json",
+            success: function (dataMsg) {
+                if(dataMsg.code == 200) {
+                    let defectNoList = dataMsg.data.defectNoList;
+                    let deletedDefectNoList = dataMsg.data.deletedDefectNoList;
+                    let defectRepeatFaults = dataMsg.data.defectRepeatFaults;
+                    $.dialog({
+                        id: 'repeatFaults_Info' + repeatFaults,
+                        title: 'Repeat Faults Info',
+                        top: '30%',
+                        width: '600px',
+                        height: '300px',
+                        data: {
+                            'rowObject': defectRepeatFaults,
+                            'defectNoList': defectNoList,
+                            'deletedDefectNoList': deletedDefectNoList
+                        },
+                        content: 'url:' + basePath + "/views/defect/multiple_faults/defect_repeatFaults.shtml"
+                    });
+                } else {
+                    window.alert(dataMsg.msg);
+                }
+            }
+        });
+    }
+
+    function showMultipleFaultsDefectNo(multipleFaults) {
+        $.ajax({
+            url: basePath + "/api/v1/defect/multiple/" + multipleFaults + "/faults",
+            type: 'get',
+            cache: false,
+            dataType: "json",
+            success: function (dataMsg) {
+                if(dataMsg.code == 200) {
+                    var defectNoList = dataMsg.data.defectNoList;
+                    var deletedDefectNoList = dataMsg.data.deletedDefectNoList;
+                    var rowObject = dataMsg.data.defectMultipleFaults;
+                    $.dialog({
+                        id: 'multipleFaults_Info' + new Date().getTime(),
+                        title: 'Multiple Faults Info',
+                        top: '30%',
+                        width: '600px',
+                        height: '300px',
+                        data: {
+                            'rowObject': rowObject,
+                            'defectNoList': defectNoList,
+                            'deletedDefectNoList': deletedDefectNoList
+                        },
+                        content: 'url:' + basePath + "/views/defect/multiple_faults/defect_multipleFaults.shtml"
+                    });
+                } else {
+                    window.alert(dataMsg.msg);
+                }
+            }
+        });
+    }
+
+    function save(_this) {
+        if(!$("#verify_result").valid()) {
+            return false;
+        }
+        let saveFunction = function () {
+            $(_this).attr("disabled", true);
+            let formObject = {};
+            let formArray = $("#verify_result").serializeArray();
+            $.each(formArray, function (i, item) {
+                if(item.name.indexOf(".") == -1) {
+                    formObject[item.name] = item.value;
+                }
+            });
+            // if(formObject.verifyResult == 'n' && !formObject.reason.trim()){
+            //     $.dialog.alert('可靠性多发性故障确认时，确认为NO时，按程序要求需强制填写原因');
+            //     $(_this).attr("disabled", false);
+            //     return false
+            // }
+            if($("input[name^='defects']").length > 0) {
+                let defectArray = [];
+                $.each($("input[name^='defects']"), function (i, item) {
+                    let defectObject = {};
+                    defectObject["id"] = item.value;
+                    defectArray.push(defectObject);
+                });
+                formObject["defects"] = defectArray;
+            }
+            $.ajax({
+                type: "POST",
+                url: url,
+                contentType: "application/json;charset=utf-8",
+                data: JSON.stringify(formObject),
+                dataType: "json",
+                success: function (data) {
+                    let msg = data.msg || '';
+                    if(data && data.code == 200) {
+                        window.alert('Success!');
+                        if(dlg != null) {
+                            dlg.close();
+                        }
+                        colsa_window();
+                    } else {
+                        $(_this).attr("disabled", false);
+                        window.alert("失败！" + msg);
+                    }
+                },
+                error: function () {
+                    $(_this).attr("disabled", false);
+                    window.alert("失败！");
+                }
+            });
+        };
+        if(W) {
+            W.$.dialog.confirm("Are you sure to save ?", saveFunction);
+        } else {
+            $.dialog.confirm("Are you sure to save ?", saveFunction);
+        }
+        return false;
+    }
+
+    function colsa_window() {
+        if(top.opener) {
+            top.opener.reload_();
+            top.opener = null;
+            top.close();
+        } else {
+            api.close();
+        }
+    }
+</script>
+</html>

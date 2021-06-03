@@ -1,0 +1,316 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>推送SAP组包</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="SAP组包信息" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <input type="hidden" id="modifyName" name="modifyName"/>
+                <input type="hidden" id="modifyDate" name="modifyDate"/>
+
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="8" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" id="sendBtn" onclick="send()" value="推送"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th style="width: 120px;">送修级别：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-combobox" name="repairLevel" id="repairLevel"
+                                   data-options="required:true,editable:false " style="width: 160px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">计划送修日期：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-datebox" name="planRemoveDate" id="planRemoveDate"
+                                   data-options="required:true " style="width: 160px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">送修原因：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-combobox" name="planRemoveReason" id="planRemoveReason"
+                                   data-options="required:true,editable:false " style="width: 160px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">是否组合：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-combobox" name="composeRel" id="composeRel"
+                                   data-options="required:true,editable:false " style="width: 160px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">出厂发动机：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-combobox" name="composeNo" id="composeNo"  style="width: 260px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">拆解发动机：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-combobox" name="cjEsn" id="cjEsn"  style="width: 260px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">总体送修要求：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" name="repairReq" id="repairReq"
+                                   data-options="multiline:true,required:true "  style="width: 400px;height:100px"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var user;
+    var pkid;
+    var refPkid;
+    var epn;
+    var auditStatus;
+    var param = {};
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        refPkid = param.refPkid;
+        auditStatus = param.auditStatus;
+        epn = param.epn;
+        user = getLoginInfo();
+
+        $('#planRemoveReason').combobox({
+            data: [{
+                TEXT: 'EGTM',
+                VALUE: 'EGTM'
+            },{
+                TEXT: 'LLP到限',
+                VALUE: 'LLP到限'
+            },{
+                TEXT: '孔探报告',
+                VALUE: '孔探报告'
+            },{
+                TEXT: '磁堵报告',
+                VALUE: '磁堵报告'
+            },{
+                TEXT: '商务因素',
+                VALUE: '商务因素'
+            },{
+                TEXT: 'TargetLife到限',
+                VALUE: 'TargetLife到限'
+            },{
+                TEXT: '指定下发',
+                VALUE: '指定下发'
+            }],
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            panelHeight: '150px',
+        });
+
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                domainCode: "ENG_REPAIE_LEVEL,ENG_REPAIR_COMPOSE_REL,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#repairLevel').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_REPAIE_LEVEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    $('#composeRel').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            if(item.TEXT=='是'){
+                                $("#composeNo").combobox('setValue','');
+                                $("#cjEsn").combobox('setValue','');
+                                $("#composeNo").combobox({required:true});
+                                $("#cjEsn").combobox({required:true});
+                            }else{
+                                $("#composeNo").combobox('setValue','NA');
+                                $("#cjEsn").combobox('setValue','NA');
+                                $("#composeNo").combobox({required:false});
+                                $("#cjEsn").combobox({required:false});
+                            }
+                        }
+                    });
+
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {matnr: ''},
+                        path: "/meng-engine/baseOwn/getEngByTypeNew",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#composeNo').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    multiple: true,
+                                    panelHeight: '150px',
+                                });
+
+                                $('#cjEsn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    multiple: true,
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+
+                    InitDataForm(pkid);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/rxArgEngtype/selectReqByType/" + epn,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#repairReq').textbox("setValue",jdata.obj);
+                } else {
+                    MsgAlert({content: '获取送修要求失败', type: 'error'});
+                }
+            }
+        });
+
+        $("#pkid").val(pkid);
+        $("#modifyUser").val(user.accountId);
+        $("#modifyName").val(user.userName);
+        $("#modifyDate").val(new Date().Format("yyyy-MM-dd"));
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        savePlan();
+    }
+
+    function savePlan() {
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        var cvalue = $('#composeNo').combobox('getValue');
+        if (Array.isArray(datas['composeNo'])) {
+            datas['composeNo'] = datas['composeNo'].join(',');
+        }else if(typeof(cvalue)=='undefined'){
+            datas['composeNo'] = 'NA';
+        }
+
+        var evalue = $('#cjEsn').combobox('getValue');
+        if (Array.isArray(datas['cjEsn'])) {
+            datas['cjEsn'] = datas['cjEsn'].join(',');
+        }else if( typeof(evalue)=='undefined'){
+            datas['cjEsn'] = 'NA';
+        }
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/rxRepairPlan/updatePlanDetail",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.InitDataGrid2(refPkid,auditStatus);
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    //CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function send() {
+       // alert("开发中");
+      //  return;
+        savePlan();
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/rxRepairPlan/sendSapByPrimaryKey/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.obj == 'S') {
+                    param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.InitDataGrid2(refPkid,auditStatus);
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/rxRepairPlan/selectDetailByPrimaryKey/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                    $('#composeNo').combobox({value: jdata.data.composeNo});
+                    $('#cjEsn').combobox({value: jdata.data.cjEsn});
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

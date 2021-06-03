@@ -1,0 +1,356 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/common_query_dialog.js"></script>
+    <script src="/js/lhgdialog/lhgdialog.js"></script>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/plugins/dialog/dialog_default.css">
+    <title data-i18n="">休息卡报表</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        .table-bordered {
+            border: none;
+        }
+        .viewlogcolor{
+            color: #f60;;
+        }
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            /*position: absolute;*/
+            top: 0px;
+            margin-left: -30px;
+            right: 111px;
+        }
+        #pnRequest{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 110px;
+        }
+        #Pdf{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 205px;
+        }
+        #btnSyncPlan ,
+        #btnDel{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            margin-left: 5px;
+            top: 2px;
+            right: 30px;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th colspan="2" align="right" class="th" >打卡日期：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        开始
+                        <input class="easyui-datebox" data-options="editable:false" name="startClockBegDa" id="expiredTimeStart"
+                               style="width:90px;" type="text"  value="" >
+                        截止
+                        <input class="easyui-datebox" data-options="editable:false" name="endClockBegDa" id="expiredTimeEnd"
+                               style="width:90px;" type="text" value="" >
+                    </td>
+                    <th colspan="2" align="right" class="th" >工号：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-textbox" id="model" name="userAccount"  style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >姓名：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-textbox" id="objectName" name="userName"  style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >处室：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-textbox" id="office" name="orgName" style="width:180px;"/>
+                    </td>
+
+                </tr>
+                <tr>
+                    <th colspan="2" align="right" class="th" >职位：</th>
+                    <td colspan="2" style="padding:3px;">
+                        <input class="easyui-textbox" id="position" name="jobs" style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >打卡城市：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-textbox" id="classSequence" name="clockCity" style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >操作：</th>
+                    <td colspan="2" style=" padding:3px;text-align: center;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="doSearch_()" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+
+
+    <table id="dg"></table>
+</div>
+<script>
+    var loginUser;
+    var loginName;
+    var address=window.location.origin; //url
+    var port=document.location.port;//ip:端口号
+    if(!port){
+        port = ':'+port;
+    }else{
+        port = '';
+    }
+    var ctx = address+port;
+
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountNumber;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        for(x in queryParams){
+            if(!queryParams[x]){
+                queryParams[x] = null;
+            }
+        };
+        //截止日期不能小于开始日期
+        if((!!queryParams.startClockBegDa && !!queryParams.endClockBegDa)&&(DateDiff(queryParams.startClockBegDa,queryParams.endClockBegDa)<0)){
+            MsgAlert({type: "error", content: "截止日期必须大于开始日期！"});
+            return false;
+        };
+        //日期选择变更
+        if((!queryParams.startClockBegDa && !!queryParams.endClockBegDa)||(!!queryParams.startClockBegDa && !queryParams.endClockBegDa)){
+            queryParams.clockBegDa = queryParams.startClockBegDa||queryParams.endClockBegDa;
+            queryParams.startClockBegDa = null;
+            queryParams.endClockBegDa = null;
+        };
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/otws/hrAirlineRestClock/pageList",
+            columns: {
+                param: {FunctionCode: 'REST_CARD_MANAGEMENT'},
+                alter: {
+                    // 工号
+                    userAccount:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //姓名
+                    userName:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //职位
+                    jobs:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //处室
+                    orgName:{
+                        formatter : function(value, row, index){;
+                            return value ;
+                        }
+                    },
+                    //打卡城市
+                    clockCity:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //打卡详细地址
+                    clockAddress:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //休息开始时间
+                    clockBeginRestTime:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    },
+                    //休息结束时间
+                    clockEndRestTime:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    },
+                    //休息时长
+                    restTime:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //补卡原因
+                    note:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    }
+                }
+            },
+            toolbar: [
+                //btnExport主要作用是撑起来
+                {
+                    id:"btnExport",
+                    text: "",
+                },
+                {
+                    id:"btnSyncPlan",
+                    text: $.i18n.t(' Export'),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        // exportFlbSummary();
+                        var startTime = $("#expiredTimeStart").datebox("getValue")||"";
+                        var endTime = $("#expiredTimeEnd").datebox("getValue")||"";
+                        if(! startTime || ! endTime){
+                            MsgAlert({type: "error", content: "时间段选择必填！"});
+                            return false;
+                        };
+                        if(DateDiff(startTime,endTime)<0){
+                            MsgAlert({type: "error", content: "截止日期必须大于开始日期！"});
+                            return false;
+                        };
+                        //导出Excel
+                        var data = $('#ffSearch').serializeObject();
+                        // console.log(data)
+                        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/otws/rest_card/export'></form>");
+                        form.append($("<input name='fileType' value = 'excel'/>"));
+                        $.each(data, function (key, val) {
+                            if (typeof (val) == "object") {
+                                $.each(val, function (k1, v1) {
+                                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                                });
+                            } else {
+                                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                            }
+                        });
+                        $(this).parent().append(form);
+                        form.submit();
+                        form.remove();
+                    }
+                }
+            ]
+        });
+    }
+
+    //时间比较
+    function DateDiff(date1,date2){
+        var startTime=Date.parse(date1);
+        var endTime=Date.parse(date2);
+        return (endTime-startTime)/1000/3600/24
+    }
+
+    //选择进行补休息卡
+    function selectItem(){
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: $.i18n.t('请选择一行数据'), type: 'error'});
+            return;
+        }
+        if (rows.length > 1) {
+            MsgAlert({content: $.i18n.t('请只选择一行数据(不要选择多行)'), type: 'error'});
+            return;
+        }
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        reloadPage();
+        InitDataGrid();
+    }
+
+    function doSearch_() {
+        reloadPage();
+        InitDataGrid();
+    }
+
+    //重置分页值.
+    function reloadPage(){
+        var _data = $('#dg').data('datagrid');
+        if(_data && _data.options){
+            _data.options.pageNumber = 1; // 修改缓存
+        }
+    }
+
+    //时间戳转默认接收毫秒的时间戳
+    function timestampToTime(timestamp) {
+        var date,Y,M,D,h,m,s,returnDate;
+        date = new Date(timestamp);
+        Y = date.getFullYear() + '-';
+        M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+        D = (date.getDate() < 10 ? '0'+date.getDate() : date.getDate()) + ' ';
+        h = (date.getHours() < 10 ? '0'+date.getHours() : date.getHours()) + ':';
+        m = (date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes()) + ':';
+        s = (date.getSeconds() < 10 ? '0'+date.getSeconds() : date.getSeconds());
+        returnDate = Y+M+D+h+m+s;
+        return returnDate;
+    }
+
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

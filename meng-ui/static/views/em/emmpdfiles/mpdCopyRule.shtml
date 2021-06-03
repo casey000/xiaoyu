@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title>复制解析规则</title>
+</head>
+<body>
+
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <!--<input type="hidden" name="docVer" value="1">-->
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="4"><span style="color: red;font-size:18px">请选择已有的解析规则(即：解析数据的模板相同)</span></td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">机队：</th>
+                        <td class="tdr">
+                            <select name="fromFleet" id="fromFleet" class="easyui-textbox"
+                                    data-options="required:true,editable:true" style="width:150px;">
+                            </select>
+                        </td>
+
+                        <th class="tdl">文件类型：</th>
+                        <td class="tdr">
+                            <select name="fromDocType" id="fromDocType" data-options="required:true,editable:true"
+                                    class="easyui-combobox" style="width:150px;">
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+
+                    </tr>
+                    <tr>
+                        <td colspan="4"><span style="color: red;font-size:18px">请设置新文件类型的解析规则,若文件类型不存在，请联系管理员维护相应的数据域</span></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4"><span style="color: red;font-size:18px">数据域编码：EM_MPD_DOC_TYPE</span></td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">机队：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox easyui-validatebox" name="toFleet" id="toFleet"
+                                   data-options="required:false,editable:false,onlyview:true" style="width:150px;"/>
+                        </td>
+                        <th class="tdl">文件类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox easyui-validatebox" id="toDocType" name="toDocType"
+                                   data-options="required:true,editable:true" style="width:150px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td colspan="6" align="center"><input class="btn btn-primary" type="submit" id="saveBtn"
+                                                              value="保存"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<!--<script type="text/javascript" src="/js/emmpdfiles/mpd_files_upload.js"></script>-->
+<script type="text/javascript" src="/js/common.js"></script>
+<script type="text/javascript">
+    var successCallBack;
+    var fileName;
+    var docNo;
+    var docVer;
+    var emMpdDocType = {};
+    var pkid;
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        InitFuncCodeRequest_({
+            data: {mark: "C", FunctionCode: "EM_MPD_DOC_TYPE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    emMpdDocType = jdata.data;
+                }
+            }
+        });
+
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_FLEET,EM_MPD_DOC_TYPE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#fromFleet').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (row) {
+                            $("#toFleet").combobox("setValue",row.VALUE);
+                        }
+                    });
+                    $('#toFleet').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#fromDocType').combobox({
+                        panelHeight: '120px',
+                        data: emMpdDocType,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#toDocType').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_MPD_DOC_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+
+            }
+        });
+        InitForm_();
+    }
+    function fnKeyUp(){
+        this.value=this.value.toUpperCase();
+    }
+    function InitForm_() {
+        $('#mform').form({
+            onSubmit: function () {
+                var $form = $("#mform");
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {
+                    FunctionCode: ('EM_MPD_COPY_ANALYSIS_RULE')
+                });
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            CloseWindowIframe();
+                        } else {
+                            console.info(jdata)
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+
+                return false;
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

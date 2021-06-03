@@ -1,0 +1,105 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>SB列表</title>
+</head>
+<body class="ibody">
+<div style="" id="tt">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <form class="form-horizontal m-t" id="mform">
+                    <table class="table table-bordered table-info" width="30%">
+                        <tr>
+                            <th class="th" align="right" style="width: 80px;">资料编号：</th>
+                            <td class="tdr" style="width: 150px">
+                                <input class="easyui-textbox" id="dataNo" name="dataNo"
+                                       data-options="editable:true" style="width: 150px;"/>
+                                <a href="javascript:" id="openSBList" onclick="searchSb();" class="easyui-linkbutton"
+                                   iconCls="icon-search"></a>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+    <div id="dgdiv">
+        <table id="dg"></table>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var companyCode;
+    var dataNo = "";
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_REC_PRIVIDOR,DA_FLEET,DM_DATA_FROM",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {applyModel: param.applyModel, companyCode: companyCode, dataNo: dataNo},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_SB_LIST'},
+
+            },
+            onLoadSuccess: function () {
+            },
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (e, rowIndex, rowData) {
+                //将SB版本等信息写到编辑页
+                param.OWindow.$("#sbNo").textbox('setValue', rowData.DATA_NO);
+                // param.OWindow.$("#sbVer").textbox('setValue', rowData.DATA_VER);
+                // var sbiNo="SBI-"+rowData.DATA_NO+"-"+rowData.DATA_VER;
+                var sbiNo = "SBI-" + rowData.DATA_NO;
+                param.OWindow.$("#sbiNo").textbox('setValue', sbiNo);
+                param.OWindow.reloadSbSelect(rowData.DATA_NO);
+                CloseWindowIframe();
+            }
+        });
+    }
+
+    function searchSb() {
+        dataNo = $("#dataNo").textbox("getValue");
+        InitDataGrid();
+    }
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</html>

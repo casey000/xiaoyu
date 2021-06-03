@@ -1,0 +1,694 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link href="/css/font-awesome.min93e3.css" rel="stylesheet">
+    <script src="/js/jquery.form.js" type="text/javascript"></script>
+    <script src="/js/common/print_card_utils.js" type="text/javascript"></script>
+
+    <title data-i18n="">航站任务列表</title>
+
+    <script src="/js/datagrid_utils.js" type="text/javascript"></script>
+    <script src="/js/common/query_data_dict.js" type="text/javascript"></script>
+    <script src="/js/tbm/flb_station_task_detail.js" type="text/javascript"></script>
+    <style type="text/css">
+
+        .table-zi td, .dwTable td, .dwTable th {
+            padding: 3px;
+            border: 1px solid #ccc;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        img {
+            cursor: pointer;
+        }
+
+        input {
+            margin: 0;
+            padding: 0;
+        }
+
+        .table-zi td {
+            text-align: center;
+            height: 30px;
+        }
+
+        .table-zi tr:nth-of-type(1) {
+            font-family: 微软雅黑;
+            font-size: 14px;
+            color: rgb(50, 64, 75);
+            font-weight: bold;
+        }
+
+        .table-zi tr:nth-of-type(2) {
+            font-family: 微软雅黑;
+            font-size: 13px;
+            /*font-weight: bold;*/
+            /*color: rgb(50, 64, 75);*/
+
+            height: 35px;
+            background: #f0f0f0;
+            text-align: center;
+        }
+
+        .list_btn_row .right_button {
+            list-style: none;
+            float: right;
+            margin-left: 5px;
+            padding-right: 5px;
+        }
+
+        .list_btn_row .left_button {
+            list-style: none;
+            float: left;
+            margin-left: 5px;
+            padding-right: 5px;
+        }
+
+        .l-btn-icon {
+            top: 72%;
+        }
+
+        #cancelReleaseWindow {
+            display: none;
+        }
+
+        .task-detail-header {
+            overflow: hidden;
+            padding: 8px 20px 8px 0;
+        }
+
+        .task-detail-title {
+            font-family: HiraginoSansGB-W6;
+            font-size: 14px;
+            color: #4A4A4A;
+            letter-spacing: 0;
+            font-weight: bold;
+        }
+
+        .float-left {
+            float: left;
+        }
+
+        .float-right {
+            float: right;
+        }
+
+        .assignBtn, .processBtn, .toolListBtn, .releaseBtn, .cancelReleaseBtn, .btn {
+            display: inline-block;
+            text-decoration: none;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 3px 10px;
+            border: none;
+        }
+
+        .datagrid-header-inner {
+            background-image: none;
+        }
+
+        .datagrid-header td, .datagrid-body td {
+            border-color: transparent;
+        }
+
+        .datagrid-header-inner table .datagrid-header-rownumber, .datagrid-header-inner table .datagrid-cell, .datagrid-body-inner table .datagrid-td-rownumber, .datagrid-body-inner table .datagrid-cell-rownumber {
+            background-color: #fff !important;
+            background: #fff;
+        }
+
+        .datagrid-body-inner table .datagrid-row-alt .datagrid-td-rownumber, .datagrid-body-inner table .datagrid-row-alt .datagrid-td-rownumber .datagrid-cell-rownumber {
+            background: #fafbfc !important;
+
+        }
+
+        .datagrid-toolbar {
+            display: none;
+        }
+
+        .datagrid-header, datagrid-header-inner {
+            background: #fff;
+        }
+
+        .datagrid-htable tr, .datagrid-btable tr {
+            height: 34px;
+        }
+
+        .datagrid-header td.datagrid-header-over {
+            background: none;
+            background-image: none;
+        }
+
+        /*.datagrid-row-over {*/
+        /*    background: #ecf3ff;*/
+        /*}*/
+
+        .gongtong {
+            width: 100%;
+            height: 85%;
+            table-layout: fixed;
+            border-width: 1px;
+            display: table;
+            border-collapse: collapse;
+        }
+
+        .gongtong td {
+            height: 30px;
+            border: 1px solid #ccc;
+            word-break: break-all;
+            padding-left: 10px;
+        }
+
+        .gongtong td input {
+            height: 25px;
+            width: 150px;
+        }
+
+        .gongtong .key {
+            background-color: #F5F8F8;
+            text-align: right;
+            padding: 8px;
+            font-size: 12px;
+            width: 130px;
+        }
+
+        .boumnn {
+            text-align: right;
+            margin-top: 20px;
+        }
+
+        .boumnn a {
+            padding: 3px 18px;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+
+        .gongtong td textarea {
+            width: 96%;
+            height: 146px;
+            margin-top: 5px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+            border: 1px solid #D4D4D4;
+        }
+    </style>
+</head>
+<body class="ibody">
+<div style="width:100%;" id="tt">
+    <table class="datagrid-htable" id="dg" width="100%">
+        <!--表头TR Begin-->
+        <tr class="datagrid-header-row">
+            <th>
+                <ul class="list_btn_row">
+                    <li class="right_button"><input class="btn" id="back_btn" type="button" value="返回"
+                                                    onClick="backPage(this);"></li>
+                    <li class="right_button"><input class="btn" id="refresh_btn" onClick="refreshPage();" type="button"
+                                                    value="刷新"></li>
+                    <li class="right_button"><input auth = "FLIGHT_LINE_MRLIST" class="btn" id="mrListBnt" onclick="material_list()" type="button"
+                                                    value="航材清单"></li>
+                    <li class="right_button"><input auth = "FLIGHT_LINE_DOWNLOADCARD" class="btn" onClick="dowloadCrads();" type="button"
+                                                    value="工卡下载"></li>
+                    <li class="right_button"><input auth = "FLIGHT_LINE_DELETECARD" class="btn" id="btn_delete_job" type="button"
+                                                    value="删除工卡"></li>
+                    <li class="right_button"><input auth = "FLIGHT_LINE_TASKPRINT" class="btn" id="task_list_pdf" onClick="taskListPdf();" type="button"
+                                                    value="任务清单打印"></li>
+                    <li class="right_button"><input  class="btn" id="cancel_socket_list" onclick="cancel_socket_list()" type="button" value="退库申请"></li>
+                    <li class="left_button" id="detail_info_li"
+                        style="margin-left:160px; font-size:20px; color: red;text-align: center;">
+                        <!--                        B-6996&nbsp;&nbsp;&nbsp;&nbsp;O37070&nbsp;&nbsp;&nbsp;&nbsp;Po/F&nbsp;&nbsp;&nbsp;&nbsp;2018-11-26-->
+                        <!--                        09:10-->
+                    </li>
+                </ul>
+            </th>
+        </tr>
+        <!--表头TR End-->
+
+        <!--LINE MAINTENANCE JOB CARD & FLB Begin-->
+        <!--<tr>-->
+        <!--<td id="line_task_td" style="padding-top:5px">-->
+        <!--<div id="tr_line_task"></div>-->
+        <!--</td>-->
+        <!--</tr>-->
+        <!--&lt;!&ndash;LINE MAINTENANCE JOB CARD & FLB End&ndash;&gt;-->
+
+        <!--&lt;!&ndash;ROUTINE MAINTENANCE Begin&ndash;&gt;-->
+        <!--<tr>-->
+        <!--<td id="routine_task_list_td" style="padding-top:5px">-->
+        <!--<div id="routine_task_list"></div>-->
+        <!--</td>-->
+        <!--</tr>-->
+        <!--&lt;!&ndash;ROUTINE MAINTENANCE End&ndash;&gt;-->
+
+        <!--&lt;!&ndash;NON-ROUTINE MANTENANCE Begin&ndash;&gt;-->
+        <!--<tr>-->
+        <!--<td id="non_routine_task_list_td" style="padding-top:5px">-->
+        <!--<div id="non_routine_task_list"></div>-->
+        <!--</td>-->
+        <!--</tr>-->
+        <!--&lt;!&ndash;NON-ROUTINE MANTENANCE End&ndash;&gt;-->
+
+        <!--&lt;!&ndash;DEFECT LIST Begin&ndash;&gt;-->
+        <!--<tr id="defect_list1">-->
+        <!--<td style="padding-top:5px">-->
+        <!--<div id="defect_list"></div>-->
+        <!--</td>-->
+        <!--</tr>-->
+        <!--DEFECT LIST End-->
+
+        <!-- CHECK LIST SECOND VERSION BEGIN -->
+        <div id="release">
+            <form id="release_form">
+                <!--<tr>-->
+                <!--<td>-->
+                <!--<div id="check_list"></div>-->
+                <!--</td>-->
+                <!--</tr>-->
+                <!-- CHECK LIST SECOND VERSION END -->
+
+
+                <!--RELEASE Begin -->
+                <!--<tr>-->
+                <!--<td id="release_base_info_td" style="padding-top:5px">-->
+                <!--<div id="releaseDg"></div>-->
+                <!--</td>-->
+                <!--</tr>-->
+                <!--RELEASE End -->
+            </form>
+        </div>
+
+        <!--MAINTENANCE LOG Begin-->
+
+        <!--MAINTENANCE LOG End-->
+
+        <!--EVENT REPORT Begin-->
+        <!--<div id="div_eventReport">-->
+        <!--<tr>-->
+        <!--<td style="padding-top:5px">-->
+        <!--<table id="eventReport"></table>-->
+        <!--</td>-->
+        <!--</tr>-->
+        <!--</div>-->
+
+
+        <!--EVENT REPORT End-->
+    </table>
+    <!--非中心航站时展示-->
+    <div class="task-detail-header external-distribution">
+        <div class="float-right btn-wrap">
+            <a class="processBtn"  onclick="external_distribute()">
+                <span>外站发料</span>
+            </a>
+        </div>
+    </div>
+
+     <div class="task-detail-header ogHide">
+        <div class="float-left task-detail-title">航线维修工卡及FLB填写</div>
+        <div class="float-right btn-wrap">
+            <!--            <a class="assignBtn" onclick="assignbtn()">-->
+            <!--                <span>Assign</span>-->
+            <!--            </a>-->
+            <a auth ="FLIGHT_LINE_FEEDBACK" class="processBtn"  onclick="process_popup()">
+                <span>执行反馈</span>
+            </a>
+        </div>
+    </div>
+    <div id="tr_line_task" ></div>
+    <!--    <div id="tr_other_task"></div>-->
+
+    <div class="task-detail-header">
+        <div class="float-left task-detail-title">例行任务列表</div>
+        <div class="float-right btn-wrap">
+            <!--            <a class="toolListBtn" onclick="tool_list()">-->
+            <!--                <span>Tool List</span>-->
+            <!--            </a>-->
+            <a auth ="FLIGHT_LINE_ADDMR" class="processBtn" onclick="addMr('lx')">
+                <span>MR清单</span>
+            </a>
+            <a auth ="FLIGHT_LINE_FEEDBACK" class="processBtn" onclick="nt_process('lx')">
+                <span>执行反馈</span>
+            </a>
+            <a auth ="FLIGHT_LINE_RETURNCARD" class="processBtn"  onclick="returnBack('lx')">
+                <span>退卡</span>
+            </a>
+        </div>
+    </div>
+    <div id="routine_task_list"></div>
+
+    <div class="task-detail-header">
+        <div class="float-left task-detail-title">非例行任务列表</div>
+        <div class="float-right btn-wrap">
+            <!--            <a class="assignBtn">-->
+            <!--                <span>Assign</span>-->
+            <!--            </a>-->
+            <a auth ="FLIGHT_LINE_ADDMR" class="processBtn" onclick="addMr('flx')">
+                <span>MR清单</span>
+            </a>
+            <a auth ="FLIGHT_LINE_FEEDBACK" class="processBtn" onclick="nt_process('flx')">
+                <span>执行反馈</span>
+            </a>
+            <a auth ="FLIGHT_LINE_RETURNCARD" class="processBtn" onclick="returnBack('flx')">
+                <span>退卡</span>
+            </a>
+        </div>
+    </div>
+    <div id="non_routine_task_list"></div>
+
+    <div class="task-detail-header defect_table" >
+        <div class="float-left task-detail-title">故障列表</div>
+        <div class="float-right btn-wrap">
+            <!--            <a class="assignBtn">-->
+            <!--                <span>Assign</span>-->
+            <!--            </a>-->
+            <a auth ="FLIGHT_LINE_FEEDBACK" class="processBtn" onclick="to_defect()">
+                <span>执行反馈</span>
+            </a>
+        </div>
+    </div>
+    <div class="defect_table" id="defect_list"></div>
+
+    <div class="task-detail-header defect_table" >
+        <div class="float-left task-detail-title">故障推迟转NRC待处理</div>
+
+    </div>
+    <div class="defect_table" id="nrc_list"></div>
+</div>
+<div class="task-detail-header ogHide">
+    <div class="float-left task-detail-title">检查清单项</div>
+    <div class="float-right btn-wrap">
+
+    </div>
+</div>
+<div id="check_list"></div>
+
+<div class="task-detail-header ogHide">
+    <div class="float-left task-detail-title">放行清单</div>
+    <div class="float-right btn-wrap">
+        <a auth="FLIGHT_LINE_RELEASE" class="releaseBtn" id="releaseBtn">
+            <span>放行</span>
+        </a>
+        <a auth="FLIGHT_LINE_RELEASE" class="cancelReleaseBtn" id="cancelReleaseBtn">
+            <span>取消放行</span>
+        </a>
+    </div>
+</div>
+<div id="releaseDg"></div>
+
+<!--<div class="task-detail-header ogHide">-->
+<!--    <div class="float-left task-detail-title">重要事件报告</div>-->
+<!--</div>-->
+<!--<div id="eventReport"></div>-->
+
+<!--取消放行弹窗-->
+<div class="easyui-window" data-options="modal:true,closed:true,shadow:false," id="cancelReleaseWindow" style="width:600px;height:200px;top: 50%"
+     title="取消放行">
+    <form id="mform">
+        <input type="hidden" id="workOrderId" name="workOrderId"/>
+<!--        <input type="hidden" id="flightId" name="flightId"/>-->
+        <table class="table">
+            <tr>
+                <th class="th" align="right" style="width: 80px;">取消原因：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" data-options="multiline:true,required:true," id="cancelReason" name="cancelReason" style="width:450px;height:70px" value="">
+<!--                <textarea cols="60" id="remark" maxlength="300" validate="{maxlength:300}" required="required" name="cancelReason" rows="3" style="padding:0px;border: 1px solid rgb(153, 153, 153);"></textarea>-->
+                </td>
+            </tr>
+            <tr id="view">
+                <td colspan="6" align="center" style="padding-top: 14px;">
+                    <span class="btn" onclick="cancelRelease()">确认</span>
+                    <span class="btn closeRelease" onclick="closeRelease()">关闭</span>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+
+<div class="easyui-window" data-options="closed:true" id="checkUpload" style="width:600px;height:300px;display: none;"
+     title="查看文件">
+    <div id="uploadList"></div>
+
+</div>
+<!--process弹窗-->
+<!--<div class="easyui-dialog " id="process_dd" style="width:1500px;height:800px;padding:10px;display: none"-->
+<!--     title="LINE MAINTENANCE JOB CARD & FLB">-->
+<div class="easyui-dialog" id="process_dd" style="padding: 10px; display: none"  title="" >
+    <form action="" id="approval_form" method="post">
+
+        <table class="table table-bordered table-info" id="process_table">
+            <tr>
+                <th class="tdl" style="width:100px">飞机号：</th>
+                <td class="tdr" width="150px">
+                    <!--value="N"-->
+<!--                    <input class="easyui-textbox" data-options="editable:false,onlyview:true" id="adId"-->
+<!--                           name="adId"-->
+<!--                           style="width: 150px"/>-->
+                    <span id="adId"></span>
+                </td>
+                <th class="tdl" style="width:100px">航班号：</th>
+                <td class="tdr" width="150px">
+<!--                    <input class="easyui-textbox" data-options="editable:false,onlyview:true" id="fltId"-->
+<!--                           name="fltId"-->
+<!--                           style="width:150px"/>-->
+                    <span id="fltId"></span>
+                </td>
+                <th class="tdl" style="width:100px">航班日：</th>
+                <td class="tdr">
+<!--                    <input class="easyui-textbox" data-options="editable:false,onlyview:true" id="fltDate"-->
+<!--                           name="fltDate"-->
+<!--                           style="width:150px"/>-->
+                    <span id="fltDate"></span>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width:100px">航站：</th>
+                <td class="tdr" style="width:100px;">
+<!--                    <input class="easyui-textbox" data-options="editable:false,onlyview:true" id="fltSta"-->
+<!--                           name="fltSta"-->
+<!--                           style="width:100px;"/>-->
+                    <span id="fltSta"></span>
+                </td>
+                <th class="tdl" style="width:100px">航班类型：</th>
+                <td class="tdr" colspan="3">
+<!--                    <input class="easyui-textbox" data-options="editable:false,onlyview:true " id="fltType"-->
+<!--                           name="fltType"-->
+<!--                           style=" width:400px;"/>-->
+                    <span id="fltType"></span>
+                </td>
+
+            </tr>
+            <tr>
+                <th class="tdl" style="width:100px">任务类型：</th>
+                <td class="tdr" width="150px">
+                    <!--value="N"-->
+<!--                    <input class="easyui-textbox" data-options="editable:false,onlyview:true" id="taskClass"-->
+<!--                           name="taskClass"-->
+<!--                           style="width: 150px"/>-->
+                    <span id="taskClass"></span>
+                </td>
+                <th class="tdl" style="width:100px">执行文件号：</th>
+                <td class="tdr" width="150px">
+<!--                    <input class="easyui-textbox" data-options="editable:false,onlyview:true" id="fileNum"-->
+<!--                           name="fileNum"-->
+<!--                           style="width:150px"/>-->
+                    <span id="fileNum"></span>
+                </td>
+                <th class="tdl" style="width:100px">任务状态：</th>
+                <td class="tdr">
+<!--                    <input class="easyui-textbox" data-options="editable:false,onlyview:true" id="taskStatus"-->
+<!--                           name="taskStatus"-->
+<!--                           style="width:100px"/>-->
+                    <span id="taskStatus"></span>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width:100px">任务描述：</th>
+                <td class="tdr" colspan="5">
+                    <!--value="N"-->
+<!--                    <input class="easyui-textbox" data-options="editable:false,onlyview:true" id="taskDesc"-->
+<!--                           name="taskDesc"-->
+<!--                           style="width: 80%"/>-->
+                    <span id="taskDesc"></span>
+                </td>
+
+            </tr>
+            <tr>
+                <th class="tdl" style="width:100px">工作者账号：<font color="red">*</font></th>
+                <td class="tdr" width="150px">
+                    <!--value="N"-->
+                    <input class="easyui-textbox" data-options="editable:true" id="wkCount"
+                           name="wkCount"
+                           style="width: 150px"/>
+                    <!--                <img class="search_btn_img" height="16" onclick="" src="/img/search.png"-->
+                    <!--                     style="cursor: pointer;vertical-align: -30%" title="Search" width="16">-->
+                </td>
+                <th class="tdl" style="width:100px">工作者姓名：<font color="red">*</font></th>
+                <td class="tdr" width="150px">
+                    <input class="easyui-textbox name_in" data-options="editable:false" id="wkName"
+                           name="wkName"
+                           style="width:150px"/>
+                </td>
+                <th class="tdl" style="width:100px">完工时间：<font color="red">*</font></th>
+                <td class="tdr">
+                    <input class="easyui-datetimebox" data-options="editable:false" id="completeDate"
+                           name="completeDate" validType="timeLimit"
+                           style="width:150px"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width:100px">人工时：<font color="red">*</font></th>
+                <td class="tdr" width="100px">
+                    <input class="easyui-textbox" data-options="" id="hours"
+                           name="hours" validType='IntDeminumber'
+                           style="width:120px"/>
+                    <input id="id" name="id" type="hidden"/>
+                </td>
+<!--                <th class="tdl" style="width:100px">互必检：<font color="red">*</font></th>-->
+<!--                <td class="tdr" width="100px">-->
+<!--                    <input class="easyui-textbox" data-options="" id="hours"-->
+<!--                           name="hours" validType='IntDeminumber'-->
+<!--                           style="width:120px"/>-->
+<!--                    <input id="id" name="id" type="hidden"/>-->
+<!--                </td>-->
+                <td style="text-align: center">
+<!--                    <label for="mtSign" style="margin-right:3px;margin-left: 10px">必检:</label><input id="mtSign" name="checkWay" style="vertical-align: -15%;margin-right: 15px" type="checkbox"-->
+<!--                                                                                   value="1">-->
+                    <label for="ehSign" style="margin-right:3px">互检:</label><input checked id="ehSign" name="checkWay" style="vertical-align: -15%" type="checkbox"
+                                                                                   value="2">
+                </td>
+                <td class="val" colspan="4" id="bijian" style="position: relative;" >
+                    <span  style="margin-right:3px;margin-left: 10px">互检签名</span>
+                    <input class="td_input easyui-textbox" id="checkWayNum" name="station" style="width: 112px" type="text">
+                    <input class="td_input easyui-textbox wkName" data-options="editable:false" id="checkWayName" name="station" style="width: 112px"
+                           type="text">
+                </td>
+            </tr>
+            <tr class="hanghou">
+                <th class="tdl" style="width:100px">机组氧气压力：<font color="red">*</font></th>
+                <td class="tdr" width="150px">
+                    <input class="easyui-textbox" data-options="" id="oxygen"
+                           name="oxygen" style="width: 120px"
+                           validType='number'/>
+                    PSI
+                </td>
+                <th class="tdl" style="width:150px">两套救生筏是否在位：<font color="red">*</font></th>
+                <td class="tdr" width="200px">
+                    <label><input id="statusM" name="status" style="margin-left: 5px" type="radio" value="YES">是</label>
+                    <label><input id="statusC" name="status" style="margin-left: 5px" type="radio" value="NO">否</label>
+                </td>
+            </tr>
+            <tr class="specialCard" style="display: none">
+                <th class="tdl" style="width:150px">两套救生筏是否在位：<font color="red">*</font></th>
+                <td class="tdr" width="200px">
+                    <label><input id="statuscardM" name="statusCard" style="margin-left: 5px" type="radio" value="YES">是</label>
+                    <label><input id="statuscardC" name="statusCard" style="margin-left: 5px" type="radio" value="NO">否</label>
+                </td>
+            </tr>
+            <tr class="interAirline" style="display: none">
+                <th class="tdl" style="width:150px">驾驶舱国际航班随机电脑包是否在位：<font color="red">*</font></th>
+                <td class="tdr" width="200px">
+                    <label><input id="interAirline" name="interAirline" style="margin-left: 5px" type="radio" value="YES">是</label>
+
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width:100px">反馈信息：<font color="red">*</font></th>
+                <td class="tdr" colspan="10">
+                    <input class="easyui-textbox" data-options="multiline:true " id="feedbackCh"
+                           name="revCnDesc"
+                           style="height:60px; width:500px;"/>
+
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width:100px">附件：</th>
+                <td class="tdr" colspan="10">
+                    <div id="attachmengtList"></div>
+
+                    <a class="searchBtn" data-options="iconCls:'icon-clear'" id="upload_button" onclick="open_upload()"
+                       style="margin-right: 10px;float: right" type="button">
+                        <span data-i18n="common:COMMON_OPERATION.UPLOAD"></span>
+                    </a>
+                </td>
+
+            </tr>
+            <tr>
+                <th class="tdl" style="width:100px">无照片备注：<font color="red">*</font></th>
+                <td class="tdr" colspan="10">
+                    <input class="easyui-textbox" data-options="multiline:true " id="withoutPic"
+                           name="noPhoto"
+                           style="height:60px; width:500px;"/>
+
+                </td>
+            </tr>
+        </table>
+    </form>
+
+    <div class="boumnn">
+        <a onclick="Determine_export()">完工反馈</a>
+        <!--        <a onclick="close_process()" style="background-color: #ce3c3c">关闭</a>-->
+    </div>
+</div>
+<!--assign弹窗-->
+<div class="easyui-dialog " id="assign_dd" style="width:400px;height:300px;padding:10px;display: none"
+     title="LINE MAINTENANCE JOB CARD & FLB">
+    <table class="gongtong" id="assign_table">
+        <tbody>
+        <tr>
+            <td class="key" style="width: 65px">Mech:<span style="color: red">*</span></td>
+            <td><input class="easyui-combobox"/></td>
+        </tr>
+        <tr>
+            <td class="key" style="width: 65px">Remark:</td>
+            <td><textarea></textarea></td>
+        </tr>
+        </tbody>
+    </table>
+    <div class="boumnn">
+        <!--        <a onclick="Determine_export()">确定</a>-->
+        <a onclick="close_process()" style="background-color: #ce3c3c">关闭</a>
+    </div>
+</div>
+<!--航线任务导出弹窗-->
+<div class="easyui-dialog " id="cards_dd" style="width:500px;height:300px;padding:10px;display: none" title="Waiting">
+    <table class="gongtong" id="cards_table" style="height: auto;">
+        <tbody>
+        <tr>
+            <td class="key" style="width: 65px">Name:</td>
+            <td>航线任务导出</td>
+            <td class="key" style="width: 65px">Group:</td>
+            <td>TBM</td>
+        </tr>
+        <tr>
+            <td class="key" style="width: 65px">Status:</td>
+            <td>success</td>
+            <td class="key" style="width: 65px">Progress:</td>
+            <td>1 / 0 / 1 (100%)</td>
+        </tr>
+        <tr>
+            <td class="key" style="width: 65px">File Name:</td>
+            <td colspan="3"></td>
+        </tr>
+        <tr>
+            <td class="key" style="width: 65px">Result:</td>
+            <td colspan="3"></td>
+        </tr>
+        </tbody>
+    </table>
+    <!--<div id="a" class="easyui-progressbar" data-options="value:60" style="width: 300px"></div>-->
+<!--    <div class="boumnn">-->
+<!--        <a onclick="close_process()" style="background-color: #ce3c3c">关闭</a>-->
+<!--    </div>-->
+</div>
+
+</body>
+</html>

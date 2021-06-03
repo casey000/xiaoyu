@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_numgenerator">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <title>计划中心维护</title>
+    <script type="text/javascript">
+        var param = {};
+        var isEdit_;
+        $(function () {
+            //获取弹窗传过来的参数
+            param = getParentParam_();
+            // 如果URL中含有参数 且含有参数PLCTR 我们认为这是一个编辑请求
+            isEdit_ = param && param.PKID;
+            if (isEdit_) {
+                InitFuncCodeRequest_({
+                    data: {pkid: param.PKID, FunctionCode: "PM_SER_GET"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                            $("#serialCode").textbox({editable: false});
+                            InitEditForm_();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                        onSelectedHasSub();
+                    }
+                })
+
+            } else {
+                InitEditForm_();
+                onSelectedHasSub();
+            }
+        });
+
+        //初始化编辑窗口的表单
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $('#mform').serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'PM_SER_EDIT' : 'PM_SER_ADD')
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+        function onSelectedHasSub() {
+            var req = $("#hasSub").combobox('getValue');
+            $("#circleIdent").textbox({required: req == '0' ? false : true});
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" name="pkid" value=""/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th class="td1">流水号标识：</th>
+                        <td colspan="3" class="tdr">
+                            <input id="serialCode" class="easyui-textbox" name="serialCode"
+                                   data-options="required:true,validType:['maxLength[80]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td1">描述：</th>
+                        <td colspan="3" class="tdr">
+                            <input id="description" class="easyui-textbox" name="description"
+                                   data-options="required:true ,validType:['maxLength[380]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td2">流水号规则：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="expression" name="expression" style="width:60%;"
+                                   data-options="required:true, validType:['minLength[1]','maxLength[380]']"/>
+                            <br/>
+                            <span style="color: red;">
+                                #{dt:日期格式} 例如: PM#{dt:yyyyMM} = PM201609<br/>
+                                #{seq:补零数} 例如: CN#{seq:5} = CN00001<br/>
+                                #{a-zA-Z0-9_} 例如：自定义参数
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td2">序号开始值：</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" id="startNum" name="startNum" min="1"
+                                   data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td2">序号递增值：</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" id="stepNum" name="stepNum" data-options="required:true"
+                                   min="1" max="9999"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td2">序号结束值：</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" id="endNum" name="endNum"
+                                   data-options=""/>
+                            <span style="color: red;">如填写此项，序号超过此值重置为开始值。</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td2">自动重置序列号：</th>
+                        <td class="tdr">
+                            <select name="hasSub" id="hasSub" class="easyui-combobox"
+                                    data-options="required:true, editable: false, onSelect: onSelectedHasSub "
+                                    style="width: 90px;"
+                                    panelHeight="100">
+                                <option value="0">否</option>
+                                <option value="1">是</option>
+                            </select>&nbsp;
+                            <span style="color: red;">即除序号外流水号其他内容的改变将重置序号为开始值。</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td2">循环标识：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="circleIdent" name="circleIdent"
+                                   data-options="required:false, validType:['maxLength[380]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center" style="padding-top:40px;"><input class="searchBtn" type="submit"
+                                                                                        value="提交"
+                                                                                        style="cursor: pointer;border: none"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

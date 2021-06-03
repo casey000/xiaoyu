@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+
+    <title data-i18n="">工程文件</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch1" method="post">
+            <div id="searchBar">
+                <table cellspacing="0" cellpadding="0" class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl" style="width: 100px">AD/SB/MP编号：</th>
+                        <td class="tdr" width="150">
+                            <input class="easyui-textbox" name="eoEaJcNo" id="eoEaJcNo" style=" width:150px;"/>
+                        </td>
+                        <th class="tdl" style="width: 100px">EO/EA/MPJC编号：</th>
+                        <td class="tdr" width="100">
+                            <input class="easyui-textbox" name="mpNoVers" id="mpNoVers" style=" width:150px;"/>
+                        </td>
+                        <td align="left" style="padding: 3px;">
+                            <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="searchData()">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" href="javascript:void(0)" onclick="doClear_('#ffSearch1')"
+                               data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            <a class="searchBtn" href="javascript:void(0)" onclick="addAssessTech()"
+                               data-options="iconCls:'icon-search'">
+                                <span>确认</span></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg1"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script>
+    let PAGE_DATA = {};
+    let param = getParentParam_();
+    let user = getLoginInfo();
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_FSD_PROV_STATUS,ENG_FSD_PROV_SOURCE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jData) {
+                if (jData.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机型
+                    $('#status').combobox({
+                        panelHeight: '100px',
+                        data: jData.data.ENG_FSD_PROV_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    PAGE_DATA['status'] = DomainCodeToMap_(jData.data["ENG_FSD_PROV_STATUS"]);
+                    PAGE_DATA['source'] = DomainCodeToMap_(jData.data["ENG_FSD_PROV_SOURCE"]);
+
+                } else {
+                    MsgAlert({content: jData.msg, type: 'error'});
+                }
+            }
+        });
+        initDataGrid();
+    }
+
+    function initDataGrid() {
+        const queryParams = $("#ffSearch1").serializeObject();
+        $("#dg1").MyDataGrid({
+            identity: 'dg1',
+            sortable: true,
+            singleSelect: true,
+            queryParams: queryParams,
+            pageSize: 15,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0, 0, 20, 0);
+            },
+            columns: {
+                param: {FunctionCode: 'CHOOSE_ENG_FSD_PROV_FILE_LIST'}
+            }
+        });
+    }
+
+    function searchData() {
+        initDataGrid();
+    }
+
+    function doClear_(search) {
+        $(search).form('clear');
+        initDataGrid();
+    }
+
+    //增加工程文件措施
+    function addAssessTech() {
+        const rows = $('#dg1').datagrid('getChecked');
+        const objs = [];
+        if (rows.length == 0) {
+            MsgAlert({content: "请先选择明细数据！", type: 'error'});
+            return;
+        }
+        for (let i = 0; i < rows.length; i++) {
+            let obj = {};
+            obj["refPkid"] = param.refPkid;
+            obj["techNo"] = rows[i].MP_NO_VERS;
+            obj["execNo"] = rows[i].EO_EA_JC_NO;
+            obj["execVer"] = rows[i].EO_JC_VER;
+            obj["execTitle"] = rows[i].EO_JC_TITLE;
+            objs.push(obj);
+        }
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFsdAssessTech/saveEngFsdAssessTech",
+            data: objs,
+            error: function (jData) {
+                MsgAlert({content: jData.errorMessage ? jData.errorMessage : "增加工程文件措施失败", type: 'error'});
+            },
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    param.OWindow.MsgAlert({content: jData.msg ? jData.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_('dg1');
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jData.errorMessage ? jData.errorMessage : "增加工程文件措施失败", type: 'error'});
+                }
+            }
+        });
+
+    }
+</script>
+
+</body>
+</html>

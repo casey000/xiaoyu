@@ -1,0 +1,269 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+        }
+
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <div id="p0" class="easyui-panel" title="排班设置" style="width: 100%"></div>
+        <input type="hidden" id="pkid" name="pkid">
+        <table class="table table-bordered table-info">
+            <tr>
+                <td align="right" style="padding: 3px;">
+                    <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                           value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 航站：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="station" name="station" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+                <!--<th class="td5" style="width:110px;" align="right"> 生效日期：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="taskDate" name="taskDate" data-options="required:true"
+                           style="width:150px;"/>
+                </td>-->
+                <th class="td5" style="width:110px;" align="right"> 类别：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="type" name="type" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;text-align: center"></th>
+                <th class="td5" style="width:110px;text-align: center" align="center"> 班组</th>
+                <th class="td5" style="width:110px;text-align: center" align="center"> 起始时间</th>
+                <th class="td5" style="width:110px;text-align: center" align="center"> 结束时间</th>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 班次1：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="team1" name="team1" data-options="validType:['maxLength[10]']" style="width:150px;"/>
+                </td>
+                <td class="tdr">
+                    <input class="easyui-timespinner" id="timezone1B" name="timezone1B" data-options=""
+                           style="width:150px;"/>
+                </td>
+                <td class="tdr">
+                    <input class="easyui-timespinner" id="timezone1E" name="timezone1E" data-options=""
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 班次2：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="team2" name="team2" data-options="validType:['maxLength[10]']" style="width:150px;"/>
+                </td>
+                <td class="tdr">
+                    <input class="easyui-timespinner" id="timezone2B" name="timezone2B" data-options=""
+                           style="width:150px;"/>
+                </td>
+                <td class="tdr">
+                    <input class="easyui-timespinner" id="timezone2E" name="timezone2E" data-options=""
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 班次3：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="team3" name="team3" data-options="validType:['maxLength[10]']" style="width:150px;"/>
+                </td>
+                <td class="tdr">
+                    <input class="easyui-timespinner" id="timezone3B" name="timezone3B" data-options=""
+                           style="width:150px;"/>
+                </td>
+                <td class="tdr">
+                    <input class="easyui-timespinner" id="timezone3E" name="timezone3E" data-options=""
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 班次4：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="team4" name="team4" data-options="validType:['maxLength[10]']" style="width:150px;"/>
+                </td>
+                <td class="tdr">
+                    <input class="easyui-timespinner" id="timezone4B" name="timezone4B" data-options=""
+                           style="width:150px;"/>
+                </td>
+                <td class="tdr">
+                    <input class="easyui-timespinner" id="timezone4E" name="timezone4E" data-options=""
+                           style="width:150px;"/>
+                </td>
+            </tr>
+
+        </table>
+    </form>
+</div>
+</div>
+<script type="application/javascript">
+    var param;
+    var identity = 'dg';
+    var identity1 = 'dg1';
+    var PAGE_DATA = {};
+    var selectRow;
+    var checkBzFlag;
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "PM_MC_SECHEDULE_TYPE"},
+            successCallBack: function (jdata) {
+                // 初始化查询条件
+                //航站
+                $("#station").MyComboGrid({
+                    idField: 'STATION',  //实际选择值
+                    textField: 'STATION', //文本显示值
+                    panelHeight: '180px',
+                    width: 150,
+                    params: {FunctionCode: 'SELECT_STATION'},
+                    columns: [[
+                        {field: 'STATION', title: '航站三字码', width: 50},
+                        {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                        {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                        {field: 'FULLNAME_CN', title: '中文全称', width: 100},
+                    ]],
+                    onHidePanel: function () {
+                        var t = $(this).combogrid('getValue');
+                        if (t != null && t != '' & t != undefined) {
+                            if (selectRow == null || t != selectRow.STATION) {//没有选择或者选项不相等时清除内容
+                                alert('请选择，不要直接输入！');
+                                $(this).combogrid({value: ''});
+                            }
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        selectRow = row;
+                    }
+                });
+                $('#type').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.PM_MC_SECHEDULE_TYPE
+                });
+                if (param.PKID) {
+                    $("#pkid").val(param.PKID);
+                    InitDataForm(param.PKID);
+                }
+                $("#station").combogrid({value: 'SZX'});
+            }
+        });
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "SCHEDULE_GET"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                    $("#station").combobox({value: jdata.data.STATION, editable: false, onlyview: true});
+                    $("#type").combobox({value: jdata.data.TYPE, editable: false, onlyview: true});
+                }
+            }
+        });
+    }
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var team1 = $("#team1").textbox('getValue');
+        var team2 = $("#team2").textbox('getValue');
+        var team3 = $("#team3").textbox('getValue');
+        var team4 = $("#team4").textbox('getValue');
+
+        var timezone1B = $("#timezone1B").timespinner('getValue');
+        var timezone2B = $("#timezone2B").timespinner('getValue');
+        var timezone3B = $("#timezone3B").timespinner('getValue');
+        var timezone4B = $("#timezone4B").timespinner('getValue');
+
+        var timezone1E = $("#timezone1E").timespinner('getValue');
+        var timezone2E = $("#timezone2E").timespinner('getValue');
+        var timezone3E = $("#timezone3E").timespinner('getValue');
+        var timezone4E = $("#timezone4E").timespinner('getValue');
+
+        checkBz(team1, team2, team3, team4);
+        if (!checkBzFlag) {
+            MsgAlert({content: "班组信息不能重复", type: 'error'});
+            return;
+        }
+        checkBz(timezone1B, timezone2B, timezone3B, timezone4B);
+        if (!checkBzFlag) {
+            MsgAlert({content: "起始时间不能重复", type: 'error'});
+            return;
+        }
+        checkBz(timezone1E, timezone2E, timezone3E, timezone4E);
+        if (!checkBzFlag) {
+            MsgAlert({content: "结束时间不能重复", type: 'error'});
+            return;
+        }
+        
+        var data = $("#mform").serializeObject();
+        data = $.extend({}, data, {FunctionCode: 'SCHEDULE_ADD_EDIT'});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    var pkid = jdata.data;
+                    $("#pkid").val(pkid);
+                    param.OWindow.onSearch_();
+                    //CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#mform").form('clear');
+            }
+        });
+    }
+    function checkBz(v1, v2, v3, v4) {
+        if (v1 == "") {
+            v1 = "zhangxun1";
+        }
+        if (v2 == "") {
+            v2 = "zhangxun2";
+        }
+        if (v3 == "") {
+            v3 = "zhangxun3";
+        }
+        if (v4 == "") {
+            v4 = "zhangxun4";
+        }
+        if (v1 != v2 && v1 != v3 && v1 != v4 && v2 != v3 && v3 != v4) {
+            checkBzFlag = true;
+        } else {
+            checkBzFlag = false;
+        }
+    }
+</script>
+</body>
+</html>

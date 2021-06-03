@@ -1,0 +1,398 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>滑耗阈值设置</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="滑耗阈值设置" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="pageType"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="checkDataUnique()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>发动机型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="engType" name="engType" data-options="editable:false,required: true"
+                                   style="width: 164px;"/>
+                        </td>
+                        <th>监控类别：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-combobox" id="engOrApu" name="valueType"
+                                   data-options="required: true,editable:false"
+                                   style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>机型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="acTypeGroup" name="acTypeGroup"
+                                   data-options="editable:false,required: true" style="width: 164px;"/>
+                        </td>
+                        <th  class="threshold-right-left" >阈值：</th>
+                        <td class="tdr threshold-right-left">
+                            <input  id="valueType" name="alertValue"
+                                    type="text" class="easyui-numberbox"  data-options="required: true,min:0"
+                                    style="width: 164px;"/>
+                        </td>
+                        <th  class="threshold-n" style="display: none">连续N个航班：</th>
+                        <td  class="tdr threshold-n" style="width: 160px;display: none">
+                            <input  id="Nflight" name="conNum"
+                                    type="text" class="easyui-numberbox"  data-options="required: true,min:0"
+                                    style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr class="threshold-n">
+                        <th>阈值：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input  id="alertValue" name="alertValue"
+                                    type="text" class="easyui-numberbox"  data-options="required: true,min:0"
+                                    style="width: 164px;"/>
+                        </td>
+                        <th></th>
+                        <td class="tdr">
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>维护人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName" style="width: 164px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th>维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate" style="width: 164px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var operation;
+    var pkid;
+    var pkidOrg = "";
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        $("#modifyName").textbox('setValue', userLogin.userName);
+        $("#modifyUser").val(userLogin.accountId);
+        var currentDate = new Date();
+        var year = currentDate.getFullYear().toString();
+        var month = (currentDate.getMonth() + 1).toString();
+        var day = currentDate.getDate().toString();
+        $("#modifyDate").datebox('setValue', year + "-" + month + "-" + day);
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_OIL_SET_GROUP,ENG_OR_APU,ENG_CHECK_RESULT,ENG_OIL_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机型或组别
+                    $('#acTypeGroup').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_OIL_SET_GROUP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //监控类别
+                    $('#engOrApu').combobox({
+                        panelHeight: '80px',
+                        data: [
+                            {
+                                TEXT:"左右发加油量差值",
+                                VALUE:1
+                            },
+                            {
+                                TEXT:"连续N个航班总加油量",
+                                VALUE:2
+                            }
+                        ],
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange:changeShow
+                    });
+                    InitGatewayRequest_({
+                        type: "post",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getModelAndFleet",
+                        successCallBack: function (jdata) {
+                            var data = jdata.obj;
+                            var engTypeAcType = [];
+                            for(var i=0;i<data.length;i++){
+                                var pushData = {
+                                    VALUE:data[i].engType,
+                                    TEXT:data[i].engType,
+                                    engType:data[i].acType
+                                };
+                                engTypeAcType.push(pushData);
+                            };
+                            if (jdata.success == true) {
+                                $('#engType').combobox({
+                                    data: engTypeAcType,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                    onChange:getModelByEngine
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    toAddEditView();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        noNum();
+    }
+
+    function changeShow(val){
+        var selectVal = val;
+        showDef(val);
+    }
+
+    //请求对应的机型
+    function getModelByEngine(engine) {
+        var paramEng = {
+            engType:engine
+        }
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/basTypeMapper/getAcType",
+            data: paramEng,
+            successCallBack: function (jdata) {
+                $("#acTypeGroup").combobox({required: false, onlyview: false});
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    $("#acTypeGroup").combobox({required: false, onlyview: true});
+                    $("#acTypeGroup").combobox('setValue',data);
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                };
+            }
+        });
+    }
+
+    //只允许输入数字
+    function noNum()
+    {
+        $("#valueType").textbox('textbox').bind('keyup', function(e){
+            $("#valueType").textbox('setValue', $(this).val().replace(/\D/g,''));
+        });
+        $("#Nflight").textbox('textbox').bind('keyup', function(e){
+            $("#Nflight").textbox('setValue', $(this).val().replace(/\D/g,''));
+        });
+        $("#alertValue").textbox('textbox').bind('keyup', function(e){
+            $("#alertValue").textbox('setValue', $(this).val().replace(/\D/g,''));
+        });
+    }
+
+    function showDef(val){
+        if(val == 1){
+            $("#Nflight").textbox('textbox').validatebox('options').required = false;
+            $("#alertValue").textbox('textbox').validatebox('options').required = false;
+            $("#valueType").textbox('textbox').validatebox('options').required = true;
+            $(".threshold-n").hide();
+            $(".threshold-right-left").show();
+        }else if(val == 2){
+            $("#Nflight").textbox('textbox').validatebox('options').required = true;
+            $("#alertValue").textbox('textbox').validatebox('options').required = true;
+            $("#valueType").textbox('textbox').validatebox('options').required = false;
+            $(".threshold-n").show();
+            $(".threshold-right-left").hide();
+        };
+        $("#valueType").numberbox('setValue', "");
+        $("#Nflight").numberbox('setValue', "");
+        $("#alertValue").numberbox('setValue', "");
+    }
+
+    function toAddEditView(){
+        if(operation == 'add'){
+            addInitForOil();
+        }else if(operation == 'edit'){
+            editInitForOil();
+        }else if(operation == 'view'){
+            viewInitForOil();
+        }
+    }
+
+    //新增初始化
+    function addInitForOil(){
+        $("title").text("滑耗阈值设置新增");
+        $("#pageType").val("add");
+        $("#pkid").val("");
+        $("#saveBtn").show();
+        //清空内容
+        $("#acTypeGroup").combobox('setValue',"");
+        $("#engOrApu").combobox('setValue',1);
+        $("#engType").combobox('setValue',"");
+    }
+
+    //编辑初始化
+    function editInitForOil(){
+        $("title").text("滑耗阈值设置编辑");
+        $("#pageType").val("edit");
+        $("#pkid").val(pkid);
+        getDataForm();
+        $("#saveBtn").show();
+    }
+
+    //查看初始化
+    function viewInitForOil(){
+        $("title").text("滑耗阈值设置查看");
+        $("#pageType").val("view");
+        $("#pkid").val(pkid);
+        $(".easyui-textbox").textbox({required: false, onlyview: true});
+        $(".easyui-combobox").combobox({required: false, onlyview: true});
+        $(".easyui-datebox").datebox({required: false, onlyview: true});
+        $(".easyui-numberbox").numberbox('disable',true);
+        getDataForm();
+        $("#saveBtn").hide();
+    }
+
+    //请求并显示数据
+    function getDataForm() {
+        var getDataId = $('#pkid').val();
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path:"/meng-engine/engOilSetFuel/getFuelById/" + getDataId,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var getObjData = jdata.obj||{};
+                    $("#pkidOrg").val(getObjData.pkid||"");
+                    $("#acTypeGroup").combobox('setValue',getObjData.acTypeGroup||"");
+                    $("#engOrApu").combobox('setValue',getObjData.valueType||"");
+                    $("#engType").combobox('setValue',getObjData.engType||"");
+                    $("#modifyDate").datebox('setValue', timestampToTime(getObjData.modifyDate) );
+                    $("#modifyName").textbox('setValue', getObjData.modifyName||"");
+                    if(getObjData.valueType == '1'){
+                        $("#valueType").numberbox('setValue',getObjData.alertValue||"");
+                        $("#alertValue").numberbox('setValue',"");
+                        $("#Nflight").numberbox('setValue', "");
+                    }else if(getObjData.valueType == '2'){
+                        $("#valueType").numberbox('setValue',"");
+                        $("#alertValue").numberbox('setValue',getObjData.alertValue||"");
+                        $("#Nflight").numberbox('setValue', getObjData.conNum||"");
+                    };
+                } else {
+                    MsgAlert({content: jdata.errorMsg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //时间戳转换
+    function timestampToTime(timestamp) {
+        if(!!timestamp){
+            var date = new Date(timestamp );//时间戳为10位需*1000，时间戳为13位的话不需乘1000
+            var Y = date.getFullYear() + '-';
+            var M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+            var D = (date.getDate() < 10 ? '0'+date.getDate() : date.getDate()) + ' ';
+            var h = (date.getHours() < 10 ? '0'+date.getHours() : date.getHours()) + ':';
+            var m = (date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes()) + ':';
+            var s = (date.getSeconds() < 10 ? '0'+date.getSeconds() : date.getSeconds());
+            return Y+M+D+h+m+s;
+        }
+    };
+
+    //校验唯一性
+    function checkDataUnique(){
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            MsgAlert({content: "请先完善必填项！", type: 'error'});
+            return;
+        };
+        var datas = $("#mform").serializeObject();
+        if(datas.alertValue instanceof Array){
+            datas.alertValue = datas.alertValue[0];
+        };
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engOilSetFuel/checkUnique",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if (data > 0) {
+                        MsgAlert({content: "当前记录已经存在修订版本，不能重复修订!", type: 'error'});
+                        return;
+                    };
+                    save();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //保存
+    function save(datas) {
+        if(!datas){
+            var datas = $("#mform").serializeObject();
+            if(datas.alertValue instanceof Array){
+                datas.alertValue = datas.alertValue[0];
+            };
+        };
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engOilSetFuel/addOrEditFuel",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.doSearchOther_();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

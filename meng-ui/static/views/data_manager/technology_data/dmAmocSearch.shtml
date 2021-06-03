@@ -1,0 +1,283 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">单机AMOC查询</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="amocSearch" class="form-horizontal">
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:150px;" align="right">AMOC编号：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataNo" name="dataNo" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:150px;" align="right">标题：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataTitle" name="dataTitle" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:150px;" align="right">是否评估：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="ifAssess" name="ifAssess" style="width:120px;"/>
+                        </td>
+
+                        <th class="th" style="width:150px;" align="right">适用性：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="acNo" name="acNo" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:150px;" align="right">状态：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="status" name="status" style="width:120px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:150px;" align="right">单机/机队AMOC：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="ifAcAmoc" name="ifAcAmoc" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:150px;" align="right">关联资料编号：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="materialNo" name="materialNo" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:150px;" align="right">CAAC AMOC编号：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="caacAmocNo" name="caacAmocNo" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:150px;" align="right">CAAC AMOC批准：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="caacStatus" name="caacStatus" style="width:120px;"/>
+                        </td>
+                        <th class="th"  colspan="2" style="width:150px;text-align: center">
+                            <a class="searchBtn" type="button" onclick="searchData()"
+                               data-options="iconCls:'icon-search'">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            <a class="excelBtn" data-options="iconCls:'icon-page_excel'"
+                               onclick="excelExport('amoc_list','单机AMOC清单','DM_DATA_FILE_AMOC')"><span>导出</span></a>
+                        </th>
+                    </tr>
+
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="amoc_list"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+var PAGE_DATA = {};
+let param = getParentParam_();
+function i18nCallBack() {
+/*    InitFuncCodeRequest_({
+        data: {
+            domainCode: "DM_EXTER_STATUS",
+            FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+        },
+        successCallBack: function (jdata) {
+            //搜索下拉项初始化
+            initComBobData(jdata.data.DM_EXTER_STATUS);
+            PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["DM_EXTER_STATUS"]);
+        }
+    });*/
+    initComBobData();
+
+    //绑定键盘keypress搜索事件
+    bindFormonSearch_('#amocSearch',function(){
+        searchData();
+    });
+    //加载列表信息
+    InitAmocList();
+}
+
+//搜索下拉项初始化
+function initComBobData() {
+
+    $('#status').combobox({
+        valueField: 'key',
+        textField: 'value',
+        panelHeight: '100px',
+        data: [{key: "未发布", value: "未发布"}, {key: "已作废", value: "已作废"}, {key: "已发布", value: "已发布"}],
+    });
+
+
+    //是否评估
+    $('#ifAssess').combobox({
+            valueField: 'key',
+            textField: 'value',
+            panelHeight: '50px',
+            data: [{key: "是", value: "是"}, {key: "否", value: "否"}],
+    });
+
+    //CAAC AMOC批准
+    $('#caacStatus').combobox({
+        valueField: 'key',
+        textField: 'value',
+        panelHeight: '50px',
+        data: [{key: "申请中", value: "申请中"}, {key: "已申请", value: "已申请"},{key: "无需申请", value: "无需申请"}],
+    });
+
+    //单机/机队AMOC
+    $('#ifAcAmoc').combobox({
+        valueField: 'key',
+        textField: 'value',
+        panelHeight: '50px',
+        data: [{key: "单机", value: "单机"}, {key: "机队", value: "机队"}],
+    });
+
+}
+
+
+
+
+
+//加载列表信息
+function InitAmocList() {
+    $("#amoc_list").MyDataGrid({
+        identity: 'amoc_list',
+        sortable: true,
+        singleSelect: true,
+        pageSize: 15,
+        columns: {
+            param: {FunctionCode: 'DM_DATA_FILE_AMOC'},
+            alter: {
+                //附件 todo
+                TEST_UPLOAD: {
+                    formatter: function (value, row, index) {
+                        if (row.TEST_UPLOAD) {
+                            return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                        }
+                    }
+                },
+                DATANO: {
+                    formatter: function (value, row, index) {
+                        return '<a href="javascript:void(0);" onclick="data_see(\'' + row.DATAID + '\',\'' + row.APPLYTYPE + '\');">' + value + '</a>';
+                    }
+                },
+
+
+                DATAVER: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                DATATYPE: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                STATUS: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                DATATITLE: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                ACNO: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                IFASSESS: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                MATERIALNO: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                CAACAMOCNO: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                CAACSTATUS: {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                IFACAMOC  : {
+                    formatter: function (value) {
+                        return value;
+                    }
+                },
+                //caac file todo
+                CAAC_UPLOAD: {
+                    formatter: function (value, row, index) {
+                        if (row.CAAC_UPLOAD) {
+                            return '<a href="javascript:void(0);" rowindex="' + index + '" class="caacAttach">' +
+                                '<img src="/images/icon_pdf.gif" border="0" style="width:15px;height:15px;"/></a>'
+                        }
+                    }
+                },
+            }
+        },
+        onLoadSuccess: function () {
+            //CAAC AMOC 附件
+            InitSuspend('a.caacAttach',{
+                'onmouseover': function (thiz, event, callback) {
+                    var index = $(thiz).attr("rowindex");
+                    var row = $("#amoc_list").datagrid('getRows')[index];
+                    InitFuncCodeRequest_({
+                        data: {
+                            SOURCE_ID: row.CAAC_UPLOAD,
+                            CATEGORY: "feedback",
+                            FunctionCode: 'ATTACHMENT_RSPL_GET'
+                        },
+                        successCallBack: function (jdata) {
+                            if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                            }
+                            var html = "";
+                            var sta = row.DATA_STATUS;
+                            for (var i = 0; i < jdata.data.length; i++) {
+                                html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                            }
+                            callback(html);
+                        }
+                    });
+                }
+            });
+        },
+
+        onClickRow: function (rowIndex, rowData) {
+        }
+    });
+}
+
+function data_see(pkid,applyType) {
+    let title = $.i18n.t('外部文件接收');
+    ShowWindowIframe({
+        width: "850",
+        height: "500",
+        title: title,
+        param: {operation: "view", pkid: pkid, applyType: applyType},
+        url: "/views/data_manager/technology_data/amoc/amocAdd.shtml"
+    });
+}
+
+//搜索事件
+function searchData(){
+    onSearch_('amoc_list', '#amocSearch');
+}
+
+//重置
+function doClear_(){
+    $("#amocSearch").form('clear');
+    searchData();
+}
+
+</script>
+</body>
+</html>

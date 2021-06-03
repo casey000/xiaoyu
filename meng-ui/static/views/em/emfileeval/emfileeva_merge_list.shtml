@@ -1,0 +1,400 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <input type="hidden" id="selectType" name="selectType">
+                <tr>
+                    <th data-i18n="" style="width:70px;" align="right">文件编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="dataNo" id="dataNo" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">评估单号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="evaNo" id="evaNo" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">评估单标题：</th>
+                    <td>
+                        <input class="easyui-textbox" name="title" id="title" style="width:100px"/>
+                    </td>
+                    <td colspan="2">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchFor()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                        <a class="addBtn" onclick="save()">
+                            <span data-i18n="">确定</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg">
+</table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var evapkid;
+    var empkid;
+    var dmpkid;
+    var msgpkid;
+    var dataType;
+    var dataNo;
+    var dataVer;
+    var flag;
+    var adNo;
+    var adVer;
+    var issMan;
+    var issDate;
+    var applyType;
+    var applyModel;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        evapkid = param.evapkid;
+        dmpkid = param.dmpkid;
+        msgpkid = param.msgpkid;
+        dataType = param.dataType;
+        dataNo = param.dataNo;
+        dataVer = param.dataVer;
+        flag = param.flag;
+        adNo = param.adNo;
+        adVer = param.adVer;
+        issMan = param.issMan;
+        issDate = param.issDate;
+        applyType = param.applyType;
+        applyModel = param.applyModel;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EVALUATE_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_EVALUATE_STATUS"]);
+
+                    if (dataType == "AD") {
+                        InitDataGridAd();
+                    } else if (dataType == "CAD") {
+                        InitDataGridCad();
+                    } else if (dataType == "MOD") {
+                        InitDataGridStc();
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    function InitDataGridAd() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                pagination: true,
+            queryParams: {applyType: applyType},
+                columns: {
+                    param: {FunctionCode: 'EM_FILE_MERGE_AD_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                }
+            }
+        );
+    }
+
+
+    function InitDataGridCad() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                pagination: true,
+            queryParams: {applyType: applyType},
+                columns: {
+                    param: {FunctionCode: 'EM_FILE_MERGE_CAD_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                }
+            }
+        );
+    }
+
+    function InitDataGridStc() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                pagination: true,
+            queryParams: {applyType: applyType},
+                columns: {
+                    param: {FunctionCode: 'EM_FILE_MERGE_STC_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                }
+            }
+        );
+    }
+
+    function InitDataGridSb() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                pagination: true,
+                queryParams: {adNo: adNo, adVer: adVer},
+                columns: {
+                    param: {FunctionCode: 'EM_FILE_MERGE_SB_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                }
+            }
+        );
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                pagination: true,
+            queryParams: {adNo: adNo, adVer: adVer},
+                columns: {
+                    param: {FunctionCode: 'EM_FILE_MERGE_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                }
+            }
+        );
+    }
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    //合并评估单
+    function save() {
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: '请至少选择一行数据！', type: 'error'});
+            return false;
+        }
+        if (rows.length > 1) {
+            MsgAlert({content: '请至多选择一行数据！', type: 'error'});
+            return false;
+        }
+
+        empkid = rows[0].PKID;
+        var status = rows[0].STATUS;
+        var eapplyModel = rows[0].APPLY_MODEL;
+        var strdm = [];
+        if (applyModel.indexOf(",") != -1) {
+            strdm = applyModel.split(",");
+        } else {
+            strdm[0] = applyModel;
+        }
+        var strem = [];
+        if (eapplyModel.indexOf(",") != -1) {
+            strem = eapplyModel.split(",");
+        } else {
+            strem[0] = eapplyModel;
+        }
+        var result = array_intersection(strdm, strem);
+        if (result.length == 0) {
+            MsgAlert({content: '该资料与所选评估单的适用型号没有交集，不允许合并！', type: 'error'});
+            return false;
+        }
+
+        if (!(status == 'PGZ' || status == 'ISSUED' || status == 'TURNBACK')) {
+            var sta = "";
+            if (status == "JDZ") {
+                sta = "校对中";
+            } else if (status == "SHZ") {
+                sta = "审核中";
+            } else if (status == "ZGSPZ") {
+                sta = "总工审批中";
+            } else if (status == "KKXQZSPZ") {
+                sta = "可靠性群组审批中";
+            } else if (status == "WXFZSPZ") {
+                sta = "维修副总审批中";
+            } else if (status == "SFFZRSPZ") {
+                sta = "顺丰负责人审批中";
+            } else if (status == "ARCHIVE") {
+                sta = "归档";
+            }
+            MsgAlert({content: '评估单状态为[' + sta + "],不允许合并，待评估单为评估中或是生效状态即可处理！", type: 'error'});
+            return false;
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                empkid: empkid,
+                dmpkid: dmpkid,
+                msgpkid: msgpkid,
+                dataNo: dataNo,
+                dataType: dataType,
+                issMan: issMan,
+                issDate: issDate,
+                status: status,
+                flag: flag,
+                FunctionCode: 'EM_FILE_TASK_MERGE'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: '合并评估单成功。'});
+                    param.OWindow.reload2();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+
+    function array_remove_repeat(a) { // 去重
+        var r = [];
+        for (var i = 0; i < a.length; i++) {
+            var flag = true;
+            var temp = a[i];
+            for (var j = 0; j < r.length; j++) {
+                if (temp === r[j]) {
+                    flag = false;
+                    break;
+                }
+            }
+            if (flag) {
+                r.push(temp);
+            }
+        }
+        return r;
+    }
+
+    function array_intersection(a, b) { // 交集
+        var result = [];
+        for (var i = 0; i < b.length; i++) {
+            var temp = b[i];
+            for (var j = 0; j < a.length; j++) {
+                if (temp === a[j]) {
+                    result.push(temp);
+                    break;
+                }
+            }
+        }
+        return array_remove_repeat(result);
+    }
+
+</script>
+</body>
+</html>

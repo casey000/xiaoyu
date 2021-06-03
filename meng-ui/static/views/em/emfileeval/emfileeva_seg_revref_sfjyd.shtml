@@ -1,0 +1,204 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>手册修改建议单列表</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <input type="hidden" id="selectType" name="selectType">
+                <tr>
+                    <th data-i18n="" style="width:70px;" align="right">建议单号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="revsugNo" id="revsugNo" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">版次：</th>
+                    <td>
+                        <input class="easyui-textbox" name="ver" id="ver" style="width:100px"/>
+                    </td>
+                    <td colspan="2">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchFor()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                        <a class="addBtn" onclick="save()">
+                            <span data-i18n="">确定</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg">
+</table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var dealOpinion;
+    var dealMeasure;
+    var taskId;
+    var exeFlag;
+    var evaId;
+    var applyType;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        dealOpinion = param.dealOpinion;
+        dealMeasure = param.dealMeasure;
+        taskId = param.taskId;
+        exeFlag = param.exeFlag;
+        evaId = param.evaId;
+        applyType = param.applyType;
+//        if (applyType == "APL") {
+//            appType = "APL,PART";
+//        } else {
+//            appType = applyType;
+//        }
+        appType = applyType;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "REVSUG_STATUS,REVSUG_DATA_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["REVSUG_STATUS"]);
+                    PAGE_DATA['manualType'] = DomainCodeToMap_(jdata.data["REVSUG_DATA_TYPE"]);
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+
+    function InitDataGrid() {
+        var applyModel = "";
+        var ata = "";
+        InitFuncCodeRequest_({
+            data: {evaId: evaId, FunctionCode: 'EM_FILE_GET_MODEL'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        applyModel = jdata.data.APPLY_MODEL;
+                        ata = jdata.data.EVA_ATA;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                queryParams: {fleet: applyModel, ata: ata},
+                columns: {
+                    param: {FunctionCode: 'EM_FILE_ISSUE_JYD_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        },
+                        MANUAL_TYPE: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['manualType'] [value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                }
+            }
+        );
+    }
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    //合并评估单
+    function save() {
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: '请至少选择一行数据', type: 'error'});
+            return false;
+        }
+
+        if (dealMeasure == "REF") {
+            var detailData = JSON.stringify(rows);
+            InitFuncCodeRequest_({
+                data: {
+                    dealOpinion: dealOpinion,
+                    dealMeasure: dealMeasure,
+                    taskId: taskId,
+                    detailData: detailData,
+                    FunctionCode: 'EM_FILE_TASK_SF_JYD_REF'
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (exeFlag == "OTHERS") {
+                            param.OWindow.reload_7();
+                        } else {
+                            param.OWindow.reload_("#dg2");
+                        }
+                        param.OWindow.MsgAlert({content: '关联建议单成功。'});
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+</script>
+</body>
+</html>

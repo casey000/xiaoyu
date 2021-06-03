@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>TO工卡适用性增加</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form id="ffSearch" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width: 40px">机号:</th>
+                        <td>
+                            &nbsp;&nbsp;
+                            <input class="easyui-textbox" id="acNo" name="acNo" style="width:80px"/>
+                            <input class="btn btn-primary" id="searchBtn" type="button"
+                                   onclick="onSearch_('dg', '#ffSearch');" value="查询"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                        <td>
+                            &nbsp;&nbsp;
+                            <input class="btn btn-primary" id="saveBtn" type="button" onclick="save()" value="确定"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+            <table id="dg"></table>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 185) / 50);
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: pageSize,
+            queryParams: {fleet: param.fleet},
+            columns: {
+                param: {FunctionCode: 'TOJC_EFFECT_LIST'},
+                alter: {}
+            }
+        });
+
+    }
+
+    function save() {
+        var selectRows = $("#dg").datagrid('getChecked');
+        var selectCount = selectRows.length;
+        if (selectCount === 0) {
+            MsgAlert({content: '请选择要增加的记录！', type: 'error'});
+            return;
+        }
+        var acnos = '';
+        var msns = '';
+        var lnos = '';
+        $.each(selectRows, function (k, item) {
+            acnos += item.ACNO + ',';
+            if (typeof(item.MSN) != 'undefined') {
+                msns += item.MSN + ',';
+            } else {
+                item.MSN = '-';
+                msns += item.MSN + ',';
+            }
+            if (typeof(item.LINE_NO) != 'undefined') {
+                lnos += item.LINE_NO + ',';
+            } else {
+                item.LINE_NO = '-';
+                lnos += item.LINE_NO + ',';
+            }
+        });
+
+        acnos = acnos.substring(0, acnos.length - 1);
+        msns = msns.substring(0, msns.length - 1);
+        lnos = lnos.substring(0, lnos.length - 1);
+
+
+        InitFuncCodeRequest_({
+            data: {
+                jcPkid: param.jcPkid,
+                cPkid: param.cPkid,
+                cDesc: param.cDesc,
+                acnos: acnos,
+                msns: msns,
+                lnos: lnos,
+                FunctionCode: 'TOJC_JHMX_ADD'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.OWindow.reload_) {
+                        param.OWindow.reload_("dg1");
+                        param.OWindow.reload_("dg2");
+                        param.OWindow.reload_("dg1");
+
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

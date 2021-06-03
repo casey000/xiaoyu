@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用对象</title>
+</head>
+
+<body class="ibody">
+<div style="" id="tt">
+    <fieldset class="fieldset_eui">
+        <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <table class="table table-bordered table-info">
+                <tr id="view">
+                    <td align="right">
+                        <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                               style="width: 50px;margin:5px;"/>
+                        <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                               style="width: 50px;margin:5px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+<div>
+    <table id="dg" aligh="center"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var sfpkid;
+    var PAGE_DATA = {};
+    var evapkid;
+    var taskId;
+    var exeFlag;
+    var opflag;
+    var dealOpinion;
+    var exePkid;
+    var applyType;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        evapkid = param.evapkid;
+        sfpkid = param.sfpkid;
+        taskId = param.taskId;
+        exeFlag = param.exeFlag;
+        opflag = param.opflag;
+        dealOpinion = param.dealOpinion;
+        exePkid = param.exePkid;
+        applyType = param.applyType;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                }
+
+
+                InitDataGrid();
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var func = "";
+        if (opflag == "ENG") {
+            func = "EM_FILE_SF_GROUP_ENG_LIST";
+        } else if (opflag == "APL") {
+            func = "EM_FILE_SF_GROUP_APL_LIST";
+        } else if (opflag == "SF") {
+            if (applyType == "APL") {
+                func = "EM_FILE_SF_GROUP_LIST";
+            } else if (applyType == "ENG") {
+                func = "EM_FILE_SF_GROUP_ENG";
+            }
+        }
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            fitcolumn: true,
+            pagination: false,
+            queryParams: {evapkid: evapkid, taskId: taskId},
+            columns: {
+                param: {FunctionCode: func},
+                alter: {}
+            },
+            onLoadSuccess: function (index, row) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+
+    // 保存
+    function save() {
+        //序列化列表数据
+        var acPkids = "";
+        var rows = $('#dg').datagrid('getChecked');
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+            acPkids = acPkids + "、" + rows[i].acPkid;
+        }
+        acPkids = acPkids.substring(1, acPkids.length);
+        var detailData = JSON.stringify(rows);
+        InitFuncCodeRequest_({
+            data: {
+                detailData: detailData,
+                evapkid: evapkid,
+                acPkids: acPkids,
+                sfpkid: sfpkid,
+                opflag: opflag,
+                dealOpinion: dealOpinion,
+                exePkid: exePkid,
+                applyType: applyType,
+                FunctionCode: "EM_FILE_EVAL_GROUP_SAVE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (opflag == "ENG") {
+                        param.OWindow.reload_("#dg4");
+                    } else if (opflag == "APL") {
+                        param.OWindow.reload_("#dg3");
+                    } else if (opflag == "SF") {
+                        if (exeFlag == "OTHER") {
+                            param.OWindow.reload_("#dg7");
+                        } else {
+                            param.OWindow.reload_("#dg2");
+                        }
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

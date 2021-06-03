@@ -1,0 +1,297 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link href="/css/common_new.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common.css" rel="stylesheet" type="text/css">
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/ui.jqgrid.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_from_me.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/dialog_default.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/easyui.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/ztree/zTreeStyle.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_qc.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/jquery-ui-multiselect/jquery.multiselect.css" rel="stylesheet" type="text/css"/>
+
+
+    <script src="/js/global_var.js"></script>
+    <script src="/js/jquery/easyui/jquery-1.8.0.min.js" type="text/javascript"></script>
+    <!-- multiSelect -->
+    <script src="/js/jquery-ui-1.8.16.custom.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jquery-ui-multiselect/src/jquery.multiselect.js" type="text/javascript"></script>
+    <script src="/js/plugins/i18next/i18next.min.js"></script>
+    <!-- easy UI -->
+    <script src="/js/jquery/easyui/jquery.easyui.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js" type="text/javascript"></script>
+
+    <!-- Ztree 使用了tree类型的查询条件定义则需要引入此js -->
+    <script src="/js/jquery/ztree/jquery.ztree.core-3.4.js" type="text/javascript"></script>
+    <script src="/js/jquery/ztree/jquery.ztree.excheck-3.4.js" type="text/javascript"></script>
+
+    <!-- jqGrid-->
+    <script src="/js/jquery/jqGrid/jquery.jqGrid.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jqGrid/i18n/grid.locale-cn.js" type="text/javascript"></script>
+
+    <script src="/js/jquery/lhgdialog/lhgdialog.js" type="text/javascript"></script>
+
+    <script src="/js/sfa-query-1.0.js" type="text/javascript"></script>
+    <script src="/js/date_utils_from_me.js" type="text/javascript"></script>
+    <script src="/js/sfa-executor.js" type="text/javascript"></script>
+    <script src="/js/sfa-export.js" type="text/javascript"></script>
+
+    <title>故障查询列表</title>
+</head>
+<body class="ibody">
+<div class="div_dialog" id="tt">
+    <div id="qc_box"></div>
+    <div class="list_btn_row_s qc_template" id="qc_template_box"></div>
+    <div class="qc_advance" id="qc_advance_box"></div>
+
+    <div class="list_btn_row">
+        <ul>
+            <li class="right_button"><input class="btn" id="return_btn"
+                                            type="button" value="Return"/></li>
+            <li class="right_button"><input class="btn" id="export_btn"
+                                            type="button" value="Export"/></li>
+        </ul>
+    </div>
+    <div class="listbox">
+        <div class="gridbox">
+            <div class="grid_tab">
+                <table id="common_list_grid"></table>
+                <div id="gridPager"></div>
+            </div>
+        </div>
+    </div>
+    <div style="height:5px;"></div>
+    <table id="list_grid"></table>
+    <div id="pager"></div>
+</div>
+<div class="easyui-window" data-options="modal:true,closed:true" id="ACQueryWindow"
+     style="width:46%;height:50%;padding:5px 5px 5px 5px;"
+     title="A/C Query">
+    <table id="ACDg" pagination="true"></table>
+</div>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script type="text/javascript">
+    function getUrlParams() {
+        let search = window.location.search.split("?")[1];
+        let params = {};
+        $.each(search.split("&"), function (i, v) {
+            if(v) {
+                let key = v.split("=")[0];
+                let value = v.split("=")[1];
+                params[key] = value;
+            }
+        });
+        return params;
+    }
+
+    function InitACDataGrid() {
+        $("#ACDg").MyDataGrid({
+            identity: 'ACDg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,     //开启分页
+            fitColumns: true,
+            striped: false,
+            showHeader: false,
+            columns: {
+                param: {FunctionCode: 'FLB_AC_LIST'},
+                alter: {}
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [],
+            toolbar: [],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function () {
+                let row = $('#ACDg').datagrid('getSelected'); //获取所选行的数据
+                $("#acReg").attr("value", row.tail); //给station控件赋值
+                $('#ACQueryWindow').window('close'); //关闭弹窗
+            }
+        });
+    }
+
+    $(function () {
+        let params = getUrlParams();
+        let userdata = {
+            "status": params["defect.status"],
+            "acId": params["defect.acId"],
+            "acReg": params["defect.acReg"],
+            "station": params["station"]
+        };
+        let options = {
+            view: 'V_DEFECT_WORK_LOG_INFO',
+            qcOptions: {
+                qcBoxId: 'qc_box',
+                allConds: {
+                    "defectNo": {
+                        click: function (cell) {
+                            console.info(111);
+                        }
+                    },
+                    "acReg": {
+                        click: function (cell) {
+                            $('#ACQueryWindow').window('open');
+                            InitACDataGrid()
+                        }
+                    },
+                    "station": {
+                        click: function (cell) {
+                            ShowWindowIframe({
+                                width: "500",
+                                height: "300",
+                                title: '航站查询',
+                                param: {},
+                                url: "/views/tbm/flb/station_query.shtml"
+                            });
+                        }
+                    }
+                }
+            },
+            defaultParam: {
+                'qname': ['descRownum', "closeDays", "isdel"],
+                'qoperator': ["equals", "le", "equals"],
+                'qvalue': ['1', "2", "0"],
+                "userdata": userdata,
+            },
+            gridOptions: {
+                gridId: 'common_list_grid',
+                optsFirst: false,
+                jqGridSettings: {
+                    autowidth: false,
+                    width: 1080
+                }
+            }
+        };
+
+        $(document).sfaQuery(options);
+
+        $("#export_btn").click(function () {
+            var data = $(document).sfaQuery().postData();
+            var form = $("<form method='post' style='display:none' action='" + basePath + "/tlb/defect_work_log_poiexport.action'></form>");
+            var params = $.param(data).split("&");
+            $.each(data, function (key, val) {
+                if(typeof (val) == "object") {
+                    $.each(val, function (k1, v1) {
+                        form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                    });
+                } else {
+                    form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                }
+            });
+            $(this).parent().append(form);
+            form.submit();
+            form.remove();
+        });
+
+
+        $("#add_btn").click(function () {
+            showDialog_add(null, 'add');
+        });
+
+        //数据批量删除
+        $("#del_btn").click(function () {
+
+            var selectedIds = jQuery("#common_list_grid").getGridParam("selarrrow");//获取选中行的行号
+
+            validateUrl_ = basePath + "/mccdoc/to_management_deleteWorkTroubleValidate.action?workTroubleIds=" + selectedIds;
+
+            $.ajax({
+
+                url: validateUrl_,
+
+                contentType: "application/json; charset=utf-8",
+
+                dataType: "json",
+
+                cache: false,
+
+                success: function (obj, textStatus) {
+
+                    var data = JSON.parse(obj);
+
+                    if(data && data.message) {
+
+                        $.dialog.alert(data.message);
+
+
+                    } else {
+
+                        //进行删除操作
+                        deleteWorkTrouble(selectedIds.toString());
+                    }
+                }
+            })
+        });
+
+        $("#return_btn").click(function () {
+            let fromPage = params["fromPage"];
+            let url = basePath + "/views/defect/trouble_follow_up.shtml?fromPage=" + fromPage;
+            window.location = url;
+        });
+    });
+
+
+    function showDialog_add(obj, doType) {
+        var rowId = $(obj).attr('id');
+
+        var parameters = {
+            "methodType": doType
+        };
+
+        var actionUrl = basePath + '/work/work_trouble_toAddOrEdit.action?methodType=' + doType;
+
+        $.dialog({
+            id: doType + 'Page',
+            title: 'Track Basic Information ' + doType,
+            width: '1050px',
+            height: '500px',
+            top: '80px',
+            esc: true,
+            cache: false,
+            close: function () {
+
+            },
+            max: false,
+            min: false,
+            parent: this,
+            content: 'url:' + actionUrl,
+            data: parameters
+        });
+    }
+
+
+    function showDialog_ViewOrEdit(obj, doType) {
+        var troubleId = $(obj).attr('id');
+        var parameters = {
+            "methodType": doType,
+            "rowId": troubleId
+        };
+
+        var actionUrl = basePath + '/work/work_trouble_toView.action?troubleId=' + troubleId;
+        P.$.dialog({
+            id: 'Page',
+            title: 'Track Basic Information ' + doType,
+            width: '1050px',
+            height: '500px',
+            top: '80px',
+            esc: true,
+            cache: false,
+            close: function () {
+            },
+            max: true,
+            min: false,
+            parent: this,
+            content: 'url:' + actionUrl,
+            data: parameters
+        });
+    }
+
+
+</script>
+</body>
+</html>

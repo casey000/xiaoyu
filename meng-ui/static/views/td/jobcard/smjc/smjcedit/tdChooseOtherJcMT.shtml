@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>选择工卡</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">工卡号：</th>
+                    <td style="padding: 3px;width: 180px;">
+                        <input class="easyui-textbox" id="jcNo" name="jcNo" data-options="" style="width: 180px"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">中文标题：</th>
+                    <td style="padding: 3px;width: 300px;">
+                        <input class="easyui-textbox" id="subjectCn" name="subjectCn" data-options=""
+                               style="width: 300px"/>
+                    </td>
+                    <td align="right" style="padding: 3px;">
+                        <input class="btn btn-primary" type="button" onclick="onSearch_();"
+                               style="float: left;margin-left: 8px;" value="查询"/>
+                        <input class="btn btn-primary" type="button" onclick="add();" value="确定"
+                               style="float: left;margin-left: 8px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param = {};
+    var title;
+    var fleet;
+    var companyCode;
+    var originJcId;
+    function i18nCallBack() {
+        param = getParentParam_();
+        title = param.title;
+        fleet = param.fleet;
+        companyCode = param.companyCode;
+        originJcId = param.pkid;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_JC_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //工卡流程状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_JC_STATUS"]);
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: false,
+            queryParams: {fleet: fleet, companyCode: companyCode},
+            columns: {
+                param: {FunctionCode: 'CHOOSE_OTHER_JC_MT'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    }
+                }
+            }
+//            onLoadSuccess: function (jdata) {
+//                if (jdata) {
+//                    var acpanIdArr = acpanIds.split(',');
+//                    acpanIdArr = acpanIdArr.map(Number);//将字符串数组转为数值数组
+//                    $.each(jdata.rows, function (index, row) {
+//                        if (acpanIdArr.indexOf(row.PKID) > -1) {
+//                            $("#dg").datagrid('checkRow', index);
+//                        }
+//                    });
+//                }
+//            }
+        });
+    }
+
+    //确定--选取航材类型
+    function add() {
+        var title_ = $.i18n.t('选择航材类型');
+        var rowData = getDG('dg').datagrid('getSelected');
+        //复制航材前校验该工卡下是否有航材信息
+        InitFuncCodeRequest_({
+            data: {newJcId: rowData.PKID, FunctionCode: 'TD_CHECK_IF_CONTAIN_MT'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.COUNT > 0) {
+                        ShowWindowIframe({
+                            width: "460",
+                            height: "150",
+                            param: {
+                                originJcId: originJcId,//原工卡ID
+                                newJcId: rowData.PKID,//选择的新工卡ID
+                                title: title_
+                            },
+                            url: "/views/td/jobcard/smjc/smjcedit/tdChooseMTType.shtml"
+                        });
+                    } else {
+                        MsgAlert({content: "选择的该工卡下无航材信息，请确定后再选择！", type: 'error'});
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function closeCurrentWindow() {
+        param.OWindow.reloadMt();
+        CloseWindowIframe();
+    }
+
+</script>
+</html>

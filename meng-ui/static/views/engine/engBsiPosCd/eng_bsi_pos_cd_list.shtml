@@ -1,0 +1,248 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">缺陷/位置/特征尺寸</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:150px;" align="right">缺陷/位置/特征尺寸：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="posCd" name="posCd" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchClick();"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a href="javascript:void(0)" class="addBtn" auth="ENG_BSI_POS_CD_ADD"
+                           onclick="addOrEdit('add','')"><span>新增</span></a>&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var loginUser;
+    var loginName;
+
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_BSI_POS_OR_CD,ENG_BSI_UNIT",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机型或组别
+                    $('#posCd').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_BSI_POS_OR_CD,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //状态
+                    PAGE_DATA['posCd'] = DomainCodeToMap_(jdata.data["ENG_BSI_POS_OR_CD"]);
+                    PAGE_DATA['unit'] = DomainCodeToMap_(jdata.data["ENG_BSI_UNIT"]);
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engBsiPosCd/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_BSI_POS_CD_LIST'},
+                alter: {
+                    posCd: {
+                        formatter: function (value) {
+                            return PAGE_DATA['posCd'][value];
+                        }
+                    },
+                    unit: {
+                        formatter: function (value) {
+                            return PAGE_DATA['unit'][value];
+                        }
+                    },
+                    createDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    },
+                    proofDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view", i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEdit('view', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_BSI_POS_CD_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEdit('edit', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-proof", i18nText: "校核",
+                    auth: "ENG_BSI_POS_CD_PROOF",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        proof(rowData.pkid, '');
+                    }
+                },
+
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_BSI_POS_CD_DELETE",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/engBsiPosCd/delete/" + rowData.pkid + "/" + loginUser + "/" + loginName,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.obj, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (loginUser == row.createUser) {
+                    items['编辑'].enable = true;
+                    items['删除'].enable = true;
+                    items['校核'].enable = false;
+                } else {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                    items['校核'].enable = true;
+                }
+                if (row.proofName != null && row.proofDate != null) {
+                    items['校核'].enable = false;
+                    items['编辑'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEdit("view", value.pkid);
+            }
+        });
+    }
+
+    //添加或编辑--缺陷/位置/特征尺寸维护
+    function addOrEdit(operation, pkid) {
+        var title_ = $.i18n.t('添加或编辑-缺陷/位置/特征尺寸维护');
+        ShowWindowIframe({
+            width: "620",
+            height: "290",
+            title: title_,
+            param: {pkid: pkid, operation: operation},
+            url: "/views/engine/engBsiPosCd/eng_bsi_pos_cd_add_edit.shtml"
+        });
+    }
+
+    //校核--缺陷/位置/特征尺寸维护
+    function proof(pkid, status) {
+        var title_ = $.i18n.t('校核-缺陷/位置/特征尺寸维护');
+        ShowWindowIframe({
+            width: "620",
+            height: "290",
+            title: title_,
+            param: {pkid: pkid, status: status},
+            url: "/views/engine/engBsiPosCd/eng_bsi_pos_cd_proof.shtml"
+        });
+    }
+
+    function onSearchClick() {
+        InitDataGrid();
+    }
+
+    //刷新列表
+    function reload_() {
+        InitDataGrid();
+        // $("#dg").datagrid('reload');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        reload_();
+    }
+
+</script>
+</body>
+</html>

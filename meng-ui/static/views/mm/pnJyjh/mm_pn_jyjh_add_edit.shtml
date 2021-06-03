@@ -1,0 +1,293 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+        }
+    </style>
+</head>
+<body>
+<div style="width:730px;margin:0 auto;">
+    <form class="form-horizontal m-t" id="mform">
+        <div id="p0" class="easyui-panel" title="禁用/激活">
+            <input type="hidden" id="pkid" name="pkid">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td align="right" style="padding: 6px;">
+                        <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                        <input class="btn btn-primary" type="button" onclick="submitFlow();" value="提交"/>&nbsp;&nbsp;
+                        <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                               value="关闭"/>
+                    </td>
+                </tr>
+            </table>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th align="right" class="td5" style="width:120px;"> 申请类别：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="zzpnzt" name="zzpnzt"
+                               data-options="editable:false"
+                               style="width:200px;"/>
+                    </td>
+                    <th class="td5" style="width:120px;" align="right"> 申请件号：</th>
+                    <td class="tdr">
+                        <input class="easyui-combogrid" id="matnr" name="matnr" data-options="required:true"
+                               style="width:200px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th align="right" class="td5" style="width:120px;"> 件号状态：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="zzpnzt2" name="zzpnzt2"
+                               data-options="editable:false,onlyview:true"
+                               style="width:200px;"/>
+                    </td>
+                    <th align="right" class="td5" style="width:120px;"> 件号类别：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="zzpnlx" name="zzpnlx"
+                               data-options="editable:false,onlyview:true"
+                               style="width:200px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th align="right" class="td5" style="width:120px;"> 适用机型：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="appcab" name="appcab"
+                               data-options="editable:false,onlyview:true" style="width:200px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5" style="width: 130px;" align="right">备注：</th>
+                    <td class="tdr" colspan="3">
+                        <input class="easyui-textbox " name="memo" id="memo"
+                               data-options="validType:['maxLength[1000]']" multiline="true"
+                               style="height:50px;width: 626px"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</div>
+<script type="application/javascript">
+    var param;
+    var identity = 'dg';
+    var identity1 = 'dg1';
+    var PAGE_DATA = {};
+    var selectRow;
+    var zt1 = "";
+    var zt2 = "";
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "MM_DIC_PART_STATUS,MM_DIC_SAP_STATUS,MM_DIC_SAP_TYPE"
+            },
+            successCallBack: function (jdata) {
+                // 初始化查询条件
+                //申请类别
+                $('#zzpnzt').combobox({
+                    panelHeight: '140px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MM_DIC_PART_STATUS,
+                    onSelect: function (item) {
+                        if (item.VALUE == "1") {
+                            zt1 = "2";
+                            zt2 = "X";
+                        } else if (item.VALUE == "2") {
+                            zt1 = "1";
+                            zt2 = "";
+                        } else {
+                            zt1 = "1";
+                            zt2 = "2";
+                        }
+                        $("#matnr").MyComboGrid({
+                            idField: 'MATNR',  //实际选择值
+                            textField: 'MATNR', //文本显示值
+                            panelHeight: '200px',
+                            width: 200,
+                            params: {zzpnzt1: zt1, zzpnzt2: zt2, FunctionCode: 'SELECT_PARTNO'},
+                            columns: [[
+                                {field: 'MATNR', title: '件号', width: 80},
+                                {field: 'UDCHNDESC', title: '中文名称', width: 100},
+                                {field: 'DESCEN', title: '英文名称', width: 100}
+                            ]],
+                            onHidePanel: function () {
+                                var t = $(this).combogrid('getValue');
+                                if (t != null && t != '' & t != undefined) {
+                                    if (selectRow == null || t != selectRow.MATNR) {//没有选择或者选项不相等时清除内容
+                                        alert('请选择从列表中选择件号！');
+                                        $(this).combogrid({value: ''});
+                                    }
+                                }
+                            },
+                            onSelect: function (index, row) {
+                                selectRow = row;
+                                $('#zzpnzt2').combobox("setValue", row.ZZPNZT);
+                                $('#zzpnlx').combobox("setValue", row.ZZPNLX);
+                                $("#appcab").textbox('setValue', row.APPCAB);
+                                InitFuncCodeRequest_({
+                                    data: {pn: row.MATNR, pkid: $("#pkid").val(), FunctionCode: "MM_VPN_JYJH_GETBYPN"},
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            if (jdata.data != null) {
+                                                alert("该件号存在未审批完成的数据！");
+                                                $("#matnr").combogrid({value: ''});
+                                            }
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                });
+                $('#zzpnzt2').combobox({
+                    panelHeight: '140px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MM_DIC_SAP_STATUS
+                });
+
+                $('#zzpnlx').combobox({
+                    panelHeight: '140px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MM_DIC_SAP_TYPE
+                });
+
+                if (param.PKID) {
+                    $("#pkid").val(param.PKID);
+                    InitDataForm(param.PKID);
+                }
+
+            }
+        });
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "MM_VPN_JYJH_GET"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.ZZPNZT == "1") {
+                        zt1 = "2";
+                        zt2 = "X";
+                    } else if (jdata.data.ZZPNZT == "2") {
+                        zt1 = "1";
+                        zt2 = "";
+                    } else {
+                        zt1 = "1";
+                        zt2 = "2";
+                    }
+                    $("#matnr").MyComboGrid({
+                        idField: 'MATNR',  //实际选择值
+                        textField: 'MATNR', //文本显示值
+                        panelHeight: '200px',
+                        width: 200,
+                        params: {zzpnzt1: zt1, zzpnzt2: zt2, FunctionCode: 'SELECT_PARTNO'},
+                        columns: [[
+                            {field: 'MATNR', title: '件号', width: 80},
+                            {field: 'UDCHNDESC', title: '中文名称', width: 100},
+                            {field: 'DESCEN', title: '英文名称', width: 100}
+                        ]],
+                        onHidePanel: function () {
+                            var t = $(this).combogrid('getValue');
+                            if (t != null && t != '' & t != undefined) {
+                                if (selectRow == null || t != selectRow.MATNR) {//没有选择或者选项不相等时清除内容
+                                    alert('请选择，不要直接输入！');
+                                    $(this).combogrid({value: ''});
+                                }
+                            }
+                        },
+                        onSelect: function (index, row) {
+                            selectRow = row;
+                            $('#zzpnzt2').combobox("setValue", row.ZZPNZT);
+                            $('#zzpnlx').combobox("setValue", row.ZZPNLX);
+                            $("#appcab").textbox('setValue', row.APPCAB);
+                            InitFuncCodeRequest_({
+                                data: {pn: row.MATNR, pkid: $("#pkid").val(), FunctionCode: "MM_VPN_JYJH_GETBYPN"},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        if (jdata.data != null) {
+                                            alert("该件号存在未审批完成的数据！");
+                                            $("#matnr").combogrid({value: ''});
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                }
+            }
+        });
+    }
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var data = $("#mform").serializeObject();
+        data = $.extend({}, data, {FunctionCode: 'MM_VPN_JYJH_ADD_EDIT'});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    var pkid = jdata.data;
+                    $("#pkid").val(pkid);
+                    param.OWindow.onSearch_();
+                    //CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //提交工作流
+    function submitFlow(){
+        var pkid = $("#pkid").val();
+        if (!pkid){
+            MsgAlert({content:"请先保存基础数据！", type: 'error'});
+            return;
+        }
+        if(confirm("确认提交吗？")){
+            InitFuncCodeRequest_({
+                data: {pkid:pkid, FunctionCode: 'MM_VPN_JYJH_WORKFLOW_DEAL'},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        //MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        alert($.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS'));
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#mform").form('clear');
+            }
+        });
+    }
+</script>
+</body>
+</html>

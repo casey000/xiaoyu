@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">翻译标签配置管理</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:60px;" align="right">机队：</th>
+                    <td  style="width:60px; padding: 3px;">
+                        <input class="easyui-combobox" id="fleet" name="fleet" style="width:60px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">标准类型：</th>
+                    <td  style="width:80px; padding: 3px;">
+                        <input class="easyui-combobox" id="manualStan" name="manualStan" style="width:80px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">标签类型：</th>
+                    <td  style="width:60px; padding: 3px;">
+                        <input class="easyui-combobox" id="tagType" name="tagType" style="width:60px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">标签名称：</th>
+                    <td  style="width:150px; padding-left: 3px;">
+                        <input class="easyui-textbox" id="tagName" name="tagName" style="width:150px;"/>
+                    </td>
+                    <td  style="width: 120px; padding-left: 10px;">
+                        <a class="easyui-linkbutton" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="easyui-linkbutton" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                    <td  align="right">
+                        <a class="easyui-linkbutton" id="submit" onclick="editDetailData('add')"
+                           data-options="iconCls:'icon-add'">
+                            <span data-i18n="common:COMMON_OPERATION.ADD">增加</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,TD_MANUAL_STANDARD,TD_TAG_TYPE,TD_NODE_TYPE,TD_OPER_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机队
+                    $('#fleet').combobox({panelHeight: '110px', data: jdata.data.DA_FLEET, valueField: 'VALUE', textField: 'TEXT'});
+                    //手册标准
+                    $('#manualStan').combobox({panelHeight: '60px', data: jdata.data.TD_MANUAL_STANDARD, valueField: 'VALUE', textField: 'TEXT'});
+                    //标签类型
+                    $('#tagType').combobox({panelHeight: '140px', data: jdata.data.TD_TAG_TYPE, valueField: 'VALUE',textField: 'TEXT'  });
+
+                    //机队
+                    PAGE_DATA['fleet'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    //手册标准
+                    PAGE_DATA['manualStan'] = DomainCodeToMap_(jdata.data["TD_MANUAL_STANDARD"]);
+                    //标签类型
+                    PAGE_DATA['tagType'] = DomainCodeToMap_(jdata.data["TD_TAG_TYPE"]);
+                    //元素/属性
+                    PAGE_DATA['nodeType'] = DomainCodeToMap_(jdata.data["TD_NODE_TYPE"]);
+                    //操作类型
+                    PAGE_DATA['operType'] = DomainCodeToMap_(jdata.data["TD_OPER_TYPE"]);
+                    InitDataGrid();
+                }else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'TD_TAG_TRANS_LIST'},
+                alter: {
+                    TEST_UPLOAD: {},
+                    FLEET: {
+                        formatter: function (value) {
+                            return PAGE_DATA['fleet'][value];
+                        }
+                    },
+                    MANUAL_STAN: {
+                        formatter: function (value) {
+                            return PAGE_DATA['manualStan'][value];
+                        }
+                    },
+                    TAG_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['tagType'][value];
+                        }
+                    },
+                    NODE_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['nodeType'][value];
+                        }
+                    },
+                    OPER_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['operType'][value];
+                        }
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function () {},
+            contextMenus: [
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'TD_TAG_TRANS_DELETE'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        openDetai(operation, '');
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('标签操作详情');
+        ShowWindowIframe({
+            width: "380",
+            height: "240",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url:"/views/td/sysconfig/tagtrans/tdTagTransDetail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

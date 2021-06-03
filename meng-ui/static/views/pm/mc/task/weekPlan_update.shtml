@@ -1,0 +1,430 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <input type="hidden" id="id" name="id">
+        <input type="hidden" id="parentId" name="parentId">
+        <input type="hidden" id="flightId" name="flightId">
+        <table class="table table-bordered table-info">
+            <caption style="padding-bottom: 7px;font-weight:bold;">任务安排</caption>
+            <tr>
+
+                <td align="right" style="padding-top: 6px;padding-bottom: 6px">
+                    <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();" value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 机号：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="acReg" name="acReg" data-options="editable:false,onlyview:true"  style="width:150px"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 计划日期：</th>
+                <td class="tdr">
+                    <input class="easyui-datetimebox" id="jobDate" name="jobDate"
+                           data-options="editable:false,onlyview:true" style="width:150px"/>
+                </td>
+            </tr>
+            <!--<tr>
+                <th class="td5" style="width:110px;" align="right"> 任务类别：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="type" name="type" data-options="editable:false,onlyview:true" style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 任务子类别：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="workType" name="workType" data-options="editable:false,onlyview:true" style="width:150px;"/>
+                </td>
+            </tr>-->
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 航班号：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="flightNo" name="flightNo" data-options="editable:false,required:true" style="width:150px;"/>
+                    <a href="javascript:void(0)" class="easyui-linkbutton" style="height:20px"
+                       data-options="iconCls:'icon-search'"
+                       onclick="chooseFlight();"/>
+                <th class="td5" style="width:110px;" align="right"> 执行部门：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="executionDepartment" name="executionDepartment" data-options="editable:false,onlyview:true"
+                           style="width:150px"/>
+                </td>
+                </td>
+                <!--<th class="td5" style="width:110px;" align="right"> 阶段：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="" name="" data-options="required:true" style="width:150px;"/>
+                </td>-->
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 工作航站：</th>
+                <td class="tdr" colspan="3">
+                    <input class="easyui-textbox" id="station" name="station" data-options="editable:false,onlyview:true" style="width:150px;"/>
+            </tr>
+            <!--<tr>
+                <th class="td5" style="width:110px;" align="right"> 任务编号：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="workNumber" name="workNumber" data-options="editable:false,onlyview:true" style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 计划工时：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="planeHours" name="planeHours" data-options="editable:false,onlyview:true" style="width:150px;"/>
+                </td>
+            </tr>-->
+            <!--<tr>
+                <th class="td5" style="width:110px;" align="right"> 任务标题：</th>
+                <td class="tdr" colspan="3">
+                    <input class="easyui-textbox" id="" name="" data-options="required:true" style="width:468px;"/>
+                </td>
+            </tr>-->
+            <!--<tr>
+                <th class="td5" style="width:110px;" align="right"> 任务描述：</th>
+                <td class="tdr" colspan="3">
+                    <input class="easyui-textbox " name="description" id="description"
+                           data-options="validType:['maxLength[3000]'],editable:false,onlyview:true" multiline="true"
+                           style="height:100px; width:493px;"/>
+                </td>
+            </tr>-->
+        </table>
+    </form>
+</div>
+<script type="application/javascript">
+    var param;
+    var PAGE_DATA = {};
+    var id;
+    var docno;
+    var flag;
+    var isSpecialJob;
+    var originStation;
+    var taskNumber;
+    var sameWorkCount;
+    var expireDate;
+    var checkType;
+    var flightB;
+    var flightE;
+    function i18nCallBack(){
+        param = getParentParam_();
+        id=param.pkid;
+        flag = param.flag;
+        if (param.acno) {
+            $("#acReg").textbox("setValue", param.acno);
+        } else {
+            $("#flightNo").textbox({editable: false, required: false});
+        }
+        if (param.isSpecialJob) {
+            isSpecialJob = param.isSpecialJob;
+        }
+
+        InitFuncCodeRequest_({
+            data: {pkids: id, FunctionCode: 'MCC_WORK_MIN_DATE'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        expireDate = jdata.data.MIN_DATE;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+        if (param.station) {
+            originStation = param.station;
+        }
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_MP_ACTYPE,DA_ACNO,WB_WEIGTH_REASON,MCC_EXECUTION_COMPANY"
+            },
+            successCallBack: function (jdata) {
+                // 机型
+                PAGE_DATA['actype'] = DomainCodeToMap_(jdata.data.DA_ACREG_MP_ACTYPE);
+                // 机号
+                PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data.DA_ACNO);
+                $('#executionDepartment').combobox({
+                    panelHeight: '140px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MCC_EXECUTION_COMPANY,
+                    onChange: function (value) {
+                        if (value == 'B') {
+                            if (confirm("是否确认把该任务调整到定检执行？")) {
+                                $("#executionDepartment").combobox('setValue', "B");
+                            } else {
+                                $("#executionDepartment").combobox('setValue', "A");
+                            }
+                        }
+                    }
+                });
+                if(id){
+                    $("#id").val(id);
+                    //回显数据
+                    if ("AP" == flag) {
+                        InitDataForm(id);
+                    }
+                }
+                //执行部门默认航线
+                $("#executionDepartment").combobox('setValue', "A");
+            }
+        });
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "MCC_WORKORDER_GET"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                    docno = jdata.data.DOCNO;
+                    isSpecialJob = jdata.data.IS_SPECIAL_JOB;
+                    originStation = jdata.data.STATION;
+                    taskNumber = jdata.data.TASK_NUMBER;
+                    expireDate = jdata.data.EXPIRE_DATE;
+                    if (taskNumber != undefined && taskNumber != "") {
+                        InitFuncCodeRequest_({
+                            data: {taskNumber: taskNumber, FunctionCode: "SELECT_WORKORDER_BY_TASKNUMBER"},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    sameWorkCount = jdata.total;
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+    }
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        /*if (expireDate) {
+            var expireDateEnd = expireDate.substring(0, 10) + " 00:00:00";
+            if (Date.parse(new Date($("#jobDate").datetimebox('getValue'))) > Date.parse(new Date(expireDateEnd))) {
+                var bool = window.confirm("计划日期已经超出任务到期日期控制范围,是否继续安排？");
+                if (!bool) {
+                    return;
+                }
+            }
+        }*/
+
+        if (checkType == "O/G") {
+            if (flightB && flightE && $("#jobDate").datetimebox('getValue')) {
+                if (Date.parse(new Date($("#jobDate").datetimebox('getValue'))) < Date.parse(new Date(flightB)) || Date.parse(new Date($("#jobDate").datetimebox('getValue'))) > Date.parse(new Date(flightE))) {
+                    MsgAlert({content: '计划日期不能超出O/G任务时间段范围。', type: 'error'});
+                    return false;
+                }
+            }
+        }
+
+        /*取消提示
+        var confirmStr = "确定调整吗";
+        if ("AP" == flag) {
+            if (taskNumber != undefined && taskNumber != "") {
+                if (sameWorkCount > 1) {
+                    confirmStr = "此任务编号的任务都将被调整，确定调整吗";
+                }
+                if (sameWorkCount > 1 && docno && docno.indexOf("EO") == 0) {
+                    confirmStr = '此任务编号的任务，以及相关EO任务都将被调整，确定调整吗';
+                }
+            }
+        } else if ("PLAP" == flag) {
+            confirmStr = '如存在相同编号的任务，以及相关EO任务都将被调整，请知悉';
+        }
+        if (!window.confirm(confirmStr)) {
+            return;
+        }*/
+        var data = $("#mform").serializeObject();
+        data['flag'] = flag;
+        data = $.extend({}, data, {FunctionCode: 'MCC_WORKORDER_EDIT'});
+        MaskUtil.mask("请求处理中...");
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                MaskUtil.unmask();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    // if(jdata.msgData && jdata.msgData.length > 0){
+                    //     MsgAlert({content: jdata.msgData[0], type: 'error'});
+                    // }else{
+                        CloseWindowIframe();
+                        param.OWindow.searchData1();
+                        param.OWindow.InitDataCount();
+                        param.OWindow.reloadDjh();
+                        param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    // }
+                }else if(jdata.msgData && jdata.msgData.length > 0){
+                    MsgAlert({content: jdata.msgData[0], type: 'error'});
+                }else {
+                    MsgAlert({content: jdata.msg.replace("msg_err:", ""), type: 'error'});
+                }
+            }
+        });
+    }
+
+    //选择航班号
+    function chooseFlight() {
+        $("#jobDate").datetimebox({required: true, editable: false, onlyview: true});
+        var acno = $("#acReg").textbox("getValue");
+        $.chooseFlight({
+            fullData: true,
+            filter: {
+                ac: acno,
+                flag: 'mcc'
+            },
+            success: function (data) {
+                if (acno && acno != data.AC) {
+                    MsgAlert({content: "不能选择其它机号的航班", type: "error"});
+                    return;
+                }
+                checkType = data.CHECK_TYPE;
+                //机号为空，航站选择
+                if ("" == acno && !data.AC) {
+                    /*if (expireDate) {
+                        var expireDateEnd = expireDate.substring(0, 10) + " 00:00:00";
+                        if (data.jobDate > expireDateEnd) {
+                            if (!confirm("选择航班日期大于任务到期日期,是否安排")) {
+                                return;
+                            }
+                        }
+                    }*/
+                    if (isSpecialJob == "X" && originStation != data.station) {
+                        if (!confirm("指定工作航站为" + originStation + "，而目前选择的航班工作航站为" + data.station + "，是否确认调整？")) {
+                            return;
+                        }
+                    }
+                    if ("RELEASED" == data.status) {
+                        MsgAlert({content: "该段已放行，不能安排任务", type: "error"});
+                        return;
+                    }
+                    $("#station").textbox('setValue', data.station);
+                    $("#jobDate").datetimebox('setValue', data.jobDate);
+                    $("#flightNo").textbox('setValue', '');
+                    $("#flightId").val('');
+                    $("#parentId").val(data.id);
+                    //CREATE_OR_GET_STATION_TASK  PYC 2019-11-11 无需重新获取
+                    /*InitFuncCodeRequest_({
+                        data: {station: data.station, jobDate: data.jobDate.substring(0,10), FunctionCode: 'CREATE_OR_GET_STATION_TASK'},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                $("#parentId").val(jdata.data.id);
+                            }
+                        }
+                     });*/
+                } else {
+                    //航班选择
+                    if (data.CHECK_TYPE == "Pr/F" || data.CHECK_TYPE == "T/R") {
+                       /*if (expireDate) {
+                            var expireDateEnd = expireDate.substring(0, 10) + " 23:59:59";
+                            if (data.PLAN_TO > expireDateEnd) {
+                                if (!confirm("选择航班日期大于任务到期日期,是否安排")) {
+                                    return;
+                                }
+                            }
+                        }*/
+                        if (isSpecialJob == "X" && originStation != data.DEPARTURE) {
+                            if (!confirm("指定工作航站为" + originStation + "，而目前选择的航班工作航站为" + data.DEPARTURE + "，是否确认调整？")) {
+                                return;
+                            }
+                        }
+                        if ("RELEASED" == data.status1) {
+                            MsgAlert({content: "该段已放行，不能安排任务", type: "error"});
+                            return;
+                        }
+                        $("#station").textbox('setValue', data.DEPARTURE);
+                        $("#jobDate").datetimebox('setValue', data.PLAN_TO);
+                        $("#flightNo").textbox('setValue', data.FLIGHT_NO);
+                        $("#flightId").val(data.flightId);
+                        if(!!data.CHECK_TYPE2){
+                            $("#parentId").val(data.TBFTR);
+                        }else {
+                            $("#parentId").val(data.WORK_ORDER_ID);
+                        };
+                    }
+                    if (data.CHECK_TYPE == "Po/F" || data.CHECK_TYPE == "O/G") {
+                        /*if (expireDate) {
+                            var expireDateEnd = expireDate.substring(0, 10) + " 23:59:59";
+                            if (data.PLAN_LDG > expireDateEnd) {
+                                if (!confirm("选择航班日期大于任务到期日期,是否安排")) {
+                                    return;
+                                }
+                            }
+                        }*/
+                        if (isSpecialJob == "X" && originStation != data.ARRIVAL) {
+                            if (!confirm("指定工作航站为" + originStation + "，而目前选择的航班工作航站为" + data.ARRIVAL + "，是否确认调整？")) {
+                                return;
+                            }
+                        }
+                        if (data.CHECK_TYPE == "Po/F") {
+                            if("RELEASED" == data.status2){
+                                MsgAlert({content: "该段已放行，不能安排任务", type: "error"});
+                                return;
+                            }else{
+                                $("#station").textbox('setValue', data.ARRIVAL);
+                                $("#jobDate").datetimebox('setValue', data.PLAN_LDG);
+                                $("#parentId").val(data.pofWorkOrderId);
+                                $("#flightNo").textbox('setValue', data.FLIGHT_NO);
+                                $("#flightId").val(data.flightId);
+                            }
+                        }
+                        if (data.CHECK_TYPE == "O/G") {
+                            //任务安排页面，计划日期，在选择O/G时，放开可以编辑日期
+                            $("#jobDate").datetimebox({required:true,editable:true,onlyview:false});
+                            var hours_ = 0;
+                            //计算OG停场时长，如果大于24，job_date不需要回填。
+                            if (data.FLIGHT_DATE && data.FLIGHT_END_DATE) {
+                                hours_ = GetNumberOfHours(data.FLIGHT_DATE, data.FLIGHT_END_DATE);
+                                flightB = data.FLIGHT_DATE;
+                                flightE = data.FLIGHT_END_DATE;
+                            }
+                            InitFuncCodeRequest_({
+                                data: {parentId: data.pofWorkOrderId, FunctionCode: "SELECT_IS_UNRELEASED"},
+                                successCallBack: function (jdata) {
+                                    if (jdata.data.STATUS == 'RELEASED') {
+                                        MsgAlert({content: "该段已放行，不能安排任务", type: "error"});
+
+                                    } else {
+                                        $("#station").textbox('setValue', data.ARRIVAL);
+                                        if (hours_ < 24) {
+                                            $("#jobDate").datetimebox('setValue', data.PLAN_LDG);
+                                        }
+                                        $("#parentId").val(data.pofWorkOrderId);
+                                        $("#flightNo").textbox('setValue', data.FLIGHT_NO);
+                                        $("#flightId").val(data.flightId);
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        })
+    }
+    function GetNumberOfHours(date1, date2) {//获得小时数
+        //date1：开始日期，date2结束日期
+        var a1 = Date.parse(new Date(date1));
+        var a2 = Date.parse(new Date(date2));
+        var hours = parseInt((a2 - a1) / (1000 * 60 * 60));//核心：时间戳相减，然后除以天数
+        return hours
+    }
+    function closeAdd() {
+        CloseWindowIframe();
+        param.OWindow.reload_();
+        $("#mform").form('clear');
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_data_dict">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.WS_TABLE_LIST.TITLE"></title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <th>查询项：</th>
+                <td style="width:110px">
+                    <select name="queryType" class="easyui-combobox" data-options="required:true,editable:false" panelHeight="120"
+                            style="width:120px">
+                        <option value="TABLE_NAME">数据表名称</option>
+                        <option value="TABLE_CODE">数据表编码</option>
+                    </select>
+
+                </td>
+                <th >查询值：</th>
+                <td style="width:110px">
+                    <input class="easyui-textbox" id="queryValue" name="queryValue" />
+                </td>
+                <td colspan="2">
+                    &nbsp;&nbsp;
+                    <a href="javascript:void(0)" class="searchBtn" onclick="onSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                    <a href="javascript:void(0)" class="clearBtn" onclick="onClear_()" ><span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                </td>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+
+</form>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    function i18nCallBack(){
+        InitDataGrid();
+    }
+
+    $(function(){
+    });
+
+    function InitDataGrid(){
+        var identity = 'dg01';
+        $("#dg").MyDataGrid({
+            identity: identity,
+          //  title: $.i18n.t('RES.WS_TABLE_LIST.TITLE'),
+            columns: { param: { FunctionCode: 'WS_TABLE_LIST' },
+                alter : {
+                    'TYPE' : {formatter: function(value,row,index) {
+                        if('1' == row.TYPE){
+                            return "系统表";
+                        }else if('2' == row.TYPE){
+                            return "事务表";
+                        }
+                        return value;
+                    }}
+                }
+            },
+            contextMenus:[
+                {id: "m-edit", i18nText : "common:COMMON_OPERATION.EDIT", auth:"",
+                    onclick: function(){
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 1020, height : 420,
+                            url: "/views/ws/data_dict/table/table_add_edit.shtml"
+                        });
+                    }
+                }
+                ,{id: "m-delete", i18nText : "common:COMMON_OPERATION.DEL", auth:"",
+                    onclick: function(){
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next : "msg_err:ERRMSG.COMMON.DEL_TABLE_CONFIRM",
+                            param: {code:"CODE"},
+                            FunctionCode: "WS_TABLE_DEL"
+                        });
+
+                    }
+                },
+                {i18nText : "common:COMMON_OPERATION.SYNC_DBTABLE", auth:"",
+                    onclick: function(){
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        layerConfirm_({
+                            content: $.i18n.t("msg_err:ERRMSG.COMMON.SYNC_DBTABLE_CONFIRM"),
+                            yesFunc: function(index) {
+                                InitFuncCodeRequest_({
+                                    data: {FunctionCode: "WS_TABLE_SYNC_DBTABLE", tableCode: rowData.CODE},
+                                    successCallBack: function (jdata) {
+                                        layerStandardMsg_(jdata, index, function () {
+                                            common_reload_({identity : identity });
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                }
+            ],
+            toolbar: [
+                {key:"COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth:"",
+                    handler: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 1020, height : 420,
+                            url: "/views/ws/data_dict/table/table_add_edit.shtml"
+                        });
+                    }
+                }, '-',
+                {key:"COMMON_RELOAD",text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity:identity });
+                    }
+                }
+            ]
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_(){
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

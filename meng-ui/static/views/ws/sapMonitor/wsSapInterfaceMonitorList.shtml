@@ -1,0 +1,220 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">SAP接口监控</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right"><span>模块：</span></th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="monitorModule" name="monitorModule"
+                                   style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right"><span>状态：</span></th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right"><span>编号：</span></th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataNo" name="dataNo" style="width:100px;"/>
+                        </td>
+                        <td class="td5">
+                            <a class="searchBtn" type="button" onclick="searchData()"
+                               data-options="iconCls:'icon-search'">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var companyCode;
+    var COMBOBOX_DATA = {};
+
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO,SAP_MONITOR_STATUS,WS_MONITOR_MODULE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#monitorModule').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.WS_MONITOR_MODULE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.SAP_MONITOR_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["SAP_MONITOR_STATUS"]);
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                $("#status").combobox("setValue", "N");
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            queryParams: {status:"N"},
+            columns: {
+                param: {FunctionCode: 'WS_SAP_INTERFACE_MONITOR_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "重新推送", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var func = '';
+                        if(rowData.MONITOR_MODULE == 'EO' || rowData.MONITOR_MODULE == 'EA'){
+                            func = 'SEND_EM_EO_SAP';
+                        } else if (rowData.MONITOR_MODULE == 'SMJC' || rowData.MONITOR_MODULE == 'EOJC' || rowData.MONITOR_MODULE == 'EAJC' || rowData.MONITOR_MODULE == 'CMJC' || rowData.MONITOR_MODULE == 'LMJC' || rowData.MONITOR_MODULE == 'NSJC') {
+                            func = 'SEND_TD_JC_SAP';
+                        } else if (rowData.MONITOR_MODULE == 'TB') {
+                            func = 'SEND_TB_SAP';
+                        }
+                        ajaxLoading();
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: func},
+                            successCallBack: function (jdata) {
+                                ajaxLoadEnd();
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    reload_();
+                                    MsgAlert({content: "操作成功"});
+                                }else{
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+
+                                }
+                            }
+                        });
+                        // openDetai('edit', rowData.PKID);
+                    }
+                },
+                {
+                    id: "m-log", i18nText: "查看日志", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.LOG_INFO);
+                    }
+                }
+            ],
+            toolbar: [{
+                id: 'btnReload',
+                text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                iconCls: 'icon-reload',
+                handler: function () {
+                    $("#dg").datagrid("reload");
+                }
+            }],
+            validAuth: function (row, items) {
+                if (row.STATUS == "N") {
+                    items['重新推送'].enable = true;
+                    // items['查看日志'].enable = true;
+                } else {
+                    items['重新推送'].enable = false;
+                    // items['查看日志'].enable = false;
+                }
+                return items;
+            },
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        openDetai(operation, '');
+    }
+
+    function openDetai(operation, log) {
+        var title_ = $.i18n.t('查看日志详情');
+        ShowWindowIframe({
+            width: "610",
+            height: "280",
+            title: title_,
+            param: {operation: operation, log: log},
+            url: "/views/ws/sapMonitor/logDetail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+        i18nCallBack();
+
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title></title>
+    <script type="text/javascript">
+
+        var isEdit_;
+        var param = {};
+        $(function () {
+            param = getParentParam_();
+            isEdit_ = param && param.ID;
+            if (isEdit_) {
+                $("#id").val(param.ID);
+                InitFuncCodeRequest_({
+                    data: {id: param.ID, FunctionCode: "PROCESS_SERVICE_GET"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                            InitEditForm_();
+                            eval("var m_ = " + jdata.data.PARAMS_CONF + ";")
+                            InitDataGrid(m_);
+                        } else {
+                            layer.msg(jdata.msg, {icon: 5});
+                        }
+
+                    }
+                })
+            } else {
+                InitEditForm_();
+                InitDataGrid();
+            }
+
+        });
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'PROCESS_SERVICE_EDIT' : 'PROCESS_SERVICE_ADD')
+                    });
+                    data.paramsConf = JSON.stringify(getEnumDgRowsData_());
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" name="id" value=""/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+
+                        <th class="td5">业务逻辑名称 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="serviceName"
+                                   data-options="required:true,validType:['maxLength[160]']"
+                                   style="height:25px; width: 150px;"/>
+                        </td>
+
+
+                        <th class="td5">实例名 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="instanceName"
+                                   data-options="required:true,validType:['maxLength[160]']"
+                                   style="height:25px; width: 150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5">实例方法 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="methodName"
+                                   data-options="required:true,validType:['maxLength[160]']"
+                                   style="height:25px; width: 150px;"/>
+                        </td>
+
+                        <th class="td5">描述 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="description"
+                                   data-options="validType:['maxLength[160]']" style="height:25px; width: 150px;"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td colspan="4">
+                            <!--<p> 参数设置 ：</p>-->
+                            <table id="nn"></table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" align="center"><input class="searchBtn" type="submit" value="提交"
+                                                              style="border: none;cursor: pointer"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript">
+    function InitDataGrid(data) {
+        if (!data) {
+            data = [];
+        }
+
+        var identity = 'nn';
+        $("#nn").MyDataGrid({
+            identity: identity,
+            title: $.i18n.t('RES.PROCESS_SERVICE_LIST.TITLETWO'),
+            columns: [
+
+                {field: 'title', title: '标题', width: 140},
+                {field: 'name', title: '字段名', width: 240},
+                {field: 'prop', title: '属性宽,高', width: 140},
+                {field: 'value', title: '默认值', width: 240}
+
+            ],
+            pagination: false,
+            data: {total: data.length, rows: data},
+            contextMenus: [
+
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "",
+                    onclick: function () {
+                        var rowData = $("#" + identity).datagrid('getSelected');
+                        var idex = $("#" + identity).datagrid('getRowIndex', rowData);
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 600, height: 320,
+                            param: {title: rowData.title, name: rowData.name, value: rowData.value, INDEX: idex},
+                            url: "/views/ws/work_flow/flow_service/flow_variable_conf_add_edit.shtml"
+                        });
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "ROLE_DEL",
+                    onclick: function () {
+                        var row = $("#" + identity).datagrid('getSelected');
+                        var rowIndex = $("#" + identity).datagrid('getRowIndex', row);
+                        $("#" + identity).datagrid('deleteRow', rowIndex);
+                    }
+                }
+
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: '增加', auth: "ROLE_ADD",
+                    handler: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 600, height: 320, title: '增加列',
+                            url: "/views/ws/work_flow/flow_service/flow_variable_conf_add_edit.shtml"
+                        });
+                    }
+                }
+            ]
+        });
+    }
+
+    function insertEnumRow(record) {
+        var index = $("#nn").datagrid('getRows').length;
+        console.log(record)
+        $('#nn').datagrid('insertRow', {index: index, row: record});
+    }
+
+    function updateEnumRow(index, record) {
+        $('#nn').datagrid('updateRow', {index: index, row: record});
+    }
+
+    function getEnumDgRowsData_() {
+        var rows = $('#nn').datagrid('getRows');
+//        console.log(rows);
+        return rows;
+    }
+
+</script>
+</html>

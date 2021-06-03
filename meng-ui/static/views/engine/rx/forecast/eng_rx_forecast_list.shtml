@@ -1,0 +1,426 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">换发预测</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 103%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                    <td style="width: 120px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">发动机序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="esn" name="esn"  style="width:100px;"/>
+                    </td>
+
+                    <th class="th" style="width:80px;" align="right">下发原因：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="engRemoveReason" name="engRemoveReason"  style="width:100px;"/>
+                    </td>
+
+                    <th class="th" style="width:80px;" align="right">CSN：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="csnS" name="csnS"  data-options="validType:['length[1,8]','number']"  style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:5px;" align="right">-</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="csnE" name="csnE"  data-options="validType:['length[1,8]','number']"  style="width:100px;"/>
+                    </td>
+
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchClick();"><span>查询</span></a>
+                        <a href="javascript:void(0)" class="ridoBtn" data-options="iconCls:'icon-search'"
+                           onclick="doCompute()" auth="ENG_RX_FORECAST1"><span>重新预测</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th class="th" style="width:80px;" align="right">在翼机号：</th>
+                    <td style="width: 120px" class="td5">
+                        <input class="easyui-combobox" id="acReg" name="acReg" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">装机位置：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="curPos" name="curPos"  style="width:100px;"/>
+                    </td>
+                   <th class="th" style="width:80px;" align="right">机型：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acType" name="acType"  style="width:100px;"/>
+                    </td>
+
+                    <th class="th" style="width:80px;" align="right">CSO：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="csoS" name="csoS" data-options="validType:['length[1,8]','number']"  style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:5px;" align="right">-</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="csoE" name="csoE"  data-options="validType:['length[1,8]','number']"  style="width:100px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <span style='color: Red'>注：蓝色背景标识为飞高高原的飞机及发动机，详细工作要求参照TB-71-0023。</span>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiReport/getMpActypes",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#acType').combobox({
+                        data: jdata.obj,
+                        valueField: 'value',
+                        textField: 'text',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取机型列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            data:{matnr:''},
+            path: "/meng-engine/baseOwn/getAcnoByType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#acReg').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '100px',
+                    });
+                } else {
+                    MsgAlert({content: '获取机号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngTypeNew",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#epn').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                        onSelect: function (item) {
+
+                            InitGatewayRequest_({
+                                async: false,
+                                data:{matnr:item.VALUE},
+                                path: "/meng-engine/baseOwn/getAcnoByType",
+                                successCallBack: function (jdata) {
+                                    if (jdata.success == true) {
+                                        $('#acReg').combobox({
+                                            data: jdata.obj,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT',
+                                            panelHeight: '100px',
+                                        });
+                                    } else {
+                                        MsgAlert({content: '获取机号列表失败', type: 'error'});
+                                    }
+                                }
+                            });
+
+                            InitGatewayRequest_({
+                                async: false,
+                                data:{matnr:item.VALUE},
+                                path: "/meng-engine/baseOwn/getEngByTypeNew",
+                                successCallBack: function (jdata) {
+                                    if (jdata.success == true) {
+                                        $('#esn').combobox({
+                                            data: jdata.obj,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT',
+                                            panelHeight: '150px',
+                                        });
+                                    } else {
+                                        MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            data:{matnr:''},
+            //path: "/meng-engine/baseOwn/getEngByType",
+            path: "/meng-engine/baseOwn/getEngByTypeNew",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#esn').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        $('#engRemoveReason').combobox({
+            data: [{
+                TEXT: 'EGTM',
+                VALUE: 'EGTM'
+            },{
+                TEXT: 'LLP到限',
+                VALUE: 'LLP到限'
+            },{
+                TEXT: '孔探报告',
+                VALUE: '孔探报告'
+            },{
+                TEXT: '磁堵报告',
+                VALUE: '磁堵报告'
+            },{
+                TEXT: '商务因素',
+                VALUE: '商务因素'
+            },{
+                TEXT: 'TargetLife到限',
+                VALUE: 'TargetLife到限'
+            },{
+                TEXT: '指定下发',
+                VALUE: '指定下发'
+            }],
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            panelHeight: '150px',
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_POS,ENG_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['curPos'] = DomainCodeToMap_(jdata.data["ENG_POS"]);
+                    PAGE_DATA['engStatus'] = DomainCodeToMap_(jdata.data["ENG_STATUS"]);
+                    $('#curPos').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_POS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    $('#engStatus').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(){
+        //验证网关查询接口
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            idField: "PKID",
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/rxForecast/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_RX_FORECAST_LIST'},
+                alter: {
+                    engStatus:{
+                        formatter: function (value) {
+                            return PAGE_DATA['engStatus'][value];
+                        }
+                    },
+                    curPos:{
+                        formatter: function (value) {
+                            if (value =='U' || value == 'L')
+                                return "APU";
+                            else
+                                return value;
+                        }
+                    },
+                    appointRemoveDate: {
+                        type: 'date'
+                    },
+                    forecastRemoveDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    },
+                    comStartDate: {
+                        type: 'date'
+                    },
+                    esn:{
+                        formatter: function (value, row, index) {
+                            var ifGgy = row.ifGgy;
+                            if (ifGgy =='Y') {
+                                var blueHtml = "<span style='background-color: Cyan'>" + value + "</span>";
+                                return blueHtml;
+                            }
+                            return value;
+                        }
+                    },
+                    acReg:{
+                        formatter: function (value, row, index) {
+                            var ifGgy = row.ifGgy;
+                            if (ifGgy =='Y') {
+                                var blueHtml = "<span style='background-color: Cyan'>" + value + "</span>";
+                                return blueHtml;
+                            }
+                            return value;
+                        }
+                    }
+                }
+            },
+           /* frozenColumns:[[
+                {field:'esn',title:'发动机序号',width:100},
+                {field:'epn',title:'发动机型号',width:120}
+            ]],*/
+            rowStyler: function (index, row) {
+                var d = new Date();
+                var ifAlert = row.ifAlert;
+                var forecastRemoveDate = row.forecastRemoveDate;
+                if(forecastRemoveDate < d){
+                    return 'background-color:#FF0000;';//红色
+                }else if (ifAlert == 'Y') {
+                    return 'background-color:#FFBB77;';//橙黄FFA500
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view", i18nText: "预测调整",
+                    auth: "ENG_RX_FORECAST2",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        editRxForecast(rowData);
+                    }
+                },
+                {
+                    id: "m-view", i18nText: "调整记录",
+                    auth: "ENG_RX_FORECAST3",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        viewForecastEditLog(rowData);
+                    }
+                }
+            ],
+            /*onDblClickRow: function (index, field, value) {
+                addOrEditEngMcdMate("view", value.pkid);
+            }*/
+        });
+    }
+
+    function editRxForecast(rowData) {
+        var title_ = $.i18n.t('预测结果调整');
+        ShowWindowIframe({
+            width: "970",
+            height: "570",
+            title: title_,
+            param: {rowData: rowData},
+            url: "/views/engine/rx/forecast/eng_rx_forecast_edit.shtml"
+        });
+    }
+
+    function viewForecastEditLog(rowData) {
+        var title_ = $.i18n.t('调整日志');
+        ShowWindowIframe({
+            width: "970",
+            height: "570",
+            title: title_,
+            param: {rowData: rowData},
+            url: "/views/engine/rx/forecast/eng_rx_forecast_edit_log.shtml"
+        });
+    }
+    //刷新列表
+    function reload_() {
+        $("#dg").datagrid('reload');
+    }
+
+    function onSearchClick() {
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        i18nCallBack();
+    }
+
+    function doCompute() {
+        MaskUtil.mask('正在计算...');
+        InitGatewayRequest_({
+            path: "/meng-engine/rxForecast/compute",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    InitDataGrid();
+                    MaskUtil.unmask();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

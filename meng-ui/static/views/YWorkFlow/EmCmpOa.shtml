@@ -1,0 +1,459 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <meta http-equiv="X-UA-Compatible" content="IE=9;IE=10;IE=11;IE=EDGE"/>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script src="/js/workflow/activiti_workflow.js" type="text/javascript"></script>
+    <script src="/js/jquery.media.js" type="text/javascript"></script>
+    <!--<script src="/js/workflow/formtemplet.js" type="text/javascript"></script>-->
+    <title></title>
+    <style type="text/css">
+        .tdl {
+            width: 100px;
+            font-size: 12px;
+            color: #333;
+            font-family: '\5FAE\8F6F\96C5\9ED1', Tahoma, Arial, Helvetica, sans-serif, "open sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        .J_iframe {
+            border: 1px solid #D4D4D4;
+            border-bottom: 0px;
+        }
+
+        .lay_right_1 {
+            width: 40%;
+            border: 1px solid #D4D4D4;
+            border-left: 0px;
+            clear: left;
+            float: right;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .lay_left {
+            width: 60%;
+            border: 1px solid #D4D4D4;
+            border-right: 0px;
+            float: left;
+            position: absolute;
+            overflow: hidden;
+        }
+
+        .btn {
+            background-color: #18a689;
+            border-color: #18a689;
+            color: #FFF;
+        }
+
+        ._historyDg th {
+            color: #333;
+            font-size: 14px;
+            font-family: '\5FAE\8F6F\96C5\9ED1', Tahoma, Arial, Helvetica, sans-serif, "open sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            border: 1px solid #E6E6E6;
+            cellspacing: 0;
+            cellpadding: 0;
+            border-collapse: collapse;
+            border-spacing: 0px;
+        }
+
+        ._historyDg {
+            color: #333;
+            font-size: 14px;
+            font-family: '\5FAE\8F6F\96C5\9ED1', Tahoma, Arial, Helvetica, sans-serif, "open sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            border: 1px solid #E6E6E6;
+            cellspacing: 0;
+            cellpadding: 0;
+            border-collapse: collapse;
+            border-spacing: 0px;
+        }
+
+        ._historyDg td {
+            width: 150px;
+            padding: 0 4px;
+            border-left: 1px solid #E6E6E6;
+            border-top: 1px solid #E6E6E6;
+        }
+
+        ._historyDg tr {
+            height: 25px;
+        }
+    </style>
+    <script type="text/javascript">
+        var param = {};
+        var url;
+        var TypeMap_ = {};
+        var TASK_STATE_MAP = {
+            "N": "未执行", "F": "已完成", "T": "已终止",
+            "R": "已退回", "J": "已跳转", "H": "已转办"
+        };
+
+        function i18nCallBack() {
+            var key = GetUrlPars(window.location).BUSINESS_KEY_;
+            if (!key) {
+                MsgAlert({content: "请求有误", type: 'error'});
+                return;
+            }
+            InitFuncCodeRequest_({
+                data: {key: key, FunctionCode: "WS_FLOW_OA_GET_DATA"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        param = jdata.data;
+                        if (!jdata.data) {
+                            return;
+                        }
+                        $("#workflow").DiagramWorkFlow({
+                            imageUrl: "/api/activiti/diagram/flowimage?procInstId=" + param.PROC_INST_ID,   //流程图url
+                            traceUrl: '',
+                            isRevert: true,//是否还原展示流程图，{还原Activiti裁剪后的流程图，即将偏移量x=x+minX,y=y+minY}
+                            offsetX: 0,  //偏移量X
+                            offsetY: 0   //偏移量Y
+                        });
+                        InitResources();
+                        InitFuncCodeRequest_({
+                            data: {procInstId: param.PROC_INST_ID, FunctionCode: "WS_FLOW_HIS_TASK_LIST"},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    var _data = jdata.data;
+                                    var _htmls = "<table><tr><th>审批角色</th><th>办理人员</th><th>审批意见</th><th>任务状态</th><th>开始时间</th><th>完成时间</th><th>耗时</th></tr>";
+                                    if (_data) {
+                                        for (var i = 0; i < _data.length; i++) {
+                                            _htmls += "<tr><td>" + undefinedToString(_data[i].TASK_NAME) + "</td><td>" + undefinedToString(_data[i].OPERATOR_UNAME) + "</td><td>" +
+                                                undefinedToString(_data[i].TASK_NOTES) + "</td><td>" + undefinedToString(taskStatus(_data[i].ACT_STATE, _data[i].RECORD_STATE)) +
+                                                "</td><td>" + undefinedToString(_data[i].START_TIME) + "</td><td>" + undefinedToString(_data[i].END_TIME) +
+                                                "</td><td>" + undefinedToString(toMsTimeString(_data[i].DURATION || _data[i].DURATION_0)) + "</td></tr>";
+                                        }
+                                    }
+                                    _htmls += "</table>";
+                                    $("#historyDg").append(_htmls);
+                                }
+                            }
+                        });
+
+                        $("#authId").MyComboGrid({
+                            idField: 'ACCOUNT_ID',  //实际选择值
+                            textField: 'USER_NAME', //文本显示值
+                            panelHeight: '220px',
+                            width: 200,
+                            params: {FunctionCode: 'EM_CMP_FLOW_WORK'},
+                            columns: [[
+                                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                                {field: 'USER_NAME', title: '审核人', width: 50}
+                            ]],
+                            onHidePanel: function () {
+                                var t = $(this).combogrid('getValue');
+                                if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                                    alert('请选择，不要直接输入！');
+                                    $(this).combogrid({value: ''});
+                                }
+                            }
+                        });
+                        document.getElementById("div_tdl").style.display = "none";
+                        document.getElementById("div_tdr").style.display = "none";
+                        initDataGrid(param.PROC_DEF_ID, param.PROC_INST_ID);
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+
+        // 将undefined转换成''
+        function undefinedToString(_value) {
+            if (!_value || typeof(_value) == 'undefined') {
+                return "";
+            } else {
+                return _value;
+            }
+        }
+
+        // 获取任务状态
+        function taskStatus(actState, recordState) {
+            var v = [TASK_STATE_MAP[actState]];
+            if (recordState && recordState != 'N' && recordState != 'F') {
+                v.push(TASK_STATE_MAP[recordState])
+            }
+            return v.join(",")
+        }
+
+        function InitResources() {
+            InitFuncCodeRequest_({
+                data: {
+                    FunctionCode: 'PROCESS_FORM_RESOURCE',
+                    taskId: param.TASK_ID, flowDefId: param.FLOW_DEF_ID
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                        return;
+                    }
+                    var resource = jdata.data.data;
+                    var form = jdata.data.form;
+                    var execution = jdata.data.execution;
+                    var node = jdata.data.node;
+                    var variables = eval(node.variables);
+                    var options = arrangeVariables(variables);
+                    $.each(options, function (k, it) {
+                        if (it[0].varOption == 'Textbox') {
+                            var vdata = {titleName: it[0].varName, fieldName: it[0].varKey, value: ''};
+                            if (typeof(TypeMap_[it[0].varKey]) == 'undefined') {
+                                TypeMap_[it[0].varKey] = it[0].varDataType || '';
+                            }
+                        } else if (it[0].varOption == 'Combobox') {
+                            var vdata = {titleName: it[0].varName, fieldName: it[0].varKey, options: []};
+                            $.each(it, function (k1, it1) {
+                                vdata.options.push({text: it1.varValue, value: it1.varValue});
+                                if (typeof(TypeMap_[it1.varKey]) == 'undefined') {
+                                    TypeMap_[it1.varKey] = it1.varDataType || '';
+                                }
+                            });
+                        }
+                    });
+                    var resource_ = toCamelCase(resource);
+                    if (typeof(InitLoadResource) == 'function') {
+                        InitLoadResource(resource, execution, node);
+                    }
+                }
+            });
+        }
+
+        /**
+         * 组装选项数据
+         * @param vars
+         * @returns {{}}
+         */
+        function arrangeVariables(vars) {
+            var m = {};
+            $.each(vars, function (k, v) {
+                if (v.varOption != 'Hidden') {
+                    var lst = m[v['varKey']] || [];
+                    lst.push(v);
+                    m[v['varKey']] = lst;
+                }
+            });
+            return m;
+        }
+
+        function InitLoadResource(resource, execution, node) {
+            url = resource.fileKey;
+            if (!url) {
+                url = "";
+                MsgAlert({content: "审批文件请求路径为空", type: 'error'});
+            }
+            if (url != '') {
+                $('#iframe0').attr('src', '/views/YWorkFlow/EmCmpPdf.shtml');
+            }
+            oaUrl = "/views/YWorkFlow/EmCmpOa.shtml?BUSINESS_KEY_=" + execution.businessKey;
+            $("#formUrl").val(oaUrl);
+        }
+
+        //同意的时候，默认意见为“同意”，不同意的时候，意见必填
+        function getAdvice() {
+            var adopt = $("#adopt").val();
+            var notes = $("#notes").textbox("getValue").trim();
+            if (adopt == "Y") {
+                if (!notes) {
+                    $("#notes").textbox({value: "同意"});
+                }
+                doSubmit()
+            } else {
+                if (!notes) {
+                    MsgAlert({content: "请填写处理意见", type: 'error'});
+                    return;
+                }
+                $("#isFirstNode").val('N');
+                doReturn();
+            }
+        }
+
+        function doSubmit() {
+            $.messager.confirm('提示', '您确定要提交吗?', function (r) {
+                if (r) {
+                    var $form = $("#mform");
+                    var isValidate = $form.form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: 'PROCESS_TASK_SUBMIT', //PROCESS_TERMINATE_TASK
+                        taskId: param.TASK_ID, flowDefId: param.FLOW_DEF_ID,
+                        typeMap: JSON.stringify(TypeMap_)
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        trustCode: GetUrlPars(window.location).trustCode,
+                                        url: "/api/updateWsSysOatoamro"
+                                    }, successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        } else {
+                                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                        }
+                                    }
+                                });
+                                window.location.replace("http://172.18.8.92/mybox/fleshopener.htm");
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function doReturn() {
+            $.messager.confirm('提示', '您确定要退回吗?', function (r) {
+                if (r) {
+                    var notes = $("#notes").textbox('getValue');
+                    if ($.trim(notes) == '') {
+                        MsgAlert({content: '请输入您的退回意见', type: 'error'});
+                        return;
+                    }
+
+                    var $form = $("#mform");
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: 'WS_FLOW_TURNBACK', reSelect: 'up',//PROCESS_TERMINATE_TASK
+                        taskId: param.TASK_ID, procDefId: param.PROC_DEF_ID,
+                        notes: notes
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function GetUrlPars() {
+            var url = location.search;
+            var theRequest = {};
+            if (url.indexOf("?") != -1) {
+                var str = url.substr(1);
+                strs = str.split("&");
+                for (var i = 0; i < strs.length; i++) {
+                    var sTemp = strs[i].split("=");
+                    theRequest[sTemp[0]] = (sTemp[1]);
+                }
+            }
+            return theRequest;
+        }
+
+        function initDataGrid(procDefId, procInsId) {
+            var pageSize = Math.floor(($("#mlayout").height() - 40) / 30);
+            $("#r_dg").MyDataGrid({
+                identity: "dg3",
+                sortable: true,
+                singleSelect: true,
+                queryParams: {procDefId: procDefId, procInsId: procInsId},
+                pagination: false,
+                pageSize: pageSize, pageList: [pageSize],
+                resize: function () {
+                    return tabs_standard_resize($('#lay_right'), 0, 0, -45);
+                },
+                columns: {
+                    param: {FunctionCode: 'EM_CMP_PDF_BY_DEF'}
+                },
+                contextMenus: [
+                    {
+                        id: "m-approvalProcess", i18nText: "查看附件", auth: "",
+                        onclick: function () {
+                            var row = $('#r_dg').datagrid('getSelected');
+                            if (!row) {
+                                return;
+                            }
+                            if (!row.URL || row.URL == '/') {
+                                MsgAlert({content: "文件请求路径为空", type: 'error'});
+                                return;
+                            }
+                            downFileLocal(row.PKID);
+                        }
+                    }
+                ]
+            })
+        }
+    </script>
+</head>
+<body class="ibody">
+<div class="ibox-content">
+    <form id="mform">
+        <!-- 业务数据展示 start-->
+        <input type="hidden" name="proofBy" id="proofBy"/>
+        <input type="hidden" name="approver" id="approver"/>
+        <input type="hidden" name="ratifyBy" id="ratifyBy"/>
+        <input type="hidden" name="zApprover" id="zApprover"/>
+        <input type="hidden" name="fzApprover" id="fzApprover"/>
+        <input type="hidden" name="dbApprover" id="dbApprover"/>
+        <input type="hidden" name="formUrl" id="formUrl"/>
+        <input name="" id="taskId" type="hidden"/>
+        <input type="hidden" id="isFirstNode" name="isFirstNode">
+        <div id="tabs" class="easyui-tabs">
+            <div title="正文信息">
+                <iframe class="J_iframe" id="iframe0" name="iframe0" width="100%" height="480px;"
+                        src="/views/YWorkFlow/EmCmpPdf.shtml" frameborder="0" data-id="index_v1.html" seamless></iframe>
+
+                <div id="mlayout" class="easyui-layout" style="height: 35%;">
+                    <div id="lay_left" class="lay_left">
+                        <tr>
+                            <td>
+                                <table class="table table-bordered table-info" id="mtable" style="width: 100%">
+                                    <tr>
+                                        <th class="tdl"> 是否通过：</th>
+                                        <td class="tdr">
+                                            <select id="adopt" name="adopt" editable="false" style="width: 80px;">
+                                                <option value="Y">通过</option>
+                                                <option value="N">不通过</option>
+                                            </select>
+                                        </td>
+                                        <th class="tdl" id="div_tdl"> 下一级办理人：</th>
+                                        <td class="tdr" id="div_tdr">
+                                            <input class="easyui-combobox" id="authId" name="authId"
+                                                   data-options="" style=""/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th class="tdl"> 处理意见：</th>
+                                        <td class="tdr">
+                                            <input id="notes" class="easyui-textbox easyui-validatebox" name="notes"
+                                                   data-options="multiline:true, validType:['maxLength[200]'] "
+                                                   style="height:50px; width: 100%;"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="6" align="center">
+                                            <input id="canSubmit" class="btn" type="button" style="margin-bottom: 5px;"
+                                                   onclick="getAdvice();" value="提交"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </div>
+                    <div id="lay_right" class="lay_right_1" data-options="region:'east'">
+                        <table id="r_dg"></table>
+                    </div>
+                </div>
+            </div>
+            <div title="流程节点" style="">
+                <div id="workflow" style="irflow-x: scroll;"></div>
+            </div>
+            <div title="批办过程" style="">
+                <table id="historyDg" class="_historyDg"></table>
+            </div>
+        </div>
+    </form>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</body>
+</html>

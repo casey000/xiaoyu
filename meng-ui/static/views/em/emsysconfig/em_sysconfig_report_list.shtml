@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_SYSCONFIG_REG.TITLE">系统构型管理报表</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th id="id_fleet" style="width: 70px">机队：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fleet" id="fleet" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th style="width: 80px">飞机注册号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="acNo" id="acNo" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th style="width: 70px">ATA：</th>
+                    <td>
+                        <input class="easyui-combobox" name="ata" id="ata" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th style="width: 70px">构型描述：</th>
+                    <td>
+                        <input class="easyui-textbox" name="configDesc" id="configDesc" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th style="width: 70px">构型编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="configNo" id="configNo" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <td></td>
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="searchData()">查询</a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a class="excelBtn" id="excelExport"
+                           title="按机型条件值导出，值为空导出全部机型"
+                           onclick="exportReport()"
+                           data-options="iconCls:'icon-page_excel'">
+                            <span data-i18n="common:COMMON_OPERATION.EXPORT">导出</span>
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<div id="sys_report_tab" class="easyui-tabs" style="width:100%;height: 100%">
+<div title="B737" style="padding:20px;display:none;">
+    <table id="dgB737"></table>
+</div>
+<div title="B747"  style="overflow:auto;padding:20px;display:none;">
+    <table id="dgB747"></table>
+</div>
+<div title="B757"  style="padding:20px;display:none;">
+    <table id="dgB757"></table>
+</div>
+<!--<div title="B767" data-options="iconCls:'icon-reload',closable:false" style="padding:20px;display:none;">-->
+<div title="B767"  style="padding:20px;display:none;">
+    <table id="dgB767"></table>
+</div>
+</div>
+
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var accountId;
+    var daAcRegList = "";
+    var tabTitle;
+
+    function i18nCallBack() {
+        accountId = getLoginInfo().accountId;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_FLEET," +
+                    "BM_ATA_CHAP_SECT"
+            },
+
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    $('#fleet').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ata').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.BM_ATA_CHAP_SECT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        tabTitle = "B737";
+        var acConfig = { "fleet": "B737" };
+        var paramData = {"userdata":{"fleet": "B737"}};
+        initSysConfig(acConfig,paramData);
+
+        // 添加一个新的标签页面板（tab panel）
+        $('#sys_report_tab').tabs({
+            border:false,
+            onSelect:function(title){
+                tabTitle = title;
+                var acConfigTab = { "fleet": title };
+                var paramDataTab = { "userdata": { "fleet": title }};
+                initSysConfig(acConfigTab,paramDataTab);
+            }
+        });
+    }
+
+    function initSysConfig(acConfig, paramData) {
+        $.ajax({
+            type: "post",
+            url: "/api/v1/emSysConfig/queryFleetAcNoList",
+            async: false,
+            data: acConfig,
+            success: function (result) {
+                daAcRegList = result.data;
+                initDataGrid(paramData)
+            },
+            error: function (data) {
+            }
+        });
+    }
+
+
+    /**
+     *  功能描述:  初始化列表
+     *  2019/10/30
+     */
+    function initDataGrid(paramData) {
+
+        var columnsArr = getColumn(daAcRegList);
+        // 格式化值
+        $("#dg"+tabTitle).MyDataGrid({
+            identity: 'dg',
+            method: 'post',
+            sortable: false,
+            singleSelect: false,
+            url: "/api/v1/emSysConfig/queryFleetConfigList",
+            queryParams: paramData,
+            columns: columnsArr,
+            loadFilter: function (result) {
+                var sisConfigList = result.data.sisConfigList;
+                var sisConfigGroupList = result.data.SysConfigGroupMap;
+                var rows = result.rows;
+                for (var i in sisConfigList) {
+                    var sysConfig = sisConfigList[i];
+                    var modelConfigNo = sysConfig.fleet + '_' + sysConfig.configNo;
+                    var sisConfigGroupArr = sisConfigGroupList[modelConfigNo];
+                    var sys = {fleet: sysConfig.fleet, configNo: sysConfig.configDesc + '<br/>' + sysConfig.configNo};
+                    for (var j in sisConfigGroupArr) {
+                        var row = sisConfigGroupArr[j];
+                        var acNo = row.acNo;
+                        sys[acNo] = row.configGroupDesc;
+                    }
+                    //index必须整型，否则序号显示异常i
+                    rows.push(sys);
+                }
+                return result;
+            },
+            // 添加列表的操作按钮添加，修改，删除等
+            toolbar: [
+                {text: '刷新', iconCls: 'icon-reload', id: 'reload', handler: reload_}
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    }
+
+
+    function getColumn(daAcRegList) {
+        var columnsArr = [
+            {field: 'fleet', title: '机型', width: 80},
+            {field: 'configNo', title: '构型名称', width: 180}]
+        ;
+        if (!daAcRegList) {
+            return columnsArr;
+        }
+        var fleet = tabTitle;
+        for (var i in daAcRegList) {
+            var acno = daAcRegList[i].acno;
+            var model = daAcRegList[i].mpActype;
+            if (fleet && model !== fleet) {
+                continue;
+            }
+            var column = {field: acno, title: acno, width: 120};
+            columnsArr.push(column);
+        }
+        return columnsArr;
+    }
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        onSearch_('dg'+tabTitle, '#ffSearch');
+    }
+
+    //查询
+    function searchData() {
+        var acConfig = {
+            "fleet": tabTitle,
+            "acNo": $('#acNo').textbox('getValue')
+        };
+        var paramData = {
+            "userdata":
+                {
+                    "fleet": tabTitle,
+                    "ata": $('#ata').combobox('getValue'),
+                    "configDesc": $('#configDesc').textbox('getValue'),
+                    "configNo": $('#configNo').textbox('getValue'),
+                    "acNo": $('#acNo').textbox('getValue')
+                }
+        };
+        initSysConfig(acConfig,paramData);
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    // 导出
+    function exportReport() {
+        var param = {
+            "fleet": $('#fleet').combobox("getValue"),
+            "ata": $('#ata').combobox('getValue'),
+            "configDesc": $('#configDesc').textbox('getValue'),
+            "configNo": $('#configNo').textbox('getValue'),
+            "acNo": $('#acNo').textbox('getValue')
+        };
+        doPost("/api/v1/emSysConfig/export", param);
+    }
+
+
+</script>
+</body>
+</html>

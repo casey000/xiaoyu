@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_message">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.WS_SYS_MESSAGE.TITLE">消息列表</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width:80px;">发送人：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fromUid" id="fromUid" style="width:110px"
+                               data-options="prompt:'下拉选择'"/>
+                    </td>
+                    <!--<th data-i18n="" style="width:80px;" align="right">接收人：</th>
+                    <td>
+                        <input class="easyui-combobox" name="toUid" id="toUid" style="width:110px"
+                               data-options=""/>
+                    </td>-->
+
+                    <th data-i18n="" style="width:80px;" align="right">标题：</th>
+                    <td>
+                        <input class="easyui-textbox" name="msgTitle" id="msgTitle" style="width:110px"
+                               data-options=""/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">状态：</th>
+                    <td>
+                        <select id="state" class="easyui-combobox easyui-validatebox"
+                                data-options="" name="state"
+                                panelHeight="100">
+                            <option value="U">未读</option>
+                            <option value="R">已读消息</option>
+                            <option value="N">已读任务</option>
+
+                        </select>
+
+                    </td>
+                    <th data-i18n="" style="width:80px;" align="right">内容：</th>
+                    <td>
+                        <input class="easyui-textbox" name="msgBody" id="msgBody" style="width:110px"
+                               data-options=""/>
+                    </td>
+
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a class="searchBtn" onclick="onSearch_()">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a class="clearBtn" onclick="onClear_()"><span
+                                data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>&nbsp;&nbsp;
+                    </td>
+                </tr>
+            </table>
+            <table cellspacing="0" cellpadding="2">
+                <tr>
+
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var loginUserId;
+    var domainData;
+
+    function i18nCallBack() {
+        loginUserId = getLoginInfo().accountId;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "WS_FROM_UID,WS_TO_UID",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                domainData = DomainCodeToMap_(jdata.data.WS_FROM_UID);
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PageUtil.InitCombobox('#fromUid', {data: jdata.data.WS_FROM_UID});
+                    PageUtil.InitCombobox('#toUid', {data: jdata.data.WS_FROM_UID});
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            rowStyler: function (index, row) {
+                if (row.STATE == 'U') {
+                    return 'font-weight:bold;';
+                }
+            },//loginUserId
+            queryParams: {loginUserId: loginUserId, state: "U"},
+            columns: {
+                param: {FunctionCode: 'WS_SYS_MESSAGE_LIST'},
+                alter: {
+                    MSG_BODY: {
+                        formatter: function (value, row, index) {
+                            if (row.MSG_TYPE == 1) {
+                                return '<a href="javascript:void(0);" onclick="shwowDetail(\'' + index + '\')">' + value + '</a>';
+                            }
+                            if (row.MSG_TYPE == 2) {
+                                return '<a href="javascript:void(0);" onclick="shwowDetailType2(\'' + index + '\')">' + value + '</a>';
+                            }
+                            // if (row.MSG_TYPE == 3) {
+                            //     return '<a href="javascript:void(0);" onclick="shwowDetailType3(\'' + index + '\')">' + value + '</a>';
+                            // }
+                        },
+                    },
+
+                    STATE: {
+                        formatter: function (value, row, index) {
+                            switch (value) {
+                                case 'R':
+                                    return '已读';
+                                case 'U':
+                                    return "未读";
+
+                            }
+                        }
+                    },
+                    MSG_TYPE: {
+                        formatter: function (value, row, index) {
+                            switch (value) {
+                                case '1':
+                                    return '文本消息';
+                                case '2':
+                                    return "打开系统连接";
+                                case '3':
+                                    return "弹出新窗口";
+                                default:
+                                    return value;
+
+                            }
+                        }
+                    },
+                    TO_UID: {
+                        formatter: function (value, row, index) {
+                            switch (value) {
+                                case '0':
+                                    return '所有人';
+                                default:
+                                    return domainData[value];
+
+                            }
+                        }
+                    },
+                    FROM_UID: {
+                        formatter: function (value, row, index) {
+                            switch (value) {
+                                case '0':
+                                    return '所有人';
+                                default:
+                                    return domainData[value];
+
+                            }
+                        }
+                    },
+                }
+
+            },
+//            loadFilter: function(jdata){
+//                jdata.rows = toUnderlineCaseArray(jdata.rows);
+//                return jdata;
+//            },
+            contextMenus: [
+//                {
+//                    i18nText: "更改状态", auth: "",
+//                    onclick: function () {
+//                        common_delete_({
+//                            identity: identity,
+//                            cfmI18next: "是否确认更改状态",
+//                            param: {pkid: "PKID"},
+//                            FunctionCode: "EM_MT_LIST_GB"
+//                        });
+//                    }
+//                }
+                {
+                    i18nText: "处理任务", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        if (!rowData) {
+                            MsgAlert({PWindow: window, content: $.i18n.t('msg_err:ERRMSG.NO_SELECT_ROW_ERROR')});
+                            return;
+                        }
+                        openDetai("edit",rowData);
+                    }
+                },   {
+                    i18nText: "转发", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        if (!rowData) {
+                            MsgAlert({PWindow: window, content: $.i18n.t('msg_err:ERRMSG.NO_SELECT_ROW_ERROR')});
+                            return;
+                        }
+                        transMsg(rowData);
+                    }
+                }
+
+            ],
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value);
+            },
+            validAuth: function (row, items) {
+                if (row.MSG_TYPE != "3") {
+                    items['处理任务'].display = false;
+                }
+                if (row.STATE != "U") {
+                    items['处理任务'].enable = false;
+                }
+                return items;
+            },
+
+        });
+    }
+
+    function setHaveRead(pkid) {
+        InitFuncCodeRequest_({
+            url: Constant.API_V1_URL + "message/updStatus",
+            data: {pkid: pkid, state: 'R'},
+            successCallBack: function (jdata) {
+            }
+        });
+    }
+
+
+    function shwowDetail(index) {
+        var rowDataS = $("#dg").datagrid('getData');
+        setHaveRead(rowDataS.rows[index].PKID);
+        setTimeout("reload_()", 100);
+        ShowWindowIframe({
+            width: 748,
+            height: 400,
+            title: '详细信息',
+            param: {rowData: rowDataS.rows[index]},
+            url: '/views/ws/message/ws_message_edit_add.shtml'
+        })
+    }
+
+    function shwowDetailType2(index) {
+        var rowDataS = $("#dg").datagrid('getData');
+        setHaveRead(rowDataS.rows[index].PKID);
+        setTimeout("reload_()", 100);
+        window.top.createOrSelectTab_(rowDataS.rows[index].MSG_BODY, '0', rowDataS.rows[index].MSG_TITLE, true, true);
+
+    }
+
+    function shwowDetailType3(index) {
+        var rowDataS = $("#dg").datagrid('getData');
+        console.log(rowDataS.rows[index]);
+        setHaveRead(rowDataS.rows[index].PKID);
+        setTimeout("reload_()", 100);
+        ShowWindowIframe({
+            width: 1200,
+            height: 650,
+            title: '详细信息',
+            param: {rowData: rowDataS.rows[index]},
+            url: rowDataS.rows[index].MSG_BODY
+        })
+
+    }
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    function reloadTodo() {
+        $("#dg").datagrid("reload");
+    }
+
+
+    function openDetai(operation,row) {
+        ShowWindowIframe({
+            width: row.WIDTH,
+            height: row.HEIGHT,
+            title: row.MSG_TITLE,
+            param: {operation:operation,type: row.MSG_DATA, recordId: row.RECORD_ID, msgpkid: row.PKID, msgData: row.MSG_DATA},
+            url: row.MSG_LINK
+        });
+    }
+
+    function transMsg(row) {
+        ShowWindowIframe({
+            width: 600,
+            height: 300,
+            title: '选择接收人',
+            param: {msgpkid: row.PKID},
+            url: '/views/trans_account_select.shtml'
+        })
+    }
+</script>
+</body>
+</html>

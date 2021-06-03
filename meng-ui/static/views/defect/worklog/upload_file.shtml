@@ -1,0 +1,114 @@
+<style type="text/css">
+    #upload_table th, #upload_table td{
+        text-align: center;
+        padding: 0;
+        margin: 0;
+        height: 40px;
+        line-height: 40px;
+    }
+
+    .file_tr {
+        border-bottom: 1px solid #ccc;
+        text-align: left;
+        text-indent: 1em;
+    }
+
+    .shangchuang {
+        float: right;
+        margin-right: 10px;
+        padding: 2px 11px;
+        background: #2465a8;
+        color: #fff;
+        border: 0px;
+        margin-top: 9px;
+        border-radius: 4px;
+    }
+
+    .jianhao {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        margin-right: 10px;
+        float: right;
+        margin-top: 10px;
+    }
+
+    .window_a {
+        color: red;
+        font-size: 14px;
+        cursor: pointer;
+    }
+</style>
+<table class="table table-bordered table-info" id="upload_table">
+    <tr id="upload1">
+        <th rowspan="99" style="width: 17%">附件上传</th>
+    </tr>
+    <tr id="upload2">
+        <th colspan="2">File
+            <input type="button" value="上传" class="shangchuang" onclick="file_upload_component('1')">
+            <input type="text" style="display:none " id="upload_list1">
+        </th>
+    </tr>
+    <tr id="upload3">
+        <td colspan="2" id="upload_data1">
+        </td>
+    </tr>
+</table>
+
+<script type="text/javascript">
+    function file_upload_component(id) {
+        $.upload_component({
+            success: function (data) {
+                let uploaddata = $("#upload_list" + id).val().split(',');
+                for (let i in uploaddata) {
+                    if (uploaddata[i] != "") {
+                    data.fileid_obj.push(uploaddata[i]);
+                    }
+                }
+                $("#upload_list" + id).val(data.fileid_obj);
+                file_data_list_edit(data.file_obj, id);
+            }
+        })
+    }
+
+    function file_data_list_edit(data, id) {
+        //console.log(data);
+        for (let i in data) {
+            let file = "<div class=\"file_tr\" id=\"file_tr" + data[i].fileId + "\">\n" +
+                "       <a class='window_a' onclick=\"downFile(" + data[i].pkid + "," + data[i].pkid + ")\">" + data[i].fileName + "</a>\n" +
+                "        <div class=\"jianhao icon-delete\" onclick=\"file_content_datale(file_tr" + data[i].fileId + "," + id + ")\"></div>\n" +
+                "    </div> ";
+            let html_row = $(file);
+            $("#upload_data" + id).append(html_row);
+        }
+    }
+
+    function file_content_datale(id, index) {
+        let inde = id.id.substring(7);
+        $.ajax({
+            type: "POST",
+            url: "/api/v1/file/delete/" + inde,
+            contentType: "application/json;charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+                if (data.code == 200) {
+                    $("#" + id.id).remove();
+                    let uploaddata = $("#upload_list" + index).val().split(',');
+                    for (let i in uploaddata) {
+                        if (uploaddata[i] == inde) {
+                            uploaddata.splice(i, 1);
+                        }
+                    }
+                    $("#upload_list" + index).val(uploaddata);
+                    alert("删除成功！");
+                } else {
+                    alert(data.msgData[0]);
+                }
+            },
+            error: function () {
+                window.alert("删除失败！");
+            }
+        });
+    }
+
+</script>

@@ -1,0 +1,256 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="PAGE.WS_DATAGRID_LIST.TITLE">MEL字典维护</title>
+    <style type="">
+     .viewlogcolor{
+         color: #f1a417;
+     }
+    </style>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="RES.WS_DATAGRID_LIST.Q_FIELD" align="right">机型:</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" id="acModel" name="model"/>
+                    </td>
+                    <th data-i18n="RES.WS_DATAGRID_LIST.Q_TITLE" align="right">类型:</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" id="acType" name="type"/>
+                    </td>
+                    <th data-i18n="RES.WS_DATAGRID_LIST.Q_FUNCTION_CODE" align="right">章节:</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="melNumber"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="RES.WS_DATAGRID_LIST.Q_FIELD" align="right">中文:</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="melETitle"/>
+                    </td>
+                    <th data-i18n="RES.WS_DATAGRID_LIST.Q_FIELD" align="right">英文:</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="melCTitle"/>
+                    </td>
+                    <td colspan="2"  align="center">
+                        <a href="javascript:void(0)" class="searchBtn" onclick="onSearch_()">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="clearBtn" onclick="onClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitDataGrid();
+        downSelect();
+    };
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            fitColumns:false,
+            columns: {
+                param: {
+                    ddd:"ddd",
+                    FunctionCode: 'MEL_LIST',
+                },
+                alter: {
+                    OPERAT:{
+                        width:50,
+                        formatter: function (value, row, index) {
+                            var ele =`<div id="edit ' + value + ' " onclick="openOperate('${row.id}')" class="ui-corner-all clever-jqgrid-action clever-jqgrid-edit edit icon-edit" title="Edit">&#12288;</div>`;
+                            return ele;
+                        }
+                    },
+                    log:{
+                        width:60,
+                        formatter: function (value, row, index) {
+                            // return `<img src="/img/icon_pdf.gif" style="cursor:pointer" onClick="previewPdf('${row.CARD_ID}','${row.WORK_TYPE}','${row.ID}','${row.AC_ID}','${row.SAP_TASK_ID}')"/>`;
+                            return `<div id=" ' + row.id + ' " onclick="openLog('${row.id}')" class="viewlogcolor" title="Edit">View log</div>`;
+                            // return ele;
+                        }
+                    }
+                }
+                },
+
+
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 600, height: 660,
+                            url: "/views/ws/infra_struct/datagrid/ws_datagrid_add_edit.shtml"
+                        });
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                    onclick: function () {
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {pkid: "PKID"},
+                            FunctionCode: "WS_DATAGRID_DEL"
+                        });
+                    }
+                }
+            ],
+
+//操作控制栏
+            toolbar: [
+                {
+                    key: "COMMON_ADD",
+                    text: $.i18n.t('Add'),
+                    auth: "",
+                    handler: function () {
+                        openOperate();
+                    }
+                },
+                '-',
+                {  key: "COMMON_DEL",
+                    text: $.i18n.t('Del'),
+                    auth: "",
+                    handler: function () {
+                        delectList();
+                    }}
+            ]
+        });
+    };
+
+    //删除操作
+    function delectList() {
+        var id_value =[];
+        $('input[name="id"]:checked').each(function(){
+            id_value.push($(this).val());
+        });
+        if(id_value.length == 0){
+            MsgAlert({content: "请先选择所要删除条目！", type: 'error'});
+            return false;
+        };
+        $.messager.confirm('提示', '您确定要删除吗?', function (r) {
+            if(r){
+                $.ajax({
+                    type: "POST",
+                    url:"/api/v1/mel/delete",
+                    contentType: "application/json;charset=utf-8",
+                    data: JSON.stringify(id_value),
+                    dataType: "json",
+                    success: function (data) {
+                        if(data.code == 200){
+                            InitDataGrid();
+                            MsgAlert({content: "删除成功"+data.msg});
+                        }else {
+                            MsgAlert({content: "删除失败"+data.msg, type: 'error'});
+                        };
+                    },
+                    error: function (data) {
+                        MsgAlert({content: data.msg, type: 'error'});
+                    }
+                });
+            }
+        });
+
+        
+    };
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    };
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    };
+
+//打开日志
+    function openLog(id) {
+        var title_ = $.i18n.t('日志');
+        ShowWindowIframe({
+            width: "850",
+            height: "650",
+            title: title_,
+            param: {id: id},
+            url:"/views/data_manager/main_data_manager/data_type/MEL_log_list.shtml"
+            // url:"/views/nrc/see_nrc.shtml"
+        });
+    };
+
+//打开操作界面
+    function openOperate(id) {
+        var title_ = $.i18n.t('日志');
+        ShowWindowIframe({
+            width: "600",
+            height: "500",
+            title: title_,
+            param: {id: id},
+            url:"/views/data_manager/main_data_manager/data_type/MEL_operate.shtml"
+        });
+    };
+
+    //    下拉选择设置
+    var PAGE_DATA = {};
+    function downSelect() {
+        $('#acType').combobox({
+            panelHeight: '50px',
+            data: [
+                {TEXT: 'MEL', VALUE: 'MEL'},
+                {TEXT: 'CDL', VALUE: 'CDL'}
+            ],
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            editable: false, // 是否可编辑
+            multiple: false, //是否可多选
+            require: true, //是否必须
+            onLoadSuccess: function () {
+                // $('#acType').combobox('setValue', 'MEL')
+            }
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_MP_ACTYPE"
+            },
+            successCallBack: function (jdata) {
+                //机型
+                PAGE_DATA['acModel'] = DomainCodeToMap_(jdata.data.DA_ACREG_MP_ACTYPE);
+                $('#acModel').combobox({
+                    panelHeight: '120px',
+                    data: jdata.data.DA_ACREG_MP_ACTYPE,
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    editable: false, // 是否可编辑
+                    multiple: false, //是否可多选
+                    require: true, //是否必须
+                    onLoadSuccess: function () {
+                        // $('#acModel').combobox('setValue', jdata.data.DA_ACREG_MP_ACTYPE[0].VALUE);
+                    }
+                });
+            }
+        });
+    };
+
+</script>
+</body>
+</html>

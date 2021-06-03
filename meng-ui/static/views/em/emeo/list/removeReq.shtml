@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>拆下部件处理要求</title>
+</head>
+
+<body>
+<form class="form-horizontal m-t" id="mform">
+    <table border="0" cellpadding="0" cellspacing="0" style="width: 100%;">
+        <tr>
+            <td id="tableTitle" style="width: 200px;">
+                拆下部件处理要求
+            </td>
+        </tr>
+    </table>
+    <table id="dg" style="width: 100%;padding:10px;">
+        <tr>
+            <td colspan="2">
+                <div style="float:left;margin:5px;" id="discardChoose">
+                    <input type="radio" id="discard" name="removeReq" value="DISCARD" onclick="choose(this)"/>报废&nbsp;&nbsp;
+                </div>
+                <div style="float:left;margin:5px;" id="ewisChoose">
+                    <input type="radio" id="rtsfd" name="removeReq" data-options="" value="RTSFD" onclick="choose(this)"/>可用件退库&nbsp;&nbsp;
+                </div>
+                <div style="float:left;margin:5px;" id="ftsChoose">
+                    <input type="radio" id="shopVisit" name="removeReq" data-options="" value="SHOPVISIT" onclick="choose(this)"/>送修送改&nbsp;&nbsp;
+                </div>
+                <div style="float:left;margin:5px; display: none" id="tbFileDiv">
+                    <input class="btn btn-primary" type="button" id="tbFileBtn" onclick="chooseTb()" value="选择EO"/>
+                    <input class="easyui-textbox" id="tbFiles" name="tbFiles"
+                           data-options="editable:false,onlyview:true" style="width: 120px"/>
+                </div>
+                <div style="float:left;margin:5px;" id="saveBtn">
+                   <!-- <a class="searchBtn" onclick="save()" data-options="iconCls:'icon-add'">
+                        <span data-i18n="common:COMMON_OPERATION.SAVE">保存</span></a>-->
+                    <input class="btn btn-primary" type="button" onclick="save()" value="保存"/>
+                    &nbsp;&nbsp;
+                </div>
+                <div style="float:left;margin:5px;" id="clear">
+                    <!--<a class="clearBtn" onclick="doClear()" data-options="iconCls:'icon-clear'">
+                        <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>-->
+                    <input class="btn btn-danger" type="button" onclick="doClear()" value="重置"/>
+                    &nbsp;&nbsp;
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <th class="th" align="right" style="width: 100px;">说明：</th>
+            <td>
+                <textarea class="easyui-textbox" id="reqDes" name="reqDes"
+                          data-options="multiline:true"
+                          style="width: 860px;height:120px"></textarea>
+            </td>
+        </tr>
+    </table>
+</form>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var iparam;
+    var operation;
+    var PAGE_DATA = {};
+    var nalter = {};
+
+
+    function getUrlParam(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return decodeURI(r[2]);
+        } else {
+            return null;
+        }
+    }
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = iparam.operation;
+        if ("view" == operation) {
+            $('#saveBtn').hide();
+            $('#clear').hide();
+            $('#tbFileBtn').hide();
+           // $(".btn btn-primary").attr("disabled", true);
+           // $(".btn btn-danger").attr("disabled", true);
+        }
+        var domainCode = new Set();
+        if (iparam.alter) {
+            for (var i = 0; i < iparam.alter.length; i++) {
+                domainCode.add(iparam.alter[i].pageData);
+                let formatter = `{
+                        formatter: function (value) {
+                            return PAGE_DATA['${iparam.alter[i].field}'][value];
+                        }
+                    }`;
+                nalter[iparam.alter[i].field] = eval('(' + formatter + ')');
+            }
+        }
+
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: Array.from(domainCode).join(','),
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (iparam.alter) {
+                    for (let i = 0; i < iparam.alter.length; i++) {
+                        PAGE_DATA[iparam.alter[i].field] = DomainCodeToMap_(jdata.data [iparam.alter[i].pageData]);
+                    }
+                }
+
+                if (iparam.pkid && iparam.pkid != -1) {
+                    InitDataForm(iparam.pkid);
+                }
+            }
+        });
+
+    }
+
+    /**
+     * 初始化数据
+     * @param pkid
+     * @constructor
+     */
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_EO_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    var removeReq = jdata.data.REMOVE_REQ;
+                    $(":radio").each(function () {
+                        var value = $(this).attr('value').toUpperCase();
+                        if(value == removeReq){
+                            $(this).attr("checked", 'checked');
+                        }
+                        //$("input[name=" + $(this).attr('name') + "]:eq(" + num + ")").attr("checked", 'checked');
+                    });
+                    if(removeReq == 'SHOPVISIT'){
+                        $('#tbFileDiv').show();
+                    }
+                    if(removeReq){
+                       $('#reqDes').textbox({required:true})
+                    }
+                    //设置子页面数据
+                    //  setSubData(jdata.data)
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitSaveForm_() {
+        var $form = $("#mform");
+
+        var data = $form.serializeObject();
+        var radis = {};
+        $(":radio").each(function () {
+            var radioName = $(this).attr('name');
+            radis[radioName] = $("input[name='" + radioName + "']:checked").val();
+        });
+
+        $(":checkbox").each(function () {
+            radis[$(this).attr('name')] = $(this).is(':checked') ? "Y" : "N";
+        });
+        data = $.extend(data, radis, {"pkid": iparam.pkid}, {FunctionCode: "EM_EO_ADD"});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return false;
+    }
+
+
+    //父级调用
+    function switchApplyType(ifDelAll) {
+        if (!iparam.delAll) {
+            return;
+        }
+        if (iparam.delAll == "ALL") {
+            if (!ifDelAll) {
+                return;
+            }
+            InitFuncCodeRequest_({
+                data: {FunctionCode: iparam.delAllfunctionCode, eoPkid: iparam.pkid},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                }
+            });
+        } else {
+            if (iparam.delAll == iparam.applyType) {
+                return;
+            }
+            if (iparam.dropIf) {
+                for (let i = 0; i < iparam.dropIf.length; i++) {
+                    $("#" + iparam.dropIf[i].nameEN).combobox("setValue", "N");
+                }
+            }
+            InitFuncCodeRequest_({
+                data: {FunctionCode: iparam.delAllfunctionCode, eoPkid: iparam.pkid},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                }
+            });
+            InitSaveForm_();
+        }
+    }
+
+    function choose(obj) {
+        var id = $(obj).attr('id');
+        if('shopVisit' == id){
+            $('#tbFileDiv').show();
+        }else{
+            $('#tbFileDiv').hide();
+            $('#tbFiles').textbox({value:''});
+        }
+        $('#reqDes').textbox({required:true});
+    }
+
+    //保存
+    function save() {
+        if(!iparam.pkid){
+            MsgAlert({content:'请先保存EO', type:'error'});
+            return;
+        }
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+
+        var datas = $form.serializeObject();
+        console.log(datas);
+        datas = $.extend(datas, {"eoPkid": iparam.pkid}, {FunctionCode: "EM_EO_REMOVE_REQ_UPDATE"});
+        InitFuncCodeRequest_({
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //重置
+    function doClear() {
+        if(!iparam.pkid){
+            MsgAlert({content:'请先保存EO', type:'error'});
+            return;
+        }
+        if (!confirm("确认重置？")) {
+            return;
+        }
+
+        $("input:radio[name='removeReq']").attr("checked",false);
+        $('#reqDes').textbox({value:'',required:false});
+        $('#tbFileDiv').hide();
+        $('#tbFiles').textbox({value:''});
+
+        InitFuncCodeRequest_({
+            data: {FunctionCode: 'EM_EO_REMOVE_REQ_RESET', eoPkid: iparam.pkid},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                }
+            }
+        });
+    }
+
+    function chooseTb() {
+        var tbFiles = $('#tbFiles').textbox('getValue');
+        ShowWindowIframe({
+            width: 800,
+            height: 550,
+            param:{tbFiles: tbFiles},
+            title: "工卡选择",
+            url: "/views/em/emeo/add/EmEomarkRemoveReqEdit.shtml"
+        });
+    }
+
+    function setTbNo(tbNo) {
+        $("#tbFiles").textbox('setValue', tbNo);
+    }
+</script>
+</html>

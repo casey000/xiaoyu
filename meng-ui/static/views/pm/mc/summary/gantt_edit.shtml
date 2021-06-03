@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <style type="text/css">
+        .table-cell {
+            text-align: center;
+            padding: 0;
+            margin: 0;
+        }
+
+        .cell-normal {
+            height: 40px;
+        }
+        .title{
+            text-align: center;
+            font-size: 20px;
+            line-height: 50px;
+        }
+        #buttom a {
+            display: inline-block;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px 20px;
+            border: none;
+            font-size: 14px;
+            margin-top: 50px;
+            margin-right: 12px;
+        }
+        .info{
+            width: 95%;
+            margin: 20px auto;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+<div class="title text-center"><span id="tit"></span>维护</div>
+<div id ="buttom" style="width: 95%;margin: 0px auto">
+    <input class="easyui-textbox textbox-f" data-options="multiline:true " id="feedbackCh" style="height: 60px; width: 500px; display: none;" textboxname="revCnDesc">
+    <a href="javascript:void(0);" id="reviseBtn" onclick="Revise()">添加</a>
+</div>
+<div class="info">
+
+</div>
+<table class="table table-bordered table-info" id="toList" style="margin-top:10px" width="100%">
+    <tr>
+        <th class="table-cell cell-normal">更新日期</th>
+        <th class="table-cell cell-normal">更新内容</th>
+        <th class="table-cell cell-normal">更新人</th>
+        <th class="table-cell cell-normal">操作</th>
+    </tr>
+</table>
+<script type="text/javascript">
+    $(function(){
+        param = getParentParam_();
+        console.info(param)
+        $('.info').text(param.obj.acReg + '　' + param.obj.flightNo + '　' +param.obj.workType);
+        if(param.nav==1){
+            $('#tit').text('停场原因')
+        }
+        if(param.nav==2){
+            $('#tit').text('风险与注意事项')
+        }
+        if(param.nav==3){
+            $('#tit').text('定检联系人')
+        }
+        function undefineFilter(value){
+            if(typeof(value)=="undefined"){
+                return '';
+            }
+            return value;
+        }
+        getData =  function () {
+            let type = param.nav==1?'STOP_PRO_REA':(param.nav==2?'RISKS_NOTES':'PCHECK_CONTACTS')
+            let url = "/api/v1/mcc/visualBoard/selectVisualBoardRemark?flightId=" + param.obj.flightId +"&workType=" + param.obj.workType +"&type=" + type;
+            axios.get(url).then(response=>{
+                if(response.data.msg.toUpperCase().indexOf("SUCCESS") != -1){
+                    var respon = response.data.data
+                    var html = ''
+                    if(respon.length < 1){
+                        html += "<tr class='newtr'>" +
+                            "<td colspan='4' class=\"table-cell cell-normal\">N/A</td>"+
+                            "</tr>"
+                    }else{
+                        $.each(respon,function (index,value) {
+                            html += "<tr class='newtr'>" +
+                                "<td class='table-cell cell-normal'>"+ value.updateTime +"</td>"+
+                                "<td class='table-cell cell-normal'>"+ value.content +"</td>"+
+                                "<td class='table-cell cell-normal'>"+ value.updaterName +"</td>"+
+                                "<td class='table-cell cell-normal'><span style='color: red;cursor: pointer' onclick='test("+value.id+")'>"+  '删除' +"</span></td>"+
+                                "</tr>"
+                        });
+                    }
+                    $('#toList').append(html)
+                }else{
+                    throw new Error(response.data.msgData[0])
+                }
+            })
+        };
+        getData();
+    });
+    function Revise() {
+        ajaxLoading();
+        var post_data = {
+            content:$('#feedbackCh').textbox('getValue'),
+            flightId:param.obj.flightId,
+            type:param.nav==1?'STOP_PRO_REA':(param.nav==2?'RISKS_NOTES':'PCHECK_CONTACTS'),
+            workType:param.obj.workType,
+        }
+        axios.post('/api/v1/mcc/visualBoard/addOrEdit', post_data).then(response=>{
+            console.info(response)
+            if(response.data.msg.indexOf("SUCCESS") != -1){
+                param.OWindow.searchData();
+                MsgAlert({content: response.msg ? response.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                window.location.reload();
+                ajaxLoadEnd();
+            }else if(response.data.msg.indexOf("ERROR") != -1){
+                throw new Error(response.data.msgData[0])
+            }
+        }).catch(err=>{
+            ajaxLoadEnd();
+            MsgAlert({type: "error", content: "保存失败" + err});
+        })
+    }
+    function test(id) {
+        ajaxLoading();
+        let form_data = new FormData();
+        form_data.append("id", id);
+        axios.post('/api/v1/mcc/visualBoard/delete', form_data).then(response=>{
+            console.info(response)
+            if(response.data.msg.indexOf("SUCCESS") != -1){
+                $('.newtr').remove();
+                MsgAlert({content: response.msg ? response.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                param.OWindow.searchData();
+                getData()
+                ajaxLoadEnd();
+            }else if(response.data.msg.indexOf("ERROR") != -1){
+                throw new Error(response.data.msgData[0])
+            }
+        }).catch(err=>{
+            ajaxLoadEnd();
+            MsgAlert({type: "error", content: "保存失败" + err});
+        })
+    };
+
+</script>
+</body>
+</html>

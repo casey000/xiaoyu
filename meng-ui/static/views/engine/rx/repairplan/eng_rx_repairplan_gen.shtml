@@ -1,0 +1,216 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>送修计划生成</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="送修计划生成" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="createUser" name="createUser"/>
+                <input type="hidden" id="createName" name="createName"/>
+                <input type="hidden" id="createDate" name="createDate"/>
+
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="8" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="生成"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">机队：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="fleet" name="fleet"
+                                   data-options="required:true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;"></th>
+                        <td class="tdr"></td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="type" name="type"
+                                   data-options="required:true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="engType" name="engType"
+                                   data-options="required:true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">计划开始日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="dateBegin" name="dateBegin" data-options="required:true"
+                                   style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">计划结束日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="dateEnd" name="dateEnd" data-options="required:true"
+                                   style="width: 160px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">备注：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" name="memo" id="memo"
+                                   data-options="multiline:true " style="width: 490px;height:50px"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var user;
+    var param = {};
+    function i18nCallBack() {
+        param = getParentParam_();
+        user = getLoginInfo();
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiReport/getMpActypes",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#fleet').combobox({
+                        data: jdata.obj,
+                        valueField: 'value',
+                        textField: 'text',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取机型列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/rxRepairPlan/getEngType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#type').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                        onSelect: function (item) {
+                            var type = item.VALUE;
+                            if (type == 'APU') {
+                                var fleet = $("#fleet").combobox("getValue");
+                                if (fleet == '' || fleet == null) {
+                                    alert("请先选择机型");
+                                    return;
+                                } else {
+                                    InitGatewayRequest_({
+                                        type: "get",
+                                        async: false,
+                                        path: "/meng-engine/rxRepairPlan/getApuType/" + fleet,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.success == true) {
+                                                $('#engType').combobox({
+                                                    data: jdata.obj,
+                                                    valueField: 'VALUE',
+                                                    textField: 'TEXT',
+                                                    panelHeight: '150px',
+                                                });
+                                            } else {
+                                                MsgAlert({content: '获取型号列表失败', type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            } else {
+                                $('#engType').combobox({
+                                    data: [{"TEXT": type, "VALUE": type}],
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px'
+                                });
+                                $('#engType').combobox("setValue", type);
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: '获取类型列表失败', type: 'error'});
+                }
+            }
+        });
+
+        $("#createUser").val(user.accountId);
+        $("#createName").val(user.userName);
+        $("#createDate").val(new Date().Format("yyyy-MM-dd"));
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        genPlan();
+    }
+
+    function genPlan() {
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        if (datas.dateBegin > datas.dateEnd) {
+            alert("计划开始日期不能晚于计划结束日期");
+            return;
+        }
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/rxRepairPlan/savePlan",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.onSearchClick();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

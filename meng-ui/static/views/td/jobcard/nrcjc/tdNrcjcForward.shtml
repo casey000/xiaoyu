@@ -1,0 +1,98 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <script type="text/javascript" src="/js/hr/common_hr.js"></script>
+    <title></title>
+</head>
+<body class="ibody" id="tt">
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform" action="" method="POST" enctype="multipart/form-data">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th data-i18n="" class="td5" style="width: 100px" align="right">转发给：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="authId" id="authId"
+                                   data-options="required:true,validType:['maxLength[20]']" style="width:200px;"/>
+                        </td>
+                        <td class="tdr" style="width: 100px">
+                            &nbsp;<a class="addBtn" onclick="save();">转发</a>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript">
+    var param;
+    var selectRow;
+    var userName;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        $("#authId").MyComboGrid({
+            idField: 'ACCOUNT_ID',  //实际选择值
+            textField: 'USER_NAME', //文本显示值
+            panelHeight: '220px',
+            width: 200,
+            params: {roleId: param.roleId, FunctionCode: 'FLOW_WORK_ACCOUNT'},
+            columns: [[
+                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                {field: 'USER_NAME', title: '姓名', width: 50}
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                    alert('请选择，不要直接输入！');
+                    $(this).combogrid({value: ''});
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+                userName = row.USER_NAME;
+            }
+        });
+
+    }
+
+    /** 保存 */
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        console.log(param);
+        $.messager.confirm('', '确认把工卡转发给 [' + userName + '] ？', function (r) {
+            if (r) {
+                var authId = $("#authId").combobox('getValue');
+                var datas = $.extend({
+                    pkid: param.pkid,
+                    writer: authId,
+                    type: 'jobCardForword'
+                }, {FunctionCode: 'TD_JC_ALL_ADD_NSJC'});
+                InitFuncCodeRequest_({
+                    data: datas,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            if (param.OWindow.reload_ && typeof(param.OWindow.reload_) == 'function') {
+                                param.OWindow.reload_();
+                            }
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
+</html>

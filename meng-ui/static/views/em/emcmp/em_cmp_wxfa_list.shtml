@@ -1,0 +1,281 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">维修方案</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">改版标识：</th>
+                    <td>
+                        <input class="easyui-combobox" id="revCode" name="revCode" data-options="editable: false"
+                               style="width:110px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;" align="right">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" id="status" name="status" data-options="editable: false"
+                               style="width:110px"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="doSearch_()"
+                           ><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a class="ridoBtn" data-options="iconCls:'icon-filter'"
+                           onclick="helpQuery('dg', 'ffSearch', function(){onSearch_(); });"
+                           ><span data-i18n="">高级查询</span></a>&nbsp;&nbsp;
+                        <a class="addBtn" data-options="iconCls:'icon-add'" onclick="add_()"
+                           ><span data-i18n="">增加</span></a>&nbsp;&nbsp;
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </form>
+</fieldset>
+<fieldset class="fieldset_eui">
+    <legend data-i18n="">查询结果</legend>
+    <div style="width: 100%;height: 415px;">
+        <table id="dg"></table>
+    </div>
+
+</fieldset>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var identity = 'dg';
+    var param = {};
+    var cmpStatus = {};
+    var verType = {};
+    var userName = {};
+    var numberLetter = {};
+    var thisURL = document.URL;
+    var geturlvalue = thisURL.split('?')[1];
+    var fleet = geturlvalue.split("=")[1];
+    param = getParentParam_();
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_REV_CODE,EM_CMP_STATE,EM_CMP_VER_TYPE,USER_NAME,EM_NUM_LETTER",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    cmpStatus = DomainCodeToMap_(jdata.data["EM_CMP_STATE"]);
+                    verType = DomainCodeToMap_(jdata.data["EM_CMP_VER_TYPE"]);
+                    userName = DomainCodeToMap_(jdata.data["USER_NAME"]);
+                    numberLetter = DomainCodeToMap_(jdata.data["EM_NUM_LETTER"]);
+
+                    $('#revCode').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_REV_CODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    $('#status').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_CMP_STATE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function DomainCodeToMap_(list) {
+        var d = {};
+        $.each(list, function (k, it) {
+            d[it.VALUE] = it.TEXT;
+        });
+        return d;
+    }
+
+    function add_() {
+        common_add_edit_({
+            width: 650,
+            height: 250,
+            title: '维修方案新增',
+            url: "/views/em/emcmp/em_cmp_wxfa_add.shtml"
+        });
+    }
+
+    function InitDataGrid() {
+
+        $("#dg").MyDataGrid({
+            identity: identity,
+            fit: true,
+            sortable: true,
+            queryParams: {fleet: fleet},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_WXFA_LIST'},
+                alter: {
+                    TEST_UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.TEST_UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    CHECK_DATE: {
+                        type: 'date'
+                    },
+                    AUDIT_DATE: {
+                        type: 'date'
+                    },
+                    APPROVE_DATE: {
+                        type: 'date'
+                    },
+                    PUBLISH_DATE: {
+                        type: 'date'
+                    },
+                    VALID_DATE: {
+                        type: 'date'
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return cmpStatus[value];
+                        }
+                    },
+                    VER_TYPE: {
+                        formatter: function (value, row, index) {
+                            return verType[value];
+                        }
+                    },
+                    /*CREATE_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    },
+                    CHECK_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    },
+                    AUDIT_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    },
+                    APPROVE_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    },
+                    PUBLISH_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    }*/
+                }
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "emCmpWxfaRelease",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+
+                                }
+                                var html = "";
+                                var sta = row.DATA_STATUS;
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    if (sta == "DRAFT" || sta == "REPORT") {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                    } else {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                    }
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            contextMenus: [
+                // {
+                //     id: "m-edit", i18nText: "删除", auth: "",
+                //     onclick: function () {
+                //         var rowData = $("#dg").datagrid('getSelected');
+                //         if (!rowData.PKID) {
+                //             MsgAlert({content: '请选择记录！', type: 'error'});
+                //             return;
+                //         }
+                //         if (rowData.STATUS != 'DRAFT') {
+                //             MsgAlert({content: '仅支持草稿状态的维修方案删除！', type: 'error'});
+                //             return;
+                //         }
+                //
+                //         $.messager.confirm('', '是否确认删除该记录？', function (r) {
+                //             if (r) {
+                //                 InitFuncCodeRequest_({
+                //                     data: {pkid: rowData.PKID, FunctionCode: 'EM_CMP_WXFA_DELETE'},
+                //                     successCallBack: function (jdata) {
+                //                         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                //                             MsgAlert({content: (jdata.msgData && jdata.msgData.length > 0) ? jdata.msgData[0] : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                //                             reload_();
+                //                         } else {
+                //                             MsgAlert({
+                //                                 content: jdata.msgData ? jdata.msgData[0] : jdata.msg,
+                //                                 type: 'error'
+                //                             });
+                //                         }
+                //                     }
+                //                 });
+                //             }
+                //         });
+                //
+                //     }
+                // }
+
+            ], toolbar: []
+        });
+    }
+
+    /*doSearch_查询*/
+    function doSearch_() {
+        var $form = $("#ffSearch");
+        var data = $form.serializeObject();
+        data = $.extend({}, data, {fleet: fleet});
+        var dgopt = getDgOpts('dg');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: data
+        });
+    }
+
+    function reloadFym_() {
+        parent.shaxintree();
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

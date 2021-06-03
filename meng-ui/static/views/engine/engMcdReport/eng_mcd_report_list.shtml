@@ -1,0 +1,608 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">磁堵检查报告管理</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                    <td style="width: 140px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">发动机序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="esn" name="esn" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">检查日期从：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="checkDateFrom" name="checkDateFrom" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">至：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="checkDateTo" name="checkDateTo" style="width:140px;"/>
+                    </td>
+                    <td class="td5" colspan="2">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span>查询</span></a>
+                        <a href="javascript:void(0)" auth="ENG_MCD_REPORT_ADD" class="addBtn"
+                           onclick="addOrEditEngMcdReport('add')"><span>报告录入</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:80px;" align="right">机型：</th>
+                    <td style="width: 140px" class="td5">
+                        <input class="easyui-combobox" id="acType" name="acType" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">机号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acReg" name="acReg" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">报告状态：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="status" name="status" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">材料类别：</th>
+                    <td style="width: 100px" class="td5" colspan="3">
+                        <input class="easyui-combobox" id="mateType" name="mateType" style="width:140px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:80px;" align="right">送检类别：</th>
+                    <td style="width: 140px" class="td5">
+                        <input class="easyui-combobox" id="repairType" name="repairType" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">报告结论：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="resultType" name="resultType" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">碎屑性质：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="chipType" name="chipType" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">碎屑描述：</th>
+                    <td style="width: 100px" class="td5" colspan="3">
+                        <input class="easyui-textbox" id="chipDesc" name="chipDesc" style="width:140px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_MCD_CHECK_STATUS,DA_FLEET,ENG_MCD_REPAIR_TYPE,ENG_MCD_MATE_CHIP_TYPE,ENG_BSI_MCD_ATT_LEVEL,ENG_MCD_POS,ENG_MCD_CHECK_POS,ENG_MCD_CHECK_RESULT,DA_ACREG_ACNO2,ENG_MCD_MATE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //获取发动机序号
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {matnr: ''},
+                        path: "/meng-engine/baseOwn/getEngByTypeNew",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#esn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px'
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //机号
+                    $('#acReg').combobox({
+                        panelHeight: '100px',
+                        url: Constant.API_URL + 'DA_ACTYPE_GET_ACNOS',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        loadFilter: function (jdata) {
+                            return jdata.data;
+                        }
+                    });
+                    //机型
+                    $('#acType').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            $('#acReg').combobox({ //机号
+                                panelHeight: '100px',
+                                queryParams: {acType: item.VALUE},
+                                url: Constant.API_URL + 'DA_ACTYPE_GET_ACNOS',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                loadFilter: function (jdata) {
+                                    return jdata.data;
+                                }
+                            });
+                        }
+                    });
+                    $("#status").combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_MCD_CHECK_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngTypeNew",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#epn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                    onSelect: function (item) {
+                                        //获取发动机序号
+                                        InitGatewayRequest_({
+                                            async: false,
+                                            data: {matnr: item.VALUE},
+                                            path: "/meng-engine/baseOwn/getEngByTypeNew",
+                                            successCallBack: function (jdata) {
+                                                if (jdata.success == true) {
+                                                    $('#esn').combobox({
+                                                        data: jdata.obj,
+                                                        valueField: 'VALUE',
+                                                        textField: 'TEXT',
+                                                        panelHeight: '150px'
+                                                    });
+                                                } else {
+                                                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //材料类别
+                    $("#mateType").combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.ENG_MCD_MATE_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    //送检类别
+                    $("#repairType").combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.ENG_MCD_REPAIR_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    //报告结论
+                    $("#resultType").combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_MCD_CHECK_RESULT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    //碎屑性质
+                    $("#chipType").combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.ENG_MCD_MATE_CHIP_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    //报告状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["ENG_MCD_CHECK_STATUS"]);
+                    //送检类别 ENG_MCD_REPAIR_TYPE
+                    PAGE_DATA['repairType'] = DomainCodeToMap_(jdata.data["ENG_MCD_REPAIR_TYPE"]);
+                    //碎屑性质
+                    PAGE_DATA['chipType'] = DomainCodeToMap_(jdata.data["ENG_MCD_MATE_CHIP_TYPE"]);
+                    //关注级别
+                    PAGE_DATA['attLevel'] = DomainCodeToMap_(jdata.data["ENG_BSI_MCD_ATT_LEVEL"]);
+                    //发动机位置 ENG_MCD_POS
+                    PAGE_DATA['engPos'] = DomainCodeToMap_(jdata.data["ENG_MCD_POS"]);
+                    //检查部位 ENG_MCD_CHECK_POS
+                    PAGE_DATA['checkPos'] = DomainCodeToMap_(jdata.data["ENG_MCD_CHECK_POS"]);
+                    //报告结论 ENG_MCD_CHECK_RESULT
+                    PAGE_DATA['checkResult'] = DomainCodeToMap_(jdata.data["ENG_MCD_CHECK_RESULT"]);
+                    //机号
+                    PAGE_DATA['acReg'] = DomainCodeToMap_(jdata.data["DA_ACREG_ACNO2"]);
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engMcdReport/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_MCD_REPORT_LIST'},
+                alter: {
+                    fileUpload: {
+                        formatter: function (value, row, index) {
+                            if (row.fileUpload) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach attach4">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    engPos: {
+                        formatter: function (value) {
+                            return PAGE_DATA['engPos'][value];
+                        }
+                    },
+                    acReg: {
+                        formatter: function (value) {
+                            return PAGE_DATA['acReg'][value];
+                        }
+                    },
+                    attLevle: {
+                        formatter: function (value) {
+                            return PAGE_DATA['attLevel'][value];
+                        }
+                    },
+                    resultType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['checkResult'][value];
+                        }
+                    },
+                    status: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    repairType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['repairType'][value];
+                        }
+                    },
+                    chipType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['chipType'][value];
+                        }
+                    },
+                    attType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['attLevel'][value];
+                        }
+                    },
+                    engPos: {
+                        formatter: function (value) {
+                            return PAGE_DATA['engPos'][value];
+                        }
+                    },
+                    checkPos: {
+                        formatter: function (value) {
+                            return PAGE_DATA['checkPos'][value];
+                        }
+                    },
+                    checkDate: {
+                        type: 'date'
+                    },
+                    auditDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view", i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngMcdReport('view', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_MCD_REPORT_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngMcdReport('edit', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-submit", i18nText: "提交",
+                    auth: "ENG_MCD_REPORT_SUBMIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/engMcdReport/checkBeforeSubmitById/" + rowData.pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    if (confirm("确认提交吗？")) {
+                                        MaskUtil.mask("正在处理...");
+                                        InitFuncCodeRequest_({
+                                            data: {pkid: rowData.pkid, FunctionCode: 'ENG_MCD_REPORT_SUBMIT'},
+                                            successCallBack: function (jdata) {
+                                                MaskUtil.unmask();
+                                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                                    reload_();
+                                                } else {
+                                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                                }
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_MCD_REPORT_DELETE",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/engMcdReport/removeEngMcdReportById/" + rowData.pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-uploadFile", i18nText: "上传附件",
+                    auth: "ENG_MCD_REPORT_UPLOAD",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        common_upload_({
+                            identity: 'dg',
+                            resize: {},
+                            param: {
+                                cat: 'ENGMCDREPORT',
+                                sourceId: rowData.pkid,
+                                PKID: rowData.pkid,
+                                successCallBack: reload_,
+                                failCallBack: ""
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-revise", i18nText: "生成PDF",
+                    auth: "ENG_MCD_REPORT_PRINT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        print(rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('办理轨迹'),
+                            param: {objNo: rowData.pkid, objKey: "ENG_MCD_REPORT"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+                    }
+                }
+            ],
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.pkid,
+                                CATEGORY: "ENGMCDREPORT",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+                                    var html = "";
+                                    for (var i = 0; i < jdata.data.length; i++) {
+                                        if (loginUser == row.createUser) {
+                                            html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteMcdReport(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                        } else {
+                                            html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                        }
+                                    }
+                                    callback(html);
+                                }
+                            }
+                        });
+                    }
+                });
+                $("#dg").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+            },
+            validAuth: function (row, items) {
+                items['办理轨迹'].enable = false;
+                if (loginUser == row.createUser) {
+                    items['编辑'].enable = true;
+                    items['删除'].enable = true;
+                    items['提交'].enable = true;
+                    items['上传附件'].enable = true;
+                } else {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                    items['提交'].enable = false;
+                    items['上传附件'].enable = false;
+                }
+                if (row.status != "1") {
+                    items['删除'].enable = false;
+                    items['编辑'].enable = false;
+                    items['提交'].enable = false;
+                    items['上传附件'].enable = false;
+                    items['办理轨迹'].enable = true;
+                }
+                if (row.status == '4') {
+                    items['上传附件'].enable = true;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEditEngMcdReport("view", value.pkid);
+            }
+        });
+    }
+
+    //添加或编辑--磁堵检查报告管理
+    function addOrEditEngMcdReport(operation, pkid) {
+        var title_ = $.i18n.t('添加或编辑--磁堵检查报告管理');
+        ShowWindowIframe({
+            width: "980",
+            height: "680",
+            title: title_,
+            param: {pkid: pkid, operation: operation},
+            url: "/views/engine/engMcdReport/eng_mcd_report_add_edit.shtml"
+        });
+    }
+
+    //刷新列表
+    function reload_() {
+        doSearch_();
+    }
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    //删除附件
+    function deleteMcdReport(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: 'ATTACHMENT_RSPL_DEL'},
+            successCallBack: function (jdata) {
+                if (jdata.code == 200) {
+                    reload_();
+                }
+            }
+        });
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        i18nCallBack();
+    }
+
+    function print(pkid) {
+        var url = '';
+        var datas = {"pkid": pkid};
+        InitGatewayRequest_({
+            async: false,
+            data: datas,
+            path: "/meng-engine/engMcdReport/printMcdReport",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    url = jdata.obj;
+                    if (url) {
+                        preview(url);
+                    } else {
+                        MsgAlert({content: "打印报错，请联系管理员!", type: 'error'});
+                    }
+                } else {
+                    MsgAlert({content: "打印失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function preview(url) {
+        var title_ = $.i18n.t('磁堵检查报告');
+        ShowWindowIframe({
+            width: "850",
+            height: "650",
+            title: title_,
+            param: {url: url},
+            url: "/views/engine/engBsiReport/preview_pdf.shtml"
+        });
+    }
+
+</script>
+</body>
+</html>

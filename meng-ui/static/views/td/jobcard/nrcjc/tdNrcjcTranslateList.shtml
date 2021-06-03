@@ -1,0 +1,220 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册翻译</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO,TD_TRANS_STATUS,TD_WC_TYPE,TD_WC_REVTYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    // 翻译状态
+                    $('#status').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.TD_TRANS_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    // 类型
+                    $('#type').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.TD_WC_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    // 改版类型
+                    $('#revisionStatus').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.TD_WC_REVTYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_TRANS_STATUS"]);
+                    PAGE_DATA['type'] = DomainCodeToMap_(jdata.data["TD_WC_TYPE"]);
+                    PAGE_DATA['revisionStatus'] = DomainCodeToMap_(jdata.data["TD_WC_REVTYPE"]);
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            queryParams: {mpId: param.pkid},
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_WARNING_CAUTION_LIST_BYID'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['type'][value];
+                        }
+                    },
+                    REVISION_STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['revisionStatus'][value];
+                        }
+                    },
+                    CREATION_DATE: {
+                        type: 'date'
+                    },
+                    AUDIT_DATE: {
+                        type: 'date'
+                    },
+                    RATIFY_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [
+                {
+                    id: "m-translate", i18nText: "翻译", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: "TD_MANUAL_WARNING_CAUTION_UPLOADXML"},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    rowData['wcPath'] = jdata.data;
+                                    translateXml(rowData);
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: "error"});
+                                }
+                            }
+                        });
+                    }
+                }, {
+                    id: "m-reTranslate", i18nText: "重新翻译", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (rowData.STATUS != 'FINISH_TRANSLATE') {
+                            MsgAlert({content: '状态必须是“翻译完成”才能退回！', type: 'error'});
+                            return false;
+                        }
+                        translate(rowData.PKID);
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.STATUS != 'TRANSLATING') {
+                    items['翻译'].enable = false;
+                }
+                if (row.STATUS != 'FINISH_TRANSLATE') {
+                    items['重新翻译'].enable = false;
+                }
+                return items;
+            },
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+//                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    /**
+     * 重新翻译
+     */
+    function reTranslate() {
+        var pkids = "";
+        var rn = false;
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: '请选择数据！', type: 'error'});
+            return false;
+        }
+        $.each(rows, function (index, item) {
+            if (item.STATUS != 'FINISH_TRANSLATE') {
+                rn = true;
+            }
+            pkids += item.PKID + ',';
+        });
+        pkids = pkids.substr(0, pkids.length - 1);
+        if (rn) {
+            MsgAlert({content: '状态必须是“翻译完成”才能进行重新翻译！', type: 'error'});
+            return false;
+        }
+        translate(pkids);
+    }
+
+    /**
+     * 退回
+     * @param pkids
+     */
+    function translate(pkids) {
+        InitFuncCodeRequest_({
+            data: {pkids: pkids, FunctionCode: 'TD_MANUAL_WARNING_CAUTION_RE'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /**
+     * 手册片段版本历史
+     */
+    function translateXml(rowData) {
+        var title_ = $.i18n.t('手册片段版本历史');
+        ShowWindowIframe({
+            width: "800",
+            height: "500",
+            title: title_,
+            param: {rowData: rowData},
+            url: "/views/td/manual/translate/tdManualVersion.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+</script>
+</body>
+</html>

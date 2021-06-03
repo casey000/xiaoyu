@@ -1,0 +1,408 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>系统构型-新飞机引进评估</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%; height: 100%">
+    <div class="ibox-content">
+        <table class="table table-bordered table-info">
+            <tr>
+                <td colspan="9" align="right">
+                    <input id="btnSubmit" class="btn btn-primary" type="button" onclick="submitBtn();" value="提交"
+                           style="margin-left:3px;margin-right: 18px;"/>
+                    <input id="btnClose" class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                           style="margin-left:3px;margin-right: 18px;"/>
+                    <br/>
+                </td>
+            </tr>
+        </table>
+        <fieldset class="fieldset_eui">
+            <legend>新飞机信息</legend>
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">机队：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="fleet" name="fleet"
+                                   data-options="required:true" readonly />
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">注册号：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="acnos" name="acnos"
+                                   data-options="required:true" readonly />
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </fieldset>
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <div id='dealbtn'>
+                    <table >
+                        <tr id = 'oper'>
+                                <td style="width: 80px;"></td>
+                                <th class="th" align="right" style="width: 80px;">构型编号：</th>
+                                <td style="width: 80px; padding: 3px">
+                                    <input class="easyui-textbox" style="width: 150px;"
+                                           id="configNo" name="configNo" />
+                                </td>
+                                <td style="width: 90px">
+                                    <input class="btn btn-primary" type="button" value="查询" onclick="onSearchFor()"/>&nbsp;&nbsp;
+                                </td>
+                                <td style="width: 350px">
+                                    <input class="btn btn-primary" type="button" value="改版" onclick="appDeal('yes')"/>&nbsp;&nbsp;
+                                    <input class="btn btn-primary" type="button" onclick="appDeal('no')" value="无需处理"/>
+                                    <input class="btn btn-primary" type="button" onclick="addConfig()" value="添加系统构型条目"/>
+                                </td>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </form>
+        <fieldset class="fieldset_eui">
+            <legend>涉及构型清单</legend>
+            <table id="dg"></table>
+        </fieldset>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param; // operation[add,edit,view]
+    var pkid = null;//主表PKID
+    var op = null;
+    var taskPropId = null;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        op = param.operation;
+        taskPropId = param.taskPropId;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearchFor()
+        });
+
+        if (op == "view" || op == "flow") {
+            $('#btnSubmit').hide();
+            $('#oper').hide();
+        }else if(op == "return"){
+            $('#btnSubmit').hide();
+        }
+        if (op == "flow") {
+            $('#btnClose').hide();
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_SYSCONFIG_APP_TYPE"
+            },
+            successCallBack: function (jdata) {
+                PAGE_DATA['appType'] = DomainCodeToMap_(jdata.data["EM_SYSCONFIG_APP_TYPE"]);
+
+                InitDataForm(pkid);
+            }
+        });
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_NEW_AC_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+
+                InitDataGrid(pkid);
+            }
+        });
+    }
+
+    function InitDataGrid(pkid) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,
+            resize: function () {
+                return {width: 980, height: 440};
+            },
+            queryParams: {newAcId: pkid},
+            columns: {
+                param: {FunctionCode: 'EM_SYSCONFIG_NEW_AC_CONFIG_LIST'},
+                alter: {
+                    APP_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['appType'][value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    i18nText: "维护备注", auth: "",
+                    onclick: function () {
+                        var row = $('#dg').datagrid('getSelected');
+                        if (!row.CONFIG_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        addMemo(row.CONFIG_NO,pkid,row.MEMO);
+                    }
+                },
+            ],
+            onBeginEdit: function (rowIndex, rowData) {
+            },
+            onEndEdit: function (index, row, changes) {
+            },
+            validAuth: function (row, items) {
+                if (op == "view" || op == "flow") {
+                    items['维护备注'].enable = false;
+                }
+                return items;
+            }
+        });
+    }
+
+    function submitBtn() {
+        if (! pkid) {
+            MsgAlert({
+                content: "数据异常！请刷新页面或者打开后再试。",
+                type: "error"
+            });
+        }
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_NEW_AC_CONFIG_SUM",
+                newAcId: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.NUM > 0) {
+                        MsgAlert({
+                            content: "还有 " + jdata.data.NUM + " 个构型数据未判断，无法提交！", type: 'error'
+                        });
+                    } else {
+                        $.messager.confirm("", "是否确认提交？", function (r) {
+                            if (r) {
+                                common_add_edit_({
+                                    url: "/views/em/workflow/work_flow_account_select.shtml",
+                                    param: {
+                                        FunctionCode_: "EM_SYSCONFIG_NEW_AC_SUBMIT",
+                                        otherParam: pkid,
+                                        successCallBack: reload_
+                                    },
+                                    title: $.i18n.t("选择审批人"),
+                                    width: 520,
+                                    height: 300
+                                });
+                            }
+                        });
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function reload_() {
+        param.OWindow.$('#dg').datagrid("reload");
+        // closeW();
+    }
+
+    function reload_1() {
+        $('#dg').datagrid("reload");
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+
+    //扩展datagrid
+    $.extend($.fn.datagrid.methods, {
+        currentRowIndex: function (jq, obj) {
+            return $(obj).closest("tr.datagrid-row")[0].rowIndex;
+        },
+        changeEditor: function (jq, p) {
+            return jq.each(function () {
+                var dg = $(this);
+
+                var index = p.index;
+                if (typeof (index) != "number") {
+                    index = $(index).closest("tr.datagrid-row")[0].rowIndex;
+                }
+
+                var editor = dg.datagrid('getEditor', { index: index, field: p.field });
+                var diveitor = $(editor.target).closest("div.datagrid-cell");
+                var editortd = $(editor.target).parent();
+                var opts = dg.datagrid("options");
+                var _15d, _15e;
+                if (typeof p.editor == "string") {
+                    _15d = p.editor;
+                } else {
+                    _15d = p.editor.type;
+                    _15e = p.editor.options;
+                }
+                editortd.empty();
+                var _15f = opts.editors[_15d];
+                $.data(diveitor[0], "datagrid.editor", { actions: _15f, target: _15f.init(editortd, _15e), field: p.field, type: _15d, oldHtml: editor.oldHtml });
+                var row = opts.finder.getRow(dg[0], index);
+                var ed = $.data(diveitor[0], "datagrid.editor");
+                ed.actions.setValue(ed.target, row[p.field]);
+                ed.actions.resize(ed.target, diveitor.width());
+            });
+        },
+        getEditorValue: function (jq, p) {
+
+            var dg = jq;
+
+            var index = p;
+            if (typeof (index) != "number") {
+                index = $(index).closest("tr.datagrid-row")[0].rowIndex;
+            }
+            var opts = dg.datagrid("options");
+            var tr = opts.finder.getTr(dg[0], index);
+            var row = opts.finder.getRow(dg[0], index);
+
+
+
+            var _14d = $.extend({}, row);
+            tr.find("div.datagrid-editable").each(function () {
+                var _14e = $(this).parent().attr("field");
+                var ed = $.data(this, "datagrid.editor");
+                var t = $(ed.target);
+                var _14f = t.data("textbox") ? t.textbox("textbox") : t;
+                _14f.triggerHandler("blur");
+                var _150 = ed.actions.getValue(ed.target);
+                _14d[_14e] = _150;
+            });
+
+            return _14d;
+        },
+        setEditorValue: function (jq, p) {
+            return jq.each(function () {
+                var dg = $(this);
+
+                var index = p.index;
+                if (typeof (index) != "number") {
+                    index = $(index).closest("tr.datagrid-row")[0].rowIndex;
+                }
+                var opts = dg.datagrid("options");
+                var tr = opts.finder.getTr(dg[0], index);
+                var row = opts.finder.getRow(dg[0], index);
+                var value = p.value || {};
+
+
+                var _14d = $.extend({}, row);
+                tr.find("div.datagrid-editable").each(function () {
+                    var _14e = $(this).parent().attr("field");
+                    if (value[_14e] !== undefined) {
+                        var ed = $.data(this, "datagrid.editor");
+                        var t = $(ed.target);
+                        ed.actions.setValue(ed.target, value[_14e]);
+                    }
+                });
+
+            });
+        }
+    });
+
+    //改版/无需处理
+    function appDeal(type) {
+        var rowData = $('#dg').datagrid('getChecked');
+        if (!rowData || rowData.length == 0) {
+            MsgAlert({content: '请至少选择一条数据', type: 'error'});
+            return;
+        }
+        ajaxLoading();
+        var configNos = [];
+        for (var i = 0; i < rowData.length; i++) {
+            configNos.push(rowData[i].CONFIG_NO);
+        }
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_NEW_AC_CONFIG_UPDATE",
+                pkid:pkid,
+                configNos: configNos.toString(),
+                type: type
+            },
+            successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    reload_1();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function addMemo(CONFIG_NO,pkid,memo){
+        var title_ = $.i18n.t('维护备注');
+        ShowWindowIframe({
+            width: "800",
+            height: "500",
+            param: {
+                configNo:CONFIG_NO,
+                pkid:pkid,
+                memo:memo
+            },
+            url: "/views/em/emsysconfig/em_sysconfig_new_ac_memo.shtml"
+        });
+    }
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    function addConfig(){
+        var fleet = $('#fleet').textbox('getValue');
+        ShowWindowIframe({
+            width: "800",
+            height: "500",
+            param: {
+                fleet:fleet,
+                pkid:pkid
+            },
+            url: "/views/em/emsysconfig/em_sysconfig_new_ac_check.shtml"
+        });
+    }
+
+</script>
+
+</html>

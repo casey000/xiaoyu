@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="orgName" name="orgName"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+                    <input style="display:none;" name="pkid" id="pkid"/>
+                    <input style="display:none;" name="eoPkid" id="eoPkid"/>
+                    <tr>
+                        <th class="tdl">类型:</th>
+                        <td class="tdr">
+                            <!--<input class="easyui-combobox" name="manualType" id="manualType"
+                                   data-options="required:true,validType:'comboBoxEditvalid[\'manualType\']'"/>-->
+                            <input class="easyui-combobox" name="manualType" id="manualType"
+                                   data-options="required:true,validType:'comboBoxEditvalid[\'manualType\']'"/>
+                        </td>
+                    </tr>
+                    <tr id="manualNameTr">
+                        <th class="tdl"><a href="#" onclick="chooseList()" style="text-decoration:underline;">名称:</a></th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="manualName" id="manualName"
+                                   data-options=""
+                            />
+                        </td>
+                    </tr>
+                    <tr id="ataTr">
+                        <th class="tdl">章节:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="effectAta" id="effectAta"
+                                   data-options=""/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">修订说明:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="reviseExplanation" id="reviseExplanation"
+                                   data-options="multiline:true" style="width: 420px; height: 50px"
+                            />
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td colspan="8" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript">
+
+    var param = {};
+    var applyModel;
+
+    function i18nCallBack() {
+        window.resizeTo("650", "400");
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        applyModel = param.applyModel;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EO_MANUAL_FILE_TYPE_V_ONE,EMTB_ATA,DM_DATA_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#manualType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.EM_EO_MANUAL_FILE_TYPE_V_ONE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange: function (newValue, oldValue) {
+                            $('#effectAta').textbox('setValue', '');
+                            $('#manualName').textbox('setValue', '');
+
+                            if(newValue == 'TB' || newValue == 'MP' || newValue == 'SBI' || newValue=='JC'|| newValue=='JYD'){
+                                $('#ataTr').hide();
+                                $('#manualNameTr').show();
+                                $('#manualName').textbox({required: true, editable:false, onlyview:true});
+                            }else{
+                                $('#ataTr').show();
+                                $('#manualNameTr').hide();
+                                $('#manualName').textbox({required: false});
+                            }
+                        }
+                    });
+                    //资料类型
+                    /*$('#manualType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_DATA_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+*/
+                    /*$('#effectAta').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EMTB_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });*/
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitSaveForm_();
+    }
+
+    function InitSaveForm_() {
+        $('#eoPkid').val(param.eoPkid);
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {FunctionCode: "EM_EO_MANUAL_FILE_ADD"});
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            param.OWindow.reload_();
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+    function chooseList() {
+        var manualType = $('#manualType').combobox('getValue');
+        if(!manualType){
+            MsgAlert({content: '请选择类型', type: 'error'});
+            return;
+        }
+        if(manualType=="JYD"){
+            var title_ = $.i18n.t('选择手册修改建议单');
+            ShowWindowIframe({
+                width: 960,
+                height: 690,
+                title: title_,
+                param: {
+                    pkid: pkid,
+                    fromEo:true,
+                },
+                url: "/views/td/manual/revsugEvaluate/revsugList.shtml"
+            });
+        }else{
+            var title_ = $.i18n.t('');
+            ShowWindowIframe({
+                width: 1000,
+                height: 700,
+                title: title_,
+                param: {manualType : manualType, applyModel: applyModel},
+                url: "/views/em/emeo/sub/EmEoManualFileList.shtml"
+            });
+        }
+
+    }
+
+    function setManulName(obj) {
+        var manualType = $('#manualType').combobox('getValue');
+        manualType=="JYD"?$('#manualName').textbox('setValue', obj.REVSUG_NO):$('#manualName').textbox('setValue', obj.TB_NO);
+        $('#effectAta').textbox('setValue', obj.ATA);
+    }
+
+
+    //设置拼音码
+    function setPym() {
+        var name = $("#name").textbox('getValue');
+        var pym = window.pinyinUtil.getFirstLetter(name, false);
+        $("#pym").textbox('setValue', pym);
+    }
+
+    //下拉框校验
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    /*if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;*/
+                    var result = true;
+                    var allData = $combobox.combobox('getData');
+                    for(var i = 0; i< allData.length; i++){
+                        if(value == allData[i].TEXT){
+                            result = false;
+                            break;
+                        }
+                    }
+                    if(result){
+                        return false;
+                    }else{
+                        return true;
+                    }
+
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        },
+    });
+</script>
+</html>

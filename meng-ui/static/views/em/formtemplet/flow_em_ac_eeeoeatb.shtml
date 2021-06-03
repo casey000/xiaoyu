@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_work_flow">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script src="/js/workflow/activiti_workflow.js" type="text/javascript"></script>
+    <script src="/js/workflow/formtemplet.js" type="text/javascript"></script>
+    <title>新飞机引进-工程文件审核流程</title>
+</head>
+<body class="ibody">
+<div id="tabs" style="width: 100%; height: 100%;">
+    <div id="tab01" title="业务表单数据" style="">
+        <div class="ibox float-e-margins">
+            <div class="ibox-content">
+                <form class="form-horizontal m-t" id="mform" style="margin-top: 0px;">
+                    <input type="hidden" name="pkid" id="pkid"/>
+                    <input type="hidden" name="isFirstNode" id="isFirstNode"/>
+                    <input type="hidden" id="approvedBy" name="approvedBy"/>
+                    <div style="height: 700px">
+                        <iframe id="iframe01" frameborder="0" style="width: 100%; height: 700px"></iframe>
+                    </div>
+
+                    <h5 style="margin-bottom: 4px;">流程处理：</h5>
+                    <input name="taskId" type="hidden"/>
+                    <table class="table table-bordered table-info" id="mtable">
+                        <tr id="notesTr">
+                            <th class="tdl"> 处理意见：</th>
+                            <td class="tdr">
+                                <input id="notes" class="easyui-textbox easyui-validatebox" name="notes"
+                                       data-options="multiline:true, validType:['maxLength[500]'] "
+                                       style="height:65px; width: 90%;"/>
+                            </td>
+                            <th class="tdl xmclass" style="width: 100px">下一级办理人：</th>
+                            <td class="tdr xmclass">
+                                <input id="authId" name="authId" class="easyui-textbox easyui-validatebox"
+                                       data-options="validType:['maxLength[20]'] " style="height:25px; width:150px;"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td colspan="2" align="center">
+                                <input id="canSubmit" class="btn" type="button" onclick="doSubmit()" value="提交"/>
+                                <input id="canReturn" class="btn" type="button" onclick="doReturn()" value="退回"/>
+                                <!--                                <input id="view" class="btn btn-primary " type="button" onclick="viewDetails()" value="查看详情">-->
+                                <!--<input id="canTerminate" class="btn" disabled="disabled" type="button" onclick="javascript: ;"value="终止"/>
+                                <input id="canHangUp" class="btn" disabled="disabled" type="button" onclick="javascript: ;"value="挂起"/>-->
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div title="流程信息">
+        <table class="table table-bordered table-info" id="processInfo">
+            <tr>
+                <th class="tdl" style="width: 145px;">流程业务Key ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="businessKey"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程业务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="executionName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程创建时间 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="createTime"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程创建人 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="userName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="nodeName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">是否会签任务 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="isJoint"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+                </td>
+            </tr>
+            <!--<tr>
+              <th class="tdl" style="width: 145px;">流程任务-配置 ：</th>
+              <td class="tdr" colspan="3" style="vertical-align: middle;">
+                <input type="checkbox" name="canReturn" value="" disabled/> 可退回
+                <input type="checkbox" name="canTrunTo" value="" disabled/> 可转办
+                <input type="checkbox" name="canTerminate" value="" disabled/> 可终止
+                <input type="checkbox" name="canHangUp" value="" disabled/> 可挂起
+              </td>
+            </tr>-->
+        </table>
+        <div id="workflow" style="overflow-x: scroll;"></div>
+    </div>
+    <div id="tab02" title="历史任务信息" style="">
+        <table id="historyDg"></table>
+    </div>
+</div>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var pkid;
+    var flowNode;
+    var taskType;
+    var userId;
+    var flag = false;
+
+    /**
+     * 初始化流程业务处理页面
+     * @param resource  业务数据
+     * @param execution 流程实例数据
+     * @param node 节点配置数据
+     * @constructor
+     */
+    function InitLoadResource(resource, execution, node) {
+        pkid = resource.pkid;
+        taskType = resource.taskType;
+        userId = resource.assignerId;
+        $('#pkid').val(pkid);
+
+        //下个审批人选择初始化
+        $("#authId").MyComboGrid({
+            idField: 'ACCOUNT_ID',  //实际选择值
+            textField: 'USER_NAME', //文本显示值
+            panelHeight: '180px',
+            required: true,
+            width: 140,
+            params: {userId: userId, FunctionCode: 'FLOW_WORK_ACCOUNT'},
+            columns: [[
+                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                {field: 'USER_NAME', title: '审核人', width: 50}
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (t != null && t != '' & t != undefined) {
+                    if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                        alert('请选择，不要直接输入！');
+                        $(this).combogrid({value: ''});
+                    }
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+                //当前在审核页面中选择下一位审核人
+                if ('taskEmAcEeeoeatb2' == node.taskPropId) {//任务退回提交
+                    $("#approvedBy").val(row.ACCOUNT_ID);
+                }
+            }
+        });
+
+
+        if (taskType === '工程文件评估单重评') {
+            $('#iframe01').attr('src', '/views/em/emfileeval/emfileeva_new_ac_add.shtml?operation=flow&recordId=' + pkid + "&taskPropId=" + node.taskPropId
+                + "&userId=" + userId);
+        }else if(taskType === '自定义EA重评' || taskType == '自定义EO重评' || taskType == 'EA'){
+            $('#iframe01').attr('src', '/views/em/emeo/em_eo_new_ac_add.shtml?operation=flow&recordId=' + pkid + "&taskPropId=" + node.taskPropId);
+        }else {
+            $('#iframe01').attr('src', '/views/em/emtb/em_tb_new_ac_add.shtml?operation=flow&recordId=' + pkid + "&taskPropId=" + node.taskPropId);
+        }
+
+        //当前节点为回退节点
+        if (node.taskPropId === "taskEmAcEeeoeatb2"){
+            flowNode = 'return';
+            $("#canReturn").remove();
+            $("#isFirstNode").val('N');
+        }
+        $('#isFirstNode').val(node.taskPropId === "taskEmAcEeeoeatb1" ? "Y" : "N");
+        //判断是否显示下一级，即工作流是否结束
+        if ('taskEmAcEeeoeatb1' == node.taskPropId || howDealwith == 'Y') {//评估审核
+            flag = true;//结束标志
+        }
+        if (flag) {//结束标志
+            $(".xmclass").hide();
+            $("#authId").combogrid({required: false});
+        }
+    }
+
+    function doReturn() {
+        $.messager.confirm('提示?', "是否进行退回?", function (r) {
+            if (r) {
+                var notes = $("#notes").textbox('getValue');
+                if ($.trim(notes) == '') {
+                    MsgAlert({content: '请输入您的退回意见', type: 'error'});
+                    return;
+                }
+                var $form = $("#mform");
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {
+                    FunctionCode: 'WS_FLOW_TURNBACK', reSelect: "top",
+                    taskId: param.TASK_ID, procDefId: param.PROC_DEF_ID, notes: notes
+                });
+                if (!PAGE_EVENTS.beforeTurnBack(data)) {
+                    return;
+                }
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        MaskUtil.unmask();
+                        PAGE_EVENTS.afterTurnBack(jdata);
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (typeof(param.OWindow.reload_ == 'function')) {
+                                param.OWindow.reload_();
+                            }
+                            param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+
+</script>
+</body>
+</html>

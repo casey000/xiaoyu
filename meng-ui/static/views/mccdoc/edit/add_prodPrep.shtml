@@ -1,0 +1,1255 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">生产准备单</title>
+    <!--<link href="/css/mccdoc/prodPrepList.css" rel="stylesheet" type="text/css"/>-->
+
+    <!--图标样式-->
+    <!--<link href="/css/common_from_me.css" rel="stylesheet" type="text/css"/>-->
+    <link href="/css/nrc/nrc_add.css" rel="stylesheet">
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/dialog_default.css" rel="stylesheet" type="text/css"/>
+    <script src="/js/jquery/lhgdialog/lhgdialog.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/views/defect/pnSelect.js"></script>
+    <script src="/js/datagrid_utils.js" type="text/javascript"></script>
+
+    <style>
+        .key{
+            /*color: #333333;*/
+            text-align: right;
+        }
+        /*.keyTitle{*/
+            /*text-align: right;*/
+            /*font-size: 14px;*/
+        /*}*/
+        /*table.proPrep tr{*/
+            /*height: 42px;*/
+        /*}*/
+        /*table.proPrep td{*/
+            /*width: 200px;*/
+            /*position: relative;*/
+            /*font-size: 14px;*/
+        /*}*/
+        #reference{
+            width: 100px;
+        }
+        #referenceNo{
+            width:240px;
+        }
+        .reference{
+            width: 60px;
+        }
+
+        .fangdajin {
+            cursor: pointer;
+            position: absolute;
+            right: 10px;
+            top: 11px;
+        }
+
+        #acNoImg{
+            cursor: pointer;
+            position: absolute;
+            left: 380px;
+            top: 11px;
+        }
+        .chechBoxMiddle{
+            vertical-align: middle;
+        }
+
+        .airMaterialTool{
+            border: 1px solid #ddd;
+            border-width: 1px;
+            display: table;
+            border-collapse: collapse;
+        }
+        .airMaterialTool td{
+            border: 1px solid #666;
+            text-align: center;
+            color: #333;
+        }
+        .toolTitle{
+            background-color: #999;
+        }
+        #airMaterialTool_title .toolAcNo{
+            width:210px;
+        }
+
+        .toolAcNo input,.acToolName input,.acToolRef input,.acToolNumber input,.acToolUnit input
+        ,.acToolHandle input{
+            width: 90%;
+        }
+
+        .acToolRef{
+            width: 300px;
+        }
+       .isAcTool,.acToolNumber,.acToolUnit,.acToolHandle{
+           width: 100px !important;
+       }
+       .button_a{
+           /*border: 1px solid #666;*/
+           padding: 10px 30px;
+           margin-left: 30px;
+           color: #fff;
+           background-color: #2465a8;
+           border-radius: 4px;
+
+
+       }
+        .close_P{
+            position: relative;
+        }
+        .close_P span{
+            width: 21px;
+            height: 21px;
+            display: none;
+            position: absolute;
+            top: 14px;
+            left: 380px;
+            background: url("/img/close.png") no-repeat;
+            cursor:pointer;
+        }
+
+        .close_P span.workContent_len,.close_P  span.otherR_len{
+            width: auto;
+            display:inline-block;
+            position: absolute;
+            top: 40px;
+            left: 380px;
+            background: none;
+        }
+
+
+        .addToolBtn{
+            border: 1px solid #666;
+            color: #333;
+            padding: 2px 6px;
+        }
+        #airMaterialTool_title{
+            display: none;
+        }
+
+        .planRef{
+            width: 56px;
+            border-radius: 5px;
+            height: 20px;
+            line-height: 20px;
+            padding-left: 4px;
+        }
+
+        .planRef:focus,.inputTool:focus{
+            border-color: #BBBBBB;
+            border-radius: 5px;
+            box-shadow: 0 0 3px 0 #d4d4d4;
+            outline: 0;
+        }
+        .addnrc_table  td.itemValue{
+            text-align: left;
+            padding-left: 20px;
+        }
+        .addnrc_table .itemValueTdNone td.itemValue{
+            border:none;
+        }
+
+        .airMaterialToolTr{
+            display: none;
+        }
+
+        /*显示加载*/
+        .showLoding{
+            display:none;
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            text-align: center;
+            line-height: 100%;
+        }
+
+        .showLoding img{
+            width: 28px;
+            height: 28px;
+            margin-top:30%;
+        }
+
+        /*飞机号弹框样式修改*/
+        .datagrid-toolbar {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="nrc_div">
+        <table style="width: 100%;" class="addnrc_table">
+            <tr style="display: none">
+                <td class="key" colspan="8" style="text-align: center;font-size: 24px"><span class="prodType"></span>
+                </td>
+            </tr>
+            <!-----------------------基本信息--------------------------------->
+            <!--<tr>-->
+                <!--<td class="key">基本信息</td>-->
+            <!--</tr>-->
+            <tr class="basicInfo">
+                <td class="key">机型 <span style="color: red" class="notNull">*</span>：</td>
+                <td class="keyValue acType itemValue" colspan="7">
+                    <input type="text" class="easyui-combobox" id="acType" data-options="required:true">
+                </td>
+            </tr>
+            <tr>
+                <td class="key">飞机号 <span style="color: red" class="notNull">*</span>：</td>
+                <td class="keyValue1 acNo itemValue" colspan="7">
+                    <input type="text" class="easyui-textbox" id="acNo" style="width: 350px" disabled="disabled">
+                    <img alt="" class="fangdajin" id="acNoImg" onClick="acQuery()"
+                         src="/img/search.png"/>
+                </td>
+            </tr>
+
+            <tr>
+                <td class="key">参考依据 <span style="color: red" class="notNull">*</span>：</td>
+                <td class="keyValue1 reference_p itemValue" colspan="7">
+                    <input type="text" class="easyui-combobox" id="reference" data-options="required:true">
+                    <input  class="easyui-textbox" id="referenceNo"
+                            data-options="required:true,prompt:'编号规范：28-11-10'" type="text">
+                </td>
+            </tr>
+            <tr>
+                <td class="key" >工作内容 <span style="color: red" class="notNull">*</span>：</td>
+                <td class="keyValue1 close_P workContent itemValue" colspan="7"  style="padding-left: 16px">
+                    <textarea  style="height: 80px;width:350px;" id="workContent"
+                               placeholder="请输入工作内容"
+                               onfocus="showClose('workContent_close')" onblur="hideClose('workContent_close')"></textarea>
+                    <span style="right: 70px" class="workContent_close"
+                          onclick="clearText('workContent','workContent_close')"></span>
+                    <span style="top: 70px;" class="workContent_len">300/300</span>
+                </td>
+            </tr>
+            <tr class="numAndTimeTr">
+                <td class="key">计划人工时 <span style="color: red" class="notNull">*</span>：</td>
+                <td class="keyValue1 itemValue" colspan="7">
+
+                    <input type="text" class="easyui-textbox planRef" id="numPeople"
+                           validType="number" data-options="required:true">
+                    人 X
+
+                    <input type="text" class="easyui-textbox planRef"  id="hourTime" validType="IntDeminumber"
+                           data-options="required:true">小时
+
+                    <span style="padding-left: 10px">计划总工时：<span id="planSumTime">--</span>人工时</span>
+                </td>
+            </tr>
+            <tr class="viewInsert"></tr>
+            <!-----------------------特殊测试需求--------------------------------->
+            <tr class="titleDivision itemValueTdNone">
+                <td class="key" rowspan="5">特殊测试需求：</td>
+                <td class="keyValue itemValue">
+                    <input type="checkbox" name="chechBox_1" class="upAc chechBoxMiddle disabledUi chechBox_1" id="upAc">
+                    <label for="upAc">顶升飞机</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_2" class="engine chechBoxMiddle disabledUi chechBox_2" id="engine">
+                    <label for="engine">发动机试慢车</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_3" class="engines chechBoxMiddle disabledUi chechBox_3" id="engines">
+                    <label for="engines">发动机试慢车以上</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_4" class="towingAC chechBoxMiddle disabledUi chechBox_4" id="towingAC">
+                    <label for="towingAC">拖行飞机</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_5" class="fuelTank chechBoxMiddle disabledUi chechBox_5" id="fuelTank">
+                    <label for="fuelTank">进入燃油箱</label>
+                </td>
+                <td colspan="2" class="itemValue" style="border-right: 1px solid #ccc"></td>
+            </tr>
+            <tr class="itemValueTdNone">
+
+                <td class="keyValue itemValue">
+                    <input type="checkbox" name="chechBox_6" class="structure chechBoxMiddle disabledUi chechBox_6" id="structure">
+                    <label for="structure">结构人员</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_7" class="aerial chechBoxMiddle disabledUi chechBox_7"  id="aerial">
+                    <label for="aerial">高空车需求</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_8" class="hangar chechBoxMiddle disabledUi chechBox_8" id="hangar">
+                    <label for="hangar">机库需求</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_9" class="ndt chechBoxMiddle disabledUi chechBox_9"
+                           id="ndt">
+                    <label for="ndt">NDT需求</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_10"  class="lowTemperature chechBoxMiddle disabledUi chechBox_10" id="lowTemperature">
+                    <label for="lowTemperature">低温限制</label>
+                </td>
+                <td colspan="2" class="itemValue" style="border-right: 1px solid #ccc"></td>
+            </tr>
+            <tr class="itemValueTdNone">
+
+                <td class="keyValue itemValue">
+                    <input type="checkbox" name="chechBox_11" class="weather chechBoxMiddle disabledUi chechBox_11" id="weather">
+                    <label for="weather">天气限制</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_12"  class="thunderstorm chechBoxMiddle disabledUi chechBox_12" id="thunderstorm">
+                    <label for="thunderstorm">雷雨限制</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_13" class="rain chechBoxMiddle disabledUi chechBox_13"  id="rain">
+                    <label for="rain">大雨限制</label>
+                </td>
+                <td class="itemValue">
+                    <input type="checkbox" name="chechBox_14" class="gale chechBoxMiddle disabledUi chechBox_14"  id="gale">
+                    <label for="gale">大风限制</label>
+                </td >
+                <td colspan="3" class="itemValue" style="border-right: 1px solid #ccc"></td>
+            </tr>
+            <tr class="itemValueTdNone">
+                <td class="keyValue itemValue" colspan="7" style="border-right: 1px solid #ccc">
+                    <input type="checkbox" name="specialNeeds" class="other disabledUi" id="other"
+                           onclick="otherCaseFun(this)">
+                    <label for="other">其他限制</label>
+                </td>
+
+
+            </tr>
+            <tr class="itemValueTdNone">
+
+                <td colspan="7" class="close_P itemValue" style="border-right: 1px solid #ccc">
+                    <textarea  style="height: 80px;width:800px;" id="otherR" disabled
+                               placeholder="请输入其他限制详情"
+                               class="disabledUi"
+                               onfocus="showClose('otherR_close')" onblur="hideClose('otherR_close')"></textarea>
+                    <span class="otherR_close" onclick="clearText('otherR','otherR_close')" style="left: 835px"></span>
+                    <span style="left:835px;top: 60px;" class="otherR_len">300/300</span>
+                </td>
+            </tr>
+            <tr></tr>
+            <!-----------------------推荐航材工具--------------------------------->
+            <tr>
+                <td class="key airMaterialToolRow">推荐航材工具：</td>
+                <td class="keyValue" colspan="7" style="text-align: right; padding-right: 30px"><a class="addToolBtn"
+                                                                               onclick="addToolFun()">添加</a>
+            </tr>
+            <tr class="airMaterialToolTr">
+                <td colspan="7">
+                    <table class="airMaterialTool" style="width: 100%">
+                        <tr class="toolTitle toolTr" id="airMaterialTool_title">
+                            <td class="toolAcNo">件号 </td>
+                            <td class="acToolName" style="min-width:150px">名称 </td>
+                            <td class="isAcTool">是否工具 </td>
+                            <td class="acToolNumber">数量 </td>
+                            <td class="acToolUnit">单位 </td>
+                            <td class="acToolRef">参考依据/备注 </td>
+                            <td class="acToolHandle">操作 </td>
+                        </tr>
+                    </table>
+                </td>
+
+            </tr>
+            <tr>
+                <td colspan="8" style="text-align: center;padding:40px 0" class="handleBtn">
+                    <a class="button_a" onclick="window.close();">取消</a>
+                    <a class="button_a" onclick="saveSubmitData('save')">保存</a>
+                    <a class="button_a noSubmit" onclick="saveSubmitData('submit')">提交</a>
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+    <div class="showLoding">
+        <img src="/images/loading.gif">
+    </div>
+</body>
+<script>
+    var COMBOBOX_DATA={};
+    var TE_UNIT_TYPE="";
+    var flowType;
+
+    var sub_win,params;
+
+    if (frameElement) {
+        sub_win = frameElement.api;
+    }
+
+    if (sub_win) {
+        params = sub_win.data;
+    } else {
+        params = getParentParam_();
+    }
+
+    // var params = getParentParam_();
+    // console.log("params:",params);
+    // if(params.hasOwnProperty('type')&&params.type=="edit"){
+    //     //修订生产准备单
+    //     $(".prodType").html("修订生产准备单");
+    // }else if(params.hasOwnProperty('type')&&params.type=="view"){
+    //     //查看生产准备单
+    //     $(".prodType").html("查看生产准备单");
+    // }else{
+    //     $(".prodType").html("新增生产准备单");
+    // }
+
+    $(function () {
+        //机型
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,TE_UNIT_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    TE_UNIT_TYPE=jdata.data.TE_UNIT_TYPE;
+
+                    COMBOBOX_DATA["daFleet"]= jdata.data.DA_FLEET;
+                    var selectVal;
+                    $("#acType").combobox({
+                        valueField: 'TEXT',
+                        textField: 'VALUE',
+                        data:COMBOBOX_DATA["daFleet"],
+                        onHidePanel:function () {
+                            var t = $(this).combobox('getValue');
+                            if(selectVal==undefined||selectVal==null||t!=selectVal.TEXT){
+                                $(this).combobox({value: ''});
+                            }
+
+                        },
+                        onSelect: function (val) {
+                            selectVal=val;
+                            $("#acNo").textbox("setValue","");//切换机型后，清空之前机型下的机号
+
+                        }
+                    });
+
+                    //设置机型菜单选项的初始值
+                    if(params.hasOwnProperty('type')&&params.prodPrep_info.hasOwnProperty("model")){
+                        $("#acType").combobox("setValue",params.prodPrep_info.model);
+                    }
+
+
+                    //审批设置机型菜单选项的初始值
+                    if(params.hasOwnProperty('flowType')&&params.flowType=="edit"&&params.hasOwnProperty("model")){
+                        $("#acType").combobox("setValue",params.model);
+                    }
+
+
+                }
+
+            }
+        });
+
+        //参考依据
+        var referenceVal;
+        $("#reference").combobox({
+            valueField: 'TEXT',
+            textField: 'VALUE',
+            data:[
+                {"TEXT":"AMM","VALUE":"AMM"},
+                {"TEXT":"CMM","VALUE":"CMM"},
+                {"TEXT":"图纸","VALUE":"图纸"},
+                {"TEXT":"其他","VALUE":"其他"}
+            ],
+            onHidePanel:function () {
+                var t = $(this).combobox('getValue');
+                if(referenceVal==undefined||referenceVal==null||t!=referenceVal.TEXT){
+                    $(this).combobox({value: ''});
+                }
+
+            },
+            onSelect: function (val) {
+                referenceVal=val;
+            }
+
+        });
+
+        //编辑修订查看赋值
+        // if(params.hasOwnProperty('type')&&(params.type=="edit"||params.type=="view"||params.type=="updateR")){
+        if(params.hasOwnProperty('type')&&params.type!="add"){
+            var ele=`<tr>
+                <td class="key">编号 ：</td>
+                <td class="keyValue itemValue" colspan="7">
+                    ${params.prodPrep_info.no}
+                </td>
+            </tr>`
+            $(".basicInfo").before(ele);
+            initUpdatePrepsheet(params.prodPrep_info);
+        }
+
+
+        //审批编辑/查看
+        if(params.hasOwnProperty('ppoId')&&params.ppoId){
+            flowType=params.flowType;
+            prodPrepOpen(params.ppoId);
+
+        }
+
+
+    });
+
+    //审批获取准备单数据
+    function prodPrepOpen(id,type) {
+        $("a.button_a").hide();
+        console.log("prodPrepOpen:",id);
+        let getUrl="/maintenanceProduction/producePrepareOrder/get/"+id;
+        console.log("getUrl:",getUrl);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: getUrl ,
+            successCallBack: function (jdata) {
+                if (jdata.success) {
+                    var ele=`<tr>
+                            <td class="key">编号 ：</td>
+                            <td class="keyValue itemValue" colspan="7">
+                                ${jdata.obj.no}
+                            </td>
+                        </tr>`;
+                    $(".basicInfo").before(ele);
+                    console.log("jdata.obj:",jdata.obj);
+                    initUpdatePrepsheet(jdata.obj);
+                    // prodPrepAddEdit(id,type,jdata.obj);
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                };
+            },
+            error:function (jdata) {
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+    }
+
+    //查询A/C的点击事件
+    function acQuery() {
+        //已经选择过的飞机ID
+        var acNos=$("#acNo").textbox("getValue");//飞机
+        var model=$("#acType").combobox("getValue");//机型
+        //需要显示的飞机状态
+        var acStatus = ["Running"];
+        var actionUrl = '/views/mccdoc/aircraft_tree_check.shtml';
+        P.$.dialog({
+            title: 'Select Aircraft',
+            width: '690px',
+            height: '400px',
+            top: '10%',
+            esc: true,
+            cache: false,
+            max: false,
+            min: false,
+            parent: this,
+            content: 'url:' + actionUrl,
+            data: {
+                "acNos": acNos,
+                "model":model,
+                "acStatus": acStatus,
+                "multipleSelect": true,
+                "acChecks":true //用于传参选中
+            },
+            close: function () {
+                if (this.data['acId']) {
+                    var tails = this.data['tail'];
+                    $("#acNo").textbox("setValue",tails)
+                }
+            }
+        });
+
+
+    }
+    //选飞机号表格事件处理
+    function InitACDataGrid() {
+        $("#ACDg").MyDataGrid({
+            identity: 'ACDg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,     //开启分页
+            fitColumns: true,
+            striped: false,
+            showHeader: false,
+            columns: {
+                param: {FunctionCode: 'FLB_AC_LIST'},
+                alter: {}
+            },
+            onLoadSuccess: function () {
+            },
+            // 固定表格所占整个表格高度
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.45, 0.47, 140, -6);
+            },
+            contextMenus: [],
+            toolbar: [],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function () {
+                var row = $('#ACDg').datagrid('getSelected'); //获取所选行的数据
+                var acVal=$("#acNo").textbox("getValue");
+                if(!acVal){
+                    $("#acNo").textbox("setValue", row.tail)
+                }else if(acVal.indexOf(row.tail)==-1){
+                   var newAcVal=acVal+","+row.tail;
+                   $("#acNo").textbox("setValue",newAcVal);
+                }
+                 //给station控件赋值
+                $('#ACQueryWindow').window('close'); //关闭弹窗
+            }
+        });
+    }
+    // 工作内容和其他限制 清空文本事件
+    function clearText(id,className) {
+        var text=$("#"+id).val();
+
+
+        console.log("文本："+text);
+        $("#"+id).val("");
+        $("."+className).hide();
+
+        if(id=="workContent"){
+            $("span.workContent_len").html("300/300");
+        }else if(id=="otherR"){
+            $("span.otherR_len").html("300/300");
+        }
+    }
+
+    //工作内容和其他限制文本框焦点 事件
+    function showClose(className) {
+        $("."+className).show();
+    }
+    //工作内容和其他限制文本框焦点 事件
+    function hideClose(className) {
+        var t=setTimeout(function(){
+            $("."+className).hide();
+            clearTimeout(t);
+        },500);
+
+    }
+
+    //添加推荐航材
+    var isEmpty=true;
+    var sumBtn_tr=1;
+    function addToolFun(type,dt,k) {
+        if(isEmpty){
+            $("#airMaterialTool_title").show();
+            $(".airMaterialToolTr").show();
+            $(".airMaterialToolRow").attr("rowspan",2);
+            isEmpty=false;
+        }
+
+        var eleTr=`<tr class="toolTr">
+                        <td class="toolAcNo">
+                            <input class="textbox easyui-textbox inputTool" id="toolAc_${sumBtn_tr}" style="width:
+            90%;padding-left: 4px" disabled
+                             placeholder="请选择件号">
+                            <img alt="" class="fangdajin" id="acBtn_${sumBtn_tr}" onClick="pn_data(${sumBtn_tr})" src="/img/search.png"/>
+                        </td>
+                        <td class="acToolName" id="toolName_${sumBtn_tr}"></td>
+                        <td class="isAcTool">
+                            <input type="checkbox" id="isAcTool_${sumBtn_tr}" name="tool" class="chechBoxMiddle"
+                            onclick="selectTool(this,${sumBtn_tr})">是
+                        </td>
+                        <td class="acToolNumber"><input class="textbox easyui-textbox inputTool" id="acToolNumber_${sumBtn_tr}"
+                        style="width:85%;padding-left:
+                         4px"></td>
+                        <td class="acToolUnit acToolUnit_${sumBtn_tr}">
+                            <input  class="easyui-combobox acUnitCom" id="acUnitCom_${sumBtn_tr}">
+                        </td>
+                        <td class="acToolRef"><input class="textbox easyui-textbox inputTool" id="acToolRef_${sumBtn_tr}"
+                        style="width: 90%;padding-left: 4px"></td>
+                        <td class="acToolHandle" style="position: relative">
+                            <a style="color: blue" class="delBtnTr" id="delBtnTr_${sumBtn_tr}">删除</a>
+                        </td>
+                    </tr>`;
+        $(".airMaterialTool").append(eleTr);
+
+        // 添加下拉选项
+        $("#acUnitCom_"+sumBtn_tr).combobox({
+            valueField: 'VALUE',
+            textField: 'VALUE'
+        });
+
+
+        if(dt){
+            $("#toolAc_"+sumBtn_tr).val(dt[k].partno);
+
+            if(dt[k].toolsFlag=="1"){
+                $("#isAcTool_"+sumBtn_tr).prop("checked", true);
+                $('#toolAc_'+sumBtn_tr).removeAttr("disabled").removeAttr("placeholder");
+                $('#acBtn_'+sumBtn_tr).hide();
+                $("#toolName_"+sumBtn_tr).empty();
+                var ele=`<input class="textbox easyui-textbox inputTool"
+                        id="toolNameInput_${sumBtn_tr}" style="width:90%;padding-left: 4px" value="${dt[k].partName}">`;
+                $('#toolName_'+sumBtn_tr).append(ele);
+            }else{
+                $("#toolName_"+sumBtn_tr).html(dt[k].partName);
+                $("#isAcTool_"+sumBtn_tr).prop("checked", false);
+            }
+            $("#acToolNumber_"+sumBtn_tr).val(dt[k].total);
+            $("#acToolRef_"+sumBtn_tr).val(dt[k].remark);
+
+            if(type=="view"){
+
+                $("#acBtn_"+sumBtn_tr).hide();
+                $("td.acToolUnit_"+sumBtn_tr).empty();
+                var eleInput=`<input  class="textbox easyui-textbox acUnitCom" id="acUnitCom_${sumBtn_tr}">`;
+                $("td.acToolUnit_"+sumBtn_tr).append(eleInput);
+
+                $('#toolAc_'+sumBtn_tr).attr("disabled",true);
+                $('#toolNameInput_'+sumBtn_tr).attr("disabled",true);
+                $("#isAcTool_"+sumBtn_tr).attr("disabled",true);
+                $("#acToolNumber_"+sumBtn_tr).attr("disabled",true);
+                $("#acUnitCom_"+sumBtn_tr).val(dt[k].unit).attr("disabled",true);
+                $("#acToolRef_"+sumBtn_tr).attr("disabled",true);
+
+                $(".delBtnTr").hide();//查看状态下，隐藏航材下的删除按钮
+
+            }else{
+                $("#acUnitCom_"+sumBtn_tr).combobox("setValue",dt[k].unit);
+
+            }
+
+        }
+
+        sumBtn_tr++;
+
+    }
+
+    //搜索件号start
+    function pn_data(t) {
+        $.pnSelect({
+            success: function (data) {
+                //刚开始查找件号时，不管是不是消耗件，退料数量不置灰
+                console.log("data:",data);
+                $("#toolAc_"+t).val(data.partno);
+                var nameU=data.udchndesc.trim();
+                $("#toolName_"+t).html(nameU);
+
+
+                var unit_da = [];
+                $.each(data.allunit.split(","), function (i, v) {
+                    unit_da[i] = {
+                        "TEXT": v,
+                        "VALUE": v
+                    }
+                });
+                $("#acUnitCom_" + t).combobox({
+                    valueField: 'TEXT',
+                    textField: 'TEXT',
+                    data: unit_da,
+                });
+                $("#acUnitCom_" + t).combobox("setValue", data.issueunit);
+            }
+        })
+    }
+    //搜索件号end
+
+
+    //删除推荐航材工具 行 start
+    $(document).delegate(".delBtnTr","click",function(){
+        $(this).closest("tr").remove();
+        var len=$(".toolTr").length;
+        console.log($(".toolTr"));
+        if(len==1){
+            $("#airMaterialTool_title").hide();
+            $(".airMaterialToolTr").hide();
+            $(".airMaterialToolRow").attr("rowspan",1);
+            isEmpty=true;
+        }
+
+    });
+    //删除推荐航材工具 行 end
+
+
+    //监听计划人工时失去焦点
+    // $('#numPeople').next('span').find('input').blur(planSumTime);
+    $("#numPeople").textbox({
+        onChange:function(newVal,oldVal){
+            var val=/^([0-9]+)$/.test(newVal);
+            if(Number(newVal)){
+                if(!val){
+                    newVal=parseInt(newVal);
+                    $("#numPeople").textbox("setValue",newVal);
+
+                }
+
+                var hourTime=$("#hourTime").textbox("getValue");
+                if(hourTime){
+                    var planSumTime=accMul(Number(newVal),Number(hourTime));
+                    $("#planSumTime").html(planSumTime);
+                }else{
+                    $("#planSumTime").html("--");
+                }
+
+            }else{
+                $("#planSumTime").html("--");
+            }
+        }
+    });
+    $("#hourTime").textbox({
+        onChange:function(newVal,oldVal){
+            console.log("newVal:",newVal);
+            console.log("oldVal:",oldVal);
+
+            var val=/^\d{1,14}(\.\d{0,2})?$/.test(newVal);
+            if(Number(newVal)){
+                if(!val){
+                    newVal=Number(newVal).toFixed(2);
+                    $("#hourTime").textbox("setValue",newVal);
+                }
+
+                var numPeople=$("#numPeople").textbox("getValue");
+                if(numPeople){
+                    var planSumTime=accMul(Number(newVal),Number(numPeople));
+                    $("#planSumTime").html(planSumTime);
+                }else{
+
+                    $("#planSumTime").html("--");
+                }
+
+            }else{
+                $("#planSumTime").html("--");
+            }
+
+        }
+    });
+
+    function accMul(arg1,arg2){
+        if(!arg1||!arg2){
+            arg1=0;
+            arg2=0;
+        }
+        var m=0,s1=arg1.toString(),s2=arg2.toString();
+        try{m+=s1.split(".")[1].length}catch(e){}
+        try{m+=s2.split(".")[1].length}catch(e){}
+        return Number(s1.replace(".",""))*Number(s2.replace(".",""))/Math.pow(10,m)
+    }
+
+    //保存
+    function saveSubmitData(btnType) {
+        var datas={};
+        datas.model=$("#acType").combobox("getValue");//机型
+        datas.fleet=$("#acNo").textbox("getValue");//飞机
+        datas.content=$("#workContent").val();//工作内容
+        datas.category=$("#reference").combobox("getValue");//依据类型
+
+        datas.title=$("#referenceNo").textbox("getValue");
+        // var r2=$("#reference2").textbox("getValue");
+        // var r3=$("#reference3").textbox("getValue");
+        // datas.title=r1+"-"+r2+"-"+r3;//依据章节
+
+        datas.expectStaff=$("#numPeople").val();//计划人工时
+        datas.expectHour=$("#hourTime").val();
+
+
+        var cases=[]; //特殊测试需求
+        var chechBox=$("input[class*='chechBox_']");
+        for(var e=0;e<chechBox.length;e++){
+            var n=chechBox[e].name.split("_");
+            chechBox[e].checked?cases.push({"caseNo":parseInt(n[1])}):"";
+        }
+
+        if($('.other').is(':checked')){
+            datas.otherCase=$("#otherR").val();//其他限制详情
+        }else{
+            datas.otherCase="";//其他限制详情
+        }
+        datas.cases=cases;
+
+        datas.materials=[];
+        var mInput=$("input[id^='toolAc_']");
+        var lenInput=mInput.length;
+        for(let i=0;i<lenInput;i++){
+            let countArr=mInput[i].id.split("_");
+            let count=countArr[1];
+            let t={};
+            if(params.id){
+               t.orderId=params.id;
+            }
+            t.partno=$("#toolAc_"+count).val();
+
+            // t.partName="飞机零件：垫片";
+            $("#isAcTool_"+count).is(':checked')?t.toolsFlag="1":t.toolsFlag="0";
+            if($("#isAcTool_"+count).is(':checked')){
+                t.toolsFlag="1";
+                t.partName=$("#toolNameInput_"+count).val();
+            }else{
+                t.toolsFlag="0";
+                t.partName=$("#toolName_"+count).html();
+            }
+            t.total=parseInt($("#acToolNumber_"+count).val());
+            t.unit=$("#acUnitCom_"+count).combobox("getValue");
+            t.remark=$("#acToolRef_"+count).val();
+
+            if(!t.partno){
+                MsgAlert({type:"error",content:"请输入添加航材工具的件号！"});
+                return;
+            }
+            if(!t.unit){
+                MsgAlert({type:"error",content:"请输入添加航材工具的单位！"});
+                return;
+            }
+            if(!t.total||t.total<0){
+                MsgAlert({type:"error",content:"请正确输入添加航材工具的数量！"});
+                return;
+            }
+
+            datas.materials.push(t);
+
+        }
+        // 1 为Editing   2 为 Checking
+        btnType=="save"?datas.status=1:datas.status=2;
+        if(no_null(datas))return;
+
+        if(btnType=="flow"){
+            return datas;
+        }
+        if(params.prodPrep_info.status==9){ //驳回
+            datas.status=9;
+        }
+        submit_save(datas,btnType);//新增生产准备单功能
+
+
+    }
+
+    //非空校验
+    function no_null(datas){
+        var isValid = false;
+        if(!datas.model){
+            MsgAlert({type:"error",content:"请选择机型！"});
+            isValid=true;
+            return true;
+        }
+        if(!datas.fleet){
+            MsgAlert({type:"error",content:"请选择飞机号！"});
+            // isValid=true;
+            return true;
+        }
+        if(!datas.content){
+            MsgAlert({type:"error",content:"请输入工作内容！"});
+            // isValid=true;
+            return true;
+        }
+
+        //参考依据
+        var r1=$("#referenceNo").textbox("getValue");
+        // var r2=$("#reference2").textbox("getValue");
+        // var r3=$("#reference3").textbox("getValue");
+        if(!datas.category){
+            MsgAlert({type:"error",content:"请输入依据类型！"});
+            // isValid=true;
+            return true;
+        }
+
+        if(!r1){
+            MsgAlert({type:"error",content:"请输入依据章节！"});
+            // isValid=true;
+            return true;
+        }
+        //计划人数
+
+        if(!datas.expectStaff){
+            MsgAlert({type:"error",content:"请输入计划人数！"});
+            // isValid=true;
+            return true;
+        }
+        var reg=/^[0-9]*$/;
+        if(!reg.test(datas.expectStaff)){
+            MsgAlert({type:"error",content:"请正确输入计划人数！"});
+            isValid=true;
+        }
+        reg=/^[0-9]+(.[0-9]{1,2})?$/;
+        if(!reg.test(datas.expectHour)){
+            MsgAlert({type:"error",content:"请正确输入计划工时！"});
+            // isValid=true;
+            return true;
+        }
+
+        //计划工时
+        if(!datas.expectHour){
+            MsgAlert({type:"error",content:"请输入计划工时！"});
+            // isValid=true;
+            return true;
+        }
+
+        // var specialTest=datas.cases;
+        // if(specialTest.length==0&&!$('.other').is(':checked')){
+        //     MsgAlert({type:"error",content:"请选择特殊测试需求！"});
+        //     // isValid=true;
+        //     return true;
+        // }
+
+        if($('.other').is(':checked')&&!datas.otherCase){
+            MsgAlert({type:"error",content:"请输入其他限制！"});
+            // isValid=true;
+            return true;
+        }
+
+        return isValid;
+
+    }
+
+    //新建生产准备单---保存功能
+    function submit_save(datas,btnType){
+        let postUrl="/maintenanceProduction/producePrepareOrder/insert";
+
+        if(params.type=="edit"){
+            postUrl="/maintenanceProduction/producePrepareOrder/update";
+            datas.id=params.id;
+            datas.no=params.prodPrep_info.no;
+        }
+
+        if(params.type=="updateR"){
+            postUrl="/maintenanceProduction/producePrepareOrder/revision";
+            datas.id=params.id;
+            datas.no=params.prodPrep_info.no;
+        }
+        $(".showLoding").show();//显示加载图标
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            data: datas,
+            path: postUrl ,
+            successCallBack: function (jdata) {
+                $(".showLoding").hide();//隐藏加载图标
+                if (jdata.success == true) {
+                    closeCurrent()
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                };
+            },
+            error:function (jdata) {
+                $(".showLoding").hide();//隐藏加载图标
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+
+    }
+
+
+    //关闭当前弹窗
+    function closeCurrent(){
+        if (params.OWindow.pathName.indexOf("prodPrepList") > -1) {
+            params.OWindow.reload();
+        }
+        window.close();//关闭当前页面
+    };
+
+    //编辑/查看生产准备单
+    function initUpdatePrepsheet(datas){
+
+        var cases=datas.cases;
+        for(var k=0;k<cases.length;k++){
+            var c=cases[k].caseNo;
+            $(".chechBox_"+c).prop("checked", true);
+        }
+
+        if(datas.otherCase){
+            $(".other").prop("checked", true);
+        }
+
+        console.log(datas.materials);
+        for(var k=0;k<datas.materials.length;k++){
+            var DT=datas.materials;
+            var showType="";
+            if(params.type){
+                showType=params.type;
+            }else{
+                showType=flowType;
+            }
+
+            addToolFun(showType,DT,k);
+        }
+
+        if(params.type=="edit"||flowType=="edit"||params.type=="updateR"){
+
+            $("#acType").combobox("setValue",datas.model);
+            $("#acNo").textbox("setValue",datas.fleet);
+
+            $("#workContent").val(datas.content);
+            if(datas.content){
+                var limitLen=300-datas.content.length;
+                $("span.workContent_len").html(limitLen+"/300");
+            }
+
+            $("#reference").combobox("setValue",datas.category);
+            $("#referenceNo").textbox("setValue",datas.title);
+
+            $("#numPeople").textbox("setValue",datas.expectStaff);
+            $("#hourTime").textbox("setValue",datas.expectHour);
+
+            var Hour=parseFloat(datas.expectHour);
+            $("#planSumTime").html(accMul(datas.expectStaff,Hour));
+
+
+            $("#otherR").val(datas.otherCase);
+            if(datas.otherCase){
+                $("#otherR").prop("disabled",false);
+                var orLimitLen=300-datas.otherCase.length;
+                $("span.otherR_len").html(orLimitLen+"/300");
+            }
+
+            if(datas.status=="9"){
+                $('.noSubmit').hide()
+            }
+
+            //编辑状态下禁用
+            $("#acType").combobox({disabled: true});// 机型
+            $("#reference").textbox({disabled:true}); //参考依据
+            $("#referenceNo").textbox({"disabled":true}); //参考依据章节
+        }else{
+            $(".notNull").hide();
+            $(".acType").empty().html(datas.model);
+            $(".acNo").empty().html(datas.fleet);
+            var reference_p=datas.category+" "+datas.title;
+            $(".workContent").empty().html(datas.content);
+            $(".reference_p").empty().html(reference_p);
+            $(".numAndTimeTr").remove();//隐藏计划人工时tr
+            if(!datas.totalHour){
+                datas.totalHour=0;
+            }
+
+            var totalStaff=0;
+            var totalHour=0;
+            var totalTime=datas.totalTime;
+            var totalTimeAll=0;
+            if(totalTime>0){
+                var staff=datas.totalStaff/totalTime;
+                var hour=datas.totalHour/datas.totalStaff;
+
+                totalStaff=staff.toFixed(2);
+                totalHour=hour.toFixed(2);
+                totalTimeAll=datas.totalHour/totalTime;
+                totalTimeAll=totalTimeAll.toFixed(2);
+            }
+
+
+            var ele=`<tr>
+                        <td class="key keyTitle">计划人工时：</td>
+                        <td class="keyValue1" colspan="3">
+                            <span class="numPeople">${datas.expectStaff}</span>人 X <span class="hourTime">${datas.expectHour}</span>小时
+                        </td>
+                        <td class="key keyTitle">计划总工时：</td>
+                        <td class="keyValue1" colspan="3">
+                            <span class="numPeople"><span class="planSumTime">${accMul(datas.expectStaff,parseFloat(datas.expectHour))}</span>人工时
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="key keyTitle">历史平均人工时：</td>
+                        <td class="keyValue1" colspan="3">
+                            <span class="numPeople">${totalStaff}</span>人 X <span class="hourTime">${totalHour}</span>小时
+                        </td>
+                        <td class="key keyTitle">平均总工时：</td>
+                        <td class="keyValue1" colspan="3">
+                            <span class="planSumTime">${totalTimeAll}</span>人工时
+                        </td>
+                    </tr>`;
+            $(".viewInsert").before(ele);
+
+
+            var chechBox=$("input[class*='chechBox_']");
+            for(var e=0;e<chechBox.length;e++){
+                chechBox[e].disabled=true;
+            }
+
+            $("#other").attr("disabled",true);
+            $("#otherR").val(datas.otherCase);
+            $("#otherR").attr("disabled",true);
+
+
+            // $(".addToolBtn").removeAttr('onclick');
+            // $(".addToolBtn").css("cursor", "not-allowed");
+            // $(".handleBtn").hide();
+            $(".addToolBtn").hide();
+            $("span.otherR_len").hide();
+            $("a.button_a").hide();
+
+        }
+
+    }
+
+    //工作内容监听长度
+    $('#workContent').bind('input propertychange', function(){
+        var length = $("#workContent").val().length;
+        if(length>300){
+            $("#workContent").val($("#workContent").val().substring(0,300));
+        }
+        var limitLen=300-$("#workContent").val().length;
+        $("span.workContent_len").html("剩"+limitLen);
+    });
+
+
+    //其他限制详情
+    $('#otherR').bind('input propertychange', function(){
+        var length = $("#otherR").val().length;
+        if(length>300){
+            $("#otherR").val($("#otherR").val().substring(0,300));
+        }
+        var limitLen=300-$("#otherR").val().length;
+        $("span.otherR_len").html("剩"+limitLen);
+    });
+
+
+
+
+    //工具下拉选项
+    function te_unit_type(toolUnitList){
+        if(toolUnitList) {
+            $.each(toolUnitList, function (i, v) {
+                var value = v.VALUE;
+                var text = v.VALUE;
+                var option = '<option value="' + value + '">' + text + '</option>';
+                $(".unitNameSelect").append(option);
+            });
+        }
+    }
+
+    function selectTool(obj,trNum){
+        $('#toolName_'+trNum).empty();
+        $('#toolAc_'+trNum).val("");
+        if($(obj).is(':checked')) {//工具
+
+            $('#toolAc_'+trNum).removeAttr("disabled").removeAttr("placeholder");
+            $('#acBtn_'+trNum).hide();
+            var ele=`<input class="textbox easyui-textbox inputTool"
+                        id="toolNameInput_${trNum}" style="width:90%;padding-left: 4px">`;
+
+            $('#toolName_'+trNum).append(ele);
+
+            $("#acUnitCom_" + trNum).combobox({
+                valueField: 'VALUE',
+                textField: 'VALUE',
+                data: TE_UNIT_TYPE,
+            });
+
+
+        }else{//航材
+
+            $('#toolAc_'+trNum).prop("disabled","disabled").prop("placeholder","只允许选择，无法直接输入!");
+            $('#acBtn_'+trNum).show();
+            $("#acUnitCom_" + trNum).combobox({
+                valueField: 'TEXT',
+                textField: 'TEXT',
+                data: [],
+            });
+        }
+    }
+
+
+    //其他限制勾选 禁用文本框可输
+    function otherCaseFun(thiz){
+        if($(thiz).is(":checked")){
+            $("#otherR").prop("disabled",false);
+        }else{
+            $("#otherR").prop("disabled",true);
+        }
+    }
+
+
+
+
+
+</script>
+</html>

@@ -1,0 +1,402 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link href="/css/plugins/dialog/dialog_default.css" rel="stylesheet">
+    <script src="/js/jquery.form.js" type="text/javascript"></script>
+    <script src="/js/jquery.validate.js" type="text/javascript"></script>
+    <script src="/js/custom-validate.js" type="text/javascript"></script>
+    <script src="/js/jquery/lhgdialog/lhgdialog.js" type="text/javascript"></script>
+    <script src="/js/serializeJson.js" type="text/javascript"></script>
+    <script src="/js/sfa-query-1.0.js" type="text/JavaScript"></script>
+    <script src="/js/common_query_dialog.js" type="text/JavaScript"></script>
+    <script src="/js/tlb/defect/query_defect_rm_fault_latest_defs.js" type="text/JavaScript"></script>
+    <title></title>
+    <style type="text/css">
+        .errorMessage {
+            color: red
+        }
+
+        .table-cell {
+            text-align: center;
+            padding: 0;
+            margin: 0;
+        }
+
+        .cell-normal {
+            height: 40px;
+        }
+
+        .foot-btns {
+            float: right;
+            margin: 10px 20px 0 0;
+        }
+
+        .td-font-red {
+            color: red;
+        }
+
+        .defect-block {
+            cursor: pointer;
+            margin: 0px 0px 0px 0px;
+            display: inline-block;
+            width: 120px;
+            height: 30px;
+            background-color: #eee;
+            border: 1px solid #aaa;
+            text-align: center;
+        }
+
+        .defect-block .content {
+            display: inline-block;
+            width: 100px;
+            color: green;
+        }
+
+        .defect-block img {
+            vertical-align: middle;
+        }
+
+        .td-line-hight-background {
+            background: #f2f2f2;
+        }
+    </style>
+</head>
+<body class="ibody">
+<div class="easyui-tabs" id="tt" style="width:100%; height: 80%">
+    <form action="" id="defect_fault_form" method="post">
+        <table class="table table-bordered table-info">
+            <tr id="acTr" style="display: none;">
+                <th class="table-cell cell-normal required">
+                    A/C:<span class="td-font-red">*</span>
+                </th>
+                <td class="cell-normal">
+                    <input class="required" disabled="disabled" id="acReg" name="acReg" readonly="readonly"/>
+                    <img id="acBtn" name="select_ac" onClick="acQuery()" src="/images/ico_search_16.gif"/>
+                    <div class="errorMessage"></div>
+                </td>
+            </tr>
+            <tr id="modelTr" style="display: none;">
+                <th class="table-cell cell-normal required">
+                    Model:<span class="td-font-red">*</span>
+                </th>
+                <td class="cell-normal">
+                    <select class="required" disabled="disabled" id="model" name="model"
+                            style="width:80px">
+                        <option value=""></option>
+                        <option value="B737">B737</option>
+                        <option value="B757">B757</option>
+                        <option value="B767">B767</option>
+                    </select>
+                    <div class="errorMessage"></div>
+                </td>
+            </tr>
+            <tr>
+                <th class="table-cell cell-normal required">
+                    ATA:<span class="td-font-red">*</span>
+                </th>
+                <td class="cell-normal">
+                    <input class="required" id="ata" name="ata"/>
+                    <div class="errorMessage"></div>
+                </td>
+            </tr>
+            <tr>
+                <th class="td-line-hight-background" colspan="2">
+                    <div style="width: 215px;display:inline-block;">Defect NOs:</div>
+                    <img id="add_defect" src="/images/add.gif"/>
+                </th>
+            </tr>
+            <tr>
+                <td colspan="2" id="defects">
+                </td>
+            </tr>
+            <tr>
+                <th>
+                    Remark
+                </th>
+                <td class="table-cell cell-normal">
+                    <textarea name="remark" rows="3" style="height: 100%;width: 100%;resize: none;"></textarea>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div class="foot-btns">
+    <a class="searchBtn" data-options="iconCls:'icon-clear'" onclick="save()" style="margin-right: 10px;" type="button">
+        <span data-i18n="common:COMMON_OPERATION.SAVE"></span>
+    </a>
+    <a class="ridoBtn" data-options="iconCls:'icon-clear'" onclick="close_window()" type="button">
+        <span data-i18n="common:COMMON_OPERATION.CANCEL"></span>
+    </a>
+</div>
+<div class="easyui-window" data-options="modal:true,closed:true" id="ACQueryWindow"
+     style="width:46%;height:50%;padding:5px 5px 5px 5px;"
+     title="A/C Query">
+    <table id="ACDg" pagination="true"></table>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script type="text/javascript">
+    const params = getParentParam_();
+    const faultType = params.faultType;
+    var acRegs = [];//用于多发性故障故障飞机数量判断
+    var defectIds = [];
+
+
+    //底部保存按钮点击事件
+    function save() {
+        if (!$("#defect_fault_form").valid()) {
+            return false;
+        }
+        var limitNums = getLimitNums();
+
+        if ($("input[name='defaultIdList']").length < limitNums) {
+            P.$.dialog.alert("Defect数量不能小于" + limitNums);
+            return false;
+        }
+
+        if (faultType == 'MULTIPLE' && acRegs.length < limitNums) {
+            P.$.dialog.alert("飞机数量不能小于" + limitNums);
+            return false;
+        }
+        $.ajax({
+            url: basePath + "/api/v1/defect/merging/" + faultType,
+            type: 'post',
+            cache: false,
+            dataType: "json",
+            contentType: "application/json",
+            data: JSON.stringify(defectIds),
+            success: function (data) {
+                if (data.code == 200) {
+                    var mergingFaultNos = data.data.mergingFaultNos;
+                    var refDefectNos = data.data.refDefectNos;
+                    if (mergingFaultNos.length != 0) {
+                        showMergingFault(mergingFaultNos, refDefectNos);
+                    } else {
+                        saveRMFault();
+                    }
+                } else {
+                    P.$.dialog.alert(data.msg);
+                }
+
+            }
+        });
+    }
+
+    //底部关闭按钮点击事件
+    function close_window() {
+        window.opener = null;
+        window.open('', '_self');
+        window.close();
+    }
+
+
+    function showMergingFault(mergingFaultNos, refDefectNos) {
+        P.$.dialog({
+            id: "merging_faults",
+            title: "Merging Faults",
+            top: "30%",
+            left: "85%",
+            width: "400px",
+            height: "175px",
+            content: "url:" + basePath + "/views/defect/multiple_faults/show_merging_defect_rm_fault.shtml",
+            data: {
+                "mergingFaultNos": mergingFaultNos,
+                "refDefectNos": refDefectNos,
+                "faultType": faultType
+            },
+            close: function () {
+                if (this.data.isSave === true) {
+                    saveRMFault();
+                }
+            }
+        });
+    }
+
+    function saveRMFault() {
+        var url = "";
+        if (faultType == "MULTIPLE") {
+            url = basePath + '/api/v1/defect/multiple';
+        } else {
+            url = basePath + '/api/v1/defect/repeat';
+        }
+        var data = $("#defect_fault_form").serializeJson();
+        $.ajax({
+            url: url,
+            type: 'post',
+            cache: false,
+            dataType: "json",
+            contentType: "application/json",
+            data: JSON.stringify(data),
+            success: function (data) {
+                if (data.code == 200) {
+                    P.$.dialog.alert('Success!');
+                    close_window();
+                } else {
+                    P.$.dialog.alert(data.msg);
+                }
+            }
+        });
+    }
+
+    /**
+     * 获取：
+     * 1.重复性规则中的最小故障数量
+     * 2.多发性规则中的最小飞机数量
+     */
+    function getLimitNums() {
+        var limitNumbers;
+        if (faultType == 'REPEAT') {
+            limitNumbers = rmFaultLatestRules[faultType].numbers;
+        } else if (faultType == 'MULTIPLE') {
+            var model = $("#model").val();
+            limitNumbers = rmFaultLatestRules[model].numbers;
+        }
+        return limitNumbers;
+    }
+
+    function isExistDefect(defectNo) {
+        return $("#defects:contains(" + defectNo + ")").length > 0;
+    }
+
+    function deleteDefect(_this) {
+        //移除defectIds中保存的defectId
+        var $defectId = $(_this).prev();
+        var deletedDefectId = $defectId.val();
+        defectIds = $.grep(defectIds, function (val) {
+            return val != deletedDefectId;
+        });
+        $(_this).parent().remove();
+    }
+
+    function viewDefect(_this) {
+        var defectId = $(_this).next().val();
+        ShowWindowIframe({
+            width: "1000",
+            height: "700",
+            title: 'Defect Detail',
+            param: {defectId: defectId},
+            url: "/views/defect/defectDetails.shtml"
+        });
+    }
+
+    function acQuery() {
+        $('#ACQueryWindow').window('open');
+        InitACDataGrid();
+    }
+
+    function InitACDataGrid() {
+        $("#ACDg").MyDataGrid({
+            identity: 'ACDg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,     //开启分页
+            fitColumns: true,
+            striped: false,
+            showHeader: false,
+            columns: {
+                param: {FunctionCode: 'FLB_AC_LIST'},
+                alter: {}
+            },
+            onLoadSuccess: function () {
+            },
+            // 固定表格所占整个表格高度
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.45, 0.54, 140, -6);
+            },
+            contextMenus: [],
+            toolbar: [],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function () {
+                var row = $('#ACDg').datagrid('getSelected'); //获取所选行的数据
+                $("#acReg").val(row.tail);
+                $('#ACQueryWindow').window('close'); //关闭弹窗
+            }
+        });
+    }
+
+    $(function () {
+        if (faultType == 'REPEAT') {
+            $("#acTr").show();
+            $("#acReg").removeAttr("disabled");
+        } else if (faultType == 'MULTIPLE') {
+            $("#modelTr").show();
+            $("#model").removeAttr("disabled");
+        }
+
+        /**
+         * 添加故障
+         */
+        $("#add_defect").click(function () {
+            var defaultParam;
+            if (faultType == 'REPEAT') {
+                if ($("#acReg").val() == '') {
+                    P.$.dialog.alert("请先选择飞机");
+                    return;
+                }
+                if ($("#ata").val() == '') {
+                    P.$.dialog.alert("请选择ATA");
+                    return;
+                }
+                defaultParam = {
+                    'qname': ["acReg", "ata"],
+                    'qoperator': ["equals", "equals"],
+                    'qvalue': [$("#acReg").val(), $("#ata").val()]
+                }
+            } else if (faultType == 'MULTIPLE') {
+                if ($("#model").val() == '') {
+                    P.$.dialog.alert("请先选择机型");
+                    return;
+                }
+                if ($("#ata").val() == '') {
+                    P.$.dialog.alert("请选择ATA");
+                    return;
+                }
+                defaultParam = {
+                    'qname': ["model", "ata"],
+                    'qoperator': ["equals", "equals"],
+                    'qvalue': [$("#model").val(), $("#ata").val()]
+                }
+            }
+            queryDefectDialog(defaultParam, function (rowdata, originalData, dlg) {
+                var val = $(rowdata.defectNo).text();
+                if (val == '') {
+                    val = rowdata.defectNo;
+                }
+
+                if (isExistDefect(val)) {
+                    P.$.dialog.alert("不能添加重复的Defect");
+                    return;
+                }
+
+                var acReg = rowdata.acReg;
+                if ($.inArray(acReg, acRegs) < 0) {
+                    acRegs.push(acReg);
+                }
+
+                defectIds.push(rowdata.id);
+
+                var $defect = $('<div class="defect-block"><div class="content" onclick="viewDefect(this)">'
+                    + val + '</div><input class="value" type="hidden" name="defaultIdList" value="'
+                    + rowdata.id + '"/><img src="/images/no.png" onclick="deleteDefect(this)"/></div>');
+                $("#defects").append($defect);
+                dlg.close();
+            });
+        });
+
+        $("#model").change(function () {
+            $("#defects").empty();
+            acRegs = [];
+            defectIds = [];
+        });
+    })
+</script>
+</html>

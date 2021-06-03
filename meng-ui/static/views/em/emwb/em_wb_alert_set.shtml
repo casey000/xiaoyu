@@ -1,0 +1,214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title>预警设置</title>
+</head>
+<body>
+
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <input type="hidden" id="pkid" name="pkid">
+        <input type="hidden" id="redRolePkid" name="redRolePkid">
+        <input type="hidden" id="orangeRolePkid" name="orangeRolePkid">
+        <input type="hidden" id="yellowRolePkid" name="yellowRolePkid">
+        <table class="table table-bordered table-info">
+            <caption style="padding-bottom: 7px;font-weight:bold;">预警设置</caption>
+            <tr>
+
+                <td align="right" style="padding-top: 6px;">
+                    <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                           value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5 hs" style="width:110px;" align="right">红色预警值：</th>
+                <td class="tdr hs">
+                    <input class="easyui-numberbox" id="redAlertValue" name="redAlertValue"
+                           data-options="required:true,min:0,max:99999,precision:5" style="width:150px;"/>
+                </td>
+                <th class="td5 hs" style="width:110px;" align="right">
+                    <a href="#" onclick="chooseRole('R')" style="text-decoration:underline;">消息接收角色:</a>
+                </th>
+                <td class="tdr hs">
+                    <input class="easyui-textbox" id="redRoleName" name="redRoleName"
+                           data-options="" style="width:150px;" disabled="disabled"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5 hs" style="width:110px;" align="right">橙色预警值：</th>
+                <td class="tdr hs">
+                    <input class="easyui-numberbox" id="orangeAlertValue" name="orangeAlertValue"
+                           data-options="required:true,min:0,max:99999,precision:5" style="width:150px;"/>
+                </td>
+                <th class="td5 hs" style="width:110px;" align="right">
+                    <a href="#" onclick="chooseRole('O')" style="text-decoration:underline;">消息接收角色:</a>
+                </th>
+                <td class="tdr hs">
+                    <input class="easyui-textbox" id="orangeRoleName" name="orangeRoleName"
+                           data-options="" style="width:150px;" disabled="disabled"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5 hs" style="width:110px;" align="right">黄色预警值：</th>
+                <td class="tdr hs">
+                    <input class="easyui-numberbox" id="yellowAlertValue" name="yellowAlertValue"
+                           data-options="required:true,min:0,max:99999,precision:5" style="width:150px;"/>
+                </td>
+                <th class="td5 hs" style="width:110px;" align="right">
+                    <a href="#" onclick="chooseRole('Y')" style="text-decoration:underline;">消息接收角色:</a>
+                </th>
+                <td class="tdr hs">
+                    <input class="easyui-textbox" id="yellowRoleName" name="yellowRoleName"
+                           data-options="" style="width:150px;" disabled="disabled"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5 hs" style="width:110px;" align="right">备注：</th>
+                <td class="tdr hs" colspan="3">
+                    <input class="easyui-textbox" id="memo" name="memo"
+                           data-options="multiline:true,validType:'length[0,200]'" style="width:410px; height: 60px"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5 hs" style="width:110px;" align="right">修改人：</th>
+                <td class="tdr hs">
+                    <input class="easyui-textbox" id="modifyMan" name="modifyMan"
+                           data-options="" style="width:150px;" disabled="disabled"/>
+                </td>
+                <th class="td5 hs" style="width:110px;" align="right">修改日期：</th>
+                <td class="tdr hs">
+                    <input class="easyui-textbox" id="modifyDate" name="modifyDate"
+                           data-options="" style="width:150px;" disabled="disabled"/>
+                </td>
+            </tr>
+
+        </table>
+    </form>
+</div>
+<script type="text/javascript">
+    var param;
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                domainCode: "DM_REC_PRIVIDOR",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    //回显数据
+                    //if (param.PKID) {
+                        InitDataForm();
+                    //}
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //回显数据
+    function InitDataForm() {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {FunctionCode: "EM_WB_ALERT_SET_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if(jdata.data){
+                        ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    }
+
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var redRolePkid = $('#redRolePkid').val();
+        var orangeRolePkid = $('#orangeRolePkid').val();
+        var yellowRolePkid = $('#yellowRolePkid').val();
+        if(!redRolePkid || !orangeRolePkid || !yellowRolePkid){
+            MsgAlert({content: '请选择消息接收角色', type: 'error'});
+            return;
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'EM_WB_ALERT_SET_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    pkid = jdata.data.pkid;
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function closeAdd() {
+        CloseWindowIframe();
+        /*$.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#mform").form('clear');
+            }
+        });*/
+    }
+
+    function chooseRole(type) {
+        var rolePkid;
+        if(type == 'R'){
+            rolePkid = $('#redRolePkid').val();
+        }else if(type == 'O'){
+            rolePkid = $('#orangeRolePkid').val();
+        }else if(type = 'Y'){
+            rolePkid = $('#yellowRolePkid').val();
+        }
+        if(!rolePkid) rolePkid = "";
+        var title_ = $.i18n.t('角色选择');
+        ShowWindowIframe({
+            width: 774,
+            height: 412,
+            title: title_,
+            param: {type: type, id: rolePkid},
+            url: "/views/em/emwb/em_wb_role_list.shtml"
+        });
+    }
+
+    //回显
+    function setShow(type, obj) {
+        if("R" == type){
+            $('#redRolePkid').val(obj.PKID);
+            $('#redRoleName').textbox('setValue', obj.ROLE_NAME);
+        }else if("O" == type){
+            $('#orangeRolePkid').val(obj.PKID);
+            $('#orangeRoleName').textbox('setValue', obj.ROLE_NAME);
+        }else if("Y" == type){
+            $('#yellowRolePkid').val(obj.PKID);
+            $('#yellowRoleName').textbox('setValue', obj.ROLE_NAME);
+        }
+    }
+
+
+</script>
+</body>
+</html>

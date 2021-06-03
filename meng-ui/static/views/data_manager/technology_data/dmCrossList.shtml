@@ -1,0 +1,274 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <input type="hidden" id="selectType" name="selectType">
+                <tr>
+                    <th data-i18n="" style="width:70px;" align="right">资料编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="dataNo" id="dataNo" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">章节：</th>
+                    <td>
+                        <input class="easyui-textbox" name="ata" id="ata" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">资料标题：</th>
+                    <td>
+                        <input class="easyui-textbox" name="dataTitle" id="dataTitle" style="width:100px"/>
+                    </td>
+                    <td colspan="2">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchFor()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                        <a class="clearBtn" onclick="save()">
+                            <span data-i18n="">确定</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg">
+</table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var dataType;
+    var pkid;
+    var pkids;
+    var rangValues = [];
+    var cflag = '';
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        dataType = param.dataType;
+        pkid = param.pkid;
+        pkids = param.pkids;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearchFor()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_DATA_TYPE_TECHNOLOGY,DM_EXTER_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["DM_EXTER_STATUS"]);
+                    $('#evaResult').combobox({
+                        panelHeight: '50px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EVA_RESULT
+                    });
+
+                    checked();
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    function checked() {
+        var strs = [];
+        if (pkids != null && pkids != "") {
+            if (pkids.indexOf(";") != -1) {
+                strs = pkids.split(";");
+                for (var i = 0; i < strs.length; i++) {
+                    rangValues[i] = strs[i];
+                }
+            } else {
+                rangValues[0] = pkids;
+            }
+        }
+    }
+
+    function InitDataGrid() {
+        var func = "";
+        if (dataType == "AMOC") {
+            func = "DM_DATA_CROSS_AMOC_LIST";
+        } else if (dataType == "MDL" || dataType == "VSTC") {
+            func = "DM_DATA_CROSS_MDL_LIST";
+        } else {
+            func = "DM_DATA_CROSS_LIST";
+        }
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+
+            queryParams: {dataType: dataType},
+                columns: {
+                    param: {FunctionCode: func},
+                    alter: {
+                        DATA_STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                    if (data) {
+                        $.each(data.rows, function (index, item) {
+                            for (var j = 0, len = rangValues.length; j < len; j++) {
+                                if (rangValues[j] == item.PKID) {
+                                    $('#dg').datagrid('checkRow', index);
+                                }
+                            }
+                        });
+                    }
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                },
+
+                onCheck: function (rowIndex, rowData) {
+                    rangValues = unique(rangValues);//去重
+                    rangValues.push(rowData.PKID.toString());
+                },
+                onUncheck: function (rowIndex, rowData) {
+                    rangValues = unique(rangValues);//去重
+                    rangValues.remove(rowData.PKID.toString());
+                },
+                onCheckAll: function (rowIndex, rowData) {
+                    rangValues = unique(rangValues);//去重
+                    var rows = $('#dg').datagrid('getRows');
+                    for (i = 0; i < rows.length; i++) {
+                        rangValues.push(rows[i].PKID.toString());
+                    }
+                },
+                onUncheckAll: function (rowIndex, rowData) {
+                    rangValues = unique(rangValues);//去重
+                    var rows = $('#dg').datagrid('getRows');
+                    for (i = 0; i < rows.length; i++) {
+                        rangValues.remove(rows[i].PKID.toString());
+                    }
+                }
+            }
+        );
+    }
+
+
+    Array.prototype.indexOf = function(val) {
+        for (var i = 0; i < this.length; i++) {
+            if (this[i] == val) return i;
+        }
+        return -1;
+    };
+
+    Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+        }
+    };
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    // 保存
+    function save() {
+        //序列化列表数据
+        var dataNos = "";
+        var pkids = "";
+        rangValues = unique(rangValues);//去重
+        for (i = 0; i < rangValues.length; i++) {
+            var dpkid = rangValues[i];
+            var type = '';
+            var no = '';
+            var ver = '';
+            InitFuncCodeRequest_({
+                data: {pkid: dpkid, FunctionCode: "DM_DATA_REC_EXTER_PK"}, async:false,successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        type = jdata.data.DATA_TYPE;
+                        no = jdata.data.DATA_NO;
+                        ver = jdata.data.DATA_VER;
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+            if(type && no && ver){
+                dataNos = dataNos + ";" + type + ":" + no + "R" + ver;
+            }
+            pkids = pkids + ";" + dpkid;
+        }
+        dataNos = dataNos.substring(1, dataNos.length);
+        pkids = pkids.substring(1, pkids.length);
+        param.OWindow.$("#crossData").textbox('setValue', dataNos);
+        param.OWindow.$("#pkids").val(pkids);
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        InitFuncCodeRequest_({
+            data: {
+                pkids: pkids,
+                pkid: pkid,
+                FunctionCode: "DM_DATA_CROSS_SAVE"
+            },async:false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_("#dg8");
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function unique(arr){
+        return Array.from(new Set(arr));
+    }
+
+</script>
+</body>
+</html>

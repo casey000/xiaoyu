@@ -1,0 +1,201 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">ADD JC</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 234px;
+        }
+
+        #btnSyncPlan {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 111px;
+        }
+
+        #btnSync {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 20px;
+        }
+
+        #btnDel {
+            position: absolute;
+            top: 0px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<div class="listbox" style="width:100%;height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="ffSearch">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th align="right" class="th" style="width:50px;">Card No：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" id="CardDet" name="CardDet" style="width:180px;"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">Model：</th>
+                    <td style="width: 120px;padding:3px;">
+                        <select class="easyui-combobox" data-options="editable:false" id="modelDet" name="modelDet"
+                                style="width:180px;display: inline-block;">
+                        </select>
+                    </td>
+
+                </tr>
+                <tr>
+                    <th align="right" class="th" style="width:50px;">ATA：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" id="ataDet" name="CardDet" style="width:180px;"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">JC Type：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" id="jcDet" name="jcDet" style="width:180px;"/>
+                    </td>
+                    <td style="width: 120px; padding:3px;border: none ;text-align: right">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()"
+                           type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+        <div class="sel_block" style="height: 40px;line-height: 40px;padding-left: 5px">
+            <span>
+                特检工卡类型 <font color="red">*</font>：
+            </span>
+            <select class="easyui-combobox" data-options="editable:false" id="TypeDet" name="TypeDet"
+                    style="width:180px;display: inline-block;">
+            </select>
+        </div>
+    </fieldset>
+    <!--    <fieldset class="fieldset_eui">-->
+    <!--        <div class="sel_block" style="height: 40px;line-height: 40px;padding-left: 5px">-->
+    <!--            <span>-->
+    <!--                特检工卡类型 <font color="red">*</font>：-->
+    <!--            </span>-->
+    <!--            <select class="easyui-combobox" data-options="editable:false" id="TypeDet" name="TypeDet"-->
+    <!--                    style="width:180px;display: inline-block;">-->
+    <!--            </select>-->
+    <!--        </div>-->
+    <!--    </fieldset>-->
+    <table id="dg">
+    </table>
+    <filedset style="position: absolute;bottom: 40px; right: 10px">
+        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()"
+           type="button">
+            <span data-i18n="common:COMMON_OPERATION.QUERY">保存</span></a>
+    </filedset>
+</div>
+<div>
+
+</div>
+
+</div>
+
+</body>
+<script src="/views/pm/mc/js/datagrid_utils.js" type="text/javascript"></script>
+<!--<script type="text/javascript" src="/js/datagrid_utils.js"></script>-->
+<script src="/js/date_format.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+    var PAGE_DATA = {}
+
+    function i18nCallBack() {
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "SPECIAL_CARD_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    console.log(jdata.data);
+                    PAGE_DATA['postponeSort'] = DomainCodeToMap_(jdata.data["SPECIAL_CARD_TYPE"]);
+                    $('#TypeDet').combobox({
+                        panelHeight: '140px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.SPECIAL_CARD_TYPE,
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            fitColumns: true,
+            pagination: true,     //开启分页
+            queryParams: {acReg: 'B-1145'},    //写死个测试数据
+            pageSize: 20,
+            columns: {
+                param: {FunctionCode: 'QUERY_FLIGHT_LOG_BY_AC'},
+            },
+            onLoadSuccess: function () {
+            },
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    }
+
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+
+
+</script>
+</html>

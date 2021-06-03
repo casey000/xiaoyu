@@ -1,0 +1,604 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/common_query_dialog.js"></script>
+    <script src="/js/lhgdialog/lhgdialog.js"></script>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/plugins/dialog/dialog_default.css">
+    <title data-i18n="">打卡明细</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        .table-bordered {
+            border: none;
+        }
+        .viewlogcolor{
+            color: #f60;;
+        }
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            /*position: absolute;*/
+            top: 0px;
+            margin-left: -40px;
+            left: -10px;
+        }
+        #pnRequest{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 110px;
+        }
+        #Pdf{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 205px;
+        }
+        #btnSyncPlan ,
+        #btnDel{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            margin-left: 5px;
+            top: 2px;
+            right: 30px;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th colspan="2" align="right" class="th" >日期段：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        开始
+                        <input class="easyui-datetimebox"  name="startWorkDate" id="expiredTimeStart" data-options="onShowPanel:function(){
+        $(this).datetimebox('spinner').timespinner('setValue','00:00:00');}" style="width:150px;" type="text"  value="" ><br>
+                        截止
+                        <input class="easyui-datetimebox"  name="endWorkDate"   id="expiredTimeEnd" data-options="onShowPanel:function(){
+        $(this).datetimebox('spinner').timespinner('setValue','23:59:59');}" style="width:150px;" type="text" value="" >
+                    </td>
+                    <th colspan="2" align="right" class="th" >处室：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-combobox" id="office" name="currOrgName" style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >职位：</th>
+                    <td colspan="2" style="padding:3px;">
+                        <input class="easyui-textbox" id="position" name="positionName" style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >工作类型：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-combobox" id="workType" name="workType" style="width:180px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th colspan="2" align="right" class="th" >工号：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-textbox" id="model" name="userId"  style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >姓名：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-textbox" id="objectName" name="userName"  style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >反馈状态：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-combobox" id="confirm" name="confirm" style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >操作：</th>
+                    <td colspan="2"  style=" padding:3px;text-align: center;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="doSearch_()" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+                <tr>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var loginUser;
+    var loginName;
+    var address=window.location.origin; //url
+    var port=document.location.port;//ip:端口号
+    if(!port){
+        port = ':'+port;
+    }else{
+        port = '';
+    }
+    var ctx = address+port;
+
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountNumber;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitDataGrid();
+        initSearchInput();
+    }
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        for(x in queryParams){
+            if(!queryParams[x]){
+                queryParams[x] = null;
+            }
+        };
+
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/otws/attendanceRecord/listPC",
+            columns: {
+                param: {FunctionCode: 'WORK_TIME_CLOCK_IN_LIST'},
+                alter: {
+                    //编辑
+                    edit: {
+                        formatter: function (value, row, index) {
+                            return operation(value,row,index,"edit");
+                        }
+                    },
+                    //工号
+                    userId:{
+                        formatter : function(value, row, index){
+                            return value ;
+                        }
+                    },
+                    //姓名
+                    userName:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //处室
+                    currOrgName:{
+                        formatter : function(value, row, index){
+                            return value ;
+                        }
+                    },
+                    //职位
+                    positionName:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //打卡时间
+                    recordDate:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    },
+                    //打卡类型
+                    recordType:{
+                        formatter : function(value, row, index){
+                            switch (value) {
+                                case 'PUNCH_IN':
+                                    return '上班卡';
+                                case 'PUNCH_OUT':
+                                    return "下班卡";
+                                case 'REST_IN':
+                                    return "休息开始卡";
+                                case 'REST_OUT':
+                                    return "休息结束卡";
+                                case 'REPEAT':
+                                    return "重复卡";
+                            }
+                        }
+                    },
+                    //工作类型
+                    workType:{
+                        formatter : function(value, row, index){
+                            switch (value) {
+                                case '0':
+                                    return '维修保障类';
+                                case '1':
+                                    return "非维修保障类(如:培训等)";
+                            }
+                        }
+                    },
+                    //打卡航站（三字码）
+                    station:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //航站
+                    stationDesc:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //打卡来源
+                    source:{
+                        formatter : function(value, row, index){
+                            switch (value) {
+                                case '0':
+                                    return '丰声';
+                                case '2':
+                                    return "ECP";
+                            }
+                        }
+                    },
+                    //反馈状态
+                    confirm:{
+                        formatter : function(value, row, index){
+                            switch (value) {
+                                case 'N':
+                                    return '未反馈';
+                                case 'Y':
+                                    return "已反馈";
+                            }
+                        }
+                    },
+                    //反馈时间
+                    modifyTm:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    }
+                }
+            },
+            toolbar: [
+                //作用:撑起来
+                {
+                    id:"btnExport",
+                    // key: "COMMON_ADD",
+                    // text: $.i18n.t('Add'),
+                    // auth: "WORK_TIME_ROSTER_SETTING_ADD",
+                    // handler: function () {
+                    //     openPage("add","","");
+                    // }
+                }
+                ,
+                {
+                    id:"btnSyncPlan",
+                    // id:"btnExport",
+                    text: $.i18n.t(' Export'),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        // exportFlbSummary();
+                        var startTime = $("#expiredTimeStart").datebox("getValue")||"";
+                        var endTime = $("#expiredTimeEnd").datebox("getValue")||"";
+                        if(! startTime || ! endTime){
+                            MsgAlert({type: "error", content: "时间段选择必填！"});
+                            return false;
+                        };
+                        if(DateDiff(startTime,endTime)<0){
+                            MsgAlert({type: "error", content: "截止日期必须大于开始日期！"});
+                            return false;
+                        };
+                        //导出Excel
+                        var data = $('#ffSearch').serializeObject();
+                        // console.log(data)
+                        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/otws/work_time_warning/exportAttendanceRecord'></form>");
+                        form.append($("<input name='fileType' value = 'excel'/>"));
+                        $.each(data, function (key, val) {
+                            if (typeof (val) == "object") {
+                                $.each(val, function (k1, v1) {
+                                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                                });
+                            } else {
+                                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                            }
+                        });
+                        $(this).parent().append(form);
+                        form.submit();
+                        form.remove();
+                    }
+                }
+            ]
+        });
+    }
+
+    //时间比较
+    function DateDiff(date1,date2){
+        var startTime=Date.parse(date1);
+        var endTime=Date.parse(date2);
+        return (endTime-startTime)/1000/3600/24
+    }
+
+
+    //列表模板下载参数格式化
+    function listExportExcelBack(){
+        var pageSize,pageNumber;
+        var queryParams = $("#ffSearch").serializeObject();
+        for(x in queryParams){
+            if(!queryParams[x]){
+                queryParams[x] = null;
+            }
+        };
+        var tableParams = $("#dg").datagrid("options");
+        pageSize = tableParams.pageSize||"";
+        pageNumber = tableParams.pageNumber||"";
+        var postParams = {
+            queryParam:[queryParams],
+            page:pageNumber,
+            rows:pageSize
+        };
+        return postParams;
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        reload_();
+    }
+
+    //刷新列表
+    function reload_() {
+        InitDataGrid();
+    }
+
+    //刷新列表函数，可以给子页面调用
+    function reload() {
+        $("#dg").datagrid("reload");
+    }
+
+    // 查询列表选项初始化
+    var PAGE_DATA = {};
+    function initSearchInput() {
+        $('#office').combobox({
+            panelHeight: '160px',
+            valueField: 'VALUE',
+            multiple:false,
+            textField: 'TEXT',
+            data: [
+                {
+                    VALUE:"",
+                    TEXT:"—请选择—"
+                },
+                {
+                    VALUE:"航线维修一组",
+                    TEXT:"航线维修一组"
+                },
+                {
+                    VALUE:"航线维修二组",
+                    TEXT:"航线维修二组"
+                },
+                {
+                    VALUE:"航线维修三组",
+                    TEXT:"航线维修三组"
+                },
+                {
+                    VALUE:"航线维修四组",
+                    TEXT:"航线维修四组"
+                },
+                {
+                    VALUE:"定检维修组",
+                    TEXT:"定检维修组"
+                },
+                {
+                    VALUE:"结构修理组",
+                    TEXT:"结构修理组"
+                },
+                {
+                    VALUE:"部件维修组",
+                    TEXT:"部件维修组"
+                }
+            ],
+        });
+        $('#workType').combobox({
+            panelHeight: '80px',
+            valueField: 'VALUE',
+            multiple:false,
+            textField: 'TEXT',
+            data: [
+                {
+                    VALUE:"",
+                    TEXT:"—请选择—"
+                },
+                {
+                    VALUE:"0",
+                    TEXT:"维修保障类"
+                },
+                {
+                    VALUE:"1",
+                    TEXT:"非维修保障类(如:培训等)"
+                }
+            ],
+        });
+        $('#confirm').combobox({
+            panelHeight: '80px',
+            valueField: 'VALUE',
+            multiple:false,
+            textField: 'TEXT',
+            data: [
+                {
+                    VALUE:"",
+                    TEXT:"—请选择—"
+                },
+                {
+                    VALUE:"Y",
+                    TEXT:"已反馈"
+                },
+                {
+                    VALUE:"N",
+                    TEXT:"未反馈"
+                }
+            ],
+        });
+        var selectRow = {};
+        $("#fromStation").MyComboGrid({
+            idField: 'STATION',  //实际选择值
+            textField: 'STATION', //文本显示值
+            panelHeight: '180px',
+            params: {FunctionCode: 'SELECT_STATION'},
+            columns: [[
+                {field: 'STATION', title: '航站三字码', width: 50},
+                {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                {field: 'FULLNAME_CN', title: '中文全称', width: 50},
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (t != null && t != '' & t != undefined) {
+                    if (selectRow == null || t != selectRow.STATION) {//没有选择或者选项不相等时清除内容
+                        alert('请选择，不要直接输入！');
+                        $(this).combogrid({value: ''});
+                    }
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+                $("#stationDesc").textbox('setValue', "");
+            }
+        });
+        var selectRowDesc = {};
+        $("#stationDesc").MyComboGrid({
+            idField: 'SHORT_NAME',  //实际选择值
+            textField: 'SHORT_NAME', //文本显示值
+            panelHeight: '180px',
+            params: {FunctionCode: 'SELECT_STATION'},
+            columns: [[
+                {field: 'STATION', title: '航站三字码', width: 50},
+                {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                {field: 'FULLNAME_CN', title: '中文全称', width: 50},
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (t != null && t != '' & t != undefined) {
+                    if (selectRowDesc == null || t != selectRowDesc.SHORT_NAME) {//没有选择或者选项不相等时清除内容
+                        alert('请选择，不要直接输入！');
+                        $(this).combogrid({value: ''});
+                    }
+                }
+            },
+            onSelect: function (index, row) {
+                selectRowDesc = row;
+                $("#fromStation").textbox('setValue', "");
+            }
+        });
+    }
+
+    //时间戳转换
+    function timestampToTime(timestamp) {
+        var date,Y,M,D,h,m,s,returnDate;
+        if(!!timestamp){
+            date = new Date(Number(timestamp));
+            Y = date.getFullYear() + '-';
+            M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+            D = (date.getDate() < 10 ? '0'+date.getDate() : date.getDate()) + ' ';
+            h = (date.getHours() < 10 ? '0'+date.getHours() : date.getHours()) + ':';
+            m = (date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes()) + ':';
+            s = (date.getSeconds() < 10 ? '0'+date.getSeconds() : date.getSeconds());
+            returnDate = Y+M+D+h+m+s;
+            return returnDate;
+        }else {
+            return "";
+        }
+    }
+
+    //打开操作页面
+    function openPage(id,userName,userId,recordDate,recordType,workType,station) {
+        var id = id||"";
+        var title = "排班设置";
+        var url_ = "/views/defect/clockInEdit.shtml";
+        var parameters = {
+            "id": id,
+            "userName":userName||"",
+            "userId":userId||"",
+            "recordDate":recordDate||"",
+            "recordType":recordType||"",
+            "workType":workType||"",
+            "station":station||""
+        };
+        ShowWindowIframe({
+            title: title,
+            width: '500',
+            height: '400',
+            param:parameters,
+            url:url_
+        })
+    }
+
+    //删除操作
+    function deleteData(id) {
+        if(confirm("你确定要删除当前行吗 ?")){
+            var ID = id || "";
+            if (ID) {
+                InitGatewayRequest_({
+                    type: "GET",
+                    async: false,
+                    path: "/otws/schedulingPlanConfig/delete/" + ID,
+                    successCallBack: function (jdata) {
+                        if (jdata.success == true) {
+                            MsgAlert({type: "success", content: "删除成功"});
+                            //重新刷新
+                            reload_();
+                        } else {
+                            MsgAlert({content: jdata.errorMessage, type: 'error'});
+                        };
+                    },
+                    error: function (jdata) {
+                        MsgAlert({content: jdata.status + " " + jdata.statusText, type: 'error'});
+                    }
+                });
+            } else {
+                window.alert("删除的ID为" + ID);
+            };
+        }
+    }
+
+    //  进入到对应的条目信息进行操作
+    function operation(value, row, index,type) {
+        var vauth_work_time_clock_in_edit = "WORK_TIME_CLOCK_IN_LIST_EDIT";
+        var result_work_time_clock_in_edit = VALID_AUTH(vauth_work_time_clock_in_edit);
+        var element = "";
+        // TODO 权限控制这里加了个管理员的超级权限便于调试，当完成后需要撤销
+        if(type == "edit"){
+            if((!!row.id &&loginUser==row.userId )||(!!value && result_work_time_clock_in_edit )||(loginUser == "admin") ){
+                element = `<div id="edit ' + value + ' " onclick="openPage('${row.id||""}','${row.userName||""}','${row.userId||""}','${row.recordDate||""}','${row.recordType||""}','${row.workType||""}','${row.station||""}')" class="ui-corner-all clever-jqgrid-action clever-jqgrid-edit edit icon-edit" title="Edit">&#12288;</div>`;
+            }else {
+                element = "";
+            }
+        }else {
+            element = "";
+        };
+        return element;
+    }
+
+</script>
+</body>
+</html>

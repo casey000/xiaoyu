@@ -1,0 +1,261 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="pragma" content="no-cache">
+    <meta http-equiv="cache-control" content="no-cache">
+    <meta http-equiv="expires" content="0">
+
+    <link href="/css/style.min862f.css?v=4.1.0" rel="stylesheet">
+
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="page:PAGE.SYSUSER.PAGE_TITLE">账户管理</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">账号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="accountNumber" id="accountNumber" style="width:110px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;" align="right">姓名：</th>
+                    <td>
+                        <input class="easyui-textbox" name="name" id="name" style="width:110px"/>
+                    </td>
+                    <td>
+                        <a href="javascript:void(0)" class="searchBtn" auth="WS_USER_QUERY" onclick="onSearch_()">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="clearBtn" auth="WS_USER_QUERY" onclick="onClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>&nbsp;&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var identity = 'dg';
+    var state;
+    var accountType;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "WS_SYS_ACCOUNT_STATE,WS_SYS_ACCOUNT_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                state = DomainCodeToMap_(jdata.data["WS_SYS_ACCOUNT_STATE"]);
+                accountType = DomainCodeToMap_(jdata.data["WS_SYS_ACCOUNT_TYPE"]);
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#state').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data['WS_SYS_ACCOUNT_STATE'],
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    $('#accountType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data['WS_SYS_ACCOUNT_TYPE'],
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            title: '',
+            firstLoad: true,
+            columns: {
+                param: {FunctionCode: 'WS_SYS_ACCOUNT_LIST'},
+                alter: {
+                    FILE_UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.FILE_UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach attach4">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    STATE: {
+                        formatter: function (value, row, index) {
+                            return state[value];
+                        }
+                    },
+                    ACCOUNT_TYPE: {
+                        formatter: function (value, row, index) {
+                            return accountType[value];
+                        }
+                    },
+                },
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "",
+                    onclick: function () {
+                        var PKID = $('#dg').datagrid('getSelected').PKID;
+                        common_add_edit_({
+                            width: 650, height: 600,
+                            identity: identity, isEdit: 1,
+                            param: {PKID: PKID},
+                            url: "/views/ws/infra_struct/sysaccount/ws_sys_account_edit.shtml"
+                        });
+                    }
+                }, {
+                    id: "m-modifyPwd",
+                    i18nText: "common:RES.SYS_USER_LIST.MODIFY_PWD", auth: "",
+                    onclick: function () {
+                        modifyPwd_();
+                    }
+                }, {
+                    id: "m-resetPwd",
+                    i18nText: "common:RES.SYS_USER_LIST.RESET_PWD", auth: "",
+                    onclick: function () {
+                        resetPwd_();
+                    }
+                }, {
+                    id: "m-uploadElecSignImage",
+                    i18nText: "上传电子签名图片", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        //先清除数据库和服务器上的数据
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: "REMOVE_BEFORE_UPLOAD_PIC_DATA"},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    common_uploadFile({
+                                        identity: 'dg',
+                                        param: {
+                                            cat: 'USERIMG',
+                                            sourceId: rowData.PKID,
+                                            successCellBack: function () {
+                                                reload_();
+                                            },
+                                            failCallBack: ""
+                                        }
+                                    });
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "USERIMG",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+                                    var html = "";
+                                    for (var i = 0; i < jdata.data.length; i++) {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deletePicFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                    }
+                                    callback(html);
+                                }
+                            }
+                        });
+                    }
+                });
+                $("#dg").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+            },
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth: "",
+                    handler: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 800, height: 420,
+                            url: "/views/ws/infra_struct/sysaccount/ws_sys_account_add.shtml"
+                        });
+                    }
+                }, '-',
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ]
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    /** 重置密码 */
+    function resetPwd_() {
+        layerConfirm_({
+            content: $.i18n.t("RES.SYS_USER_LIST.RESET_PWD_CONFIRM"),
+            yesFunc: function (index) {
+                var rowData = $("#dg").datagrid('getSelected');
+                if (!rowData) {
+                    layer.msg($.i18n.t('msg_err:ERRMSG.NO_SELECT_ROW_ERROR'), {icon: 5});
+                    return;
+                }
+                InitFuncCodeRequest_({
+                    data: {pkid: rowData.PKID, FunctionCode: "WS_SYS_ACCOUNT_RESETPWD"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            layer.msg(jdata.msg, {icon: 1});
+                        } else {
+                            layer.msg(jdata.msg, {icon: 5});
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    /** 修改密码 */
+    function modifyPwd_() {
+        var rowData = $("#dg").datagrid('getSelected');
+        if (!rowData) {
+            layer.msg($.i18n.t('msg_err:ERRMSG.NO_SELECT_ROW_ERROR'), {icon: 5});
+            return;
+        }
+        ShowWindowIframe({
+            width: 600, height: 280,
+            title: "修改密码[" + rowData.REAL_NAME + "]",
+            param: {pkid: rowData.PKID},
+            url: "/views/ws/infra_struct/sysaccount/ws_sys_account_editPwd.shtml"
+        });
+    }
+
+    function deletePicFile(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: 'ATTACHMENT_RSPL_DEL'},
+            successCallBack: function (jdata) {
+                if (jdata.code == 200) {
+                    reload_();
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,453 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>滑耗趋势分析</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" align="right">机型：</th>
+                    <td>
+                        <input class="easyui-combobox" id="acTypeGroup" name="acTypeGroup" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">机号：</th>
+                    <td>
+                        <input class="easyui-combobox" id="acReg" name="acReg" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">发动机序号：</th>
+                    <td>
+                        <input class="easyui-combobox" id="esn" name="esn" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">告警日期从：</th>
+                    <td>
+                        <input class="easyui-datebox" id="trendDateFrom" name="trendDateFrom" style="width:150px"/>
+                    </td>
+                    <th data-i18n="" align="right">至：</th>
+                    <td style="width:150px">
+                        <input class="easyui-datebox" id="trendDateTo" name="trendDateTo" style="width:150px"/>
+                    </td>
+                    <td colspan="2">
+
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" align="right">位置：</th>
+                    <td style="width:100px">
+                        <input class="easyui-combobox" id="pos" name="pos" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">是否处置：</th>
+                    <td style="width:100px">
+                        <input class="easyui-combobox" id="status" name="status" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">告警类别：</th>
+                    <td style="width:100px">
+                        <input class="easyui-combobox" id="trendType" name="trendType" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">处置方式：</th>
+                    <td style="width:140px">
+                        <input class="easyui-combobox" id="dealType" name="dealType" style="width:150px"/>
+                    </td>
+                    <td colspan="3">
+                        &nbsp;
+                        <a class="searchBtn" onclick="doSearch_()"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()"><span>重置</span></a>
+                        <a class="addBtn" onclick="openChartView()"><span>图表</span></a>
+                        <a class="addBtn" onclick="oilTrend()" auth="ENG_OIL_TREND1"><span>趋势分析</span></a>
+                        <a class="addBtn" onclick="pushMessage()" auth="ENG_OIL_TREND3"><span>推送丰声</span></a>
+                        <a class="addBtn" onclick="dealTrend('','B')" auth="ENG_OIL_TREND2"><span>处置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+    <table id="dg" ></table>
+    <table id="dg1"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var PAGE_DATA = {};
+    var sourceType = '3';
+
+    $(function () {
+        param = getParentParam_();
+
+        $.i18n.init(function () {
+            InitFuncCodeRequest_({
+                data: {
+                    async: false,
+                    domainCode: "DA_FLEET,ENG_POS,ENG_OIL_SET_TYPE,ENG_OIL_DEAL_TYPE,ENG_OIL_TREND_STATUS",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        //机号
+                        $('#acReg').combobox({
+                            panelHeight: '100px',
+                            url: Constant.API_URL + 'DA_ACTYPE_GET_ACNOS',
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            loadFilter: function (jdata) {
+                                return jdata.data;
+                            }
+                        });
+                        //机型
+                        $('#acTypeGroup').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.DA_FLEET,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (item) {
+                                $('#acReg').combobox({
+                                    panelHeight: '100px',
+                                    queryParams: {acType: item.VALUE},
+                                    url: Constant.API_URL + 'DA_ACTYPE_GET_ACNOS',
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    loadFilter: function (jdata) {
+                                        return jdata.data;
+                                    }
+                                });
+                            }
+                        });
+                        //获取发动机序号
+                        InitGatewayRequest_({
+                            async: false,
+                            data: {matnr: ''},
+                            path: "/meng-engine/baseOwn/getEngByType",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    $('#esn').combobox({
+                                        data: jdata.obj,
+                                        valueField: 'VALUE',
+                                        textField: 'TEXT',
+                                        panelHeight: '150px'
+                                    });
+                                } else {
+                                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                                }
+                            }
+                        });
+                        //状态
+                        $("#status").combobox({
+                            panelHeight: '50px',
+                            data: jdata.data.ENG_OIL_TREND_STATUS,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        //位置
+                        $("#pos").combobox({
+                            panelHeight: '120px',
+                            data: jdata.data.ENG_POS,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        //告警类别
+                        $("#trendType").combobox({
+                            panelHeight: '80px',
+                            data: jdata.data.ENG_OIL_SET_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        //处置方式
+                        $("#dealType").combobox({
+                            panelHeight: '90px',
+                            data: jdata.data.ENG_OIL_DEAL_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        PAGE_DATA['place'] = DomainCodeToMap_(jdata.data["LM_WXJD"]);
+                        PAGE_DATA['trendType'] = DomainCodeToMap_(jdata.data["ENG_OIL_SET_TYPE"]);
+                        PAGE_DATA['dealType'] = DomainCodeToMap_(jdata.data["ENG_OIL_DEAL_TYPE"]);
+                        PAGE_DATA['pos'] = DomainCodeToMap_(jdata.data["ENG_POS"]);
+                        InitDataGrid();
+                        InitDataGrid1(-1);
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        });
+    });
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    //滑耗趋势分析
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $('#dg').GatewayDataGrid({
+            path: "/meng-engine/EngOilTrend/listByPage",
+            async: false,
+            queryParams: queryParams,
+            identity: 'dg',
+            idField: "pkid",
+            fitcolumn:true,
+            pagination: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.55, 0, 55, -6);
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_OIL_TREND_LIST'},
+                alter: {
+                    createDate: {
+                        type: 'date'
+                    },
+                    dealDate: {
+                        type: 'date'
+                    },
+                    trendType:{
+                        formatter: function (value, row, index) {
+                            var name = PAGE_DATA['trendType'][value];
+                            return '<a href="javascript:void(0);" onclick="viewDetail(\'' + row.setId + '\',\'' + value + '\');">' + name + '</a>';
+                        }
+                    },
+                    dealType:{
+                        formatter: function (value) {
+                            return PAGE_DATA['dealType'][value];
+                        }
+                    }
+                }
+            },
+            onClickRow: function (index, row) {
+                InitDataGrid1(row.pkid);
+            },
+            contextMenus: [
+                {
+                    id: "m-chart", i18nText: "图表", auth: "",
+                    onclick: function () {
+                        var rowData = $('#dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+
+                        }
+                        openChartView(rowData);
+                    }
+                },
+                {
+                    id: "m-deal", i18nText: "处置", auth: "ENG_OIL_TREND2",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        dealTrend(rowData,'');
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.dealType != "" && row.dealType != null) {
+                    items['处置'].enable = false;
+                }
+                return items;
+            },
+            onLoadSuccess: function (data) {
+                $("input:checkbox").prop("disabled", true);
+                $('#dg').datagrid('uncheckAll');
+                for (var i = 0; i < data.rows.length; i++) {
+                    if (!data.rows[i].dealType) {
+                        $("input[type='checkbox']")[i + 1].disabled = false;
+
+                    }
+                }
+            },
+        });
+
+    }
+
+    Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+        }
+    };
+
+    //出厂报告
+    function InitDataGrid1(parentId) {
+        $("#dg1").GatewayDataGrid({
+            identity: 'dg1',
+            idField: "PKID",
+            queryParams: {
+                trendId: parentId
+            },
+            pagination: true,
+            path: "/meng-engine/EngOilTrendDetail/getEngOilTrendDetailById",
+            fitcolumn:true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.43, 0, 10, -6);
+            },
+
+            columns: {
+                param: {FunctionCode: 'ENG_OIL_TREND_DETAIL_LIST'},
+                alter: {
+                    flightDate: {
+                        type: 'datetime'
+                    },
+                    pos:{
+                        formatter: function (value) {
+                            return PAGE_DATA['pos'][value];
+                        }
+                    },
+                    blockTime:{
+                        formatter: function (value) {
+                            return changeHourMinutestr(value);
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+            ],
+        });
+    }
+
+    function oilTrend(){
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/oil/trendCal",
+            data: "",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+    function pushMessage(){
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/oil/pushMessage",
+            data: "",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //刷新列表
+    function reload_(){
+        $("#dg").datagrid("reload");
+    }
+
+
+    function changeHourMinutestr(str) {
+        if (str !== "0" && str !== "" && str !== null) {
+            return ((Math.floor(str / 60)).toString().length < 2 ? "0" + (Math.floor(str / 60)).toString() :
+                (Math.floor(str / 60)).toString()) + ":" + ((str % 60).toString().length < 2 ? "0" + (str % 60).toString() : (str % 60).toString());
+        }else {
+            return "";
+        }
+    }
+
+    function dealTrend(rowData,flag){
+        var rows = $('#dg').datagrid('getChecked');
+        var esn = rowData.esn;
+        var pkids = '';
+        var esns = '';
+        if("B" == flag){//批量处置
+            if (rows.length == 0) {
+                MsgAlert({content: '请至少选择一行数据', type: 'error'});
+                return false;
+            }
+            for(var i = 0;i<rows.length;i++){
+                var row = rows[i];
+                var id = row.pkid;
+                var sn = row.esn;
+                if(id && pkids.indexOf(id) == -1){
+                    pkids = pkids + ',' + id;
+                }
+                if(sn && esns.indexOf(sn) == -1){
+                    esns = esns + ',' + sn;
+                }
+            }
+            pkids = pkids.substring(1);
+            esns = esns.substring(1);
+        }else {
+            pkids = rowData.pkid;
+            esns = rowData.esn;
+        }
+        var title_ = $.i18n.t('滑耗趋势异常处置');
+        ShowWindowIframe({
+            width: "620",
+            height: "400",
+            title: title_,
+            param: {pkids:pkids,esns:esns,sourceType:sourceType},
+            url: "/views/engine/engOilTrend/eng_oil_trend_deal.shtml"
+        });
+    }
+
+    function viewDetail(pkid,trendType){
+        var operation = 'view';
+        if(trendType == "1"){//连续未添加
+            ShowWindowIframe({
+                width: "620",
+                height: "290",
+                param: {pkid: pkid, operation: operation},
+                url: "/views/engine/engOilSetNone/eng_oil_set_none_add_edit.shtml"
+            });
+        }else if(trendType == "2"){//连续上升
+            ShowWindowIframe({
+                width: "620",
+                height: "400",
+                param: {pkid:pkid,operation: operation},
+                url: "/views/engine/engOilSetContinue/eng_oil_set_continue_add_edit.shtml"
+            });
+        }else if(trendType == "3"){//阶跃上升
+            ShowWindowIframe({
+                width: "620",
+                height: "290",
+                param: {pkid: pkid, operation: operation},
+                url: "/views/engine/engOilSetStep/eng_oil_set_step_add_edit.shtml"
+            });
+        } else if (trendType == "4") { //滑耗超限
+            ShowWindowIframe({
+                width: "620",
+                height: "430",
+                param: {pkid: pkid, operation: operation},
+                url: "/views/engine/engOilSetSingle/eng_oil_set_single_add_edit.shtml"
+            });
+        }else if (trendType == "5" || trendType == "6") { //加油量监控
+            ShowWindowIframe({
+                width: "620",
+                height: "430",
+                param: {pkid: pkid, operation: operation},
+                url: "/views/engine/engOilSetSingle/eng_oil_set_single_threshold_add_edit.shtml"
+            });
+        }
+    }
+
+    function openChartView(rowData) {
+        var title_ = $.i18n.t('图表展示');
+        ShowWindowIframe({
+            width: "970",
+            height: "570",
+            title: title_,
+            param: {rowData: rowData,source:"TREND"},
+            url: "/views/engine/engOilTrend/eng_oil_trend_chart.shtml"
+        });
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        InitDataGrid();
+        InitDataGrid1(-1);
+    }
+</script>
+</body>
+</html>

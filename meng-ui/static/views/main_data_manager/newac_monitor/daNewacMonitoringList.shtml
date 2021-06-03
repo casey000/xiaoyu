@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">飞机引进工作整体监控</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">机型：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="mpActype" name="mpActype" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:85px;" align="right">任务状态：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                    </td>
+
+
+                    <td colspan="2">
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                    </td>
+
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    //运营人
+    var companyCode;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,DA_ACREG_STATUS,DA_FLEET,DA_ACREG_AIR_CATEGORY,DA_ACREG_STATUS,DA_AC_MONITOR_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //型号
+                    PAGE_DATA['acengModel'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["DA_AC_MONITOR_STATUS"]);
+                    $('#mpActype').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_AC_MONITOR_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            // queryParams: {companyCode: companyCode},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'DA_NEWAC_MONITORING_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    }
+
+                }
+            },
+            onLoadSuccess: function () {
+
+            },
+            validAuth: function (row, items) {
+                if (row.STATUS == "0") {
+                    items['删除'].enable = true;
+                } else {
+                    items['删除'].enable = false;
+                }
+                //已完成不允许编辑
+                if (row.STATUS == "2") {
+                    items['编辑'].enable = false;
+                }
+                return items;
+            },
+            rowStyler: function (index, row) {
+
+                var evalDate = row.EVAL_DATE;
+                var oDate1 = new Date(evalDate);
+                var oDate2 = new Date();
+                if (oDate2.getTime() > oDate1.getTime() && row.STATUS != "2") {
+                    return 'color:red;';//红色
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID, rowData.MP_ACTYPE);
+                    }
+                },
+                {
+                    id: "",
+                    i18nText: "删除",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (confirm("是否确认删除？")) {
+                            InitFuncCodeRequest_({
+                                data: {FunctionCode: 'DA_NEWAC_MONITORING_DEL', pkid: rowData.PKID},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            ],
+            toolbar: [
+
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID, value.MP_ACTYPE);
+            }
+        });
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid, mpActype) {
+        var title_ = $.i18n.t('飞机主数据详情');
+        ShowWindowIframe({
+            width: "1300",
+            height: "750",
+            title: title_,
+            param: {operation: operation, pkid: pkid, mpActype: mpActype},
+            url: "/views/main_data_manager/newac_monitor/daNewacMonitoringDetail.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

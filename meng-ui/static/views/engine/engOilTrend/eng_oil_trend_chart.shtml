@@ -1,0 +1,465 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>滑耗趋势图表</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="tt" class="easyui-tabs" style="width:100%; height: 10%">
+    <fieldset class="fieldset_eui">
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">发动机型号：</th>
+                    <td style="width: 150px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:150px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">发动机序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="esn" name="esn" data-options="required:true"  style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">机型：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acType" name="acType" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">机号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acReg" name="acReg" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="loadEcharts()"><span>查询</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:100px;" align="right">滑耗参数：</th>
+                    <td style="width: 150px" class="td5">
+                        <input class="easyui-combobox" id="valueType" name="valueType" style="width:150px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">日期：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="flightDateStart" name="flightDateStart" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">至：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="flightDateEnd" name="flightDateEnd" style="width:100px;"/>
+                    </td>
+
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+<div style="width:100%; height: 80%">
+    <div id="perOilTwoSt" style="width:1000px;height:600px;"></div>
+</div>
+<script>
+    var param = {};
+    var rowData;
+    var source;
+    function i18nCallBack() {
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#epn').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                        onSelect: function (item) {
+                            InitGatewayRequest_({
+                                async: false,
+                                data: {matnr: item.VALUE},
+                                path: "/meng-engine/baseOwn/getEngByType",
+                                successCallBack: function (jdata) {
+                                    if (jdata.success == true) {
+                                        $('#esn').combobox({
+                                            data: jdata.obj,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT',
+                                            panelHeight: '150px',
+                                        });
+                                    } else {
+                                        MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            data: {matnr: ''},
+            //path: "/meng-engine/baseOwn/getEngByType",
+            path: "/meng-engine/baseOwn/getEngByType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#esn').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        $('#valueType').combobox({
+            data: [{
+                TEXT: '5次加油平均滑耗',
+                VALUE: '5'
+            }, {
+                TEXT: '8次加油平均滑耗',
+                VALUE: '8'
+            }, {
+                TEXT: '10次加油平均滑耗',
+                VALUE: '10'
+            }, {
+                TEXT: '13次加油平均滑耗',
+                VALUE: '13'
+            }, {
+                TEXT: '15次加油平均滑耗',
+                VALUE: '15'
+            }, {
+                TEXT: '20次加油平均滑耗',
+                VALUE: '20'
+            }],
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            panelHeight: '150px'
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiReport/getMpActypes",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#acType').combobox({
+                        data: jdata.obj,
+                        valueField: 'value',
+                        textField: 'text',
+                        panelHeight: '150px',
+                        onSelect: function (item) {
+                            var datas = {"mpActype": item.value};
+                            InitGatewayRequest_({
+                                async: false,
+                                data: datas,
+                                path: "/meng-engine/engBsiReport/getAcnos",
+                                successCallBack: function (jdata) {
+                                    if (jdata.success == true) {
+                                        $('#acReg').combobox({
+                                            data: jdata.obj,
+                                            valueField: 'text',
+                                            textField: 'text',
+                                            panelHeight: '150px',
+                                        });
+                                    } else {
+                                        MsgAlert({content: '获取机号列表失败', type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    MsgAlert({content: '获取机型列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            data: {"mpActype": ""},
+            path: "/meng-engine/engBsiReport/getAcnos",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#acReg').combobox({
+                        data: jdata.obj,
+                        valueField: 'text',
+                        textField: 'text',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取机号列表失败', type: 'error'});
+                }
+            }
+        });
+
+
+        param = getParentParam_();
+        rowData = param.rowData;
+        source = param.source;
+
+        if (rowData) {
+            if (source){
+                rowData.acType = rowData.acTypeGroup;
+                $("#flightDateEnd").datebox('setValue', changeDateFormat(rowData.createDate));
+                var dateTime=new Date(changeDateFormat(rowData.createDate));
+                dateTime=dateTime.setDate(dateTime.getDate()-90);
+                dateTime=new Date(dateTime);
+                var year = dateTime.getFullYear();
+                var month = dateTime.getMonth() + 1;
+                var strDate = dateTime.getDate();
+                $("#flightDateStart").datebox('setValue', year + "-" + month + "-" + strDate);
+            }else{
+                $("#flightDateEnd").datebox('setValue', changeDateFormat(rowData.flightDate));
+                var dateTime=new Date(changeDateFormat(rowData.flightDate));
+                dateTime=dateTime.setDate(dateTime.getDate()-90);
+                dateTime=new Date(dateTime);
+                var year = dateTime.getFullYear();
+                var month = dateTime.getMonth() + 1;
+                var strDate = dateTime.getDate();
+                $("#flightDateStart").datebox('setValue', year + "-" + month + "-" + strDate);
+            }
+            InitDataForm(rowData);
+            var typeValue = "13";
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: "/meng-engine/EngOilTrend/getTypeVale/"+rowData.acType+"/" + rowData.epn,
+                successCallBack: function (jdata) {
+                    typeValue = jdata.obj;
+                }
+            });
+
+            $("#valueType").combobox('setValue', typeValue);
+            loadEcharts();
+        }
+    }
+
+    //生成图表
+    function loadEcharts() {
+
+        var dom = document.getElementById("perOilTwoSt");
+        var myChart = echarts.init(dom, "macarons");
+
+        option = {
+            title: {
+                text: '',
+                subtext: '',
+                x: 'center',
+                y: 'top',
+                subtextStyle: {
+                    align: 'center',
+                },
+                padding: 20
+            },
+            tooltip: {
+                trigger: 'axis',
+                showDelay: 0,
+                axisPointer: {
+                    show: true,
+                    type: 'cross',
+                    lineStyle: {
+                        type: 'dashed',
+                        width: 1
+                    }
+                }
+            },
+            dataZoom: {
+                show: true,
+                start: 0,
+                end: 100
+            },
+            legend: {
+                data: ['平滑值', '机队平均值']
+            },
+            toolbox: {
+                show: true,
+                feature: {
+                    saveAsImage: {show: true}
+                }
+            },
+            xAxis: [],
+            yAxis: [
+                {
+                    type: 'value',
+                    scale: true
+                }
+            ],
+            series: []
+        };
+        var series = [];
+        var xAxis = [];
+
+        var params = $("#ffSearch").serializeObject();
+        if (!params.epn) {
+            alert("请选择发动机型号!");
+            return;
+        }
+        if (!params.esn) {
+            alert("请选择发动机序号!");
+            return;
+        }
+        if (!params.acType) {
+            alert("请选择机型!");
+            return;
+        }
+        if (!params.valueType) {
+            alert("请选择滑耗参数!");
+            return;
+        }
+
+
+        var text = "";
+        var scatterName = "";
+        if (!!params.acType) {
+            text += " ";
+            text += params.acType;
+        }
+        if (!!params.acReg) {
+            text += " ";
+            text += params.acReg;
+        }
+        if (!!params.epn) {
+            text += " ";
+            text += params.epn;
+        }
+        if (!!params.esn) {
+            text += " ";
+            text += params.esn;
+        }
+        if ("5" == params.valueType) {
+            text += " 5次加油平均滑耗";
+            scatterName = "5次加油平均滑耗数值";
+        } else if ("8" == params.valueType) {
+            text += " 8次加油平均滑耗";
+            scatterName = "8次加油平均滑耗数值";
+        } else if ("10" == params.valueType) {
+            text += " 10次加油平均滑耗";
+            scatterName = "10次加油平均滑耗数值";
+        } else if ("13" == params.valueType) {
+            text += " 13次加油平均滑耗";
+            scatterName = "13次加油平均滑耗数值";
+        } else if ("15" == params.valueType) {
+            text += " 15次加油平均滑耗";
+            scatterName = "15次加油平均滑耗数值";
+        } else if ("20" == params.valueType) {
+            text += " 20次加油平均滑耗";
+            scatterName = "20次加油平均滑耗数值";
+        }
+        text += " 数据分布图";
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/EngOilTrend/getPerOilTwoSt",
+            data: params,
+            successCallBack: function (jdata) {
+                //if (jdata.success == true) {
+                var xAxi = {
+                    type: 'category',
+                    boundaryGap: false,
+                    show: true,
+                    data: []
+                };
+                var items = {
+                    name: scatterName,
+                    type: 'scatter',
+                    data: [],
+                    emphasis: {itemStyle: {color: "#bb111a"}},
+                    itemStyle: {
+                        normal: {
+                            color: "#8577ef",
+                        }
+                    },
+                    markLine: {
+                        symbol: "none",
+                        lineStyle: {
+                            type: "dashed"
+                        },
+                        label: {
+                            position: "end",
+                            formatter: "{b}: {c}"
+                        },
+                        data: []
+                    }
+                };
+
+                var avg10 = {
+                    name: '平滑值',
+                    type: 'line',
+                    data: []
+                };
+                var avgType = {
+                    name: '机队平均值',
+                    type: 'line',
+                    data: []
+                };
+                var listExcel = jdata.listExcel;
+                if (jdata.data != null) {
+                    for (var i = 0; i < jdata.data.length; i++) {
+                        items.data.push(jdata.data[i]);
+                        avg10.data.push(jdata.avg10[i]);
+                        avgType.data.push(jdata.avgType[i]);
+                    }
+                    for (var j = 0; j < jdata.xAxis.length; j++) {
+                        var num = jdata.xAxis[j];
+                        xAxi.data.push(num);
+                    }
+
+                    if (jdata.limitValue.alertValue) {
+                        var alertValue = jdata.limitValue.alertValue;
+                        var limitValue = jdata.limitValue.limitValue;
+
+                        items.markLine.data.push(JSON.parse('{"name": "预警值", "yAxis": "' + alertValue + '","lineStyle": {"color": "orange"}}'));
+                        items.markLine.data.push(JSON.parse('{"name": "极限值", "yAxis": "' + limitValue + '","lineStyle": {"color": "red"}}'));
+
+                        text += " （预警值:" + alertValue +" 极限值:"+ limitValue +")";
+                    }
+
+                    series.push(items);
+                    series.push(avg10);
+                    series.push(avgType);
+                    xAxis.push(xAxi);
+                    option.title.subtext = "(" + params.flightDateStart + "～" + params.flightDateEnd + ")";
+                    option.title.text = text;
+                    option.xAxis = xAxis;
+                    option.series = series; // 设置图表 数据
+                    myChart.setOption(option, true);// 重新加载图表
+                }
+                /*} else {
+                 MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                 }*/
+            }
+        });
+    }
+
+    function InitDataForm(rowData) {
+        ParseFormField_(rowData, $("#ffSearch"));
+    }
+
+</script>
+</body>
+</html>

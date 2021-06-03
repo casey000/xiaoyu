@@ -1,0 +1,193 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="oriEoNo" name="oriEoNo"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+                    <tr>
+
+                        <th class="tdl">关系类型:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="relateType" id="relateType"
+                                   data-options="required:true,editable:false"/>
+                        </td>
+
+                        <th class="tdl">关联EO NO:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="relateEoNo" id="relateEoNo"
+                                   data-options="required:true"/>
+                        </td>
+
+
+                    </tr>
+
+                    <tr>
+                        <td colspan="8" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript">
+
+    var param = {};
+    var sex;
+    var orgId;
+    var state;
+    var accountType;
+    var eoNo;
+    var eoPkid;
+
+    function i18nCallBack() {
+        window.resizeTo("680", "350");
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EO_NO_LIST,EM_EO_NEXUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                eoNo = param.eoNo;
+                eoPkid = param.eoPkid;
+                state = DomainCodeToMap_(jdata.data["WS_SYS_ACCOUNT_STATE"]);
+                accountType = DomainCodeToMap_(jdata.data["WS_SYS_ACCOUNT_TYPE"]);
+                sex = DomainCodeToMap_(jdata.data["HR_SEX"]);
+                orgId = DomainCodeToMap_(jdata.data["HR_ORG"]);
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#relateType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data['EM_EO_NEXUS'],
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange : function (newValue, oldValue) {
+                            if(newValue && newValue == 'A'){//前置
+                                var jobCategory = 'YC';
+                                var relateType = 'A';
+                                $("#relateEoNo").MyComboGrid({
+                                    panelWidth: '300',
+                                    idField: 'TEXT',  //实际选择值
+                                    textField: 'TEXT', //文本显示值
+                                    editable: true,
+                                    required: true,
+                                    pagination: true,
+                                    tipPosition: 'top',
+                                    mode: 'remote',
+                                    params: {eoNo:eoNo, applyType:param.applyType, eoPkid:eoPkid, jobCategory:jobCategory,
+                                        relateType:relateType ,FunctionCode: 'EM_EO_NO_LIST'},
+                                    url: Constant.API_URL + 'EM_EO_NO_LIST',
+                                    columns: [[
+                                        {field: 'TEXT', title: 'EO NO', width: 300, sortable: true}
+                                    ]]
+                                });
+                            }
+                            if(newValue && (newValue == 'B' || newValue == 'C')){
+                                $("#relateEoNo").MyComboGrid({
+                                    panelWidth: '300',
+                                    idField: 'TEXT',  //实际选择值
+                                    textField: 'TEXT', //文本显示值
+                                    editable: true,
+                                    required: true,
+                                    pagination: true,
+                                    tipPosition: 'top',
+                                    mode: 'remote',
+                                    params: {eoNo:eoNo, applyType:param.applyType
+                                        ,FunctionCode: 'EM_EO_NO_LIST'},
+                                    url: Constant.API_URL + 'EM_EO_NO_LIST',
+                                    columns: [[
+                                        {field: 'TEXT', title: 'EO NO', width: 300, sortable: true}
+                                    ]]
+                                });
+                            }
+                        }
+                    });
+
+                    /*$("#relateEoNo").MyComboGrid({
+                        panelWidth: '300',
+                        idField: 'TEXT',  //实际选择值
+                        textField: 'TEXT', //文本显示值
+                        editable: true,
+                        required: false,
+                        pagination: true,
+                        tipPosition: 'top',
+                        mode: 'remote',
+                        params: {eoNo:eoNo, applyType:param.applyType, applyModel:param.applyModel
+                            ,FunctionCode: 'EM_EO_NO_LIST'},
+                        url: Constant.API_URL + 'EM_EO_NO_LIST',
+                        columns: [[
+                            {field: 'TEXT', title: 'EO NO', width: 300, sortable: true}
+                        ]]
+                    });*/
+
+                    $('#sex').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data['HR_SEX'],
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitSaveForm_();
+    }
+
+    function InitSaveForm_() {
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var data = $form.serializeObject();
+                data = $.extend(data, {
+                    "oriEoNo": param.eoNo,
+                    "eoPkid": param.eoPkid,
+                    'EO_EA' : 'EO'
+                }, {FunctionCode: "EM_EO_RELATE_ADD"});
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            param.OWindow.reload_();
+                            CloseWindowIframe();
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                            //$form.form('clear');
+                            //window.location.reload(); //刷新当前页面
+                        } else {
+                            MsgAlert({content: jdata.msg.replace("msg_err:", ""), type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+
+</script>
+</html>

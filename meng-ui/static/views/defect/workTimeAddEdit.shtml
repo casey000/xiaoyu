@@ -1,0 +1,294 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <meta charset="UTF-8">
+    <title>工时报表新增</title>
+    <link href="/css/nrc/nrc_add.css" rel="stylesheet">
+    <style type="text/css">
+        .button_a a {
+            display: inline-block;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px 20px;
+            border: none;
+            font-size: 14px;
+            margin-right: 12px;
+            float: right;
+        }
+        .btnAll{
+            position: fixed;
+            bottom: 0px;
+            width: 100%;
+            background-color: #f0f0f0;
+            margin-left: -10px;
+        }
+        .zhezhao {
+            display: none;
+            background-color: rgba(77, 82, 77, 0.05);
+            position: absolute;
+            z-index: 9;
+            top: 0px;
+            bottom: 0px;
+            right: 0px;
+            left: 0px;
+        }
+        .td-font-red,
+        .errorMessage{
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<div class="nrc_div">
+    <form id="work_time_form">
+        <table class="addnrc_table">
+            <tbody>
+            <tr>
+                <div style="display: none">
+                    <input  id="workTimeId" name="id" value="">
+                    <input  id="workTimeType" name="type" value="">
+                    <input id="ccid" type="text"/> <input class="easyui-textbox" id="ac_id"/>
+                    <input id="workorderId" type="text"/>
+                </div>
+                <td class="key">打卡日期/时间:<span class="td-font-red">*</span></td>
+                <td>
+                    <div class="zhezhao"></div>
+                    <input class="easyui-datetimebox" id="cardTime" name="repTime" style="width: 85%" type="text">
+                    <div class="errorMessage"></div>
+                </td>
+                <td class="key">打卡类型:<span class="td-font-red">*</span></td>
+                <td>
+                    <input class="easyui-combobox" id="cardType" style="width: 85%" >
+                    <div class="errorMessage"></div>
+                </td>
+                <td class="key" style="position: relative;height: 50px">被操作人姓名:<span class="td-font-red">*</span></td>
+                <td style="position: relative;">
+                    <div id="userName"></div>
+                </td>
+            </tr>
+            <tr>
+                <td class="tab_title_bg" width="16%">Remark:<span class="td-font-red">*</span></td>
+                <td colspan="5">
+                    <textarea class="checkIsDisabled" cols="" style="height: 200px;width: 95%;" id="reason"  rows=""></textarea>
+                    <div class="errorMessage"></div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </form>
+    <div class="btnAll" >
+        <div colspan="5" align="right" style="padding: 10px 10px;">
+            <!--            新增保存-->
+            <input class="btn btn-primary" type="button" id="addSaveBtn" onclick="submitParam('save')" value="Save"/>
+            <!--            关闭按钮-->
+            <input class="btn btn-primary" type="button" id="closeBtn" onclick="closeCurrent();" value="Cancel"
+                   style="margin-right: 20px;"/>
+        </div>
+    </div>
+</div>
+</body>
+
+<script type="text/javascript">
+    var params = {},loginInfoData = {};
+    var name,accountId,workTimeType,workTimeId,userName;
+
+    // <!-- 初始化-->
+    function pageInit() {
+        params = getParentParam_();
+        loginInfoData = getLoginInfo();
+        if (!!loginInfoData.userName) {
+            name = loginInfoData.userName;
+            accountId = loginInfoData.accountNumber;
+        };
+        //赋值ID
+        if(!!params.itemId){
+            workTimeId = params.itemId;
+            $("#workTimeId").val(workTimeId);
+        };
+        //赋值类型
+        if(!!params.operation){
+            workTimeType = params.operation;
+            $("#workTimeType").val(workTimeType);
+        };
+        //被操作对象名字
+        if(!!params.userName){
+            userName = params.userName;
+            $("#userName").text(userName);
+        };
+        //打卡类型
+        $('#cardType').combobox({
+            valueField: 'id',
+            textField: 'text',
+            data: [
+                {
+                    id: 0,
+                    text: "上班卡"
+                }, {
+                    id: 1,
+                    text: "下班卡"
+                }, {
+                    id: 2,
+                    text: "休息开始卡"
+                }, {
+                    id: 3,
+                    text: "休息结束卡"
+                }],
+        });
+    };
+
+    //新增初始化
+    function newAddInit() {
+        $("title").text("Add workTime");
+        //操作人
+        if (!!name && !!accountId) {
+            var nameSn = "";
+            nameSn = name + "(" + accountId + ")";
+            $("#operator").text(nameSn);
+        };
+        $('#cardType').combobox("setValue", 1);
+        $('#cardType').combobox('disable');
+    };
+
+    //赋值操作
+    function assignmentData(data){
+        var data = data;
+        $("#Id").val(data.id);
+        $('#cardTime').datetimebox('setValue',data.offWorkEnd||"");
+        $('#cardType').combobox("setValue",data.cardType||"");
+        $("#reason").val(data.reason||"");
+    };
+
+    function getInput() {
+        var cardTime,userId,userName,planId,reason;
+        //打卡日期时间
+        cardTime = $('#cardTime').datetimebox('getValue');
+        userId = params.userId.toString()||"";
+        userName = params.userName||"";
+        planId = params.planId.toString()||"";
+        reason = $("#reason").val();
+        returnParam = {
+            offWorkEnd:cardTime,
+            userName:userName,
+            userId:userId,
+            planId:planId,
+            reason:reason
+        };
+        return returnParam;
+    };
+
+    //校验
+    function checkData() {
+        var isValid = false;
+        $("#work_time_form .error").remove();
+        var errMsg = '<span class="error">This field is required.</span>';
+        var errMsg1 = '<span class="error">The length is greater than 3000 bytes.</span>';
+        if(!$('#cardTime').datetimebox('getValue')){
+            $("#cardTime").nextAll("div.errorMessage").append(errMsg);
+            isValid = true;
+        };
+        if(!$("#reason").val()){
+            $("#reason").nextAll("div.errorMessage").append(errMsg);
+            isValid = true;
+        };
+        return isValid;
+    };
+
+    //按钮禁用
+    function btnDisable(){
+        $("#closeBtn").attr("disabled","disabled");
+        $("#addSaveBtn").attr("disabled","disabled");
+    };
+
+    //按钮激活
+    function btnActive() {
+        $("#closeBtn").removeAttr("disabled");
+        $("#addSaveBtn").removeAttr("disabled");
+    };
+
+    //提交保存
+    function submitParam(mark) {
+        btnDisable();
+        if(checkData()){
+            btnActive();
+            return false;
+        };
+        var postParam = getInput();
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            path: "/otws/offWork/addOffWorkRecord",
+            data: postParam,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    btnActive();
+                    var getData = jdata.obj;
+                    //重载列表
+                    if (params.OWindow.location.pathname.indexOf("workTimePersonalList") > -1) {
+                        params.OWindow.reload_();
+                    };
+                    //保存不关闭，提交关闭
+                    if(mark == "submit"){
+                        MsgAlert({type: "success", content: "提交成功"});
+                        closeCurrent();
+                    }else{
+                        MsgAlert({type: "success", content: "保存成功"});
+                        closeCurrent();
+                    };
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                };
+                btnActive();
+            },
+            error:function (jdata) {
+                btnActive();
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+    };
+
+    //关闭当前弹窗
+    function closeCurrent(){
+        if (params.PWindow.location.pathname.indexOf("workTimeList") > -1) {
+            params.PWindow.reload();
+        }
+        window.close();
+    };
+
+    //根据ID获取数据
+    function getDataById() {
+        var Id = $("#workTimeId").val();
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/mccdoc/teBaseInfo/"+ id,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    assignmentData(data);
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            },
+            error:function (jdata) {
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+
+    };
+
+    //运行
+    function carriedOut() {
+        //页面设置初始化
+        pageInit();
+        newAddInit();
+    };
+
+    $(function () {
+        carriedOut();
+    })
+</script>
+</html>

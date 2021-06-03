@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title></title>
+</head>
+<body class="easyui-layout ibody">
+<table id="dg"></table>
+<div style="margin: 5px 0px;"></div>
+<table id="sub_dg_0"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    $(function () {
+        var dg = $("#dg").MyDataGrid({
+            url: '/api/v1/plugins/WORK_FLOW_DEFINE_LIST',
+            title: '工作流定义列表',
+            columns: [
+                {field: 'id', title: 'ID', align: 'center', width: 150},
+                {field: 'category', title: 'Category', width: 100},
+                {field: 'name', title: 'Name', width: 80},
+                {field: 'key', title: 'Key', width: 150},
+                {field: 'description', title: 'Description', width: 160},
+                {field: 'version', title: 'Version', width: 160},
+                {field: 'resourceName', title: 'ResourceName', width: 160},
+                {field: 'deploymentId', title: 'DeploymentId', width: 160},
+                {field: 'diagramResourceName', title: 'DiagramResourceName', width: 160},
+                {field: 'hasStartFormKey', title: 'HasStartFormKey', width: 160},
+                {field: 'hasGraphicalNotation', title: 'HasGraphicalNotation', width: 160},
+                {field: 'isSuspended', title: 'IsSuspended', width: 160},
+                {field: 'tenantId', title: 'TenantId', width: 160},
+                {
+                    field: 'action', title: '操作', width: 100, formatter: function (value, row, index) {
+                        var ahtml = '';
+                        ahtml += '<a href="javascript:void(0);" onclick="MY_DG_[1].MyDataGrid.Do_Del(\'WORK_FLOW_DEFINE_DELETE\',\'' + row.deploymentId + '\');">删除</a>'
+                        return ahtml;
+                    }
+                }
+            ],
+            toolbar: [{
+                id: 'btnAdd', text: '发布流程', iconCls: 'icon-add',
+                handler: function () {
+                    deployProcess_();
+                }
+            }, '-', {
+                id: 'btnReload', text: '刷新', iconCls: 'icon-reload',
+                handler: function () {
+                    $("#dg").datagrid("reload");
+                }
+            }],
+            onClickRow: function (rowIndex, rowData) {
+                $('#sub_dg_0').datagrid('load', {
+                    deploymentId: rowData.deploymentId
+                });
+                $("#sub_dg_0").datagrid("reload");
+            },
+            pagination: false,
+            resize: function () {
+                return {
+                    height: ($(document.body).height() - 10) / 2,
+                    width: $(document.body).width()
+                };
+            }
+        });
+
+        var dg0 = $("#sub_dg_0").MyDataGrid({
+            url: '/api/v1/plugins/WORK_FLOW_INSTANCE_LIST',
+            title: '工作流实例列表',
+            columns: [
+                {field: 'name', title: 'Name', width: 100},
+                {field: 'processDefinitionId', title: '流程定义ID', width: 100},
+                {field: 'processDefinitionName', title: '流程定义Name', width: 100},
+                {field: 'processDefinitionKey', title: '流程定义Key', width: 100},
+                {field: 'processDefinitionVersion', title: '流程定义Version', width: 100},
+                {field: 'deploymentId', title: 'DeploymentId', width: 100},
+                {field: 'businessKey', title: 'BusinessKey', width: 100},
+                {field: 'isSuspended', title: 'IsSuspended', width: 100},
+                {field: 'tenantId', title: 'TenantId', width: 100},
+                {
+                    field: 'processVariables', title: 'ProcessVariables', width: 100,
+                    formatter: function (value, row, index) {
+                        var v_ = "";
+                        $.each(row.processVariables, function (k, v) {
+                            v_ += k + "=" + v + ";";
+                        });
+                        return v_;
+                    }
+                },
+                {
+                    field: 'action', title: '操作', width: 100, formatter: function (value, row, index) {
+                        var ahtml = '';
+                        ahtml += '<a href="javascript:void(0);" onclick="viewProcess_(\'' + row.processDefinitionKey + '\',\'' + row.businessKey + '\')">查看流程图</a>'
+                        return ahtml;
+                    }
+                }
+            ],
+            pagination: false,
+            resize: function () {
+                return {
+                    height: ($(document.body).height() - 10) / 2,
+                    width: $(document.body).width()
+                };
+            }
+        });
+    });
+
+    function viewProcess_(processKey, businessKey) {
+        ShowWindowIframe({
+            width: 900,
+            height: 460,
+            param: {processKey: processKey, businessKey: businessKey},
+            title: "查看流程图",
+            url: '/views/flow/flow_diagram_view.shtml?v_=' + new Date().getTime()
+        });
+    }
+
+    function deployProcess_() {
+        ShowWindowIframe({
+            width: 800,
+            height: 420,
+            title: "发布流程",
+            url: '/views/flow/flow_deploy_process.shtml?v_=' + new Date().getTime()
+        });
+    }
+</script>
+
+</body>
+</html>

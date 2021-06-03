@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title></title>
+    <script type="text/javascript">
+        var param = {};
+        var workflow;
+        $(function () {
+            param = getParentParam_();
+            workflow = param.workflow;
+            var data = {
+                id: param.id,
+                flowName: workflow.process.name,
+                flowKey: workflow.process.id,
+                xmlContent: workflow.toXML(),
+                variables: workflow.process.variables || '',
+                description: workflow.process.description,
+                taskNodesJson: param.taskNodesJson
+            };
+            ParseFormField_(data, null);
+            InitResources();
+            InitEditForm_();
+        });
+
+        function InitResources() {
+            /*$("#defFormId").combobox({
+                valueField:'VALUE', textField:'TEXT',
+                url: Constant.API_URL + "PROCESS_FORM_CBX",
+                loadFilter: function(result){ return result.data; },
+                tipPosition: 'top', panelHeight: 140, required:true
+            });*/
+        }
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    workflow.process.id = data.flowKey;
+                    workflow.process.name = data.flowName;
+                    data = $.extend({}, data, {
+                        id: param.id,
+                        FunctionCode: 'WS_FLOW_DEF_SAVE_UPDATE',
+                        taskNodesJson: JSON.stringify(param.taskNodesJson),
+                        xmlContent: workflow.toXML()
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                CloseWindowIframe();
+                                param.OWindow.CloseWindowIframe();
+                                param.OOWindow.layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE'), {icon: 1});
+                                param.OOWindow.reload_();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+
+                }
+            });
+        }
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">流程KEY：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="flowKey" id="flowKey"
+                                   data-options="required:true, validType:['maxLength[180]']"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="tdl">流程名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="flowName"
+                                   data-options="required:true,validType:['maxLength[180]']"/>
+                        </td>
+                    </tr>
+                    <!--<tr>
+                        <th class="tdl">默认表单：</th>
+                        <td class="tdr">
+                            <input id="defFormId" name="defFormId" value="">
+                        </td>
+                    </tr>-->
+                    <tr>
+                        <th class="tdl">流程描述：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="description"
+                                   data-options="multiline:true,validType:['maxLength[280]']"
+                                   style="height:100px; width: 99%;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="btn btn-primary" type="submit" value="确定"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

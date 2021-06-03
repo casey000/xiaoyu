@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">定时任务名：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="jobName" name="jobName"
+                                   data-options="required:true,validType:['maxLength[300]']"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">组名：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="groupName" name="groupName"
+                                   data-options="validType:['maxLength[300]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">目标类：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="targetObject" name="targetObject"
+                                   data-options="required:true,validType:['maxLength[1000]'] "
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">时间表达式：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="cronExpression" name="cronExpression"
+                                   data-options="required:true,validType:['maxLength[30]']"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">任务描述：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="taskDesc" name="taskDesc"
+                                   data-options="validType:['maxLength[2000]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">是否启用：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="enable" name="enable"
+                                   data-options="required:true,onlyview:true,editable:false"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">偏差天数：</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" id="offsetDay" name="offsetDay" data-options="precision:0"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">发送账号ID：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="sendAids" name="sendAids"
+                                   data-options="validType:['maxLength[2000]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">其他参数 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="paramJson" name="paramJson"
+                                   data-options="validType:['maxLength[2000]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="searchBtn" type="button" onclick="save()"
+                                                              value="提交" style="border: none;cursor: pointer;"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var param;
+    var pkid;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.PKID;
+
+        $('#enable').combobox({
+            panelHeight: '80px',
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            data: [{'VALUE': '0', 'TEXT': '不启用'}, {'VALUE': '1', 'TEXT': '启用'}]
+        });
+
+        if (pkid) {
+            InitDataForm(pkid);
+        } else {
+            $('#enable').combobox('setValue', '1');
+            $('#groupName').textbox('setValue', 'DEFAULT');
+        }
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "WS_SYS_JOB_ONE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var datas = $("#mform").serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'WS_SYS_JOB_ADD_EDIT'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

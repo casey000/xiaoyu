@@ -1,0 +1,246 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form id="ffSearch" method="post">
+                <fieldset class="fieldset_eui" style="float:left;width:97%">
+                    <legend data-i18n="">查询条件</legend>
+                    <table>
+
+                        <th class="td1" style="width:80px">SB编号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox easyui-validatebox" id="fileNo" name="fileNo"
+                                   style="width:150px"
+                                   data-options=""/>
+                        </td>
+                        <th class="td1" style="width:80px">SB标题：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox easyui-validatebox" id="fileTitle" name="fileTitle"
+                                   style="width:150px"
+                                   data-options=""/>
+                        </td>
+                        <td>
+                            <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
+                               onclick="onSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        </td>
+                    </table>
+                </fieldset>
+
+
+                <fieldset class="fieldset_eui" style="float:left;width:97%; margin-right:5px">
+                    <!--<legend data-i18n="">查询结果</legend>-->
+                    <tr align="right">
+                        <td align="right">
+                            <input class="btn btn-primary" data-options="iconCls:'icon-filter'"
+                                   type="button" onclick="saveScope()" value="确定"/>
+                        </td>
+                    </tr>
+                    <table cellspacing="0" cellpadding="2">
+                    </table>
+                    <table id="dg2"></table>
+                </fieldset>
+            </form>
+
+
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var sb;
+    var FILE_NO;
+    var param = {};
+    var function_code;
+    param = getParentParam_();
+    var PKID = param.PKID;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_FILE_NO,EM_FILE_TITLE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#fileNo').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_FILE_NO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    $('#fileTitle').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_FILE_TITLE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    InitDataGrid();
+
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        $("#saveScope").click(function () {
+            saveScope();
+        });
+        $("#closeWindow").click(function () {
+            CloseWindowIframe();
+        })
+
+    }
+
+    function InitDataGrid() {
+        function_code = 'EM_MPD_RECEIVE_FILE_LIST';
+        var identity = 'dg2';
+        $("#dg2").MyDataGrid({
+            identity: identity,
+            singleSelect: true,
+            title: $.i18n.t('RES.EM_CEIMP_ITEM_ADD_MYT_SCOPE_LIST.TITLE'),
+            // queryParams: {PKID: PKID},
+            columns: {
+                param: {
+                    FunctionCode: function_code
+                },
+            },
+            onLoadSuccess: function (data) {
+                if (data) {
+                    $.each(data.rows, function (index, item) {
+                    });
+                }
+            },
+            resize: function () {
+                return {width: $("#dg2").width(), height: 502};
+            },
+            toolbar: [
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ]
+        })
+    }
+
+    function saveScope() {
+        var $form = $("#mform");
+        var oId;
+        oId = PKID;
+        //var rows = $('#dg2').datagrid('getSelections');
+        var rows = $('#dg2').datagrid('getChecked');
+        console.log(rows);
+        var sb = '';
+        if (rows.length == 0) {
+            MsgAlert({content: '请选择数据项', type: 'error'});
+            return false;
+        }
+        if (rows.length > 10) {
+            MsgAlert({content: $.i18n.t('数量过多！'), type: 'error'});
+            return false;
+        }
+        if (rows.length == 1) {
+            var i = 0;
+            sb = rows[i].FILE_NO
+        }
+        if (rows.length > 1) {
+            for (var i = 0; i < rows.length; i++) {
+                if (i < rows.length - 1) {
+                    sb += rows[i].FILE_NO + ","
+                }
+                if (i == rows.length - 1) {
+                    sb += rows[i].FILE_NO
+                }
+            }
+        }
+        var $form = $("#mform");
+        var datas = {};
+        var data = $form.serializeObject();
+        data.sb = sb;
+        data.oId = oId;
+        data = $.extend({}, data, {
+            FunctionCode: ('EM_CMP_EVAL_APLSBCON_SAVE')
+        });
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    param.OWindow.openDataBox();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    //param.OWindow.CloseWindowIframe();
+                    //保存成功时，打开前一页面的数据域
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return false;
+
+    }
+
+    /* function saveScope() {
+         var $form = $("#mform");
+          var oId=PKID;
+         var rows = $('#dg2').datagrid('getSelections');
+         var SB  = '';
+         if (rows.length == 0) {
+             MsgAlert({content: '请选择数据项', type: 'error'});
+             return false;
+         }
+         if (rows.length > 10) {
+             MsgAlert({content: $.i18n.t('数量过多！'), type: 'error'});
+             return false;
+         }
+
+         for (var i = 0; i < rows.length; i++) {
+             SB += rows[i].FILE_NO + ","
+         }
+
+         var $form = $("#mform");
+         var datas = {}
+         var data = $form.serializeObject();
+     data.SB = SB;
+     data.oId=oId;
+     data = $.extend({}, data, {
+         FunctionCode: ('EM_MPD_EVAL_APLSBCON_SAVE' )
+     });
+     InitFuncCodeRequest_({
+         data: data,
+         successCallBack: function (jdata) {
+             if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                 MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                 param.OWindow.reload_();
+                 param.OWindow.CloseWindowIframe();
+
+             } else {
+                 MsgAlert({content: jdata.msg, type: 'error'});
+             }
+         }
+     });
+
+     CloseWindowIframe();
+     }*/
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</html>

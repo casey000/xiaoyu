@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_work_flow">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+
+    <title></title>
+    <script id="tempCombobox" type="text/html">
+        <tr>
+            <th class="tdl">{{d.titleName }} ：</th>
+            <td class="tdr">
+                <select name="{{d.fieldName}}" class="easyui-combobox"
+                        data-options="required:true, editable: false" panelHeight="120" style="width:180px">
+                    {{#
+                    for(var i = 0; i < d.options.length; i++){
+                    }}
+                    <option value="{{d.options[i]['value']}}">{{d.options[i]['text']}}</option>
+                    {{# } }}
+                </select>
+            </td>
+        </tr>
+    </script>
+    <script id="tempTextbox" type="text/html">
+        <tr>
+            <th class="tdl">{{d.titleName }} ：</th>
+            <td class="tdr">
+                <input name="{{d.fieldName}}" class="easyui-textbox"
+                       data-options="required:true, editable: true" style="width:180px"/>
+            </td>
+        </tr>
+    </script>
+</head>
+<body class="ibody">
+
+<div id="tabs" style="width: 100%; height: 100%;">
+    <div id="tab02" title="历史任务信息" style="">
+        <table id="historyDg"></table>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+
+
+<script type="text/javascript">
+
+
+    var TASK_STATE_MAP = {
+        "N": "未执行", "F": "已完成", "T": "已终止",
+        "R": "已退回", "J": "已跳转", "H": "已转办"
+    };
+    var param = {};
+    var procInstId;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {objNo: param.objNo, objKey: param.objKey, FunctionCode: "EM_WORKFLOW_BUSINESSKEY"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    procInstId = jdata.data;
+                    InitHistoryDG();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    function InitHistoryDG() {
+        var identity = 'historyDg';
+        $("#historyDg").MyDataGrid({
+            identity: identity,
+            title: '历史任务信息',
+            columns: {
+                param: {FunctionCode: 'WS_FLOW_HIS_TASK_LIST'},
+                alter: {
+                    DURATION: {
+                        formatter: function (value, row, index) {
+                            return toMsTimeString(row.DURATION || row.DURATION_0);
+                        }
+                    },
+                    ACT_STATE: {
+                        formatter: function (value, row, index) {
+                            var v = [TASK_STATE_MAP[row.ACT_STATE]];
+                            if (row.RECORD_STATE && row.RECORD_STATE != 'N' && row.RECORD_STATE != 'F') {
+                                v.push(TASK_STATE_MAP[row.RECORD_STATE])
+                            }
+                            return v.join(",")
+                        }
+                    }
+                }
+            },
+            queryParams: {procInstId: procInstId},
+            onLoadSuccess: function (data) {
+            },
+            contextMenus: [],
+            toolbar: [
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ]
+        });
+    }
+</script>
+
+
+</body>
+</html>
+

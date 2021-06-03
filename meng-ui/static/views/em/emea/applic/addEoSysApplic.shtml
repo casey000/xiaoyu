@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>系统构型</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr id="view">
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">范围类型：</th>
+                        <td class="tdr" style="width: 150px">
+                            <input class="easyui-combobox" id="rangeType" name="rangeType" data-options="required:true"
+                                   data-options="editable:true" style="width: 150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">构型名：</th>
+                        <td class="tdr" style="width: 150px">
+                            <input class="easyui-combobox" id="confName" name="confName" data-options="required:true"
+                                   data-options="editable:true" style="width: 150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">数量：</th>
+                        <td class="tdr" style="width: 150px">
+                            <input class="easyui-textbox" id="value" name="value" data-options="required:true"
+                                   data-options="editable:true" style="width: 150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">位置：</th>
+                        <td class="tdr" style="width: 150px">
+                            <input class="easyui-textbox" id="value1" name="value1" data-options="required:true"
+                                   data-options="editable:true" style="width: 150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">颜色：</th>
+                        <td class="tdr" style="width: 150px">
+                            <input class="easyui-textbox" id="value2" name="value2" data-options="required:true"
+                                   data-options="editable:true" style="width: 150px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var evalNo;
+    var applType;
+
+    function i18nCallBack() {
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        operation = param.operation;
+        if (operation == "view") {
+            $("#view").hide();
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_RANGE_TYPE,DM_DATA_SORT,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $("#rangeType").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_RANGE_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                }
+                if (param.pkid) {
+                    InitDataForm(param.pkid);
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "DM_DATA_TYPE_BY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'DM_DATA_TYPE_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.onSearch_('dg', '#ffSearch');
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

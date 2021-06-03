@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="evalNo" name="evalNo"/>
+                <input type="hidden" id="spkid" name="spkid"/>
+                <table class="table table-bordered table-info">
+                    <tr id="view">
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">操作符：</th>
+                        <td class="tdr" style="width: 150px">
+                            <input class="easyui-combobox" id="expOp" name="expOp"
+                                   data-options="editable:true" style="width: 150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">值：</th>
+                        <td class="tdr" style="width: 150px">
+                            <input class="easyui-textbox" id="expValue" name="expValue" data-options=""
+                                   style="width: 150px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="comto.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+
+    function i18nCallBack() {
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        operation = param.operation;
+        setParam();
+
+
+        //适用类型
+        if (operation == "view") {
+            $("#view").hide();
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EXP_OP,EM_RANGE_TYPE,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (applyType == "APL") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_APL_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    } else if (applyType == "PART") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_PART_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    } else if (applyType == "ENG") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_ENG_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    }
+                    $("#expOp").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_EXP_OP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                }
+                if (param.pkid) {
+//                    InitDataForm(param.pkid);
+                } else {
+//                    changeRangeType();
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_MPD_EVAL_APPLICABILITY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#rangeType').combobox({value: jdata.data.RANGE_TYPE, editable: false, onlyview: true});
+                    //初始化范围值
+                    InitFuncCodeRequest_({
+                        data: {pkid: pkid, FunctionCode: "EM_MPD_EVAL_RANGE_EXP_PKID"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                $("#spkid").val(jdata.data.PKID);
+                                $('#expOp').combobox({value: jdata.data.EXP_OP});
+                                $("#expValue").textbox({value: jdata.data.EXP_VALUE});
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'EM_EO_EVAL_APPLIC_PN_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    //paraName 等找参数的名称
+    function getUrlParam(paraName) {
+        var url = document.location.toString();
+        var arrObj = url.split("?");
+        if (arrObj.length > 1) {
+            var arrPara = arrObj[1].split("&");
+            var arr;
+            for (var i = 0; i < arrPara.length; i++) {
+                arr = arrPara[i].split("=");
+                if (arr != null && arr[0] == paraName) {
+                    return arr[1];
+                }
+            }
+            return "";
+        }
+        else {
+            return "";
+        }
+    }
+</script>
+</html>

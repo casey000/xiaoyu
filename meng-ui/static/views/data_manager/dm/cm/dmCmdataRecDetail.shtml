@@ -1,0 +1,360 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>部件资料接收详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid" />
+                <input type="hidden" id="dataStatus" name="dataStatus"/>
+                <input type="hidden" id="regId" name="regId"/>
+                <input type="hidden" id="manager" name="manager"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" id="receiveBtn" type="button" auth="DM_DATA_REC_CM_SAVE"
+                                   onclick="save('receive')" value="接收" style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" id="saveBtn" type="button" auth="DM_DATA_REC_CM_SAVE"
+                                   onclick="save()" value="保存" style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" id="uploadBtn" type="button" auth="DM_DATA_REC_CM_UPLOAD"
+                                   onclick="upload()"
+                                   value="上传附件" style="width: 80px;margin:5px;"/>
+                            <input class="btn btn-primary" id="publishBtn" type="button" auth="DM_DATA_REC_CM_PUBLISH"
+                                   onclick="publish()"
+                                   value="发布" style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭" style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr id="lastVer">
+                        <th class="th" align="right" style="width: 80px;">上一版信息：</th>
+                        <td colspan="5">
+                            <span id="lastDataVer" style="color: red;"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">手册编号：</th>
+                        <td class="tdr" style="width: 60px;">
+                            <input class="easyui-textbox" id="dataNo" name="dataNo" data-options="required:true" style="width: 90px;" />
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">版本类型：</th>
+                        <td class="tdr" style="width: 60px">
+                            <input class="easyui-combobox" id="verType" name="verType" data-options="editable:false,required:false" data-options="editable:true" style="width: 90px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">文件格式：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="fileEditType" name="fileEditType" data-options="editable:false" style="width: 90px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 60px;">当前版本：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="dataVer" name="dataVer"  data-options="required:true" style="width: 90px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">是否查看原件：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="isViewOriginal" name="isViewOriginal"   data-options="editable:false,required:true" style="width: 90px;"/>
+                        </td>
+                       <!-- <th class="th" align="right" style="width: 100px;">保管人：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="impMan" name="impMan"  data-options="editable:true" style="width: 90px;"/>
+                        </td>-->
+                        <th class="th" align="right" style="width: 80px;">是否通知手册：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="ifNotice" name="ifNotice" data-options="editable:false,required:true" style="width: 90px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">版本日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="verDate" name="verDate"  data-options="editable:true,required:true"  style="width: 90px;" ></input>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">接收日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="dmReceiveDate" name="dmReceiveDate"
+                                   data-options="editable:true,required:true" style="width: 90px;"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">备注：</th>
+                        <td class="tdr" colspan="5">
+                            <textarea id="memo" name="memo" data-options="editable:true" style="width: 500px;height:60px;" ></textarea>
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var COMBOBOX_DATA ={};
+    //d
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        $("#receiveBtn").hide();
+        $("#verDate").datebox("setValue", formatterDate(new Date()));
+        $("#dmReceiveDate").datebox("setValue", formatterDate(new Date()));
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_CMDATA_REG_DATA_TYPE,DM_EDIT_TYPE,YESORNO,ONLY_NO,DM_DATA_REC_STATUS,DM_FILE_EDIT_TYPE,DM_REC_VER_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    COMBOBOX_DATA['dataType'] = jdata.data.DM_CMDATA_REG_DATA_TYPE;
+                    COMBOBOX_DATA['fileEditType'] = jdata.data.DM_FILE_EDIT_TYPE;
+                    //是否编辑
+                    $('#ifNotice').combobox({panelHeight: '140px', data: jdata.data.ONLY_NO, valueField: 'VALUE', textField: 'TEXT',value:'N'});
+
+                    //是否查看原件
+                    $('#isViewOriginal').combobox({panelHeight: '140px', data: jdata.data.YESORNO, valueField: 'VALUE', textField: 'TEXT',value:'N'});
+
+                    $('#fileEditType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_FILE_EDIT_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //版本类型
+                    $('#verType').combobox({panelHeight: '140px', data: jdata.data.DM_REC_VER_TYPE, valueField: 'VALUE', textField: 'TEXT'});
+
+                    if (param.pkid){
+                        InitDataForm(param.pkid);
+                    }
+                }
+
+                if(operation == 'view'){
+                    $("#saveBtn").hide();
+                    $("#uploadBtn").hide();
+                    $("#publishBtn").hide();
+                }
+                if(operation == 'receive'){
+                    $("#receiveBtn").show();
+                    $("#saveBtn").hide();
+                }
+
+            }
+        })
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/online-manual/partManualReceive/selectById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                    if (jdata.obj.LAST_DATA_VER == undefined) {
+                        $("#lastVer").hide();
+
+                    } else {
+                        $("#lastDataVer").text(jdata.obj.LAST_DATA_VER);
+                    }
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+        // InitFuncCodeRequest_({
+        //     data: {pkid: pkid, FunctionCode: "DM_DATA_REC_BY_PKID"}, successCallBack: function (jdata) {
+        //         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+        //             ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+        //             if (jdata.data.LAST_DATA_VER == undefined) {
+        //                 $("#lastVer").hide();
+        //
+        //             } else {
+        //                 $("#lastDataVer").text(jdata.data.LAST_DATA_VER);
+        //             }
+        //         } else {
+        //             MsgAlert({content: jdata.msg, type: 'error'});
+        //         }
+        //     }
+        // });
+    }
+
+    // 保存
+    function save(p) {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var dataStatus = $("#dataStatus").val();
+        if (dataStatus == "04" || dataStatus == "03") {
+            MsgAlert({content: '已上传后不能更改', type: 'error'});
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        delete datas.isViewOriginal;
+
+        if (p == 'receive') {
+            InitGatewayRequest_({
+                type: "post",
+                async: false,
+                data: datas,
+                path: "/online-manual/partManualReceive/editPartManualReceive",
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        // if (param.OWindow.onSearch_) {
+                        //     param.OWindow.onSearch_('dg', '#ffSearch');
+                        // }
+                        param.OWindow.MsgAlert({content: jdata.errorMessage ? jdata.errorMessage : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        // CloseWindowIframe();
+                        //InitDataForm(param.pkid);
+                        MsgAlert({content: jdata.errorMessage ? jdata.errorMessage : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                    } else {
+                        MsgAlert({content: jdata.errorMessage ? jdata.errorMessage : jdata.obj, type: 'error'});
+                    }
+                }
+            });
+
+        } else {
+            InitGatewayRequest_({
+                type: "post",
+                async: false,
+                data: datas,
+                path: "/online-manual/partManualReceive/addPartManualReceive",
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        // if (param.OWindow.onSearch_) {
+                        //     param.OWindow.onSearch_('dg', '#ffSearch');
+                        // }
+                        param.OWindow.MsgAlert({content: jdata.errorMessage ? jdata.errorMessage : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        // CloseWindowIframe();
+                        // InitDataForm(param.pkid);
+                        MsgAlert({content: jdata.errorMessage ? jdata.errorMessage : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                    } else {
+                        MsgAlert({content: jdata.errorMessage ? jdata.errorMessage : jdata.obj, type: 'error'});
+                    }
+                }
+            });
+        }
+        // datas = $.extend({},{receive:p}, datas, {FunctionCode: 'DM_DATA_REC_ADD_CM'});
+        // InitFuncCodeRequest_({
+        //     data: datas, successCallBack: function (jdata) {
+        //         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+        //             if (param.OWindow.onSearch_) {
+        //                 param.OWindow.onSearch_('dg', '#ffSearch');
+        //             }
+        //             param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+        //             // CloseWindowIframe();
+        //             InitDataForm(param.pkid);
+        //             MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+        //
+        //         } else {
+        //             MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+        //         }
+        //     }
+        // });
+    }
+
+    function publish() {
+        // var manager = $("#manager").val();
+        // if (manager == 0) {
+        //     MsgAlert({content: '请先配置手册机型主管！', type: 'error'});
+        //     return;
+        // }
+        var dataStatus = $("#dataStatus").val();
+        if (dataStatus == "02" || dataStatus == "00") {
+            MsgAlert({content: '请先上传附件', type: 'error'});
+            return;
+        }
+        if (dataStatus == "04") {
+            MsgAlert({content: '请勿重复发布', type: 'error'});
+            return;
+        }
+        var pkid = $("#pkid").val();
+        var regId = $("#regId").val();
+        // var dealwithManId=
+        if (confirm("是否确认发布？")) {
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: "/online-manual/partManualReceive/publishPartManualReceive/" + pkid + "/" + regId,
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                        param.OWindow.onSearch_('dg', '#ffSearch');
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.errorMessage });
+                        reload_();
+                        param.OWindow.onSearch_('dg', '#ffSearch');
+                        CloseWindowIframe();
+                    }
+                }
+            });
+            // InitFuncCodeRequest_({
+            //     data: {FunctionCode: 'DM_DATA_REC_PUBLISH_CM', pkid: pkid, regId: regId},
+            //     successCallBack: function (jdata) {
+            //         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+            //             MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+            //             reload_();
+            //             param.OWindow.onSearch_('dg', '#ffSearch');
+            //             CloseWindowIframe();
+            //         }
+            //     }
+            // });
+        }
+    }
+
+    function upload() {
+        var dataStatus = $("#dataStatus").val();
+        if (dataStatus == "00") {
+            MsgAlert({content: '请先接收数据', type: 'error'});
+            return;
+        }
+        if (dataStatus == "04") {
+            MsgAlert({content: '已发布后不能上传', type: 'error'});
+            return;
+        }
+        var pkid = $("#pkid").val();
+        common_uploadFile({
+            identity: 'dg',
+            param: {
+                cat: "dmDataRecCmm",//文件夹
+                sourceId: pkid,//
+                successCellBack: "",
+                fialCellBack: ""
+            },
+        });
+    }
+
+    //刷新
+    function reload_() {
+        InitDataForm(param.pkid);
+        param.OWindow.onSearch_('dg', '#ffSearch');
+    }
+
+    //上传
+    function common_uploadFile(edopt) {
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        ShowWindowIframe({
+            width: 575,
+            height: 200,
+            title: title_,
+            param: $.extend({}, edopt.param),
+            url: "/views/data_manager/dm/upload/attachment_add.shtml"
+        });
+    }
+</script>
+</html>

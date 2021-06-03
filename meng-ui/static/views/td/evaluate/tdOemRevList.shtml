@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册处理</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">机型：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="fleetType" name="fleetType" style="width:80px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">手册来源：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="dataFrom" name="dataFrom" style="width:90px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">手册版本：</th>
+                    <td class="td5">
+                        <input class="easyui-textbox" id="dataVer" name="dataVer" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a class="searchBtn" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:80px;" align="right">标题：</th>
+                    <td class="td5">
+                        <input class="easyui-textbox" id="dataTitle" name="dataTitle" style="width:90px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">状态：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                    </td>
+
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,TD_MANUAL_TYPE,TD_MANUAL_PROCESS_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机队
+                    $('#fleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //手册类型
+                    $('#manualType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.TD_MANUAL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //手册标准
+                    $('#manualStatus').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.TD_MANUAL_PROCESS_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //机队
+                    PAGE_DATA['fleet'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    //手册标准
+                    PAGE_DATA['manualType'] = DomainCodeToMap_(jdata.data["TD_MANUAL_TYPE"]);
+                    //手册处理状态
+                    PAGE_DATA['manualStatus'] = DomainCodeToMap_(jdata.data["TD_MANUAL_PROCESS_STATUS"]);
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                // param: {FunctionCode: 'TD_MANUAL_OEM_REV_LIST'},
+                param: {FunctionCode: 'TD_SUPPLEMENT_MANUAL_LIST'},
+                alter: {
+                    TEST_UPLOAD: {},
+                    FLEET: {
+                        formatter: function (value) {
+                            return PAGE_DATA['fleet'][value];
+                        }
+                    },
+                    MANUAL_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['manualType'][value];
+                        }
+                    },
+                    MANUAL_STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['manualStatus'][value];
+                        }
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [
+                {
+                    id: "m-process", i18nText: "分配", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openErrorPage('view', rowData.PKID,rowData.DATA_FROM,rowData.DATA_TYPE,rowData.DATA_VER,rowData.FLEET_TYPE,rowData.DATA_MEMO);
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                // if (row.MANUAL_STATUS != 'WAITING') {
+                //     items['开始处理'].enable = false;
+                // } if (row.MANUAL_STATUS != 'FAILED') {
+                //     items['重新处理'].enable = false;
+                // }
+                return items;
+            },
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //打开错误信息详细页面
+    function openErrorPage(operation, pkid,DATA_FROM,DATA_TYPE,DATA_VER,FLEET_TYPE,DATA_MEMO) {
+        var title_ = $.i18n.t('补充手册任务分配单');
+        ShowWindowIframe({
+            width: "610",
+            height: "280",
+            title: title_,
+            param: {operation: operation, pkid: pkid,DATA_FROM:DATA_FROM,DATA_TYPE:DATA_TYPE,DATA_VER:DATA_VER,FLEET_TYPE:FLEET_TYPE,DATA_MEMO:DATA_MEMO},
+            url: "/views/td/rev/tdTaskDistribute.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

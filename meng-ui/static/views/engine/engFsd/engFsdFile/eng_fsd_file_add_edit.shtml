@@ -1,0 +1,298 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>防空停文件维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+
+        }
+
+        th {
+            width: 120px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+    </style>
+</head>
+<body onunload="closeByOnunload()">
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="防空停文件维护" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="createUser" name="createUser"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="4" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="saveEngFsdProv()"
+                                   value="保存"/>
+                            <input class="btn btn-primary" type="button" id="uploadFile"
+                                   onclick="uploadAttachmentFile()"
+                                   value="上传附件"/>
+                            <input class="btn btn-primary" type="button" id="closeBtn" onclick="closeOrReload()"
+                                   value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>文件类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="fileType" name="fileType"
+                                   data-options="required: true,editable:false"
+                                   style="width: 200px;"/>
+                        </td>
+                        <th>原文件：</th>
+                        <td class="tdr" target="_blank" id="fileUploadTd" style="text-decoration:underline;">
+                        </td>
+                    </tr>
+
+
+                    <tr>
+                        <th>标题：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="title" name="title"
+                                   data-options="required:true"
+                                   style="width: 585px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>备注：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="fileDesc" name="fileDesc"
+                                   data-options=" multiline:true"
+                                   style="width: 585px;height: 40px;"/>
+                        </td>
+                    </tr>
+
+
+                    <tr>
+                        <th>创建人：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="createName" name="createName" style="width: 200px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th>创建日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="createDate" name="createDate" style="width: 200px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    let param = getParentParam_();
+    let operation = param.operation;
+    let rowData = param.rowData;
+    let userId;
+    let userName;
+    let nowDate = new Date();
+    let nowFormatDate = nowDate.Format("yyyy-MM-dd");
+
+    function i18nCallBack() {
+        const userInfo = getLoginInfo();
+        userId = userInfo.accountId;
+        userName = userInfo.userName;
+        initRowData();
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                domainCode:
+                    "ENG_FSD_FILE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jData) {
+                if (jData.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#fileType").combobox({
+                        panelHeight: '140px',
+                        data: jData.data.ENG_FSD_FILE_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //如果传入数据，将数据写入表单中
+                    if (rowData) {
+                        ParseFormField_(rowData, $("#mform"));
+                    }
+                } else {
+                    MsgAlert({content: jData.msg, type: 'error'});
+                }
+
+            }
+        });
+        initFileUpload();
+        initUserInfo();
+    }
+
+    function initRowData() {
+        if (!rowData) {
+            const url = "/meng-engine/engFsdFile/engFsdFileInfoById/" + param.pkid;
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: url,
+                successCallBack: function (jData) {
+                    if (jData.success == true) {
+                        rowData = jData.obj;
+                    } else {
+                        MsgAlert({content: jData.errorMessage, type: 'error'});
+                    }
+                }
+            })
+        }
+    }
+
+    //初始化文件信息
+    function initFileUpload() {
+        if (!rowData) {
+            return;
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                SOURCE_ID: rowData.pkid,
+                CATEGORY: "ENGFSDFILE",
+                FunctionCode: 'ATTACHMENT_RSPL_GET'
+            },
+            successCallBack: function (jData) {
+                if (jData.code === RESULT_CODE.SUCCESS_CODE) {
+                    for (let i = 0; i < jData.data.length; i++) {
+                        let html = "";
+                        for (let i = 0; i < jData.data.length; i++) {
+                            if (operation == 'add' || operation == 'edit') {
+                                html += '<li  style="list-style-type:none;"><a target="_blank" style="text-decoration:underline;" onclick="downFile(' + jData.data[i].PKID + ')">' + jData.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jData.data[i].PKID + '\');return false;" class="icon-cross">&nbsp&nbsp&nbsp&nbsp</span></li>';
+                            } else {
+                                html += '<li  style="list-style-type:none;"><a target="_blank" style="text-decoration:underline;" onclick="downFile(' + jData.data[i].PKID + ')">' + jData.data[i].ORG_NAME + '</a></li>';
+                            }
+                        }
+                        $('#fileUploadTd').empty();
+                        $('#fileUploadTd').html(html);
+                    }
+                }
+            }
+        });
+    }
+
+    //初始化维护人信息
+    function initUserInfo() {
+        if (operation == 'add') {
+            $("#createUser").val(userId);
+            $("#createName").textbox('setValue', userName);
+            $("#createDate").textbox('setValue', nowFormatDate);
+        }
+    }
+
+    //待数据处理完成后执行
+    postProcessingByOperation(operation);
+
+
+    //根据不同操作执行不同后处理
+    function postProcessingByOperation(operation) {
+        if (operation == "view") {
+            $(".easyui-textbox").textbox({required: false, editable: false, onlyview: true});
+            $(".easyui-combobox").combobox({required: false, editable: false, onlyview: true});
+            $(".easyui-combogrid").combobox({required: false, editable: false, onlyview: true});
+            $(".easyui-datebox").datebox({required: false, editable: false, onlyview: true});
+            $("#saveBtn").hide();
+        }
+    }
+
+    //检查表单值是否合规
+    function checkFromIsValidate() {
+        const isValidate = $("#mform").form('validate');
+        return isValidate;
+    }
+
+    //保存数据，修改或增加
+    function saveEngFsdProv() {
+        const isValidate = checkFromIsValidate();
+        if (!isValidate) {
+            return;
+        }
+        const saveEngFsdFileParam = $("#mform").serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFsdFile/saveEngFsdFile",
+            data: saveEngFsdFileParam,
+            error: function (jData) {
+                MsgAlert({content: jData.errorMessage ? jData.errorMessage : "维护防空停文件失败", type: 'error'});
+            },
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    MsgAlert({content: jData.msg ? jData.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    const pkid = jData.obj.pkid;
+                    $('#pkid').val(pkid);
+                    if (operation == 'add') {
+                        rowData = jData.obj;
+                    }
+                } else {
+                    MsgAlert({content: jData.errorMessage ? jData.errorMessage : "维护防空停文件失败", type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //上传附件
+    function uploadAttachmentFile() {
+        const pkid = $('#pkid').val();
+        if (!pkid || pkid == '') {
+            MsgAlert({content: "请先保存！", type: 'error'});
+            return;
+        }
+
+        common_upload_({
+            identity: 'dg',
+            resize: {},
+            param: {
+                cat: 'ENGFSDFILE',
+                sourceId: pkid,
+                successCallBack: initFileUpload,
+                failCallBack: ""
+            }
+        });
+    }
+
+    //关闭按钮触发事件
+    function closeOrReload() {
+        CloseWindowIframe();
+        closeByOnunload();
+    }
+
+    function reload_() {
+        if (operation == 'add') {
+            location.replace(location.href + '?pkid=' + rowData.pkid + '&operation=add');
+        } else {
+            location.reload();
+        }
+    }
+
+    //关闭窗口时触发事件防止数据保存后显示界面不更新
+    function closeByOnunload() {
+        if (param.OWindow) {
+            param.OWindow.reload1_();
+        }
+    }
+
+</script>
+</body>
+</html>

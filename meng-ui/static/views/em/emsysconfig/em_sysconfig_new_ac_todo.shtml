@@ -1,0 +1,114 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>新飞机引进未处理完的条目</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" class="easyui-textbox" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <p id="tip" style="color: red;text-align: center"></p>
+                    </tr>
+                    <br/><br/>
+                    <tr id="evan">
+                        <td style="width: 90px"></td>
+                        <td>
+                            <input class="btn btn-primary" type="button" onclick="save()" value="处理任务"
+                                   style="width: 80px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                                   style="width: 50px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var msgpkid;
+    var pkid;
+    var configNo;
+    function i18nCallBack() {
+        param = getParentParam_();
+        msgpkid = param.msgpkid;
+        pkid = param.pkid;
+        configNo = param.configNo;
+        document.getElementById("tip").innerHTML = "新飞机引进触发改版的时候条目状态不是已发布需要人工处理!【"+configNo+"】";
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+
+                }
+            }
+        })
+    }
+
+    function save() {
+        var status = "";
+        var lastPkid = "";
+        InitFuncCodeRequest_({
+            data: {configNo: configNo, FunctionCode: 'EM_SYSCONFIG_LAST_STATUS'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        status = jdata.data.STATUS;
+                        lastPkid = jdata.data.PKID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+        if (status == 'RELEASED' || status == 'WRITING' || status == 'RETURNED') {
+            var flag = "Y";
+            if(status == 'WRITING' || status == 'RETURNED'){
+                flag = "N";//只关闭消息
+            }
+            InitFuncCodeRequest_({
+                data: {
+                    FunctionCode: "EM_SYSCONFIG_DEAL",
+                    pkid: lastPkid,
+                    msgpkid: msgpkid,
+                    flag:flag
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        param.OWindow.reload_();
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }else {
+            MsgAlert({content: "当前条目的状态不是编写中/已退回/已发布，不允许处理。", type: 'error'});
+
+        }
+    }
+
+    function reload2() {
+        param.OWindow.reloadTodo();
+        CloseWindowIframe();
+    }
+
+
+</script>
+</html>

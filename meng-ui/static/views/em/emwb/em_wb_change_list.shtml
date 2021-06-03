@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">查看改变量</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 90px">机号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="acno" id="acno" data-options=""
+                               style="width:120px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">称重报告编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="reportNo" id="reportNo" data-options=""
+                               style="width:120px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">称重日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="weighDate" id="weighDate" data-options=""
+                               style="width:120px;" disabled="disabled"/>
+                    </td>
+                    <td colspan="2" align="right">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="add()"
+                           >增加</a>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 90px">基本空重(LB)：</th>
+                    <td>
+                        <input class="easyui-textbox" name="bew" id="bew" data-options=""
+                               style="width:120px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">力矩(LB.IN)：</th>
+                    <td>
+                        <input class="easyui-textbox" name="moment" id="moment" data-options=""
+                               style="width:120px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">平衡力臂(IN)：</th>
+                    <td>
+                        <input class="easyui-textbox" name="harm" id="harm" data-options=""
+                               style="width:120px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">空气动力弦长：</th>
+                    <td>
+                        <input class="easyui-textbox" name="mac" id="mac" data-options=""
+                               style="width:120px;" disabled="disabled"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var reportPkid;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        reportPkid = param.reportPkid;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_MAN_ACNO,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data["DA_ACREG_MAN_ACNO"]);
+                    PAGE_DATA['YESORNO'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    $('#acno').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DA_ACREG_MAN_ACNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitForm();
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 10,
+            queryParams: {reportPkid : reportPkid},
+            columns: {
+                param: {FunctionCode: 'EM_WB_CHANGE_LIST'},
+                alter: {
+                    IF_CUMULATIVE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['YESORNO'][value];
+                        }
+                    },
+                    CONFIRM_DATE: {
+                        type: 'date'
+                    },
+                    DEL_DATE: {
+                        type: 'date'
+                    },
+                    IF_DEL: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['YESORNO'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        if(!confirm('确定删除')){
+                            return;
+                        }
+                        var acno = $('#acno').textbox('getValue');
+
+                        ShowWindowIframe({
+                            width: 600,
+                            height: 120,
+                            title: "新增载重平衡改变量",
+                            param:{
+                                pkid : rowdata.PKID,
+                                acno : acno
+                            },
+                            url: "/views/em/emwb/em_wb_change_del_confirm.shtml"
+                        });
+                    }
+                },
+            ],
+            validAuth: function (row, items) {
+                if ('Y' == row.IF_DEL) {
+                    items['删除'].enable = false;
+                }
+                return items;
+            }
+
+        });
+    }
+
+    function InitForm() {
+        InitFuncCodeRequest_({
+            data: {
+                pkid : reportPkid,
+                FunctionCode: "EM_WB_REPORT_PKID"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+        param.OWindow.reload_();
+    }
+
+    function add() {
+        var acno = $('#acno').textbox('getValue');
+        ShowWindowIframe({
+            width: 600,
+            height: 330,
+            title: "新增载重平衡改变量",
+            param:{
+                reportPkid : reportPkid, acno:acno
+            },
+            url: "/views/em/emwb/em_wb_change_add.shtml"
+        });
+    }
+
+</script>
+</body>
+</html>

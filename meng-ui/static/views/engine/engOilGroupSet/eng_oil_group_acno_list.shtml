@@ -1,0 +1,134 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>勾选发动机</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">型号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="matnr" name="matnr" style="width:160px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="sernr" name="sernr" style="width:160px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="reload_()"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                        <input class="btn btn-primary" type="button" onclick="add();" value="确定"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var title;
+    var appAcReg;
+    var pkid;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        title = param.title;
+        pkid = param.pkid;
+        appAcReg = param.appAcReg;
+        if(!pkid){
+            pkid = '-1';
+        }
+        //初始化机号列表
+        InitDataGrid();
+    }
+
+    //机号列表
+    function InitDataGrid() {
+        var matnr = $('#matnr').textbox('getValue');
+        var sernr = $('#sernr').textbox('getValue');
+        var identity = 'dg';
+        if(matnr == '' || matnr == null){
+            matnr = '-1';
+        }
+        if(sernr == '' || sernr == null){
+            sernr = '-1';
+        }
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/EngOilGroupSet/getAcnosFromDaAcreg"+"/"+pkid+"/"+matnr+"/"+sernr,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $("#dg").MyDataGrid({
+                        identity: identity,
+                        sortable: true,
+                        singleSelect: false,
+                        pagination: false,
+                        data: jdata.obj,
+                        resize: function () {
+                            return {height: 446};
+                        },
+                        title: $.i18n.t('勾选发动机'),
+                        columns: {
+                            param: {FunctionCode: 'ENG_ACNO_FROM_DA_ACREG'},
+                        },
+                        onLoadSuccess: function (jdata1) {
+                            if (jdata1) {
+                                var sernr = appAcReg.split(',');
+                                $.each(jdata1.rows, function (index, row) {
+                                    if (sernr.indexOf(row.sernr) > -1) {
+                                        $("#dg").datagrid('checkRow', index);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /*批量添加*/
+    function add() {
+        var rows = $('#dg').datagrid('getChecked');
+        var sernrs = "";
+        var appAcReg = "";
+        if (rows.length == 0) {
+            MsgAlert({content: '请至少选择一行数据', type: 'error'});
+            return false;
+        }
+        $.each(rows, function (k, it) {
+            sernrs = sernrs + it.sernr + ";"+it.equnr+",";
+            appAcReg = appAcReg + it.sernr +",";
+        });
+        sernrs = sernrs.substring(0, sernrs.lastIndexOf(","));
+        appAcReg = appAcReg.substring(0, appAcReg.lastIndexOf(","));
+        param.OWindow.addAcnos(sernrs,appAcReg);
+        CloseWindowIframe();
+    }
+
+    //刷新列表
+    function reload_(){
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+</script>
+</html>

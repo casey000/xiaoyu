@@ -1,0 +1,95 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <!-- <script type="text/javascript" src="http://10.88.15.51:8080/js/jquery/lhgdialog/lhgdialog.js"></script> -->
+    <style type="text/css">
+        .table-cell {
+            text-align: center;
+            padding: 0;
+            margin: 0;
+        }
+
+        .cell-normal {
+            height: 40px;
+        }
+    </style>
+</head>
+<body>
+<table class="table table-bordered table-info" id="toList" style="padding-top:10px" width="100%">
+    <tr>
+        <th class="table-cell cell-normal">MR No.</th>
+        <th class="table-cell cell-normal">Tail/ENG</th>
+        <th class="table-cell cell-normal">RequireDate</th>
+        <th class="table-cell cell-normal">AOG</th>
+        <th class="table-cell cell-normal">Report</th>
+        <th class="table-cell cell-normal">Satisfy</th>
+    </tr>
+    <tr>
+    </tr>
+</table>
+<script type="text/javascript">
+    $(function(){
+
+        function undefineFilter(value){
+            return typeof (value) == "undefined" || value == null ? '' : value;
+        }
+        function getData() {
+            let cardNo = parent.get_defectNo();
+            let defectId = parent.get_defectId();
+            console.log(defectId, 'defectId');
+            data = $.extend({}, {cardNum: cardNo, tdWorkType: "DEFECT"}, {FunctionCode: "MR_SYN_LIST_BY_CARDNUM"});
+            InitFuncCodeRequest_({
+                data: data,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        $(".newtr").remove();
+                        respon = jdata.data;
+                        var html = '';
+                        if(respon.length < 1){
+                            html += "<tr class='newtr'>" +
+                                "<td colspan='7' class=\"table-cell cell-normal\">N/A</td>"+
+                                "</tr>"
+                        }else{
+                            $.each(respon, function (index, value) {
+                                value.aog = value.aog == '1' ? '是' : '';
+                                let mrNum = "MR"+value.mrNum.substring(1,value.mrNum.length);
+                                html += "<tr class='newtr'>" +
+                                    "<td class='table-cell cell-normal'><a href='javascript:;'onclick=viewMr('" + value.mrNum + "','" + value.mrRevisionNum + "') style='color: #f60;'>" + mrNum + "</a></td>" +
+                                    "<td class='table-cell cell-normal'>" + undefineFilter(value.assetId) + "</td>" +
+                                    "<td class='table-cell cell-normal'>" + undefineFilter(value.requiredDate) + "</td>" +
+                                    "<td class='table-cell cell-normal'>" + undefineFilter(value.aog) + "</td>" +
+                                    "<td class='table-cell cell-normal'>" + undefineFilter(value.mrReportedBy) + "</td>" +
+                                    "<td class='table-cell cell-normal'>" + undefineFilter(value.materialStatus) + "</td>" +
+                                    "</tr>";
+                            });
+                        }
+                        $('#toList').append(html)
+                    } else {
+                        MsgAlert({content: jdata.msgData[0] ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+        getData();
+    });
+    function viewMr(num,rev) {
+        let url_ = "/views/mr/viewMr.shtml";
+        var curWidth = $(window).width().toString();
+        var curheight = $(window).height().toString();
+        ShowWindowIframe({
+            width: curWidth*1.2,
+            height: curheight,
+            title: '',
+            param: {mrNo:num,rev:rev},
+            url: url_
+        });
+    }
+
+
+</script>
+</body>
+</html>

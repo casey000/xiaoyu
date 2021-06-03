@@ -1,0 +1,241 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>增加顺丰执行文件--EO/EA</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" class="easyui-textbox" id="pkid" name="pkid"/>
+                <input type="hidden" class="easyui-textbox" id="eoEa" name="eoEa"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td class="tdr" colspan="6">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin-left:338px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td" id="no" align="right">EO编号：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" style="width: 80px" id="eoNo" name="eoNo"
+                                   data-options="editable:false,onlyview:true"/>
+                            R<input class="easyui-textbox" style="width: 30px" id="eoVer" name="eoVer"
+                                    data-options="editable:false,onlyview:true"/>
+
+                        </td>
+                        <th class="td" align="right">适用类型：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="applyType" name="applyType" style="width: 121px"
+                                   data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th align="right">适用型号：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="applyModel" name="applyModel" style="width: 121px"
+                                   data-options="required:true,editable:true"/>
+                        </td>
+                        <th class="td" align="right">章节：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="ata" name="ata" style="width: 121px"
+                                   data-options="required:true"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var dealOpinion;
+    var dealMeasure;
+    var taskId;
+    var exeFlag;
+    var evapkid;
+    var appType;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        dealOpinion = param.dealOpinion;
+        dealMeasure = param.dealMeasure;
+        taskId = param.taskId;
+        exeFlag = param.exeFlag;
+        evapkid = param.evapkid;
+        appType = param.applyType;
+        if (dealOpinion == "EA") {
+            $("#no").text("EA编号：");
+        } else if (dealOpinion == "EO") {
+            $("#no").text("EO编号：");
+        }
+
+        $("#eoEa").textbox('setValue', dealOpinion);
+        $("#eoVer").textbox('setValue', "0");
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_APPL_TYPE,EMTB_ATA,EM_EO_CHECK_TYPE,EM_EO_NUMBER_WORK_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#applyType').combobox({
+                        panelHeight: '100px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EM_APPL_TYPE
+                    });
+
+                    initApplyModel();
+                    initAta();
+                }
+            }
+        })
+    }
+
+    function initApplyModel() {
+        var datas2 = $.extend({evaId: evapkid}, {FunctionCode: 'EM_FILE_APPLY_MODEL_EO'});
+        InitFuncCodeRequest_({
+            data: datas2,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#applyModel').combobox({
+                        panelHeight: '60px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function initAta() {
+        var datas2 = $.extend({evaId: evapkid}, {FunctionCode: 'EM_FILE_APPLY_ATA_EO'});
+        InitFuncCodeRequest_({
+            data: datas2,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#ata').combobox({
+                        panelHeight: '60px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function randomNumber(dealOpinion, applyType, applyModel) {
+        var num = 1;
+        var temp = "";
+        var ata = $("#ata").textbox('getValue');
+        if (applyType == "APL") {
+            //EO前缀-机型-2位章节-4位流水号
+            temp = applyModel;
+        } else if (applyType == "ENG") {
+            //评估单的入口暂时不做发动机的新增
+            //EO前缀-发动机型号（位数不定）-2位章节号-4位流水号
+            temp = applyModel;
+        } else if (applyType == "PART") {
+            //EO前缀-CM-2位章节号-4位流水号
+            temp = "CM";
+        }
+
+        var serialNo = dealOpinion + "-" + temp + "-" + ata + "-";
+        InitFuncCodeRequest_({
+            data: {serialNo: serialNo, FunctionCode: "TD_EVAL_EO_BY_NO"},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        if (jdata.data.OLDNUM) {
+                            num = parseInt(jdata.data.OLDNUM, 10) + 1;
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        num = pad(num, 4);
+        serialNo = serialNo + num;
+        return serialNo;
+    }
+
+    var pad = function () {
+        var tbl = [];
+        return function (num, n) {
+            var len = n - num.toString().length;
+            if (len <= 0) return num;
+            if (!tbl[len]) tbl[len] = (new Array(len + 1)).join('0');
+            return tbl[len] + num;
+        }
+    }();
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var applyType = $("#applyType").textbox('getValue');
+        var applyModel = $("#applyModel").textbox('getValue');
+        if (appType == "PART" && applyType != "PART") {
+            MsgAlert({content: "部件类评估单只能增加部件类执行文件！", type: 'error'});
+            return;
+        }
+        if (appType == "ENG" && applyType != "ENG") {
+            MsgAlert({content: "发动机类评估单只能增加发动机类执行文件！", type: 'error'});
+            return;
+        }
+        if (appType == "APL") {
+            if (applyType == "ENG") {
+                MsgAlert({content: "机身类评估单只能增加机身或部件类执行文件！", type: 'error'});
+                return;
+            }
+        }
+        var ata = $("#ata").textbox('getValue');
+        $("#eoNo").textbox('setValue', randomNumber(dealOpinion, applyType, applyModel));
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({
+            dealOpinion: dealOpinion,
+            dealMeasure: dealMeasure,
+            taskId: taskId,
+            evapkid: evapkid
+        }, datas, {FunctionCode: 'EM_FILE_EVAL_EO_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#pkid").textbox('setValue', jdata.data.pkid);
+                    if (exeFlag == "OTHER") {
+                        param.OWindow.reload_("#dg7");
+                    } else {
+                        param.OWindow.reload_("#dg2");
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</html>

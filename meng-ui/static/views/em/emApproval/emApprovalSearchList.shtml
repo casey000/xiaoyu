@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">工程审批查询</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">审批类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="approvalType" id="approvalType" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">审批结论：</th>
+                    <td>
+                        <input class="easyui-combobox" name="approvalResult" id="approvalResult" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">创建日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="startDate" id="startDate" data-options=""
+                               style="width:120px;"/>至
+                        <input class="easyui-datebox" name="endDate" id="endDate" data-options=""
+                               style="width:120px;"/>
+
+                    </td>
+                    <th data-i18n="" style="width: 70px">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="approvalStatus" id="approvalStatus" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()">查询</a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_APPROVAL_TYPE,EM_APPROVAL_RESULT,EM_APPROVAL_STATUS"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['approvalType'] = DomainCodeToMap_(jdata.data["EM_APPROVAL_TYPE"]);
+                    PAGE_DATA['approvalResult'] = DomainCodeToMap_(jdata.data["EM_APPROVAL_RESULT"]);
+                    PAGE_DATA['approvalStatus'] = DomainCodeToMap_(jdata.data["EM_APPROVAL_STATUS"]);
+
+                    $('#approvalType').combobox({
+                        panelHeight: '300px',
+                        data: jdata.data.EM_APPROVAL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#approvalResult').combobox({
+                        panelHeight: '200px',
+                        data: jdata.data.EM_APPROVAL_RESULT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#approvalStatus').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_APPROVAL_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_APPROVAL_SEARCH_LIST'},
+                alter: {
+                    APPROVAL_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['approvalType'][value];
+                        }
+                    },
+                    APPROVAL_RESULT: {
+                        formatter: function (value) {
+                            return PAGE_DATA['approvalResult'][value];
+                        }
+                    },
+                    APPROVAL_STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['approvalStatus'][value];
+                        }
+                    }
+                }
+            },
+            toolbar: [
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-flowTjt",
+                    i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.SPA_PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.SPA_PKID, objKey: "EM_APPROVAL_SEARCH"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+            }
+
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</body>
+</html>

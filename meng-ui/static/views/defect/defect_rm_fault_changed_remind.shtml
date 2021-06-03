@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <!-- 禁止浏览器从本地缓存中调阅页面。网页不保存在缓存中，每次访问都刷新页面。  -->
+    <meta http-equiv="pragram" content="no-cache"/>
+    <!-- 同上面意思差不多，必须重新加载页面  -->
+    <meta http-equiv="cache-control" content="no-cache, must-revalidate"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>无标题文档</title>
+    <!-- load css -->
+    <link rel="stylesheet" type="text/css" href="/css/dwm/source.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/jquery-ui-1.8.2.custom.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/dialog_default.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/easyui.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/icon.css"/>
+    <link rel="stylesheet" type="text/css" href="/js/jquery/ztree/zTreeStyle.css"/>
+    <style type="text/css">
+        .errorMessage {
+            color: red
+        }
+
+        .td-font-red {
+            color: red
+        }
+
+        a {
+            color: #6e6e6e;
+            text-decoration: none;
+        }
+
+        .td-line-hight-background {
+            background: #f2f2f2;
+        }
+    </style>
+    <!-- load js -->
+    <script type="text/javascript" src="/js/jquery/easyui/jquery-1.8.0.min.js"></script>
+    <script type="text/JavaScript" src="/js/workflow/json2.js"></script>
+    <script type="text/javascript" src="/js/jquery/ztree/jquery.ztree.core-3.4.js"></script>
+    <script type="text/javascript" src="/js/jquery/ztree/jquery.ztree.excheck-3.4.js"></script>
+    <script type="text/javascript" src="/js/jquery/easyui/jquery.easyui.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="/js/jquery/lhgdialog/lhgdialog.js"></script>
+    <script type="text/javascript" src="/js/jquery.form.js"></script>
+    <script type="text/javascript" src="/js/global_var.js"></script>
+    <script type="text/javascript" src="/js/jquery.validate.js"></script>
+
+    <script type="text/JavaScript" src="/js/sfa-query-1.0.js"></script>
+    <script type="text/JavaScript" src="/js/common_query_dialog.js"></script>
+    <script type="text/JavaScript" src="/js/common.js"></script>
+
+</head>
+
+<body>
+<form action="" method="post" id="defect_fault_form">
+    <input type="hidden" value="" id="type"/>
+    <input type="hidden" value="" id="operate"/>
+    <input type="hidden" value="" id="faultNo"/>
+    <input type="hidden" value="" id="taskId"/>
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" bordercolor="#B2C9E0" class="post_table"
+           style="padding-top:10px">
+
+        <tr class="verify_result_changed">
+            <td class="td-line-hight-background">Fault Type</td>
+            <td id="td_faultType"></td>
+        </tr>
+        <tr class="verify-result-changed">
+            <td class="td-line-hight-background ">Fault No</td>
+            <td id="showDefectNos" href="javascript:void(0)" style="color:#f60 "></td>
+        </tr>
+
+        <!-- 修改校验结果提醒开始 -->
+        <tr class="verify_result_changed" style="display: none;">
+            <td class="td-line-hight-background ">Changes</td>
+            <td>Verify Result由Yes变为No</td>
+        </tr>
+        <!-- 修改校验结果提醒结束 -->
+
+        <!-- 删除用户类型故障下面的Defect提醒开始 -->
+        <tr class="delete_user_fault_defects" style="display: none;">
+            <td class="td-line-hight-background ">Deleted Defects</td>
+            <td id="deleteDefects">
+            </td>
+        </tr>
+        <tr class="delete_user_fault_defects" style="display: none;">
+            <td class="td-line-hight-background ">Reason</td>
+            <td></td>
+        </tr>
+        <!-- 删除用户类型故障下面的Defect提醒开始 -->
+
+        <!-- 用户类型校验结果为NO提醒开始 -->
+        <tr class="user_fault_verify_no" style="display: none;">
+            <td class="td-line-hight-background ">Reason</td>
+            <td></td>
+        </tr>
+        <!-- 用户类型校验结果为NO提醒结束 -->
+
+        <!-- 故障下面Defect数量小于3提醒开始 -->
+        <tr class="fault_defectNums_less_than_3" style="display: none;">
+            <td class="td-line-hight-background ">Reason</td>
+            <td></td>
+        </tr>
+        <!-- 故障下面Defect数量小于3提醒结束 -->
+
+    </table>
+
+    <textarea id="defectNosHidden" style="display: none"></textarea>
+</form>
+</body>
+<script>
+    var api, W;
+    if(frameElement.api) {
+        api = frameElement.api;
+        W = api.opener;
+    }
+    $(function () {
+        //隐藏顶级iframe的确认按钮
+        //$(top.window.document.getElementById("canSubmit")).hide();
+        let operate = $.getUrlParam("operate");
+        if(operate == 'verify_result_changed') {
+            $(".verify_result_changed").show();
+        } else if(operate == 'delete_user_fault_defects') {
+            $(".delete_user_fault_defects").show();
+
+            let deleteDefects = JSON.parse($("#defectNosHidden").val());
+            $.each(deleteDefects, function (idx, val) {
+                $("#deleteDefects").append("<a>" + val + "</a>&nbsp;&nbsp;")
+            });
+
+            $("#deleteDefects").find("a").click(function () {
+                var defectNo = $.trim($(this).text());
+                viewDefectDetail(defectNo);
+            });
+        } else if(operate == 'user_fault_verify_no') {
+            $(".user_fault_verify_no").show();
+        } else if(operate == 'fault_defectNums_less_than_3') {
+            $(".fault_defectNums_less_than_3").show();
+        }
+        $("#td_faultType").text($.getUrlParam("type"));
+        $("#showDefectNos").text($.getUrlParam("faultNo"));
+        $("#type").val($.getUrlParam("type"));
+        $("#faultNo").val($.getUrlParam("faultNo"));
+        $("#operate").val($.getUrlParam("operate"));
+        $("#taskId").val($.getUrlParam("taskId"));
+
+        $("#showDefectNos").click(function () {
+            if($("#type").val() == 'REPEAT') {
+                showRepeatFaultsDefectNo($("#faultNo").val());
+            } else if($("#type").val() == 'MULTIPLE') {
+                showMultipleFaultsDefectNo($("#faultNo").val());
+            }
+        });
+    });
+
+    function save(_this) {
+        $.ajax({
+            url: basePath + '/workflow/task/task_process.action?taskId=' + $("#taskId").val(),
+            cache: false,
+            async: false,
+            type: "post",
+            dataType: "json",
+            success: function (obj, textStatus) {
+                window.alert("Success");
+                colsa_window();
+            }
+        });
+    }
+
+    function colsa_window() {
+        if(top.opener) {
+            top.opener.reload_();
+            top.opener = null;
+            top.close();
+        } else {
+            api.close();
+        }
+    }
+
+
+    function showRepeatFaultsDefectNo(repeatFaults) {
+        $.ajax({
+            url: basePath + "/api/v1/defect/repeat/" + repeatFaults + "/faults",
+            type: 'get',
+            cache: false,
+            dataType: "json",
+            success: function (dataMsg) {
+                if(dataMsg.code == 200) {
+                    let defectNoList = dataMsg.data.defectNoList;
+                    let deletedDefectNoList = dataMsg.data.deletedDefectNoList;
+                    let rowObject = dataMsg.data.defectRepeatFaults;
+                    let dialogFun = {
+                        id: 'repeatFaults_Info' + new Date().getTime(),
+                        title: 'Repeat Faults Info',
+                        top: '30%',
+                        width: '600px',
+                        height: '300px',
+                        data: {
+                            'rowObject': rowObject,
+                            'defectNoList': defectNoList,
+                            'deletedDefectNoList': deletedDefectNoList
+                        },
+                        content: 'url:' + basePath + "/views/defect/multiple_faults/defect_repeatFaults.shtml"
+                    };
+                    if(W) {
+                        W.$.dialog(dialogFun);
+                    } else {
+                        $.dialog(dialogFun);
+                    }
+                } else {
+                    window.alert(dataMsg.msg);
+                }
+            }
+        });
+    }
+
+
+    function showMultipleFaultsDefectNo(multipleFaults) {
+        $.ajax({
+            url: basePath + "/api/v1/defect/multiple/" + multipleFaults + "/faults",
+            type: 'get',
+            cache: false,
+            dataType: "json",
+            success: function (dataMsg) {
+                if(dataMsg.code == 200) {
+                    let defectNoList = dataMsg.data.defectNoList;
+                    let deletedDefectNoList = dataMsg.data.deletedDefectNoList;
+                    let rowObject = dataMsg.data.defectMultipleFaults;
+                    let dialogFun = {
+                        id: 'multipleFaults_Info' + new Date().getTime(),
+                        title: 'Multiple Faults Info',
+                        top: '30%',
+                        width: '600px',
+                        height: '300px',
+                        data: {
+                            'rowObject': rowObject,
+                            'defectNoList': defectNoList,
+                            'deletedDefectNoList': deletedDefectNoList
+                        },
+                        content: 'url:' + basePath + "/views/defect/multiple_faults/defect_multipleFaults.shtml"
+                    };
+                    if(W) {
+                        W.$.dialog(dialogFun);
+                    } else {
+                        $.dialog(dialogFun);
+                    }
+                } else {
+                    window.alert(dataMsg.msg);
+                }
+            }
+        });
+    }
+
+    function viewDefectDetail(defectNo) {
+        ShowWindowIframe({
+            width: "1000",
+            height: "700",
+            title: 'Defect Detail',
+            param: {defectNo: defectNo},
+            url: "/views/defect/defectDetails.shtml"
+        });
+    }
+</script>
+</html>

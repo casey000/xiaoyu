@@ -1,0 +1,107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <title>FLB数据查询</title>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link href="/css/dwm/source.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/dialog_default.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/aircraft/commons.css" rel="stylesheet" type="text/css"/>
+
+    <script src="/js/global_var.js"></script>
+    <script src="/js/jquery/easyui/jquery-1.8.0.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/easyui/jquery.easyui.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js" type="text/javascript"></script>
+    <script src="/js/jquery/jqGrid/jquery.jqGrid.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jqGrid/i18n/grid.locale-cn.js" type="text/javascript"></script>
+    <script src="/js/jquery/lhgdialog/lhgdialog.js" type="text/javascript"></script>
+
+</head>
+<body>
+<form id="add_form" method="post">
+    <table border="1" bordercolor="#B2C9E0" cellpadding="0" cellspacing="0" class="table-zi" width="100%">
+        <tr>
+            <td align="center" class="td-line-hight-bg-update table-title-bold" colspan="3" valign="middle">Defect
+                Information
+            </td>
+        </tr>
+        <tr id="iteratorTr"></tr>
+    </table>
+</form>
+
+<script>
+
+    $('input').attr("disabled", "disabled");
+    $('textArea').attr("disabled", "disabled");
+    $('#add_btn').removeAttr("disabled");
+
+    //初始化按钮
+    var sub_win = frameElement.api, P = sub_win.opener;
+    var s_params = sub_win.data;
+
+    function viewDefect(defectId) {
+        ShowWindowIframe({
+            width: "1000",
+            height: "700",
+            title: "查看故障",
+            param: {defectId: defectId},
+            url: "/views/defect/defectDetails.shtml"
+        });
+    }
+
+    function getUrlParams() {
+        let search = window.location.search.split("?")[1];
+        let params = {};
+        $.each(search.split("&"), function (i, v) {
+            if(v) {
+                let key = v.split("=")[0];
+                let value = v.split("=")[1];
+                params[key] = value;
+            }
+        });
+        return params;
+    }
+
+    function iteratorTr() {
+        let urlParams = getUrlParams();
+        var actionUrl = "/api/v1/work/v_mcc_troublefollow_up/toView";
+        let params = {
+            "acReg": urlParams["acReg"]
+        };
+        $.ajax({
+            url: actionUrl,
+            type: 'get',
+            data: params,
+            dataType: "json",
+            cache: false,
+            success: function (data) {
+                if(data.code == 200) {
+                    let html = "";
+                    $.each(data.data.defectList, function (i, v) {
+                        let defect = v;
+                        html += `
+						<tr>
+							<td align="center" width="40%"><a href="javascript:void(0)" onclick="viewDefect('${defect.id}')">DEFECT ${defect.defectNo} </a></td>
+							<td align="center" width="30%">${defect.category ? defect.category : ""}</td>
+							<td align="center" width="30%">${defect.dateFound}</td>
+						</tr>
+					`;
+                    });
+                    $("#iteratorTr").replaceWith(html);
+                } else {
+                    P.$.dialog.alert(data.msg);
+                }
+            }
+        })
+    }
+
+
+    $(function () {
+        iteratorTr();
+    });
+
+</script>
+</body>
+</html>

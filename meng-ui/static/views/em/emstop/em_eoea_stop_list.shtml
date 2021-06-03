@@ -1,0 +1,281 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">EO/EA整体终止列表</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 80px">文件类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="eoEa" id="eoEa" data-options=""
+                               style="width:100px;" />
+                    </td>
+                    <th data-i18n="" style="width: 80px">文件编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="eoNo" id="eoNo" data-options=""
+                               style="width:100px;" />
+                    </td>
+                    <th data-i18n="" style="width: 80px">申请人：</th>
+                    <td>
+                        <input class="easyui-textbox" name="applyMan" id="applyMan" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">申请状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="status" id="status" data-options=""
+                               style="width:110px;" />
+                    </td>
+
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="searchData()"
+                           >查询</a>
+                    </td>
+                    <td>
+                        <a class="clearBtn" href="javascript:void(0)" onclick="doClear_()"
+                           data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 80px">终结原因：</th>
+                    <td colspan="3">
+                        <input class="easyui-textbox" name="stopReason" id="stopReason" data-options=""
+                               style="width:350px;" />
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var userName;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        userName = getLoginInfo().userName;
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                domainCode: "EM_EOEA_STOP_STATUS,EO_EA",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_EOEA_STOP_STATUS"]);
+                    PAGE_DATA['eoEa'] = DomainCodeToMap_(jdata.data["EO_EA"]);
+                    $('#status').combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.EM_EOEA_STOP_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onLoadSuccess : function(){
+                            $('#status').combobox('setValue','SQZ');
+                        }
+                    });
+                    $('#eoEa').combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.EO_EA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#applyMan').textbox('setValue', userName);
+
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        var status = $('#status').combobox('getValue');
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 10,
+            queryParams: {applyMan : userName, status : status},
+            columns: {
+                param: {FunctionCode: 'EM_EOEA_STOP_LIST'},
+                alter: {
+                    EO_EA: {
+                        formatter: function (value) {
+                            return PAGE_DATA['eoEa'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    REQ_STOP_DATE: {
+                        formatter: function (value) {
+                            if(value){
+                                return value.substr(0, 10);
+                            }else{
+                                return '';
+                            }
+                        }
+                    },
+                    APPLY_DATE: {
+                        formatter: function (value) {
+                            if(value){
+                                return value.substr(0, 10);
+                            }else{
+                                return '';
+                            }
+                        }
+                    },
+                    APPROVAL_DATE: {
+                        formatter: function (value) {
+                            if(value){
+                                return value.substr(0, 10);
+                            }else{
+                                return '';
+                            }
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if(rowdata.STATUS != 'SQZ' && rowdata.STATUS != 'RWTH'){
+                            MsgAlert({content: '仅申请中和任务退回状态的可编辑！', type: 'error'});
+                            return;
+                        }
+                        addOrUpdate(rowdata.PKID);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if(rowdata.STATUS != 'RWTH' && rowdata.STATUS != 'SQZ'){
+                            MsgAlert({content: '申请中和任务退回状态的记录可删除！', type: 'error'});
+                            return;
+                        }
+                        if(!confirm('确认删除?')){
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowdata.PKID, eoNo: rowdata.EO_NO, FunctionCode: 'EM_EOEA_STOP_DELETE'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                }
+                                else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        if (!rowData.EO_NO) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.EO_NO, objKey: "EM_EOEA_STOP_APPLY_OBJKEY"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+                    }
+                }
+                /*{
+                    id: "m-submit", i18nText: "提交", auth: "",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if(!rowData.REPORT_NO){
+                            MsgAlert({content: '请选择记录！',type: 'error'});
+                            return;
+                        }
+
+                        common_add_edit_({
+                            identity: '', isEdit: '', width: 520, height : 300,title:$.i18n.t('选择审批人'),
+                            param: {roleId: '',otherParam: rowData.ReportNo,FunctionCode_:'EM_WB_REPORT_SUBMIT',successCallback: reload_},
+                            url: "/views/em/workflow/work_flow_account_select.shtml"
+                        });
+
+                    }
+                },*/
+            ],
+            validAuth: function (row, items) {
+                if (row.STATUS == 'SPZ' || row.STATUS == 'YSX') { //终止只能查看可打印
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                }
+                if(row.STATUS == 'SQZ'){
+                    items['办理轨迹'].enable = false;
+                }else{
+                    items['办理轨迹'].enable = true;
+                }
+                return items;
+            },
+
+        });
+    }
+
+
+    function addOrUpdate(pkid) {
+        ShowWindowIframe({
+            width: 820,
+            height: 270,
+            title: "EO/EA终结编辑",
+            param:{
+                pkid : pkid
+            },
+            url: "/views/em/emstop/em_eo_stop_add.shtml"
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,446 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+    </style>
+    <script type="text/javascript">
+
+        var param = {};
+        var isEdit_;
+        $(function () {
+            param = getParentParam_();
+            InitPage();
+            InitDataGrid();
+            InitSortList();
+            InitQueryDGData();
+
+            $('#field').combobox({
+                onHidePanel: function () {
+                    var currVal = $(this).combobox('getValue');
+                    var allData = $(this).combobox('getData');
+                    var result = false;
+                    if(currVal && allData){
+                        for(var i=0; i<allData.length;i++){
+                            if(allData[i].field == currVal){
+                                result = true;
+                                break;
+                            }
+                        }
+                        if(!result){
+                            $(this).combobox('setValue', '');
+                        }
+                    }
+                }
+            })
+        });
+
+        function InitQueryDGData() {
+            /* var form = $("#"+param.fromId, param.OWindow.document);
+             var input1 =  form.find("input[name='"+_AdvancedQueryParam+"']");*/
+            var qdata = param.OWindow.ADV_QUERY_DATA;
+            var dtvalue0 = qdata ? qdata[param.identity + '_' + _AdvancedQueryParam] : '';
+            if (dtvalue0) {
+                eval("var data = " + dtvalue0 + ";");
+                $("#area").datagrid('loadData', data)
+            }
+            //var input2 =  form.find("input[name='"+_AdvancedQueryParam+"sort']");
+            var dtvalue1 = qdata ? qdata[param.identity + '_' + _AdvancedQueryParam + 'sort'] : '';
+            if (dtvalue1) {
+                eval("var data2 = " + dtvalue1 + ";");
+                $.each(data2, function (k, e) {
+                    e.field = e.nfield ? e.nfield : e.field;
+                });
+                var dg = $("#sort");
+                dg.datagrid('loadData', data2);
+
+                var rs = dg.datagrid('getRows');
+                $.each(rs, function (k, it) {
+                    dg.datagrid('beginEdit', k);
+                });
+            }
+        }
+
+        function getCboxData() {
+            var columns = param.OWindow.getDgOpts(param.identity).columns;
+            var columns_ = [];
+            $.each(columns, function (k, col) {
+                if (col.belong && col.belong.indexOf("Q") > -1) {
+                    col.field = col.nfield ? col.nfield : col.field;
+                    columns_.push(col);
+                }
+            });
+            return columns_;
+        }
+
+        function InitSortList() {
+            $("#sort").MyDataGrid({
+                identity: 'sort',
+                pagination: false,
+                fitColumns: true,
+                data: {total: 0, rows: []},
+                columns: [
+                    {field: 'field_Name', title: '字段名称', width: 120},
+                    {
+                        field: 'order_By', title: '升降', width: 120,
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'value',
+                                textField: 'text',
+                                data: [{text: "升序(ASC)", value: "ASC"}, {text: "降序(DESC)", value: "DESC"}],
+                                required: true,
+                                panelHeight: 120,
+                                tipPosition: 'top'
+                            }
+                        }
+                    }
+                ],
+                resize: function () {
+                    return {
+                        width: 260,
+                        height: $("#tabs").height() - 40
+                    }
+                }
+            });
+        }
+
+        var SELECT_FIELD_DATA = {};
+
+        function insertQRow() {
+            var data = $("#mform").serializeObject();
+            data['field_Name'] = $("#field").combobox('getText');
+            if (!data['field_Name']) {
+                return;
+            }
+            data['condition_Name'] = $("#condition").combobox('getText');
+            data['logic_Name'] = $("#logic").combobox('getText');
+            var len = $("#area").datagrid('getRows').length;
+            data['value_Name'] = "";
+            data['ntype'] = SELECT_FIELD_DATA['type'] || '';
+            var $value = $("#value");
+            if ($value.hasClass('combobox-f')) {
+                data['value_Name'] = $value.combobox('getText')
+            } else if ($value.hasClass("datebox-f")) {
+                data['ntype'] = "date";
+            } else if ($value.hasClass("datetimebox-f")) {
+                data['ntype'] = "datetime";
+            } else if ($value.hasClass("numberbox-f")) {
+                data['ntype'] = "number";
+            }
+
+            if (len == 0) {
+                data['logic'] = '';
+                data['logic_Name'] = '';
+            }
+            $("#area").datagrid('insertRow', {
+                index: len,
+                row: data
+            });
+        }
+
+        function InitPage() {
+            var columns = getCboxData();
+            var init = function (domainMap) {
+                $("#field").combobox({
+                    valueField: 'field',
+                    textField: 'title',
+                    onSelect: function (rec) {
+                        easyuiWidgetDestroy($('#value'));
+                        if (rec.domainCode) {
+                            $('#value').combobox({
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                data: domainMap[rec.domainCode]
+                            });
+                        } else if (rec.type == 'date') {
+                            $('#value').datebox({});
+                        } else if (rec.type == 'datetime') {
+                            $('#value').datetimebox({});
+                        } else {
+                            $('#value').textbox();
+                        }
+                        SELECT_FIELD_DATA = rec;
+                    },
+                    data: columns
+                });
+                $('#dl').datalist({
+                    title: "字段列表",
+                    textField: 'title',
+                    valueField: 'field',
+                    data: columns,
+                    lines: true
+                });
+            };
+            var dcode = '';
+            $.each(columns, function (k, item) {
+                if (item.domainCode) {
+                    if ((',' + dcode + ',').indexOf(',' + item.domainCode + ',') == -1)
+                        dcode += dcode == '' ? item.domainCode : ',' + item.domainCode;
+                }
+            });
+            if (dcode != '') {
+                InitFuncCodeRequest_({
+                    data: {domainCode: dcode, FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            var dmap = jdata.data;
+                            init(dmap);
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                })
+            } else {
+                init({});
+            }
+        }
+
+        function InitDataGrid() {
+            $("#area").MyDataGrid({
+                identity: 'area',
+                pagination: false,
+                fitColumns: true,
+                height: 120,
+                data: {total: 0, rows: []},
+                columns: [
+                    {field: 'logic_Name', title: '关系', width: 80},
+                    {field: 'field_Name', title: '字段', width: 120},
+                    {field: 'condition_Name', title: '比较', width: 120},
+                    {
+                        field: 'value', title: '值', width: 120,
+                        formatter: function (value, row, index) {
+                            return row.value_Name ? '[' + value + ']' + row.value_Name : value;
+                        }
+                    }
+                ],
+                contextMenus: [
+                    {
+                        text: "删除", auth: "",
+                        onclick: function () {
+                            var dg = getDG('area');
+                            var row = dg.datagrid('getSelected');
+                            var index = row ? dg.datagrid("getRowIndex", row) : null;
+                            dg.datagrid("deleteRow", index);
+                        }
+                    }
+                ],
+                resize: function () {
+                    return {
+                        width: $("#tabs").width() - 10,
+                        height: $("#tabs").height() - 40
+                    }
+                }
+            });
+        }
+
+        /** ‘确定’操作 */
+        function doSureDown() {
+            var sortData = getSortSqlByDGRows();
+//            var sortSql = sortData[1];
+            var sortRows = sortData[0];
+            var queryData = getQuerySqlByDGRows();
+//            var querySql = queryData[1];
+            var queryRows = queryData[0];
+            var queryData = {};
+            queryData[_AdvancedQueryParam] = JSON.stringify(queryRows);
+            queryData[_AdvancedQueryParam + 'sort'] = JSON.stringify(sortRows);
+
+            param.OWindow.ADV_QUERY_DATA = {};
+            param.OWindow.ADV_QUERY_DATA[param.identity + '_' + _AdvancedQueryParam] = queryData[_AdvancedQueryParam];
+            param.OWindow.ADV_QUERY_DATA[param.identity + '_' + _AdvancedQueryParam + 'sort'] = queryData[_AdvancedQueryParam + 'sort'];
+            param.OWindow.doAdvancedQuery(param.identity, queryData);
+
+            /* var form = $("#"+param.fromId, param.OWindow.document);
+             var input = appendHiddenInput(form, _AdvancedQueryParam);
+             input.val(JSON.stringify(queryRows));
+
+             var input1 = appendHiddenInput(form, _AdvancedQueryParam+'sort');
+             input1.val(JSON.stringify(sortRows));*/
+            CloseWindowIframe();
+        }
+
+        function appendHiddenInput(form, name) {
+            var input = form.find("input[name='" + name + "']");
+            if (input.length == 0) {
+                input = $("<input type='hidden' name='" + name + "' />");
+                form.append(input);
+            }
+            return input;
+        }
+
+        function getValue(it) {
+            if (it['condition'].indexOf('like') > -1) {
+                return "'%" + it['value'] + "%'";
+            }
+            return "'" + it['value'] + "'";
+            /*if(isNaN(it['value'])){
+                return "'"+it['value']+"'";
+            }
+            return it['value'];*/
+        }
+
+        function getQuerySqlByDGRows() {
+            var rows = $("#area").datagrid('getRows');
+            var result = '';
+            $.each(rows, function (k, it) {
+                var logic = k != 0 ? it['logic'] : '';
+                result += logic + " (" + (it['nfield'] ? it['nfield'] : it['field']) + " " + it['condition'] + " " + getValue(it) + ")";
+            });
+            return [rows, result];
+        }
+
+        function getSortSqlByDGRows() {
+            var dg = $("#sort");
+            var sortRows = dg.datagrid('getRows');
+            var sortSql = '';
+            $.each(sortRows, function (k, it) {
+                var ed = dg.datagrid('getEditor', {index: k, field: 'order_By'});
+                it['order_By'] = $(ed.target).combobox('getValue');
+
+                sortSql += (k == 0 ? '' : ',') + (it['nfield'] ? it['nfield'] : it['field']) + ' ' + it['order_By'];
+            });
+            return [sortRows, sortSql];
+        }
+
+        function putRight() {
+            var row = $("#dl").datalist('getSelected');
+            var dg = getDG('sort');
+            var rdata = dg.datagrid('getRows');
+            var b = false;
+            $.each(rdata, function (k, it) {
+                if (it['field'] == row.field) {
+                    b = true;
+                    return false;
+                }
+            });
+            if (b) {
+                return;
+            }
+            var index = rdata.length;
+            dg.datagrid('insertRow', {index: index, row: {field: row.field, field_Name: row.title, order_By: "ASC"}});
+            dg.datagrid('beginEdit', index);
+        }
+
+        function removeRight() {
+            var dg = getDG('sort');
+            var row = dg.datagrid('getSelected');
+            if (row) {
+                var index = dg.datagrid('getRowIndex', row);
+                dg.datagrid('deleteRow', index);
+            }
+        }
+    </script>
+    <style>
+        .bcBtn {
+            padding: 5px 30px;
+            color: #fff;
+            background: #afcf00;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            line-height: 31px;
+        }
+
+        .closeBtn {
+            padding: 5px 30px;
+            color: #898989;
+            background: #d4d4d4;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            line-height: 31px;
+        }
+
+        .addBtn {
+            padding: 5px 30px;
+            color: #fff;
+            background: #73b6fb;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            line-height: 31px;
+        }
+    </style>
+</head>
+<body>
+
+<div>
+    <div id="tabs" class="easyui-tabs" style="width:100%;">
+        <div title="条件" style="padding:5px;display:none;">
+            <div class="ibox-content">
+                <form class="form-horizontal" id="mform">
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <th style="text-align: center">字段</th>
+                            <th style="text-align: center">比较</th>
+                            <th style="text-align: center">值</th>
+                            <th style="text-align: center">关系</th>
+                        </tr>
+                        <tr>
+                            <td align="center">
+                                <input class="easyui-combobox" name="field" id="field" style="width: 125px;"/>
+                            </td>
+                            <td align="center">
+                                <select name="condition" id="condition" class="easyui-combobox" style="width: 85px;"
+                                        data-options="required:true, editable: false" panelHeight="100">
+                                    <option value="=">等于</option>
+                                    <option value="!=">不等于</option>
+                                    <option value=">">大于</option>
+                                    <option value=">=">大于等于</option>
+                                    <option value="<">小于</option>
+                                    <option value="<=">小于等于</option>
+                                    <option value="like">包含</option>
+                                    <option value="not like">不包含</option>
+                                </select>
+                            </td>
+                            <td align="center">
+                                <input class="easyui-textbox" name="value" id="value" style="width: 145px;"/>
+                            </td>
+                            <td align="center">
+                                <select name="logic" id="logic" class="easyui-combobox" style="width: 85px;"
+                                        data-options="required:true"
+                                        panelHeight="100">
+                                    <option value="and">并且</option>
+                                    <option value="or">或者</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" align="center">
+                                <a class="addBtn" href="javascript:void(0);" onclick="insertQRow();">增加</a>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+                <table id="area" style="margin-top: 5px;"></table>
+            </div>
+        </div>
+        <div title="排序" style="padding:5px;display:none;">
+            <div style="float: left; width: 30%;">
+                <div id="dl"></div>
+            </div>
+            <div style="float: left; margin-left: 3px; margin-right: 3px;">
+                <div><a class="easyui-linkbutton" href="javascript:void(0);" onclick="putRight();"> &gt;&gt; </a></div>
+                <div style="margin-top: 5px;"><a class="easyui-linkbutton" href="javascript:void(0);"
+                                                 onclick="removeRight();"> &lt;&lt; </a></div>
+            </div>
+            <div id="m" style="float: left; width: 45%;">
+                <table id="sort"></table>
+            </div>
+
+        </div>
+    </div>
+
+    <div style="margin-top: 8px; text-align: center;">
+        <a class="bcBtn" href="javascript:void(0);" onclick="doSureDown();">确定</a>
+        <a class="closeBtn" href="javascript:void(0);" onclick="CloseWindowIframe();">关闭</a>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>故障确认</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="故障确认" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <input type="hidden" id="defectId" name="defectId"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr id ="btnTr">
+                        <td colspan="4" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="addBtn" onclick="addOrEditTag('add')" style="margin: 10px" value="创建临时标签"/>
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" style="margin: 10px" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr style="height: 30px">
+                        <th style="text-align: left;width: 90px;" colspan="4">
+                            <div style="float: left">故障跟踪编号：</div>
+                            <div id="defect"></div>
+                        </th>
+                    </tr>
+                    <tr>
+                        <th >发动机/APU送修有关：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="ifRelated" name="ifRelated" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                        <th>送修厂家：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-combobox" id="mro" name="mro" data-options="required: true" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><a id="order" href="javascript:void(0)" onclick="tagList()"><p style="font-weight: bold">故障标签：</p></a></th>
+                        <td colspan="3">
+                                <textarea class="easyui-textbox " id="tagName" name="tagName" multiline="true"
+                                          style="height:80px;width: 680px;border: 1px solid #ddd;border-radius: 5px;"
+                                          data-options="required: true,editable:false"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>故障描述（中文）：</th>
+                        <td colspan="3">
+                                <textarea class="easyui-textbox " id="faultReportChn" name="faultReportChn" multiline="true"
+                                          style="height:80px;width: 680px;border: 1px solid #ddd;border-radius: 5px;"
+                                          data-options="onlyview: true,editable:false"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>故障描述（英文）：</th>
+                        <td colspan="3">
+                                <textarea class="easyui-textbox " id="faultReportEng" name="faultReportEng" multiline="true"
+                                          style="height:80px;width: 680px;border: 1px solid #ddd;border-radius: 5px;"
+                                          data-options="onlyview: true,editable:false"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>维护人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th>维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var operation;
+    var pkid;
+    var defectId;
+    var defectNo;
+    var flag;
+    var faultReportChn;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        param = getParentParam_();
+        pkid = param.pkid;
+        flag = param.flag;
+        faultReportChn = param.faultReportChn;
+        if(pkid){
+            operation = 'edit';
+        }else{
+            operation = 'add';
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO,ENG_FAU_FACTROY",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },async:false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#ifRelated').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            var temp = item.VALUE;
+                            relChange(temp);
+                        }
+                    });
+                    $('#mro').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.ENG_FAU_FACTROY,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if(operation == "view"){
+                        $(".easyui-textbox").textbox({required:false,editable:false,onlyview:true});
+                        $(".easyui-combobox").combobox({required:false,editable:false,onlyview:true});
+                        $(".easyui-datebox").datebox({required:false,editable:false,onlyview:true});
+                        $('#btnTr').hide();
+                    }
+
+                    if(flag == 'Y' && faultReportChn != '' && faultReportChn != null){
+                        initTagName();
+                    }
+                    InitDataForm(pkid);
+                    $("#modifyName").textbox('setValue',userLogin.userName);
+                    $("#modifyUser").val(userLogin.accountId);
+                    $("#modifyDate").datebox('setValue',new Date().Format('yyyy-MM-dd'));
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+
+    //回显
+    function InitDataForm(pkid) {
+        $('#pkid').val(pkid);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engFauConfirm/selectById" + "/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                    defectId = jdata.obj.id;
+                    defectNo = jdata.obj.defectNo;
+                    var temp = jdata.obj.ifRelated;
+                    var str = " <a href=\"javascript:void(0)\" onclick=\"viewFau(defectId,defectNo)\"><p id=\"defectNo\" style=\"font-weight: bold\">\n&nbsp;&nbsp;&nbsp;" +defectNo
+                        "                            </p></a>";
+                    var defect =  window.document.getElementById("defect");
+                    defect.innerHTML = str;
+                    $('#defectId').val(defectId);
+                    if(temp == 'N'){
+                        $("#mro").combobox({required:false});
+                        $("#mro").combobox('setValue',jdata.obj.mro);
+                    }
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFauConfirm/confirmFau",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if (data != null) {
+                        $('#pkid').val(data.pkid);
+                        pkid = data.pkid;
+                        operation = 'edit';
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                    }
+                } else {
+                    MsgAlert({content: "保存失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function tagList(){
+        var tagList = $("#tagName").textbox('getValue');
+        var title_ = $.i18n.t('故障标签');
+        ShowWindowIframe({
+            width: "800",
+            height: "600",
+            title: title_,
+            param: {nos:tagList},
+            url: "/views/engine/engFau/confirm/eng_fau_confirm_tag_list.shtml"
+        });
+    }
+
+    function viewFau(defectId,defectNo){
+        var curWidth = '1000';
+        var curheight = '650';
+        var title_ = $.i18n.t('');
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: title_,
+            param: {defectId: defectId, defectNo: defectNo},
+            url: "/views/engine/engFau/confirm/eng_fau_detail.shtml"
+        });
+    }
+
+    function relChange(temp){
+        if(temp == 'N'){
+            $("#mro").combobox({required:false});
+            $("#mro").combobox('setValue','');
+        }else{
+            $("#mro").combobox({required:true});
+        }
+    }
+
+    function initTagName(){
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFauConfirm/initTagName",
+            data: {"faultReportChn":faultReportChn,"defectId":pkid},
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if (data != null) {
+                        InitDataForm(pkid);
+                    }
+                    flag = 'N';
+                } else {
+                    MsgAlert({content: "初始化标签失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    //添加或编辑
+    function addOrEditTag(operation){
+        var title_ = $.i18n.t('添加或编辑-故障标签设置');
+        ShowWindowIframe({
+            width: "700",
+            height: "350",
+            title: title_,
+            param: {operation: operation,flag:"confirm"},
+            url: "/views/engine/engFau/tag/eng_fau_tag_add_edit.shtml"
+        });
+    }
+
+</script>
+</body>
+</html>

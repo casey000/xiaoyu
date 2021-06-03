@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <meta charset="UTF-8">
+    <title></title>
+    <link href="/css/nrc/nrc_add.css" rel="stylesheet">
+    <style type="text/css">
+        .div_content{
+            width: auto;
+            height: auto;
+            margin: 0 auto;
+            margin-top: 20px;
+        }
+        .div_table{
+            width: 698px;
+            height: auto;
+            margin: auto;
+        }
+        .key-v{
+            padding: 8px;
+            height: 20px!important;
+        }
+        .button{
+            display: inline-block;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px 20px;
+            border: none;
+            font-size: 14px;
+            margin-right: 12px;
+            float: right;
+            margin-top: 15px;
+        }
+        .key{
+            width: 170px;
+        }
+
+        .title_div {
+            height: 50px;
+            font-size: 17px;
+            color: #000;
+            background-color: #ccc;
+            line-height: 50px;
+        }
+
+        .title_di {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<div class="div_content">
+    <div class="div_table">
+        <div class="title_div">
+            以下项目保留申请已完成审批，请确认！
+        </div>
+        <div class="title_di">保留项目详情</div>
+        <table class="addnrc_table" style="margin-top: 5px">
+            <tbody>
+            <tr>
+                <td class="key" >工作包类型:</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em"><span id="revtp"></span></td>
+                <td class="key">工作包号:</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em"><span id="revno"></span></td>
+            </tr>
+            <tr>
+                <td class="key" >项次号:</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em"><span id="itemNo"></span></td>
+                <td class="key">工卡号 :</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em"><span id="cardNumber"></span></td>
+            </tr>
+            <tr>
+                <td class="key" >审批结果:</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em" colspan="3"><span
+                        id="approvalResult"></span></td>
+
+            </tr>
+            <tr>
+                <td class="key" >审批意见:</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em" colspan="3"><span id="comments"></span></td>
+
+            </tr>
+
+            </tbody>
+        </table>
+        <!--<a class="button" onclick="agency_button()">确定</a>-->
+    </div>
+
+</div>
+</body>
+<script src="/js/plugins/ajaxfileupload/ajaxfileupload.js" type="text/javascript"></script>
+<script src="../../../js/datagrid_utils.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+    let params = getParentParam_();
+    $(function () {
+        $("#approvalResult").text(approvalResult_zhuan(params.approvalResult));
+        $("#comments").text(params.comments);
+        data_info(params.workId);
+    });
+
+    function revtp_zhuan(obj) {
+        if (obj == "Z") {
+            return "专项"
+        } else if (obj == "D") {
+            return "定检"
+        } else if (obj == "F") {
+            return "封存"
+        } else {
+            return obj
+        }
+    }
+
+    function approvalResult_zhuan(obj) {
+        if (obj == "Agree") {
+            return "通过";
+        } else if (obj == "Reject") {
+            return "不通过";
+        } else {
+            return obj;
+        }
+    }
+    function data_info(id) {
+        $.ajax({
+            type: "GET",
+            url: "/api/v1/periodic/base/query_defer_task_to_do_by_work_id?workId=" + id,
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                if (data.code == 200) {
+                    $("#revtp").text(revtp_zhuan(data.data.revtp));
+                    $("#revno").text(data.data.revno);
+                    $("#itemNo").text(data.data.itemNo);
+                    $("#cardNumber").text(data.data.cardNumber);
+                } else if (data.msgData && data.msgData[0]) {
+                    alert(data.msgData[0]);
+                } else {
+                    alert(data.msg);
+                }
+            },
+            error: function () {
+                window.alert("失败！");
+            }
+        });
+    }
+
+
+</script>
+</html>

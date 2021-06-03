@@ -1,0 +1,720 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+</head>
+
+<body class="ibody">
+<div style="" id="tt">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <form class="form-horizontal m-t" id="mform">
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <input type="hidden" id="evapkid" name="evapkid"/>
+                    <table class="table table-bordered table-info" width="30%">
+                        <tr id="view">
+                            <td colspan="6" align="right">
+                                <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                       style="width: 50px;margin:5px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th" align="right" style="width: 80px;">范围类型：</th>
+                            <td class="tdr" style="width: 150px">
+                                <input class="easyui-combobox" id="rangeType" name="rangeType"
+                                       data-options="editable:true" style="width: 150px;"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+    <table id="dg"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var evalNo;
+    var applType;
+    var pkid;
+    var spkid;//子表id
+    var rangeType;
+    var PAGE_DATA = {};
+    var groupid;
+    var evapkid;
+    var applyModel;
+    var sflag;
+    var ranPkid;
+    var fleet;
+    var rvalues;
+    var rfjzch = "";
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        evalNo = param.evalNo;
+        pkid = param.pkid;
+        applType = param.applType;
+        groupid = param.groupid;
+        evapkid = param.evapkid;
+        rangeType = param.rangeType;
+        applyModel = param.applyModel;
+        sflag = param.sflag;
+        ranPkid = param.ranPkid;
+        fleet = param.fleet;
+        rvalues = param.rvalues;
+        $("#evapkid").val(evapkid);
+        //适用类型
+        if (!pkid) {
+            pkid = "-1";
+        }
+        if (operation == "view") {
+            $("#view").hide();
+        }
+        if (operation == "edit") {
+            spkid = param.spkid;
+            $("#spkid").val(spkid);
+        }
+        if (sflag != "add") {
+            $("#rangeType").combobox({onlyview: true, editable: false});
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EXP_OP,YESORNO,EM_FILE_APL_RANGE_TYPE,EM_FILE_APL_RANGE_TYPE_S,EM_FILE_PART_RANGE_TYPE," +
+                "EM_FILE_ENG_RANGE_TYPE,EM_FILE_PTF_TYPE,EM_FILE_AC_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (applType == "APL") {
+                        if (fleet == "B737" || fleet == "B757") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        } else if (fleet == "B747" || fleet == "B767") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE_S,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        } else {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        }
+                    } else if (applType == "PART") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_PART_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    } else if (applType == "ENG") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_ENG_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    }
+                    $("#expOp").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_EXP_OP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                }
+                //给范围类型设置值
+                $('#rangeType').combobox('setValue', rangeType);
+                if (param.pkid) {
+//                    InitDataForm(param.pkid);
+                } else {
+//                    changeRangeType();
+                }
+
+                if (ranPkid == "undefined") {
+                    ranPkid = "";
+                }
+                if (rangeType == "FJXH") {
+                    InitDataGrid(ranPkid);
+                } else {
+                    InitDataGridOther(ranPkid);
+                }
+
+            }
+        });
+    }
+
+    //飞机线号
+    function InitDataGrid(ranPkid) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            pageSize: 15,
+            enableLineEdit: true,
+            queryParams: {rangeTypePkid: ranPkid},
+            columns: {
+                param: {FunctionCode: "EM_FILE_EVAL_RANGE_EXP_LIST"},
+                alter: {
+                    PKID: {
+                        editor: {
+                            type: 'textbox', options: {required: false}
+                        }
+                    },
+                    BEGIN: {
+                        editor: {
+                            type: 'textbox', options: {required: true}
+                        }
+                    },
+                    END: {
+                        editor: {
+                            type: 'textbox', options: {required: true}
+
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function (index, row) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+                save(index, row, changes);
+            },
+            contextMenus: [
+                /*   {
+                       id: "m-edit",
+                       i18nText: "EXCEPT",
+                       onclick: function () {
+                           var rowData = getDG('dg').datagrid('getSelected');
+                           if (!rowData.PKID) {
+                               MsgAlert({content: "请先保存数据！", type: 'error'});
+                               return;
+                           }
+                           openDetai('edit', rowData.PKID);
+                       }
+                   },*/ {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var row = $('#dg').datagrid('getSelected');
+                        var rowIndex = $('#dg').datagrid('getRowIndex', row);
+                        if (!row.PKID) {
+                            //如果没有保存，直接在datagrid移除该行
+                            $('#dg').datagrid('deleteRow', rowIndex);
+                        } else {
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: row.PKID,
+                                    ranPkid: ranPkid,
+                                    rangeType: rangeType,
+                                    groupid: groupid,
+                                    evapkid: evapkid,
+                                    fleet: fleet,
+                                    FunctionCode: 'EM_FILE_RANGE_EXP_DEL'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        $('#dg').datagrid('deleteRow', rowIndex);
+                                        param.OWindow.reload_();
+                                        param.OWindow.parReload("#dg4");
+                                        param.OWindow.parReload("#dg5");
+                                        param.OWindow.parReload("#dg17");
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
+            ],
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('增加'),
+                iconCls: 'icon-add',
+                handler: function () {
+                    addDatagridRow('add');
+                }
+            }],
+            onBeforeLoad: function (data) {
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    //飞机可变号，客改货有效号
+    function InitDataGridOther(ranPkid) {
+        var opType = "EM_FILE_PTF_TYPE";
+        if (rangeType == "FJKBH") {
+            opType = "EM_FILE_AC_TYPE";
+        }
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            pageSize: 15,
+            enableLineEdit: true,
+            queryParams: {rangeTypePkid: ranPkid},
+            columns: {
+                param: {FunctionCode: "EM_FILE_EVAL_RANGE_EXP_OTHER"},
+                alter: {
+                    PKID: {
+                        editor: {
+                            type: 'textbox', options: {required: false}
+                        }
+                    },
+                    OPE_TYPE: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                queryParams: {domainCode: opType},
+                                url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                                required: true,
+                                loadFilter: function (jdata) {
+                                    var v = eval("jdata.data." + opType);
+                                    return v;
+                                },
+                                tipPosition: 'top'
+                            }
+                        }, formatter: function (value) {
+                            return value;
+                        }
+                    },
+                    BEGIN: {
+                        editor: {
+                            type: 'textbox', options: {required: true}
+                        }
+                    },
+                    END: {
+                        editor: {
+                            type: 'textbox', options: {required: true}
+
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function (index, row) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+                save(index, row, changes);
+            },
+            contextMenus: [
+                /*  {
+                      id: "m-edit",
+                      i18nText: "EXCEPT",
+                      onclick: function () {
+                          var rowData = getDG('dg').datagrid('getSelected');
+                          if (!rowData.PKID) {
+                              MsgAlert({content: "请先保存数据！", type: 'error'});
+                              return;
+                          }
+                          openDetai('edit', rowData.PKID);
+                      }
+                  }, */{
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var row = $('#dg').datagrid('getSelected');
+                        var rowIndex = $('#dg').datagrid('getRowIndex', row);
+                        if (!row.PKID) {
+                            //如果没有保存，直接在datagrid移除该行
+                            $('#dg').datagrid('deleteRow', rowIndex);
+                        } else {
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: row.PKID,
+                                    ranPkid: ranPkid,
+                                    rangeType: rangeType,
+                                    groupid: groupid,
+                                    evapkid: evapkid,
+                                    fleet: fleet,
+                                    FunctionCode: 'EM_FILE_RANGE_EXP_DEL'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        $('#dg').datagrid('deleteRow', rowIndex);
+                                        param.OWindow.reload_();
+                                        param.OWindow.parReload("#dg4");
+                                        param.OWindow.parReload("#dg5");
+                                        param.OWindow.parReload("#dg17");
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
+            ],
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('增加'),
+                iconCls: 'icon-add',
+                handler: function () {
+                    addDatagridRow('add');
+                }
+            }],
+            onBeforeLoad: function (data) {
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    function openDetai(type, pkid) {
+        ShowWindowIframe({
+            width: 566,
+            height: 366,
+            param: {type: type, exppkid: pkid, evapkid: evapkid, groupid: groupid, rangeType: rangeType},
+            title: "排除",
+            url: "/views/em/emfileeval/applic/exceptList.shtml"
+        });
+    }
+
+    function save(index, row, changes) {
+        row = toCamelCase(row);
+        var opeType = row.opeType;
+        var begin = row.begin;
+        var end = row.end;
+        //校验同范围类型不允许重复添加
+        var rangeType = $("#rangeType").textbox('getValue');
+        var curCou = 0;
+        InitFuncCodeRequest_({
+            data: {
+                groupid: groupid,
+                rangeType: rangeType,
+                pkid: ranPkid,
+                FunctionCode: 'EM_FILE_CHECK_RANGE_TYPE_LINE'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        curCou = jdata.data.COU;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+        if (curCou != 0) {
+            MsgAlert({content: "范围类型重复，请重新选择！", type: 'error'});
+            return;
+        }
+
+        if (rangeType == 'FJXH') {
+            checkFjxh(begin, end, fleet);
+        } else if (rangeType == 'FJKBH') {
+            checkFjkbh(begin, end, fleet, opeType);
+        } else if (rangeType == 'PTF') {
+            checkPtf(begin, end, fleet, opeType);
+        }
+
+        if (rfjzch != "") {
+            MsgAlert({content: "以下飞机已经存在：" + rfjzch, type: 'error'});
+            return;
+        }
+
+        var rangeType = $("#rangeType").combobox('getValue');
+        var data = $.extend({}, {
+            groupid: groupid,
+            evapkid: evapkid,
+            rangeType: rangeType,
+            ranPkid: ranPkid,
+            fleet: fleet
+        }, row, {FunctionCode: 'EM_FILE_EVAL_GROUP_LINE_SAVE'});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    ranPkid = jdata.data.pkid;
+                    pkid = $("#pkid").val();
+                    if (rangeType == "FJXH") {
+                        InitDataGrid(ranPkid);
+                    } else {
+                        InitDataGridOther(ranPkid);
+                    }
+                    param.OWindow.reload_();
+                    param.OWindow.parReload("#dg4");
+                    param.OWindow.parReload("#dg5");
+                    param.OWindow.parReload("#dg17");
+
+                    if (pkid) {
+                        $("#rangeType").combobox({onlyview: true, editable: false});
+                        $("#rangeType").combobox('setValue', rangeType);
+                    }
+                }
+            }
+        });
+    }
+
+    //间隔
+    function reload() {
+        $("#dg").datagrid("reload");
+    }
+
+    //页面重新加载
+    function setPages(rangeType) {
+        if (rangeType == "") {
+            window.location.href = '/views/em/emfileeval/applic/addAllApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+            window.resizeTo("550", "300");
+        }
+        if (applType == "APL") {
+            if (rangeType == 'JXXL' || rangeType == 'ENG' || rangeType == 'GZCS' || rangeType == 'FJZCH') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'FJXH' || rangeType == 'PTF' || rangeType == 'FJKBH') {
+                window.location.href = '/views/em/emfileeval/applic/addLineNoApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            }
+        } else if (applType == "ENG") {
+            if (rangeType == 'ENG' || rangeType == 'ENGSUB') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'ENGSERI') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("900", "700");
+            }
+        } else if (applType == "PART") {
+            if (rangeType == 'DESC') {
+                window.location.href = '/views/em/emfileeval/applic/addDescApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("550", "250");
+            } else if (rangeType == 'PN' || rangeType == 'SN') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("900", "700");
+            }
+        }
+    }
+    //增加行
+    function addDatagridRow() {
+        $('#dg').datagrid('appendRow', {});
+    }
+
+
+    function checkFjxh(begin, end, fleet) {
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                groupid: groupid,
+                groupid: groupid,
+                begin: begin,
+                end: end,
+                fleet: fleet,
+                FunctionCode: 'EM_FILE_CHECK_FJXH'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            evapkid: evapkid,
+                                            groupId: groupid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_FILE_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkFjkbh(begin, end, fleet, opeType) {
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                groupid: groupid,
+                groupid: groupid,
+                begin: begin,
+                end: end,
+                fleet: fleet,
+                opeType: opeType,
+                FunctionCode: 'EM_FILE_CHECK_FJKBH'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            evapkid: evapkid,
+                                            groupId: groupid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_FILE_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkPtf(begin, end, fleet, opeType) {
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                groupid: groupid,
+                groupid: groupid,
+                begin: begin,
+                end: end,
+                fleet: fleet,
+                opeType: opeType,
+                FunctionCode: 'EM_FILE_CHECK_PTF'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            evapkid: evapkid,
+                                            groupId: groupid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_FILE_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</html>

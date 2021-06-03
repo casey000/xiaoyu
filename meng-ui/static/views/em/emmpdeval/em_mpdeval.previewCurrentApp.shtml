@@ -1,0 +1,109 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <legend data-i18n="" id="id1">飞机适用性</legend>
+
+                <fieldset class="fieldset_eui" style="margin-right:5px">
+                    <legend data-i18n="" id="id2">适用飞机&nbsp;&nbsp;&nbsp;</legend>
+                    <span id="acnoInfos" style="color: red"></span>
+                    <table cellspacing="0" cellpadding="2">
+                    </table>
+                    <table id="dg2"></table>
+                </fieldset>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var PKID;
+    var isRD;
+    var rangeDate;
+    var fleet;
+    var appltype;
+    var evalNo;
+    var op;
+    var applDesc;
+    var rangeType;
+    var PAGE_DATA = {};
+    param = getParentParam_();
+    evalNo = param.evalNo;//评估单号
+    appltype = param.appltype;
+    fleet = param.fleet;
+    var checkAcnos = {};
+
+    function i18nCallBack() {
+        if (appltype == "ENG") {
+            $("#id2").html("适用发动机");
+        }
+        InitFuncCodeRequest_({
+            data: {evalNo: param.evalNo, fleet: fleet, appltype: param.appltype, FunctionCode: "EM_MPD_SYFJ_CURRENT"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    checkAcnos = jdata.data;
+                    InitDataGrid();
+                }
+            }
+        });
+        //$('#applDesc').textbox({value: param.applDesc});
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg2';
+        $("#dg2").MyDataGrid({
+            identity: identity,
+            queryParams: {fleet: fleet, appltype: param.appltype},
+            columns: {
+                param: {FunctionCode: (appltype == "ENG") ? "EM_MPD_APPLENGAPU" : 'EM_MPD_ACNOINFOS_SHOW'},//EM_MPD_ACNOINFOS_SHOW
+            },
+            resize: function () {
+                return {width: 480, height: 370};
+            },
+            onLoadSuccess: function (data) {
+                var acnosInfos = "飞机总架数：" + data.total + "，已选择架数：" + checkAcnos.length + "，未选择架数：" + (data.total - checkAcnos.length);
+                $("#acnoInfos").html(acnosInfos);
+                if (data) {
+                    $.each(data.rows, function (index, item) {
+                        for (var i = 0; i < checkAcnos.length; i++) {
+                            if (checkAcnos[i].AC_ID == item.ACID) {
+                                $('#dg2').datagrid('checkRow', index);
+                            }
+                        }
+
+                    });
+                }
+            }
+        });
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#dg").form('clear');
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+</script>
+</html>

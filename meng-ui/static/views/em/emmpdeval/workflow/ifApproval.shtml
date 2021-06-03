@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>是否提交可靠委员</title>
+</head>
+<body class="ibody">
+<div style="" id="tt">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <form class="form-horizontal m-t" id="mform">
+                    <!--<input type="hidden" id="evalNo" name="evalNo"/>-->
+                    <table class="table table-bordered table-info" width="30%">
+                        <tr id="view">
+                            <td colspan="6" align="right">
+                                <input class="btn btn-primary" type="button" onclick="save()" value="确定"
+                                       style="width: 50px;margin:5px;"/>
+                                <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                       style="width: 50px;margin:5px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="td5" style="width: 150px" align="right">是否可靠性委员会审批：</th>
+                            <td>&nbsp; &nbsp; &nbsp;
+                                <input id="q1" class="w1" name="ifApproval" value="Y" type="radio" >是</input>
+                                &nbsp; &nbsp; &nbsp;
+                                <input id="q2" class="w1" name="ifApproval" value="N" type="radio" checked>否</input>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th data-i18n="" class="td5" style="width: 150px" align="right">流程审批人：</th>
+                            <td class="tdr">
+                                <input class="easyui-combobox" name="authId" id="authId"
+                                       data-options="required:true,validType:['maxLength[20]']" style="width:200px;"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/hr/common_hr.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var type;
+    var pkid;
+    var evalNo;
+    var selectRow;
+    var userInfo = getLoginInfo();
+    var userId = userInfo.accountId;
+    var taskId="";
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        evalNo = param.evalNo;
+        taskId = param.taskId;
+        var roleId = queryNodeConfByTaskId(taskId).ROLE_ID;
+        $("#authId").MyComboGrid({
+            idField: 'ACCOUNT_ID',  //实际选择值
+            textField: 'USER_NAME', //文本显示值
+            panelHeight: '220px',
+            width: 200,
+            params: {userId: userId, roleId: roleId, FunctionCode: 'FLOW_WORK_ACCOUNT'},
+            columns: [[
+                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                {field: 'USER_NAME', title: '审核人', width: 50}
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                    alert('请选择，不要直接输入！');
+                    $(this).combogrid({value: ''});
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+            }
+        });
+    }
+
+    /** 保存 */
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        $.messager.confirm('', '确认提交该记录？', function (r) {
+            if (r) {
+                //保存是否提交可靠委审核
+                var ifApproval = $('input:radio:checked').val();
+                datas = $.extend({}, {
+                    evalNo: evalNo,
+                    ifApproval: ifApproval
+                }, {FunctionCode: 'EM_MPD_EVAL_IF_APPROVAL_SAVE'});
+                InitFuncCodeRequest_({
+                    data: datas, successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            var authId = $("#authId").combobox('getValue');
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: param.PKID,
+                                    authId: authId,
+                                    otherParam: evalNo,
+                                    FunctionCode: 'EM_MPD_EVAL_FLOW_SUBMIT'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        CloseWindowIframe();
+                                        param.OWindow.closWindow();
+                                    } else {
+                                        MsgAlert({
+                                            content: jdata.msgData ? jdata.msgData[0] : jdata.msg,
+                                            type: 'error'
+                                        });
+                                    }
+                                }
+                            });
+                        } else {
+                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                        }
+                    }
+                });
+
+            }
+
+
+        });
+    }
+</script>
+</html>

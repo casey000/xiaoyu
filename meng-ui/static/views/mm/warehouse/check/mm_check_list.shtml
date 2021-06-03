@@ -1,0 +1,668 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="mm_warehouse">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title></title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" narrow="true" style="width:100%; height: 100%">
+    <div title="航材检验清单" data-options="" style="display: none; padding: 2px; overflow: hidden;">
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th style="width:60px;">检验类型：</th>
+                        <td style="width:100px;">
+                            <input class="easyui-combobox" name="inspectType1" id="inspectType" style="width:100px;"/>
+                        </td>
+                        <th style="width:70px;">检验单编号：</th>
+                        <td style="width:80px;">
+                            <input class="easyui-textbox" name="grDocumentNo1" style="width:80px;"/>
+                        </td>
+                        <th style="width:60px;">检验件号：</th>
+                        <td style="width:80px;">
+                            <input class="easyui-textbox" name="refPartNo1" style="width:100px;"/>
+                        </td>
+                        <th style="width:60px;">检验序号：</th>
+                        <td style="width:80px;">
+                            <input class="easyui-textbox" name="refSerialNumber1" style="width:80px;"/>
+                        </td>
+
+                        <td colspan="2">
+                            <a href="javascript:void(0)" auth="MM_INSP_ADD" class="addBtn" data-options=""
+                               onclick="checkInfo_()">检验</a>
+                            <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="doSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a href="javascript:void(0)" class="ridoBtn" data-options="iconCls:'icon-filter'"
+                               onclick="helpQuery('dg', 'ffSearch', function(){onSearch_(); });"><span>高级查询</span></a>
+                            <a href="javascript:void(0)" class="excelBtn" data-options="iconCls:'icon-page_excel'"
+                               onclick="excelExport('dg','采购协议管理列表',{},function(){
+                           return {'PAGE_DATA' : PAGE_DATA}});"><span
+                                    data-i18n="common:COMMON_OPERATION.EXPORT">导出Excel</span></a>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+                        <th>检验单日期：</th>
+                        <td colspan="3">
+                            <input class="easyui-datebox" name="startDate1" data-options="editable:false"
+                                   style="width:100px;"/>
+                            TO
+                            <input class="easyui-datebox" name="endDate1" data-options="editable:false"
+                                   style="width:100px;"/>
+                        </td>
+
+                        <th>仓库号：</th>
+                        <td>
+                            <input class="easyui-combobox" name="warehouseNo1" id="warehouseNo" style="width:100px;"/>
+                        </td>
+                        <th>商检结论：</th>
+                        <td>
+                            <input class="easyui-combobox" name="bizInspectResult1" id="bizInspectResult"
+                                   style="width:80px;"/>
+                        </td>
+                        <th>质检结论：</th>
+                        <td>
+                            <input class="easyui-combobox" name="airInspectResult1" id="airInspectResult"
+                                   style="width:100px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+        <table id="dg"></table>
+    </div>
+    <div id="tab2" title="航材检验录入" style="display: none; padding: 2px;">
+        <form id="mform01" method="post">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="td5" style="width:115px;" align="right"> 检验类型：</th>
+                    <input type="hidden" name="itemNo" id="itemNo" style="width:100px;"/>
+                    <td class="tdr">
+                        <input class="easyui-combobox" name="checkType" id="checkType" style="width:100px;"/>
+                    </td>
+                    <th class="td5" style="width:115px;" align="right"> 合同号：</th>
+                    <td class="tdr" style="width:100px;">
+                        <input class="easyui-textbox" id="orderNo" name="orderNo"
+                               data-options="validType:['maxLength[30]']" style="width:100px;"/>
+                    </td>
+                    <th class="td5" style="width:50px;" align="right"> 件号：</th>
+                    <td class="tdr" style="width:100px;">
+                        <input class="easyui-textbox" name="partNo" id="partNo"
+                               data-options="validType:['maxLength[60]']" style="width:100px;"/>
+                    </td>
+                    <th class="td5" style="width:50px;" align="right"> 序号：</th>
+                    <td class="tdr" style="width:100px;">
+                        <input class="easyui-textbox" name="serialNumber" id="serialNumber"
+                               data-options="validType:['maxLength[60]']" style="width:100px;"/>
+                    </td>
+                    <th class="td5" style="width:50px;" align="right"> 厂商：</th>
+                    <td class="tdr" style="width:100px;">
+                        <input class="easyui-textbox" name="vendorName" data-options="validType:['maxLength[60]']"
+                               style="width:100px;"/>
+                    </td>
+                    <td class="tdr" style="width:150px;">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="dgSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <input auth="MM_INSP_ADD" class="btn btn-primary" type="button" onclick="submitForm_()"
+                               item="btnItem" id="btnSave" value="保存"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+        <table id="dg01"></table>
+        <div id="aa" class="easyui-tabs" narrow="true" style="width:98.7%; height: 75%;">
+            <div title="外观商务检查" style="display: none; padding: 2px;">
+                <form id="mform02" method="post">
+                    <table class="table table-bordered table-info">
+                        <!-- 评估单号 -->
+                        <input name="evaluateNo" id="evaluateNo" type="hidden"/>
+                        <tr>
+                            <th class="td5" style="width:65px;" align="right"> 仓库号：</th>
+                            <td class="tdr">
+                                <input class="easyui-combobox" name="warehouseNo" id="warehouseNo1"
+                                       data-options="required:true" style="width:100px;"/>
+                            </td>
+                            <th class="td5" style="width:72px;" align="right"> 检验类型：</th>
+                            <td class="tdr">
+                                <input class="easyui-combobox" name="inspectType" id="inspectType1"
+                                       data-options="editable:false,onlyview:true" style="width:130px;"/>
+                            </td>
+                            <th class="td5" style="width:85px;" align="right"> 参考合同号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="refPo" id="refPo"
+                                       data-options="editable:false,onlyview:true,validType:['maxLength[30]']"
+                                       style="width:135px;"/>
+                            </td>
+                            <!--<th class="td5" style="width:100px;" align="right"> 参考退料单号：</th>-->
+                            <!--<td class="tdr">-->
+                            <!--<input class="easyui-textbox"  name="refReturnNo" id="refReturnNo" data-options="editable:false,onlyview:true,validType:['maxLength[30]']" style="width:135px;"/>-->
+                            <!--</td>-->
+                            <th class="td5" style="width:85px;" align="right"> 参考运单号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="refAwb" id="refAwb"
+                                       data-options="editable:false,onlyview:true,validType:['maxLength[30]']"
+                                       style="width:100px;"/>
+                            </td>
+                            <th class="td5" style="width:85px;" align="right"> 批次号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="batchNoSys" id="batchNoSys"
+                                       data-options="editable:false,onlyview:true,validType:['maxLength[30]']"
+                                       style="width:100px;"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="td5" align="right" style="width: 72px"> 参考件号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="refPartNo" id="refPartNo"
+                                       data-options="editable:false,onlyview:true,validType:['maxLength[60]']"
+                                       style="width:100px;"/>
+                            </td>
+                            <th class="td5" align="right"> 参考序号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="refSerialNumber" id="refSerialNumber"
+                                       data-options="editable:false,onlyview:true,validType:['maxLength[60]']"
+                                       style="width:130px;"/>
+                            </td>
+                            <th class="td5" align="right" style="width:120px"> 参考到货数量：</th>
+                            <td class="tdr">
+                                <input class="easyui-numberbox" name="refQty" id="refQty"
+                                       data-options="editable:false,onlyview:true,validType:['maxLength[10]'],precision:2"
+                                       style="width:80px;"/>
+                                <input class="easyui-combobox" name="orderUnit" id="orderUnit"
+                                       data-options="editable:false,onlyview:true" style="width:50px;"/>
+                            </td>
+                            <th class="td5" align="right"> 原适航挂签号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="originHangtagNo" id="originHangtagNo"
+                                       data-options="editable:false,onlyview:true,validType:['maxLength[60]']"
+                                       style="width:135px;"/>
+                            </td>
+                            <th class="td5" align="right"> 物料类别：</th>
+                            <td class="tdr">
+                                <input class="easyui-combobox" name="partAttr" id="partAttr"
+                                       data-options="editable:false,onlyview:true" style="width:100px;"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="td5" align="right"> 到货件号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="actualPartNo" id="actualPartNo"
+                                       data-options="required:true,validType:['maxLength[60]']" style="width:100px;"/>
+                            </td>
+                            <th class="td5" align="right"> 到货序号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="actualSerialNumber" id="actualSerialNumber"
+                                       data-options="" style="width:80px;"/>
+                                <div class="easyui-dialog" closed="true" style="width:400px;height:300px" id="dlg1"
+                                     buttons="#dlg1-buttons1">
+                                    <input class="easyui-textbox" name="moreSerialNumber" id="moreSerialNumber"
+                                           data-options="multiline:true" style="width:386px;height:225px">
+                                </div>
+                                <div id="dlg1-buttons1">
+                                    <a href="javascript:void(0)" class="addBtn" iconCls="icon-ok"
+                                       onclick="moreSerialNumber()" style="width:90px">确定</a>
+                                    <a href="javascript:void(0)" class="clearBtn" iconCls="icon-cancel"
+                                       onclick="javascript:$('#dlg1').dialog('close')" style="width:90px">取消</a>
+                                </div>
+                                <a href="javascript:void(0)" class="searchBtn" id="btnSerialNumber" item="btnItem"
+                                   data-options="" onclick="openSerialNumber()"
+                                   style="padding: 3px 10px;"><span>更多</span></a>
+                            </td>
+                            <th class="td5" align="right"> 到货批次号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="batchNo" id="batchNo"
+                                       data-options="editable: false,onlyview: true" style="width:80px;"/>
+                                <div class="easyui-dialog" closed="true" style="width:400px;height:300px" id="dlg"
+                                     buttons="#dlg-buttons">
+                                    <input class="easyui-textbox" name="moreBatchNo" id="moreBatchNo"
+                                           data-options="multiline:true" style="width:386px;height:225px">
+                                </div>
+                                <div id="dlg-buttons">
+                                    <a href="javascript:void(0)" class="addBtn" iconCls="icon-ok"
+                                       onclick="moreBatchNo()" style="width:90px">确定</a>
+                                    <a href="javascript:void(0)" class="clearBtn" iconCls="icon-cancel"
+                                       onclick="javascript:$('#dlg').dialog('close')" style="width:90px">取消</a>
+                                </div>
+                                <a href="javascript:void(0)" class="searchBtn" data-options="" id="btnBatchNo"
+                                   item="btnItem" onclick="openBatchNo()" style="padding: 3px 10px;"><span>更多</span></a>
+                            </td>
+                            <th class="td5" align="right"> 实际到货数量：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="inspectQty" id="inspectQty"
+                                       data-options="required:true,validType:['maxLength[12]'],precision:4"
+                                       style="width:80px;"/>
+                                <input class="easyui-combobox" name="inspectUnit" id="inspectUnit"
+                                       data-options="required:true" style="width:50px;"/>
+                            </td>
+                            <th class="td5" align="right"> 物料件况：</th>
+                            <td class="tdr">
+                                <input class="easyui-combobox" name="partCondition" id="partCondition"
+                                       data-options="required:true" style="width:100px;"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th class="td5" align="right"> 生产日期：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox" name="productionDate" id="productionDate"
+                                       data-options="editable:true" style="width:100px;"/>
+                            </td>
+                            <th class="td5" align="right"> 出厂日期：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox" name="factoryDate" id="factoryDate"
+                                       data-options="editable:true" style="width:130px;"/>
+                            </td>
+                            <th class="td5" align="right"> 库存期限：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox" name="stockLife" id="stockLife"
+                                       data-options="editable:true" style="width:135px;"/>
+                            </td>
+                            <th class="td5" align="right"> 修理日期：</th>
+                            <td class="tdr">
+                                <input class="easyui-datetimebox" name="repairDate" id="repairDate"
+                                       data-options="editable:true" style="width:135px;"/>
+                            </td>
+                            <th class="td5" align="right"> 报废日期：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox" name="scrapDate" id="scrapDate"
+                                       data-options="editable:true" style="width:100px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="td5" align="right"> 索赔期限：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox" name="warrantyLife" id="warrantyLife"
+                                       data-options="editable:false" style="width:100px;"/>
+                            </td>
+                            <th class="td5" align="right"> 包装要求：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="packRequire"
+                                       data-options="validType:['maxLength[100]']" style="width:130px;"/>
+                            </td>
+                            <th class="td5" align="right"> 储存温度要求：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="storeWdyq"
+                                       data-options="validType:['maxLength[60]']" style="width:135px;"/>
+                            </td>
+                            <th class="td5" align="right"> 储存湿度要求：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="storeSdyq"
+                                       data-options="validType:['maxLength[60]']" style="width:135px;"/>
+                            </td>
+                            <th class="td5" align="right"> 检查结论：</th>
+                            <td class="tdr">
+                                <input class="easyui-combobox" name="bizInspectResult" id="bizInspectResult1"
+                                       data-options="required:true" style="width:100px;"/>
+                            </td>
+                        </tr>
+                    </table>
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <td class="tdr" style="width:84px;">
+                                <input type="checkbox" item="checkItem" value="Y" name="packIfOk"/>&nbsp;航材外包装是否完好
+                            </td>
+                            <td class="tdr" style="width:68px;">
+                                <input type="checkbox" item="checkItem" value="Y" name="surfaceIfOk"/>&nbsp;航材外表面是否完好
+                            </td>
+                            <td class="tdr" style="width:104px;">
+                                <input type="checkbox" item="checkItem" value="Y" name="ifMatchPo"/>&nbsp;航材实物和合同信息是否匹配
+                            </td>
+                            <td class="tdr" style="width:65px;">
+                                <input type="checkbox" item="checkItem" value="Y" name="ifFjd"/>&nbsp;是否有防静电标识
+                            </td>
+                            <td class="tdr" style="width:45px;">
+                                <input type="checkbox" item="checkItem" value="Y" name="ifWxp"/>&nbsp;是否危险品
+                            </td>
+                            <th class="td5" style="width:59px;" align="right"> 产权类型：</th>
+                            <td class="tdr" style="width:100px;">
+                                <input class="easyui-combobox" name="propertyType" id="propertyType" data-options=""
+                                       style="width:130px;"/>
+                            </td>
+                        </tr>
+                    </table>
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <th class="td5" style="width: 120px;" rowspan="4" align="right">其他描述：</th>
+                            <td class="tdr" colspan="2" rowspan="4">
+                                <input class="easyui-textbox easyui-validatebox" name="bizInspectDesc"
+                                       data-options="multiline:true,validType:['maxLength[300]']"
+                                       style="width:320px;height:80px">
+                            </td>
+                            <th class="td5" style="width: 120px;" rowspan="4" align="right">差异描述：</th>
+                            <td class="tdr" colspan="2" rowspan="4">
+                                <input class="easyui-textbox easyui-validatebox" name="bizDiffDesc"
+                                       data-options="multiline:true,validType:['maxLength[300]']"
+                                       style="width:320px;height:80px">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="td5" style="width:120px;" align="right">差异责任方：</th>
+                            <td class="tdr">
+                                <input class="easyui-combobox" name="bizDiffResponsibleParty"
+                                       id="bizDiffResponsibleParty" data-options="" style="width:150px;"/>
+                            </td>
+
+                        </tr>
+                        <tr>
+                            <th class="td5" style="width:120px;" align="right">商务检验员：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" id="bizInspector" name="bizInspector"
+                                       data-options="validType:['maxLength[30]']" style="width:150px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="td5" style="width:120px;" align="right">检验日期：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox" id="bizInspectDate" name="bizInspectDate"
+                                       id="bizInspectDate" data-options="editable:false" style="width:150px;"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+            <div title="质量证书检查" data-options="" style="display: none; padding: 2px;">
+                <div class="easyui-layout layout easyui-fluid" style="width:100%;height: 300px;">
+                    <div class="panel layout-panel layout-panel-west layout-split-west easyui-fluid"
+                         style="width: 702px;top: 0px;overflow: auto;">
+                        <table id="cert"></table>
+                    </div>
+                </div>
+                <div class="panel layout-panel layout-panel-center"
+                     style="height: 100%; width:398px;left: 706px; top: 0px;">
+                    <div data-options="region:'center'" title="" class="panel-body panel-body-noheader layout-body">
+                        <form id="mform03" method="post">
+                            <table class="table table-bordered table-info" style="width:100%;height: 315px">
+                                <tr>
+                                    <td align="left">
+                                        <a href="javascript:void(0)" class="addBtn" data-options="" item="btnItem"
+                                           onclick="addCert()" id="btnAddCert"><span>增加新证书</span></a>
+                                    </td>
+                                    <td align="left">
+                                        <a href="javascript:void(0)" class="excelBtn" data-options="" item="btnItem"
+                                           onclick="uploadCert()" id="btnUpload"><span>上传证书附件</span></a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <input type="checkbox" item="checkItem" value="Y" id="certIfOk"
+                                               name="certIfOk"/>&nbsp;证书是否符合要求
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th style="width:120px;" align="right">检查结论：</th>
+                                    <td>
+                                        <input class="easyui-combobox" name="airInspectResult" id="airInspectResult1"
+                                               data-options="required:true" style="width:200px;"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th style="width:120px;" align="right">差异描述：</th>
+                                    <td>
+                                        <input class="easyui-textbox" name="airDiffDesc" id="airDiffDesc"
+                                               data-options="validType:['maxLength[300]']" style="width:200px;"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th style="width:120px;" align="right">差异责任方：</th>
+                                    <td>
+                                        <input class="easyui-combobox" name="airDiffResponsibleParty"
+                                               id="airDiffResponsibleParty" data-options="" style="width:200px;"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th style="width:120px;" align="right">适航检验员：</th>
+                                    <td>
+                                        <input class="easyui-textbox" name="airInspector" id="airInspector"
+                                               data-options="validType:['maxLength[30]']" style="width:200px;"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th style="width:120px;" align="right">检验日期：</th>
+                                    <td>
+                                        <input class="easyui-datebox" name="airInspectDate" id="airInspectDate"
+                                               data-options="editable:false" style="width:200px;"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div title="返回件确认" id="confirm" data-options=""
+                 style="display: none; padding: 2px;overflow: visible;height:100%">
+                <div class="easyui-layout layout easyui-fluid" style="height:100%">
+                    <div class="panel layout-panel layout-panel-west layout-split-west easyui-fluid"
+                         style="width: 67%; height:100%;left: 0px; top: 0px;overflow: auto">
+                        <form id="mform04" method="post">
+                            <fieldset class="fieldset_eui">
+                                <legend>修理级别确认</legend>
+                                <table class="table table-bordered table-info">
+                                    <tr>
+                                        <td class="tdr" style="width:44px;">
+                                            <input type="checkbox" item="checkItem" value="Y" name="repairMark"
+                                                   id="repairMark" onclick=" RadioClick1()"/>&nbsp;修理（REPAIR）
+                                        </td>
+                                        <td class="tdr" style="width:46px;">
+                                            <input type="checkbox" item="checkItem" value="Y" name="overhaulMark"
+                                                   id="overhaulMark" onclick="RadioClick2()"/>&nbsp;大修（OVERHAUL）
+                                        </td>
+                                        <td class="tdr" style="width:48px;">
+                                            <input type="checkbox" item="checkItem" value="Y" name="modifyMark"
+                                                   id="modifyMark"/>&nbsp;改装（MODIFY）
+                                        </td>
+                                        <td class="tdr" style="width:46px;">
+                                            <input type="checkbox" item="checkItem" value="Y" name="testingMark"
+                                                   id="testingMark" onclick="RadioClick3()"/>&nbsp;测试（TEST）
+                                        </td>
+                                        <td class="tdr" style="width:46px;">
+                                            <input type="checkbox" item="checkItem" value="Y" name="warrantyMark"
+                                                   id="warrantyMark"/>&nbsp;索赔（WARRANTY）
+                                        </td>
+                                    </tr>
+                                </table>
+                            </fieldset>
+                            <fieldset class="fieldset_eui">
+                                <legend>附件时间确认</legend>
+                                <table class="table table-bordered table-info">
+                                    <tr>
+                                        <th style="width:90px;" align="right"> TSR：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="tsr" id="tsr"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> TSO：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="tso" id="tso"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> TSN：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="tsn" id="tsn"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> TSI：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="tsi" id="tsi"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> TST：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="tst" id="tst"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th style="width:90px;" align="right"> CSR：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="csr" id="csr"
+                                                   data-options="validType:['maxLength[10]']" style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> CSO：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="cso" id="cso"
+                                                   data-options="validType:['maxLength[10]']" style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> CSN：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="csn" id="csn"
+                                                   data-options="validType:['maxLength[10]']" style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> CSI：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="csi" id="csi"
+                                                   data-options="validType:['maxLength[10]']" style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> CST：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="cst" id="cst"
+                                                   data-options="validType:['maxLength[10]']" style="width:90px;"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th style="width:90px;" align="right"> MSR：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="msr" id="msr"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> MSO：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="mso" id="mso"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> MSN：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="msn" id="msn"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> MSI：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="msi" id="msi"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                        <th style="width:90px;" align="right"> MST：</th>
+                                        <td>
+                                            <input class="easyui-numberbox" name="mst" id="mst"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:90px;"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </fieldset>
+                            <table class="table table-bordered table-info">
+                                <tr>
+                                    <th class="td5" style="width:100px;" align="right"> 是否原件返回：</th>
+                                    <td class="tdr" style="width:44px;" colspan="2">
+                                        <input type="radio" item="radioItem" value="Y" name="ifOriginal"
+                                               id="ifOriginal1"/>&nbsp;是
+                                        <input type="radio" item="radioItem" value="N" name="ifOriginal"
+                                               id="ifOriginal2"/>&nbsp;否
+                                    </td>
+                                    <th class="td5" style="width:100px;" align="right"> 是否NFF：</th>
+                                    <td class="tdr" style="width:44px;" colspan="2">
+                                        <input type="radio" item="radioItem" value="Y" name="ifNff" id="ifNff1"/>&nbsp;是
+                                        <input type="radio" item="radioItem" value="N" name="ifNff" id="ifNff2"/>&nbsp;否
+                                        <input type="radio" item="radioItem" value="D" name="ifNff" id="ifNff3"/>&nbsp;不适用
+                                    </td>
+                                    <th class="td5" style="width:100px;" align="right"> 是否ROGUE：</th>
+                                    <td class="tdr" style="width:44px;" colspan="3">
+                                        <input type="radio" item="radioItem" value="Y" name="ifRogue" id="ifRogue1"/>&nbsp;是
+                                        <input type="radio" item="radioItem" value="N" name="ifRogue" id="ifRogue2"/>&nbsp;否
+                                        <input type="radio" item="radioItem" value="D" name="ifRogue" id="ifRogue3"/>&nbsp;不适用
+                                    </td>
+                                </tr>
+                            </table>
+                            <fieldset class="fieldset_eui">
+                                <legend>外单位使用小时循环</legend>
+                                <table class="table table-bordered table-info">
+                                    <tr>
+                                        <th class="td5" style="width:90px;" align="right"> 总装机小时：</th>
+                                        <td class="tdr">
+                                            <input class="easyui-numberbox" name="totalHours"
+                                                   data-options="validType:['maxLength[10]'],precision:2"
+                                                   style="width:120px;"/>
+                                        </td>
+                                        <th class="td5" style="width:90px;" align="right"> 总装机循环：</th>
+                                        <td class="tdr">
+                                            <input class="easyui-numberbox" name="totalCycs"
+                                                   data-options="validType:['maxLength[6]']" style="width:120px;"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </fieldset>
+                            <fieldset class="fieldset_eui">
+                                <legend>厂家完成工作类别及工作描述</legend>
+                                <table class="table table-bordered table-info">
+                                    <tr>
+                                        <th class="td5" style="width:90px;" align="right"> 工作类别：</th>
+                                        <td class="tdr">
+                                            <input class="easyui-combobox" name="workType" id="workType"
+                                                   data-options="validType:['maxLength[20]']" style="width:120px;"/>
+                                            <input class="easyui-textbox" name="workMemo"
+                                                   data-options="validType:['maxLength[100]']" style="width:480px;"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </fieldset>
+                        </form>
+                    </div>
+                </div>
+                <div class="panel layout-panel layout-panel-center"
+                     style="left: 740px; top: 0px;height: 100%;width:34%;">
+                    <div data-options="region:'center'" class="panel-body panel-body-noheader layout-body"
+                         style="height: 100%;">
+                        <form id="mform05" method="post">
+                            <fieldset class="fieldset_eui">
+                                <legend>SB执行确认</legend>
+                                <table class="table table-bordered table-info">
+                                    <!--<th class="td5" style="width:100px;" align="right"> SB是否完成：</th>-->
+                                    <!--<td class="tdr">-->
+                                    <!--<input type="radio" item="radioItem" value="Y" name="sbIfFinish" id="sbIfFinish1"/>&nbsp;是-->
+                                    <!--<input type="radio" item="radioItem" value="N" name="sbIfFinish" id="sbIfFinish2"/>&nbsp;否-->
+                                    <!--<input type="radio" item="radioItem" value="D" name="sbIfFinish" id="sbIfFinish3"/>&nbsp;不适用-->
+                                    <!--</td>-->
+                                    <td class="tdr" align="right">
+                                        <a href="javascript:void(0)" class="addBtn" data-options="" item="btnItem"
+                                           onclick="addSB()" id="btnAddSB"><span>增加SB</span></a>
+                                    </td>
+                                </table>
+                                <div style="width:100%;height: 150px;">
+                                    <table id="sb"></table>
+                                </div>
+
+                            </fieldset>
+                            <fieldset class="fieldset_eui">
+                                <legend>厂家发现问题摘要</legend>
+                                <table class="table table-bordered table-info" style="border: none;">
+                                    <td class="tdr" colspan="2" rowspan="4">
+                                        <input class="easyui-textbox easyui-validatebox" name="questionMemo"
+                                               data-options="multiline:true,validType:['maxLength[100]']"
+                                               style="width:320px;height:60px">
+                                    </td>
+                                </table>
+                            </fieldset>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/warehouse/check/mm_check_list.js"></script>
+</body>
+</html>

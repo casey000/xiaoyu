@@ -1,0 +1,72 @@
+<table class="table table-bordered table-info" style="padding-top:10px" id="relationList">
+    <tr>
+        <th class="table-cell cell-normal">Defect No</th>
+        <th class="table-cell cell-normal">Found Date</th>
+        <th class="table-cell cell-normal">Finder Sign</th>
+        <th class="table-cell cell-normal">A/C No</th>
+        <th class="table-cell cell-normal">Flight No</th>
+    </tr>
+    
+</table>
+    
+<script type="text/javascript">
+
+    $(function(){
+        /** 获取列表数据 **/
+        function get_list_data(){
+            let defectId = parent.get_defectId()
+            let defectNo = parent.get_defectNo()
+            let url = `/api/v1/defect/defect_base_info/findDefectListById?id=${defectId}`;
+            axios.get(url).then(response=>{
+                if(response.data.msg.toUpperCase().indexOf("SUCCESS") != -1){
+                    console.log("response.relation.data")
+                    console.log(response.data.data)
+                    load_list_data(response.data.data)
+                }else if(response.data.msg.toUpperCase().indexOf("ERROR") != -1){
+                    throw new Error("relation列表获取失败")
+                }
+            }).catch(err=>{
+                load_list_data()
+                MsgAlert({type: "error", content: err.message})
+            })
+        }
+
+        function load_list_data(data){
+            if(!data || !Array.isArray(data) || data.length < 1){
+                //没有数据
+                $("#relationList").append(`<tr>\r\n \
+                                    <td class="table-cell cell-normal" colspan="99">N/A</td>\r\n \
+                                </tr>\r\n`)
+            }else{
+                //显示数据
+                for(let i = 0, len = data.length; i < len; i++){
+                    $("#relationList").append(each_table_row(i, data[i]))
+                }
+            }
+        }
+
+        function each_table_row(index, row_data){
+            if(!row_data){
+                return ""
+            }
+            let html = "";
+            let dateFound = row_data.dateFound ? formatterDate(new Date(row_data.dateFound)) : "";
+            let finder = "";
+            if(row_data.technicianFound && row_data.technicianFoundNo){
+                finder = `${row_data.technicianFound}(${row_data.technicianFoundNo})`
+            }
+            html = `<tr>
+                        <td class="table-cell cell-normal"><a style="color: #f60">${row_data.defectNo}</a></td>
+                        <td class="table-cell cell-normal">${dateFound}</td>
+                        <td class="table-cell cell-normal">${row_data.technicianFoundNo||""}</td>
+                        <td class="table-cell cell-normal">${row_data.acReg||""}</td>
+                        <td class="table-cell cell-normal">${row_data.flightNo||""}</td>
+                    </tr>`
+            return html;
+
+        }
+        
+        get_list_data();
+    })
+    
+</script>

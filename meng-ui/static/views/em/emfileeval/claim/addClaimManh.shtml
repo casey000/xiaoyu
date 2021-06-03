@@ -1,0 +1,192 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>人工时</title>
+</head>
+
+<body class="ibody">
+<div style="" id="tt">
+    <fieldset class="fieldset_eui">
+        <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" class="easyui-textbox" id="pkid" name="pkid"/>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th nowrap class="th" align="right">分组：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="appGroupPkid" name="appGroupPkid" style="width:90px"
+                               data-options="required:true"/>
+                    </td>
+                    <th class="th" align="right">Config：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="appConfig" name="appConfig"
+                               style="width:90px"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right">人工时：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="manHours" name="manHours" style="width:90px"
+                               data-options="required:true,events:{blur:checkNum}"
+                        />
+                    </td>
+                    <th class="th" align="right">索赔情况：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="claimSituation" name="claimSituation" style="width:90px"
+                               data-options="required:true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right">备注：</th>
+                    <td class="tdr" colspan="3">
+                                <textarea class="easyui-textbox " id="situationReason" name="situationReason"
+                                          multiline="true"
+                                          style="height:50px;width: 100%;border: 1px solid #ddd;border-radius: 5px;"
+                                ></textarea>
+                    </td>
+                </tr>
+                <tr>
+                    <td class="tdr" colspan="4">
+                        <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                               style="width: 50px;margin:10px;"/>
+                        <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                               style="width: 50px;margin:5px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var evapkid;
+    var pkid;
+    var PAGE_DATA = {};
+    var evapkid;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        evapkid = param.evapkid;
+        pkid = param.pkid;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_FILE_CLAIM_SIT",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#claimSituation').combobox({
+                        data: jdata.data.EM_FILE_CLAIM_SIT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                        onSelect: function (item) {
+                            $('#situationReason').textbox({'required': item.VALUE == 'SQ'});
+                        }
+                    });
+
+                    var datas = $.extend({evapkid: evapkid}, {FunctionCode: 'EM_FILE_GROUP_CLAIM'});
+                    InitFuncCodeRequest_({
+                        data: datas,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                $('#appGroupPkid').combobox({
+                                    panelHeight: '150px',
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    data: jdata.data,
+                                    onSelect: function (data) {
+                                        getConfig(data.VALUE);
+                                    }
+                                });
+                            } else {
+                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                            }
+                        }
+                    });
+                }
+
+                if (param.pkid) {
+                    InitDataForm(param.pkid);
+                }
+
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_FILE_EVAL_CLAIM_MANH_BY_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    //初始化范围值
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    // 保存
+    function save() {
+        var groupid = $('#appGroupPkid').textbox('getValue');
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({
+            evapkid: evapkid,
+            groupid: groupid
+        }, datas, {FunctionCode: 'EM_FILE_EVAL_CLAIM_MANH_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_("#dg10");
+                    $("#pkid").textbox('setValue', jdata.data.pkid);
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    $form.form('clear');
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function getConfig(groupid) {
+        var datas2 = $.extend({evapkid: evapkid, groupid: groupid}, {FunctionCode: 'EM_FILE_GROUP_CONFIG'});
+        InitFuncCodeRequest_({
+            data: datas2, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#appConfig').combobox({
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function checkNum() {
+        var str = $(this).val();
+        if (isNaN(Number(str))) {
+            alert('请输入数字！');
+            $(this).val('');
+
+        }
+    }
+</script>
+</html>

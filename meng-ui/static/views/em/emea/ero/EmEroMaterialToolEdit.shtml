@@ -1,0 +1,350 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="orgName" name="orgName"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <input style="display:none;" name="pkid" id="pkid"/>
+                    <input style="display:none;" name="eoPkid" id="eoPkid"/>
+                    <tr>
+                        <th class="tdl">航材工具类型:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="mtType" id="mtType"
+                                   data-options="editable:false,required:true"/>
+                        </td>
+                        <th class="tdl">工作视情:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="workDepends" id="workDepends"
+                                   data-options="editable:false,required:true" style="width: 160px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">件号:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="pn" id="pn"
+                                   data-options="" style="width:128px"/>
+                            <input id="chooseBtn" class="btn btn-primary" type="button" onclick="choose('pn')"
+                                   value="选取"
+                                   style="width: 40px;"/>
+                        </td>
+
+
+                        <th class="tdl">替代件号:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="replacePn" id="replacePn"
+                                   data-options=""  style="width: 160px;"/>
+                            <!--<input id="RchooseBtn" class="btn btn-primary" type="button" onclick="choose('replacePn')"
+                                   value="选取"
+                                   style="width: 40px;"/>-->
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="tdl">名称:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="name" id="name"
+                                   data-options="required:true"/>
+                        </td>
+
+                        <th class="tdl">数量:</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" data-options="required:true,validType:'qtyValid'" name="qty" id="qty"
+                                   style="width: 160px;"
+                            />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">单位:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="unit" id="unit" data-options="editable:false,required:true"/>
+                        </td>
+                        <th class="tdl">数量按需:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="qtyDemand" id="qtyDemand"
+                                   data-options="editable:false,required:true" style="width: 160px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">备注：</th>
+                        <td class="td5" colspan="3">
+                            <textarea class="easyui-validatebox" id="memo" name="memo"
+                                      data-options="editable:true"
+                                      style="width: 98%;height:50px"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="8" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript">
+
+    var param = {};
+    var pkid;
+    var eoPkid;
+    var operation;
+
+    function i18nCallBack() {
+        window.resizeTo("700", "500");
+        window.moveTo(400, 150);
+        param = getParentParam_();
+        eoPkid = param.eoPkid;
+        operation = param.operation;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_JC_MATER_SORT,TD_JC_MATER_TYPE,TD_JC_MATER_UNIT,YESORNO,TD_JC_MATER_MA_UNS_UNIT,TD_JC_MATER_TOOL_UNIT,QUANTITY_IF_DEMAND",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //航材工具
+                    $('#mtType').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.TD_JC_MATER_SORT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item, old) {
+                            item = item.VALUE;
+                            clearForm();
+                            if (item == 'UNSPECIFIC') { //无指定
+                                $("#chooseBtn").hide();
+                                $("#pn").textbox('setValue', 'No Specific');
+                                $("#pn").textbox({editable: false, onlyview: true});
+                                $("#unit").combobox({editable: true});
+                                MsgAlert({content: "无件号航材将不参与MR推送!!!", type: 'warn'});
+                            } else { //航材 OR 工具/设备
+                                var pnValue = $("#pn").textbox('getValue');
+                                if (item == 'MA') { //航材
+                                    $("#chooseBtn").show();
+                                    $("#pn").textbox({editable: false, onlyview: true, required: true});
+                                    $("#unit").combobox({editable: false})
+                                } else { //工具/设备
+                                    $("#chooseBtn").show();
+                                    $("#pn").textbox({editable: true, required: false, onlyview: false});
+                                    $("#unit").combobox({editable: true})
+                                }
+                            }
+                            //switchUnit(item.VALUE);
+                            if (item == 'MA' || item == 'UNSPECIFIC') {
+                                $('#unit').combobox({
+                                    panelHeight: '100px',
+                                    data: jdata.data.TD_JC_MATER_MA_UNS_UNIT,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT'
+                                })
+                            } else {
+                                $('#unit').combobox({
+                                    panelHeight: '100px',
+                                    data: jdata.data.TD_JC_MATER_TOOL_UNIT,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT'
+                                })
+                            }
+                        }
+
+                    });
+                    //视情
+                    $('#workDepends').combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.QUANTITY_IF_DEMAND,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //数量按需
+                    $('#qtyDemand').combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.QUANTITY_IF_DEMAND,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+
+                    //航次与无指定单位 TD_JC_MATER_MA_UNS_UNIT
+                    //工具与设备单位 TD_JC_MATER_TOOL_UNIT
+                    //单位
+                    $('#unit').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.TD_JC_MATER_MA_UNS_UNIT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                }
+                if (param.pkid) {
+                    InitDataForm(param.pkid);
+                }
+            }
+        })
+    }
+
+    /**
+     * 初始化数据
+     * @param pkid
+     * @constructor
+     */
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {pkid: pkid, FunctionCode: "EM_EO_MATERIAL_TOOL_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#unit').combobox('setValue', jdata.data.UNIT);
+                    //switchUnit(item.VALUE);
+                    //$('#unit').combobox('setValue', jdata.data.UNIT);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitSaveForm_() {
+        $('#eoPkid').val(param.eoPkid);
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var pn = $("#pn").textbox('getValue');
+                var mtType = $("#mtType").combobox('getValue');
+                /*if (pn == "" && "WU" != mtType) {
+                    MsgAlert({content: "请先选择件号", type: 'error'});
+                    return;
+                }*/
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {FunctionCode: "EM_EO_MATERIAL_TOOL_ADD"});
+                InitFuncCodeRequest_({
+                    async:false,
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            //param.OWindow.reload_();
+                            //MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                            pkid = jdata.data.pkid;
+                            $('#pkid').val(pkid);
+                            param.OWindow.InitDataGridHc(eoPkid);
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+    //选取件号
+    var npChose = "";
+
+    function choose(np) {
+        var mtType = $('#mtType').combobox('getValue');
+        if(!mtType){
+            alert('请先选择航材工具类型！');
+            return;
+        }
+        npChose = np;
+        var title_ = $.i18n.t('选取件号');
+        ShowWindowIframe({
+            width: 774,
+            height: 412,
+            title: title_,
+            param: {mtType:mtType},
+            url: "/views/em/emeo/sub/PN_LIST.shtml"
+        });
+    }
+
+    //设置件号
+    function setPn(pn, name, replacePn, unit) {
+        /*$("#" + npChose).textbox('setValue', obj);
+        if (npChose == "pn") {
+            $("#name").textbox('setValue', name);
+        }*/
+        $('#pn').textbox('setValue', pn);
+        $("#name").textbox('setValue', name);
+        if(replacePn){
+            $("#replacePn").textbox('setValue', replacePn);
+        }
+        if(unit){
+            $("#unit").textbox('setValue', unit);
+        }
+    }
+
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    /*if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;*/
+                    var result = true;
+                    var allData = $combobox.combobox('getData');
+                    for(var i = 0; i< allData.length; i++){
+                        if(value == allData[i].TEXT){
+                            result = false;
+                            break;
+                        }
+                    }
+                    if(result){
+                        return false;
+                    }else{
+                        return true;
+                    }
+
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        },
+        qtyValid: { //数量
+            validator: function (value) {
+                if (value) {
+                    if(value > 0 && value <= 999999){
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }
+                return false;
+
+            },
+            message: '请输入0~999999的正数'
+        },
+    });
+
+    function clearForm(){
+        $('#workDepends').combobox('setValue','');
+        $('#pn').textbox('setValue','');
+        $('#replacePn').textbox('setValue','');
+        $('#name').textbox('setValue','');
+        $('#qty').numberbox('setValue','');
+        $('#unit').combobox('setValue','');
+        $('#qtyDemand').combobox('setValue','');
+        $('#memo').textbox('setValue','');
+    }
+</script>
+</html>

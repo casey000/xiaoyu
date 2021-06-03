@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>措施库维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+
+        }
+
+        th {
+            width: 120px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="偏离文件申请" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="createUser" name="createUser"/>
+                <input type="hidden" id="status" name="status" value="1"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="4" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="saveEngFsdProv()"
+                                   value="保存"/>
+                            <input class="btn btn-primary" type="button" id="closeBtn" onclick="CloseWindowIframe();"
+                                   value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>措施编号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="provNo" name="provNo"
+                                   data-options="required:false,editable:false,onlyview:true" style="width: 200px;"/>
+                        </td>
+                        <th>措施来源：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="source" name="source"
+                                   data-options="required: true,editable:false"
+                                   style="width: 200px;"/>
+                        </td>
+                    </tr>
+
+
+                    <tr>
+                        <th>措施描述：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="provDesc" name="provDesc"
+                                   data-options="required:true,multiline:true"
+                                   style="width: 585px;height: 80px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>备注：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="memo" name="memo"
+                                   data-options=" multiline:true"
+                                   style="width: 585px;height: 40px;"/>
+                        </td>
+                    </tr>
+
+                    <tr id="disReasonTr">
+                        <th>失效原因：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="disReason" name="disReason"
+                                   data-options=" multiline:true"
+                                   style="width: 585px;height: 80px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>维护人：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="createName" name="createName" style="width: 200px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th>维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="createDate" name="createDate" style="width: 200px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    let param = getParentParam_();
+    let operation = param.operation;
+    let rowData = param.rowData;
+    let pkid = param.pkid;
+    let userId;
+    let userName;
+
+    let nowDate = new Date();
+    let nowFormatDate = nowDate.Format("yyyy-MM-dd");
+
+    function i18nCallBack() {
+        const userInfo = getLoginInfo();
+        userId = userInfo.accountId;
+        userName = userInfo.userName;
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                domainCode:
+                    "ENG_FSD_PROV_SOURCE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jData) {
+                if (jData.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#source").combobox({
+                        panelHeight: '50px',
+                        data: jData.data.ENG_FSD_PROV_SOURCE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //如果传入数据，将数据写入表单中
+                    if (rowData) {
+                        ParseFormField_(rowData, $("#mform"));
+                        //当状态为6的数据进入时不可修改申请结果
+                    }
+                } else {
+                    MsgAlert({content: jData.msg, type: 'error'});
+                }
+
+            }
+        });
+
+        initUserInfo();
+        initProvNo();
+        initFailData();
+    }
+
+    initDisReasonTr();
+
+
+    function initDisReasonTr() {
+        if (operation == 'fail' || operation == 'view') {
+            $('#source').combobox({editable: false, onlyview: true});
+            $('#provDesc').textbox({editable: false, onlyview: true});
+            $('#memo').textbox({editable: false, onlyview: true});
+            $('#disReason').textbox({required: true});
+            $("#disReasonTr").show();
+        } else {
+            $("#disReasonTr").hide();
+        }
+    }
+
+    //初始化失效相关的数据
+    function initFailData() {
+        if (operation == 'fail') {
+            $("#status").val('2');
+        }
+    }
+
+    //初始化ProvNo
+    function initProvNo() {
+        if (operation != "add") {
+            return;
+        }
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engFsdProv/getProvNo",
+            error: function (jData) {
+                MsgAlert({content: jData.obj ? jData.obj : "获取申请编号失败", type: 'error'});
+            },
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    $("#provNo").textbox('setValue', jData.obj);
+                } else {
+                    MsgAlert({content: jData.obj ? jData.obj : "获取申请编号失败", type: 'error'});
+                }
+            }
+        });
+    }
+
+    //初始化维护人信息
+    function initUserInfo() {
+        if (operation != 'view') {
+            $("#createUser").val(userId);
+            $("#createName").textbox('setValue', userName);
+            $("#createDate").textbox('setValue', nowFormatDate);
+        }
+    }
+
+    //待数据处理完成后执行
+    postProcessingByOperation(operation);
+
+
+    //根据不同操作执行不同后处理
+    function postProcessingByOperation(operation) {
+        if (operation == "view") {
+            $(".easyui-textbox").textbox({required: false, editable: false, onlyview: true});
+            $(".easyui-combobox").combobox({required: false, editable: false, onlyview: true});
+            $(".easyui-combogrid").combobox({required: false, editable: false, onlyview: true});
+            $(".easyui-datebox").datebox({required: false, editable: false, onlyview: true});
+            $("#saveBtn").hide();
+        }
+    }
+
+    //检查表单值是否合规
+    function checkFromIsValidate() {
+        const isValidate = $("#mform").form('validate');
+        return isValidate;
+    }
+
+    //保存数据，修改或增加
+    function saveEngFsdProv() {
+        const isValidate = checkFromIsValidate();
+        if (!isValidate) {
+            return;
+        }
+        const saveEngFsdProvParam = $("#mform").serializeObject();
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFsdProv/saveEngFsdProv",
+            data: saveEngFsdProvParam,
+            error: function (jData) {
+                MsgAlert({content: jData.errorMessage ? jData.errorMessage : "维护措施库失败", type: 'error'});
+            },
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    if (param.OWindow) {
+                        param.OWindow.MsgAlert({content: jData.msg ? jData.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_('dg2');
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jData.msg ? jData.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    }
+                } else {
+                    MsgAlert({content: jData.errorMessage ? jData.errorMessage : "维护措施库失败", type: 'error'});
+                }
+            }
+        });
+
+    }
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,363 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">添加生产准备单</title>
+    <link href="/css/mccdoc/prodPrepList.css" rel="stylesheet" type="text/css"/>
+
+    <!--图标样式-->
+    <link href="/css/common_from_me.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <style>
+        #addToProdPrepWin .tabs-header{
+            display: none;
+        }
+        #addToProdPrepWin .datagrid-view{
+            height: calc(100% - 38px) !important;
+        }
+    </style>
+</head>
+<body class="ibody">
+    <div id="addToProdPrepWin" class="easyui-tabs" style="width:100%; height: 100%">
+        <fieldset class="fieldset_eui">
+            <form id="ffSearch" method="post">
+                <div id="searchBar">
+                    <table class="table table-bordered table-info">
+                        <tr class="searchTr">
+                            <th style="width: 40px">编号：</th>
+                            <td style="width: 120px">
+                                <input class="easyui-textbox" name="no" id="no" data-options=""
+                                       style="width:120px"/>
+                            </td>
+                            <th style="width: 70px">工作内容：</th>
+                            <td style="width: 130px;">
+                                <input class="easyui-textbox" name="content" id="content" data-options=""
+                                       style="width:130px"/>
+                            </td>
+                            <th style="width: 70px">参考类型：</th>
+                            <td style="width: 50px">
+                                <input class="easyui-textbox"  name="category" id="category" data-options=""
+                                       style="width: 100px" type="text">
+                            </td>
+                            <th style="width: 70px">参考章节：</th>
+                            <td style="width: 130px">
+                                <input class="easyui-textbox"  name="title" id="title" data-options=""
+                                       style="width: 130px" type="text">
+                            </td>
+                            <td style="width: 100px;">
+                                <a class="searchBtn" data-options="iconCls:'icon-search'"
+                                   data-i18n="common:COMMON_OPERATION.QUERY" onclick="InitAddToListGrid()"
+                                   >查询</a>
+                                <a class="clearBtn" onclick="doClear()" data-options="iconCls:'icon-clear'">
+                                    <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            </td>
+                            <td style="width: 80px;position: relative">
+                                <a class="searchBtn" data-options="iconCls:'icon-search'"
+                                       onclick="to_add_prodPrepData()"
+                                       style="float: right;margin-right: 28px;">添加
+                            </a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </form>
+        </fieldset>
+        <table id="dg"></table>
+    </div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script>
+    var api = frameElement.api;
+
+    ////设置权限认证用户信息
+    if(api.data._LOGIN_USER){
+        window.top.document["_LOGIN_USER"]=api.data._LOGIN_USER;
+    }
+
+    $(function () {
+        InitAddToListGrid();
+
+        var categoryVal;
+        $("#category").combobox({
+            valueField: 'TEXT',
+            textField: 'VALUE',
+            data:[
+                {"TEXT":"AMM","VALUE":"AMM"},
+                {"TEXT":"CMM","VALUE":"CMM"},
+                {"TEXT":"图纸","VALUE":"图纸"},
+                {"TEXT":"其他","VALUE":"其他"}
+            ],
+            onHidePanel:function () {
+                var t = $(this).combobox('getValue');
+                if(categoryVal==undefined||categoryVal==null||t!=categoryVal.TEXT){
+                    $(this).combobox({value: ''});
+                }
+            },
+            onSelect: function (val) {
+                categoryVal=val;
+            }
+        });
+    });
+
+
+    function doClear() { //重置查询条件
+        $("#ffSearch").form('clear');
+        InitDataGrid();
+    }
+
+    function InitAddToListGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        for(x in queryParams){
+            if(!queryParams[x]){
+                queryParams[x] = null;
+            }
+        };
+        queryParams.status="5";
+        if(api&&api.data.fleet){
+            queryParams.fleet=api.data.fleet;
+        }
+        if(api&&api.data.model){
+            queryParams.model=api.data.model;
+        }else{
+            queryParams.model=null;
+        }
+
+
+        if(api&&api.data.ppoId){
+            var ppoId=api.data.ppoId;
+            var ppoIdArr=ppoId.split(",");
+        }
+
+        console.log("queryParams:",queryParams);
+        $("#dg").GatewayDataGridHideCol({
+            identity: 'dg',
+            queryParams: queryParams,
+            pageSize:10,
+            pagination: true,
+            path: "/maintenanceProduction/producePrepareOrder/listByPage",
+            columns: {
+                param: {FunctionCode: 'PROD_PREP_LIST'},
+                alter: {
+                    handle:{
+                        width:50,
+                        formatter : function(value, row, index){
+                            var ele=`<input type="checkbox" rowindex="${index}" class="checkProdPrep ckSelect"
+                                        onclick="checkProdPrep(this,${index})">`;
+                            var noHand=noHandle(ppoIdArr,row.id);
+
+                            if(noHand){
+                                ele=`<input type="checkbox" rowindex="${index}" class="checkProdPrep"
+                                        onclick="checkProdPrep(this,${index})" checked disabled>`;
+                            }
+                            return ele;
+                        }
+                    },
+                    status:{
+                        width:60,
+                        formatter : function(value, row, index){
+                            if ('1' == value) {  //待提交，编辑状态
+                                return "待提交";
+                            } else if ('2' == value) {  //待审核
+                                return "待审核";
+                            } else if ('5' == value) { //待审批
+                                return "已生效";
+                            } else if ('10' == value) { //审批通过
+                                return "已驳回";
+                            } else if ('11' == value) {  //生效状态
+                                return "归档";
+                            }
+                        }
+                    },
+                    no:{
+                        formatter : function(value, row, index){
+                           var ele=`<div style="cursor: pointer;color: #f60;" onclick="prodPrepOpen('${row.id}','view')">${row.no}</div>`;
+
+                            return ele;
+                        }
+                    },
+                    model:{
+                        width:50,
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    fleet:{
+                        width:60,
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    content:{
+                        width:160,
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    reference:{
+                        formatter : function(value, row, index){
+                            var val=row.category+" "+row.title;
+                            return val;
+                        }
+                    },
+                    staffHour:{
+                        formatter : function(value, row, index){
+                            var val=row.expectStaff+"人，"+row.expectHour+"小时";
+                            return val;
+                        }
+                    },
+                    staffHourAll:{
+                        width:75,
+                        formatter : function(value, row, index){
+                            var h=parseFloat(row.expectHour);
+                            var val=accMul(row.expectStaff,h);
+                            return val+"人工时";
+                        }
+                    },
+                    totalStaffHour:{
+                        width:90,
+                        formatter : function(value, row, index){
+                            var val;
+                            if(row.totalTime==0){
+                                val="0人，0小时";
+                            }else{
+                                var staff=row.totalStaff/row.totalTime;
+                                var hour=row.totalHour/row.totalStaff;
+                                staff=staff.toFixed(2);
+                                hour=hour.toFixed(2);
+                                val=staff+"人，"+hour+"小时";
+                            }
+
+                            return val;
+                        }
+                    },
+                    totalStaffHourAll:{
+                        width:75,
+                        formatter : function(value, row, index){
+                            var val=0;
+                            if(row.totalTime>0){
+                                val=row.totalHour/row.totalTime;
+                                val=val.toFixed(2);
+                            }
+                            return val+"人工时";
+                        }
+                    },
+                    version:{
+                        width:50,
+                        sortNum:32,
+                        formatter : function(value, row, index){
+                            return "R"+value;
+                        }
+                    },
+                    updateRecord:{
+                        hidden:true
+                    },
+
+                }
+            },
+
+        });
+
+    }
+
+    function to_add_prodPrepData(){
+        var datas=[];
+        var topAcType = $('.ckSelect:checked').map(function () {
+            var index=$(this).attr("rowindex");
+            var row=$("#dg").datagrid('getRows')[index];
+            datas.push(row);
+        });
+        if(datas.length==0){
+            MsgAlert({"type":"error",content:"请至少选择一行数据!"});
+            return;
+        }
+
+        api.data["addData"]=datas;
+        api.close();
+
+    }
+
+    function checkProdPrep(obj,indez) {
+        var checkAll=$('.checkProdPrep');
+        if(api&&api.data.toType=="1"){
+            if($(obj).is(':checked')){
+                $.each(checkAll, function (i, v) {
+                    if(indez!=i){
+                        $(v).attr("disabled",true);
+                    }
+
+                });
+            }else{
+                $.each(checkAll, function (i, v) {
+                    if(indez!=i){
+                        $(v).attr("disabled",false);
+                    }
+                });
+            }
+        }
+    }
+
+    function accMul(arg1,arg2){
+        if(!arg1||!arg2){
+            arg1=0;
+            arg2=0;
+        }
+        var m=0,s1=arg1.toString(),s2=arg2.toString();
+        try{m+=s1.split(".")[1].length}catch(e){}
+        try{m+=s2.split(".")[1].length}catch(e){}
+        return Number(s1.replace(".",""))*Number(s2.replace(".",""))/Math.pow(10,m)
+    }
+
+    //TO已挂过的准备单显示打勾，并禁用不可操作
+    function noHandle(arr,id){
+        // console.log("arr:",arr);
+        if(!arr){return false}
+        var handleStauas=false;
+        for(var k=0;k<arr.length;k++){
+            if(arr[k]==id){
+                handleStauas=true;
+            }
+
+        }
+        return handleStauas;
+
+    }
+
+    function prodPrepOpen(id,type) {
+        console.log("prodPrepOpen:",id);
+        let getUrl="/maintenanceProduction/producePrepareOrder/get/"+id;
+        console.log("getUrl:",getUrl);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: getUrl ,
+            successCallBack: function (jdata) {
+                if (jdata.success) {
+                    prodPrepAddEdit(id,type,jdata.obj);
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                };
+            },
+            error:function (jdata) {
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+    }
+
+    function prodPrepAddEdit(id,type,prodPrep_info){
+
+        if(!prodPrep_info) prodPrep_info={};
+
+        //open生产准备单
+        var curWidth = ($(window).width() * 1.2).toString();
+        var curheight = ($(window).height()*1.5).toString();
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: $.i18n.t('生产准备单'),
+            param: {id:id,prodPrep_info:prodPrep_info, type:type},
+            url: "/views/mccdoc/edit/add_prodPrep.shtml",
+        });
+    }
+
+</script>
+</html>

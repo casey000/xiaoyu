@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">参数设置</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                    <td style="width: 130px" class="td5">
+                        <input class="easyui-combobox" id="engType" name="engType" style="width:130px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">是否启用：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="usedFlag" name="usedFlag" style="width:110px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn"  data-options="iconCls:'icon-search'" onclick="searchData();"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                       <!-- <a href="javascript:void(0)" class="addBtn"  onclick="expExcel()"><span>导出</span></a>&nbsp;-->
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var ctx=window.location.origin;
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData();
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_PER_SORT_TYPE,ENG_PER_SORT_SET_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //状态
+                    PAGE_DATA['usedFlag'] = DomainCodeToMap_(jdata.data["ENG_PER_SORT_SET_STATUS"]);
+
+                    $('#usedFlag').combobox({
+                        data:  jdata.data.ENG_PER_SORT_SET_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+
+                    $('#engType').combobox({
+                        data:  jdata.data.ENG_PER_SORT_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $('#dg').GatewayDataGrid({
+            path: "/meng-engine/perSortSet/listByPage",
+            async: false,
+            queryParams: queryParams,
+            identity: 'dg',
+            idField: "pkid",
+            pagination: true,
+            title: $.i18n.t(''),
+            columns: {
+                param: {FunctionCode: 'ENG_PER_SORT_SET_LIST'},
+                alter: {
+                    usedFlag:{
+                        formatter: function (value) {
+                            return PAGE_DATA['usedFlag'][value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "启用",
+                    auth: "ENG_PER_SORT_SET1",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        var datas = {"pkid":rowData.pkid,"usedFlag":'1'};
+                        InitGatewayRequest_({
+                            async: false,
+                            data:datas,
+                            path: "/meng-engine/perSortSet/updateStatus",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    cou = jdata.obj;
+                                    if(cou > 0){
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    }
+                                } else {
+                                    MsgAlert({content: "删除失败!", type: 'error'});
+                                }
+                            }
+                        });
+
+                    }
+                },{
+                    id: "m-edit", i18nText: "禁用",
+                    auth: "ENG_PER_SORT_SET1",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        var datas = {"pkid":rowData.pkid,"usedFlag":'0'};
+                        InitGatewayRequest_({
+                            async: false,
+                            data:datas,
+                            path: "/meng-engine/perSortSet/updateStatus",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    cou = jdata.obj;
+                                    if(cou > 0){
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    }
+                                } else {
+                                    MsgAlert({content: "删除失败!", type: 'error'});
+                                }
+                            }
+                        });
+
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if(row.usedFlag == '1'){
+                    items['启用'].enable = false;
+                }else{
+                    items['禁用'].enable = false;
+                }
+                return items;
+            }
+        });
+    }
+
+
+    //查询
+    function searchData() {
+        InitDataGrid();
+    }
+
+    //刷新列表
+    function reload_(){
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    function expExcel(url) {
+        var queryParams = $("#ffSearch").serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            data: queryParams,
+            path: "/meng-engine/perSortSet/expExcel",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    url = jdata.obj;
+                    window.location.href = ctx + url;
+                } else {
+                    MsgAlert({content:"导出失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

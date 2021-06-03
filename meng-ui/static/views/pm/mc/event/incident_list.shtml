@@ -1,0 +1,408 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">不正常事件</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">编号：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="ciNo" name="ciNo" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">飞机号：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="acno" name="acno" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">是否SDR：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="isSdr" name="isSdr" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">状态：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="status" name="status" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">航班：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="flightNo" name="flightNo" style="width:120px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">日期：</th>
+                        <td class="td5">
+                            <input class="easyui-datebox" id="startDate" name="startDate" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">至：</th>
+                        <td class="td5">
+                            <input class="easyui-datebox" id="endDate" name="endDate" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">机型：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="actype" name="actype" style="width:120px;"/>
+                        </td>
+
+                        <td class="td5" style="text-align:right; padding-right:5px" colspan="4">
+                            <a class="searchBtn" type="button" onclick="searchData()"
+                               data-options="iconCls:'icon-search'" auth="PM_MC_INCIDENT_QUERY">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            <a class="ridoBtn" data-options="" auth="PM_MC_INCIDENT_HIGH_QUERY"
+                               onclick="helpQuery('dg', 'PM_MC_INCIDENT_LIST');"><span
+                                    data-i18n="">高级查询</span></a>
+                            <a class="addBtn" id="add" onclick="editDetailData('add')"
+                               data-options="iconCls:'icon-add'" auth="PM_MC_INCIDENT_ADD">
+                                <span data-i18n="">新增</span>
+                            </a>
+                            <a class="ridoBtn" style="margin-left: 3px;" id="mccAdd" onclick="editDetailData('mccAdd')"
+                               data-options="iconCls:'icon-add'" auth="PM_MC_INCIDENT_MCC_ADD">
+                                <span data-i18n="">MCC新增</span>
+                            </a>
+                            <a class="excelBtn" style="margin-left: 3px;" id="excelExport"
+                               onclick="excelExport('dg', '不正常事件')"
+                               data-options="iconCls:'icon-page_excel'" auth="PM_MC_INCIDENT_EXPORT">
+                                <span data-i18n="common:COMMON_OPERATION.EXPORT">导出</span>
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "MSGRP,INCIDENT_STATUS,YESORNO_NUMBER,MCC_INCIDENT_TYPE,DA_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //飞机号
+                    $('#acno').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.MSGRP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data["MSGRP"]);
+
+                    //是否SDR组件初始化
+                    $('#isSdr').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.YESORNO_NUMBER,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['isSdr'] = DomainCodeToMap_(jdata.data["YESORNO_NUMBER"]);
+                    //非正常事件状态初始化
+                    $('#status').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.INCIDENT_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["INCIDENT_STATUS"]);
+                    PAGE_DATA['oprType'] = DomainCodeToMap_(jdata.data["MCC_INCIDENT_TYPE"]);
+                    //机型
+                    $("#actype").combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //数据表格初始化
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'PM_MC_INCIDENT_LIST'},
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a  href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    IS_SDR: {
+                        formatter: function (value) {
+                            return PAGE_DATA['isSdr'][value];
+                        }
+                    },
+                    INCIDENT_DATE: {
+                        type: 'date'
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    DELAY_TIME: {
+                        editor: {
+                            type: 'numberbox'
+                        }
+                    },
+                    OPERATION_TYPE: {
+                        formatter: function (value) {
+                            //事件类别
+                            var result = [];
+                            if (value && value.length > 0) {
+                                var types = value.split(",");
+                                for (i in types) {
+                                    result.push(PAGE_DATA['oprType'][types[i]]);
+                                }
+                            }
+
+                            return result.join(" ").toString();
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-detail", i18nText: "浏览", auth: "PM_MC_INCIDENT_VIEW",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetail('view', rowData.PKID);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "PM_MC_INCIDENT_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetail('edit', rowData.PKID);
+                    }
+                },
+                {
+                    id: "", i18nText: "上传附件", auth: "PM_MC_INCIDENT_UPLOAD",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        common_upload_({
+                            identity: 'dg',
+                            param: {
+                                cat: 'INCIDENT',
+                                sourceId: rowData.PKID,
+                                successCallBack: function () {
+                                    reload_();
+                                },
+                                failCallBack: ""
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-submit", i18nText: "提交", auth: "PM_MC_INCIDENT_SUBMIT_FLOW",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var ifMcc = rowData.IF_MCC;
+                        if ("X" == ifMcc) {
+                            common_add_edit_({
+                                url: "/views/em/workflow/work_flow_account_select.shtml",
+                                param: {
+                                    FunctionCode_: 'PM_MC_WORKFLOW_DEAL',
+                                    otherParam: rowData.PKID,
+                                    successCallback: reload_()
+                                },
+                                title: $.i18n.t('选择审批人'),
+                                width: 520,
+                                height: 300
+                            });
+                        } else {
+                            InitFuncCodeRequest_({
+                                data: {pkid: rowData.PKID, FunctionCode: 'PM_MC_WORKFLOW_DEAL'},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
+                {
+                    id: "m-view", i18nText: "办理轨迹",auth:"PM_MC_INCIDENT_BLGJ",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 600,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "PM_MC_INCIDENT"},
+                            url: '/views/em/workflow/work_flow_history_task_list.shtml'
+                        });
+                    }
+                },
+                {
+                    id: "m-print", i18nText: "打印", auth: "PM_MC_INCIDENT_PRINT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        ajaxLoading();
+                        doPost(Constant.API_URL + 'PM_MCC_INCIDENT_PRINT', {pkid: rowData.PKID});
+                        ajaxLoadEnd()
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除", auth: "PM_MC_INCIDENT_DEL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        var data = {pkid: rowData.PKID, delId: getLoginInfo().accountId, delName: getLoginInfo().userName};
+                        InitFuncCodeRequest_({
+                            data: $.extend(data, {FunctionCode: 'PM_MC_INCIDENT_DELETE'}),
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "INCIDENT",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span auth="PM_MC_INCIDENT_DEL" onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                }, 'attach');
+            },
+            validAuth: function (row, items) {
+                //状态 1: Editing 2:Checking 3:Approving 4:Approved, 5:HISTORY
+                if (row.STATUS != '1' || row.REPORT_ID != getLoginInfo().accountId) {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                    items['上传附件'].enable = false;
+                    items['提交'].enable = false;
+                }
+
+                if (row.STATUS == '1') {
+                    items['办理轨迹'].enable = false;
+                }
+
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetail("view", value.PKID);
+            },
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 45);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        openDetail(operation, '');
+    }
+
+    //打开资料类型详细页面
+    function openDetail(operation, pkid) {
+        var title_ = $.i18n.t('不正常事件查看编辑');
+        ShowWindowIframe({
+            width: "1165",
+            height: "650",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/pm/mc/event/incident_detail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</body>
+</html>

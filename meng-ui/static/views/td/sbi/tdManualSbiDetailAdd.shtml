@@ -1,0 +1,243 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性维护</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="isExport" name="isExport" value="N"/>
+                <input type="hidden" id="sbiPkid" name="sbiPkid"/>
+                <!--<input type="hidden" id="acId" name="acId"/>-->
+                <table class="table table-bordered table-info">
+                    <tr id="view">
+                        <td colspan="4" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">变更状态：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="changeStatus" name="changeStatus"
+                                   data-options="required:true"
+                                   data-options="editable:true" style="width: 200px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">SB版本：</th>
+                        <td class="tdr" style="width: 60px">
+                            <input class="easyui-textbox" id="sbInfo" name="sbInfo"
+                                   data-options="required:true"
+                                   data-options="editable:true" style="width: 200px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">适用性：</th>
+                        <td class="tdr" style="width: 100px;" colspan="3">
+                            <input class="easyui-combobox" id="acId" name="acId"
+                                   data-options="required:true,editable:false,onlyview: true"
+                                   style="width: 450px;"/>
+                            <input id="chooseBtn" class="btn btn-primary" type="button" onclick="choose()" value="选取"
+                                   style="width: 50px;margin:10px;"/>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">备注：</th>
+                        <td class="tdr" style="width: 60px" colspan="3">
+                            <input class="easyui-textbox" name="memo" id="memo"
+                                   data-options="multiline:true "
+                                   style="width: 530px;height:80px"/>
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var pkid;
+    var type;
+    var spkid;
+    var applyModel;
+    var sbNo;
+    var operation;
+    var msgpkid;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        type = param.operation;
+        operation = param.operation;
+        spkid = param.spkid;
+        pkid = param.pkid;
+        applyModel = param.applyModel;
+        sbNo = param.sbNo;
+        companyCode = param.companyCode;
+        msgpkid = param.msgpkid;
+        $("#pkid").val(pkid);
+        $("#sbiPkid").val(spkid);
+        if (operation == "view") {
+            $("#view").hide();
+        }
+        if (operation == "edit") {
+            $("#chooseBtn").hide();
+        }
+        InitFuncCodeRequest_({
+            data: {domainCode: "SBI_CHANGE_STATUS,YESORNO", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#changeStatus').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.SBI_CHANGE_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //刷新SB编号下拉框
+                    InitFuncCodeRequest_({
+                        data: {
+                            dataNo: sbNo,
+                            applyModel: applyModel,
+                            companyCode: companyCode,
+                            FunctionCode: "TD_MANUAL_SB_LIST2"
+                        },
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                $('#sbInfo').combobox({
+                                    panelHeight: '135px',
+                                    data: jdata.data,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT'
+                                });
+                                //////
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        applyModel: applyModel,
+                                        companyCode: param.companyCode,
+                                        FunctionCode: "TD_MANUAL_SBI_FLEET2"
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            $('#acId').combobox({
+                                                panelHeight: '135px',
+                                                data: jdata.data,
+                                                multiple: true,
+                                                // editable: false,
+                                                // onlyview: true,
+                                                valueField: 'VALUE',
+                                                textField: 'TEXT'
+                                            });
+                                            if (param.pkid != "") {
+                                                InitDataForm(param.pkid);
+                                            }
+                                        } else {
+                                            MsgAlert({content: jdata.msg, type: 'error'});
+                                        }
+                                    }
+                                });
+
+
+
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+
+            }
+        })
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_MANUAL_SBI_DETAIL_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $("#acId").combobox("setValue", jdata.data.AC_ID)
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function choose() {
+        // var sbVer=$("#sbInfo").combobox("getValue");
+        // if (!sbVer){
+        //     MsgAlert({content: '请先选择SB版本', type: 'error'});
+        //     return;
+        // }
+        var title_ = $.i18n.t('选取适用性');
+        // if (!dataType) {
+        //     alert("请先在父页面选择参考资料类型");
+        //     return;
+        // }
+        var acId = $("#acId").combobox("getValue");
+        ShowWindowIframe({
+            width: 644,
+            height: 506,
+            title: title_,
+            param: {
+                // manualType: dataType,
+                applyModel: applyModel,
+                companyCode: companyCode,
+                // sbVer:sbVer,
+                acId: acId,
+                pkid: pkid,
+                spkid: spkid
+            },
+            url: "/views/td/sbi/fleetList.shtml"
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        if (Array.isArray(datas['acId'])) {
+            datas['acId'] = datas['acId'].join(',');
+        }
+        var mainData = JSON.stringify(datas);
+        InitFuncCodeRequest_({
+            data: {
+                mainData: mainData,
+                msgpkid: msgpkid,
+                type: type,
+                FunctionCode: "TD_MANUAL_SBI_DETAIL_SAVE"
+            },
+            successCallBack: function (jdata) {
+                mistake = jdata.msg;
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    if(msgpkid){
+                        param.OWindow.param.OWindow.reload_();
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else if (jdata.msg.indexOf("唯一约束")) {
+                    MsgAlert({content: "该记录数据库已经存在", type: "error"})
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

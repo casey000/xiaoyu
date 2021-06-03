@@ -1,0 +1,322 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">有效清单</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">目录名称：</th>
+                    <td>
+                        <input class="easyui-combobox" id="catalogNo" name="catalogNo"
+                               style="width:110px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;" align="right">修订日期：</th>
+                    <td>
+                        <input class="easyui-datebox" id="revDate" name="revDate"
+                               style="width:110px"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-add'"
+                           auth="EM_CMP_YXYQD_ADD" onclick="manualAdd_()"><span data-i18n="common:COMMON_OPERATION.ADD">新增</span></a>&nbsp;&nbsp;
+
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </form>
+</fieldset>
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="">查询结果</legend>-->
+    <div style="width: 100%;height: 415px;">
+        <div style="width: 100%;height: 415px;">
+            <table id="dg"></table>
+        </div>
+
+</fieldset>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var identity = 'dg';
+    var param = {};
+
+    var thisURL = document.URL;
+    var geturlvalue = thisURL.split('?')[1];
+    var emCmpCatPkid = geturlvalue.split("=")[1];
+    var cmpPkid = geturlvalue.split("=")[2];
+    var isEdit;
+    var cmpStatus;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                pkid: cmpPkid,
+                FunctionCode: "EM_CMP_GETONE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    cmpStatus = jdata.data.STATUS;
+                    if (cmpStatus == 'DRAFT') {
+                        isEdit = true;
+                    } else {
+                        isEdit = false;
+                    }
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        $('#catalogNo').combobox({
+            panelHeight: '150px',
+            queryParams: {cmpPkid: cmpPkid},
+            url: Constant.API_URL + 'EM_CMP_CAT_HLPE',
+            valueField: 'TEXT',
+            textField: 'TEXT',
+            loadFilter: function (jdata) {
+                return jdata.data;
+            },
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_REV_CODE,EM_CMP_STATE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /*
+     function add_()
+     {
+     common_add_edit_({
+     width: 800,
+     height: 400,
+     title: '维修方案新增',
+     url: "/views/em/emcmp/em_cmp_wxfa_add.shtml"
+     });
+     }
+     */
+    function manualAdd_() {
+
+        if (cmpStatus != 'DRAFT') {
+            MsgAlert({content: '当前维修方案的状态不为草稿', type: 'error'});
+            return false;
+        }
+
+        $('#dg').datagrid('appendRow', {
+            isadd__: 1,
+            CMP_PKID: cmpPkid,
+            REV_DATE: formatterDate(new Date()),
+            IF_PREVER: 'N'
+        });
+    }
+
+    function InitDataGrid() {
+
+        $("#dg").MyDataGrid({
+            identity: identity,
+            fit: true,
+            fitColumns: true,
+            fit: true,
+            queryParams: {cmpPkid: cmpPkid},
+            validAuth: function (row, items) {
+                if (!isEdit) {
+                    items['common:COMMON_OPERATION.DEL'].enable = false;
+                }
+                return items;
+            },
+            columns: {
+                param: {FunctionCode: 'EM_CMP_EFFECTIVE_LIST'},
+                alter: {
+                    'PKID': {
+                        editor: {
+                            type: 'textbox', options: {
+                                editable: false,
+                                onlyview: true, tipPosition: 'top', validType: ['Length[1,20]']
+                            }
+                        }
+                    },
+                    'CMP_PKID': {
+                        editor: {
+                            type: 'textbox',
+                            options: {
+                                editable: false,
+                                onlyview: true,
+                                tipPosition: 'top',
+                                validType: ['Length[1,20]']
+                            }
+                        }
+                    },
+                    'CAT_PKID': {
+                        editor: {
+                            type: 'textbox',
+                            options: {
+                                tipPosition: 'top',
+                                validType: ['Length[1,20]']
+                            }
+                        }
+                    },
+                    'CATALOG_NO': {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'TEXT',
+                                textField: 'TEXT',
+                                queryParams: {cmpPkid: cmpPkid},
+                                url: Constant.API_URL + 'EM_CMP_CAT_HLPE',
+                                required: true,
+                                panelHeight: '150',
+                                onSelect: function (jdata) {
+
+                                    var index = $(this).parents('tr[datagrid-row-index]').attr('datagrid-row-index');
+                                    getDG(identity).datagrid('getRows')[index]['CAT_PKID'] = jdata.VALUE;
+
+                                },
+                                loadFilter: function (jdata) {
+                                    return jdata.data;
+                                },
+                                tipPosition: 'top'
+                            }
+                        }, formatter: function (value) {
+                            return value;
+                        }
+
+                    },
+                    'PAGENO': {
+
+                        editor: {
+                            type: 'textbox', options: {
+
+                                tipPosition: 'top', validType: ['Length[1,60]']
+                            }
+                        }
+
+                    },
+                    'REV_DATE': {
+                        editor: {type: 'data', options: {tipPosition: 'top'}}
+                    },
+                    'IF_PREVER': {
+                        editor: {type: 'textbox', options: {tipPosition: 'top', validType: ['maxLength[1]']}}
+                    }
+
+                }
+            },
+            /*  loadFilter: function(jdata) {
+             jdata.rows=toUnderlineCaseArray(jdata.rows);
+             return jdata.rows;
+             },*/      /*      queryParams:{WAYBILL_NO: WAYBILL_NO ,status:status,ciqNo:ciqNo},*/
+            onLoadSuccess: function (index, row) {
+
+                //var ed1 = getDG('forSort').datagrid('getEditor', {index: index, field:'GOODS_NO'});
+                // var ed2 = getDG('forSort').datagrid('getEditor', {index: index, field:'PKID'});
+                /*      if(WAYBILL_NO=='-'){
+                 $('#btnAdd').linkbutton('disable');
+                 }else{
+                 $('#btnAdd').linkbutton('enable');
+                 }*/
+            },
+            enableLineEdit: isEdit,
+            onBeginEdit: function (index, row) {
+                if (
+                    (
+                        typeof (row.isadd__) == 'undefined') || (
+                    row.isadd__ == 1 && row.___editcount > 1)
+                ) {
+                    /*           var ed1 = getDG(identity).datagrid('getEditor', {index:index,field:'CATALOG_NO'});
+                     var ed2 = getDG(identity).datagrid('getEditor', {index:index,field:'WAREHOUSE_NO'});
+                     $(ed1.target).textbox({ editable: false, onlyview: true, required: false, value: row.CATALOG_NO });
+                     $(ed2.target).textbox({ editable: false, onlyview: true, required: false, value: row.WAREHOUSE_NO });*/
+                }
+            }, onEndEdit: function (index, row, changes) {
+                row = toCamelCase(row);
+
+                if (row.pkid) {
+
+                    row = $.extend({}, row, {FunctionCode: 'EM_CMP_LEP_UPDATE'});
+                }
+                else {
+                    row = $.extend({}, row, {FunctionCode: 'EM_CMP_LEP_ADD'});
+                    /* row['partId'] = isPartId;*/
+                }
+                InitFuncCodeRequest_({
+                    data: row,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            reload_('dg');
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        } else {
+                            //MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            },
+            contextMenus: [{
+                id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                onclick: function () {
+                    var rowdata = getDG('dg').datagrid('getSelected');
+                    if (cmpStatus != 'DRAFT') {
+                        MsgAlert({content: '当前维修方案的状态不为草稿', type: 'error'});
+                        return false;
+                    }
+                    InitFuncCodeRequest_({
+                        data: {pkid: rowdata.PKID, FunctionCode: 'EM_CMP_LEP_DEL'},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                MsgAlert({
+                                    content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                                });
+                                reload_('dg');
+                            }
+                        }
+                    })
+                }
+            }
+            ]
+
+        });
+    }
+
+
+    /*doSearch_查询*/
+    function doSearch_() {
+        var $form = $("#ffSearch");
+        var data = $form.serializeObject();
+        data = data = $.extend({}, data, {
+            cmpPkid: cmpPkid
+        });
+        var dgopt = getDgOpts('dg');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: data
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

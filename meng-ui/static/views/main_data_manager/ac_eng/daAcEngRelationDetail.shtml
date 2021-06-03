@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>发动机型号维护详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr id="view">
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">方案机型：</th>
+                        <td class="tdr" colspan="5">
+                            <input class="easyui-combobox" id="mpFleet" name="mpFleet" data-options="required:true"
+                                   data-options="editable:true" style="width: 200px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">发动机型号：</th>
+                        <td class="tdr" style="width: 100px;">
+                            <input class="easyui-textbox" id="engModel" name="engModel" data-options="required:true"
+                                   style="width: 200px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">发动机子型号：</th>
+                        <td class="tdr" style="width: 60px">
+                            <input class="easyui-textbox" id="apuModel" name="apuModel" data-options="required:true"
+                                   data-options="editable:true" style="width: 200px;"/>
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        if (operation == "view") {
+            $("#view").hide();
+        }
+        InitFuncCodeRequest_({
+            data: {domainCode: "YESORNO,DA_MP_FLEET,DA_ENG_MODEL,DA_APU_MODEL", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#mpFleet').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_MP_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    // $('#engModel').combobox({
+                    //     panelHeight: '135px',
+                    //     data: jdata.data.DA_ENG_MODEL,
+                    //     valueField: 'VALUE',
+                    //     textField: 'TEXT'
+                    // });
+                    // $('#apuModel').combobox({
+                    //     panelHeight: '135px',
+                    //     data: jdata.data.DA_APU_MODEL,
+                    //     valueField: 'VALUE',
+                    //     textField: 'TEXT'
+                    // });
+                }
+                if (param.pkid) {
+                    InitDataForm(param.pkid);
+                }
+            }
+        })
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "DA_AC_ENG_RELATION_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'DA_AC_ENG_RELATION_ADD'});
+        InitFuncCodeRequest_({
+            data: datas,
+            successCallBack: function (jdata) {
+                mistake = jdata.msg;
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.onSearch_('dg', '#ffSearch');
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else if (jdata.msg.indexOf("唯一约束")) {
+                    MsgAlert({content: "该发动机型号在数据库已经存在", type: "error"})
+                } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+            }
+        });
+    }
+</script>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>软件构型适用性维护</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%">
+    <div class="ibox-content">
+        <form class="form-horizontal m-t" id="mform">
+            <fieldset class="fieldset_eui">
+                <legend>适用性基本信息</legend>
+
+                <input type="hidden" id="pkid" name="pkid" />
+                <input type="hidden" id="configId" name="configId" />
+                <input type="hidden" id="destSwId" name="destSwId" />
+
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="5" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                                   style="margin-left:3px;margin-right: 18px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">注册号：</th>
+                        <td style="width: 150px;  padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="appId" name="appId" readonly/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">是否适用：</th>
+                        <td style="width: 150px;  padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="isApplicable" name="isApplicable" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">当前软件件号：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="curSwId" name="curSwId" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">当前执行文件：</th>
+                        <td colspan="5" style="padding: 3px;">
+                        <input class="easyui-textbox" style="width: 300px"
+                                  id="curEoNo" name="curEoNo" />
+                        </td>
+                    </tr>
+                    <tr id="id_dest_row1">
+                        <th class="th" align="right" style="width: 80px;">目标软件件号：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="destSwPn" name="destSwPn" readonly />
+                        </td>
+                    </tr>
+                    <tr id="id_dest_row2">
+                        <th class="th" align="right" style="width: 80px;">目标执行文件：</th>
+                        <td colspan="5" style="padding: 3px;">
+                            <input class="easyui-textbox" style="width: 300px"
+                                   id="destEoNo" name="destEoNo" readonly />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">备注：</th>
+                        <td colspan="5" style="padding: 3px;">
+                            <input class="easyui-textbox" style="width: 300px; height: 100px"
+                                   id="memo" name="memo"
+                            data-options="multiline:true" />
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+        </form>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param; // operation[add,edit,view]
+    var op = null;
+    var pkid = null;//主表PKID
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        op = param.operation;
+        pkid = param.pkid;
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_ACID,YESORNO"
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                $('#isApplicable').combobox({
+                    data: jdata.data.YESORNO,
+                    valueField: "VALUE",
+                    textField: "TEXT",
+                    panelHeight: "150px",
+                    onSelect: function (item) {
+                        var isY =  item.VALUE == "Y";
+                        var opts = {
+                            required: isY,
+                            readonly: ! isY,
+                            onlyview: ! isY
+                        };
+                        $('#curSwId').combobox(opts);
+                        $('#curEoNo').combobox(opts);
+                    }
+                });
+                $('#appId').combobox({
+                    data: jdata.data.EM_ACID,
+                    valueField: "ACID",
+                    textField: "ACNO",
+                    panelHeight: "150px"
+                });
+            }
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_APP_CUR",
+                configId: param.configId
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                $('#curSwId').combobox({
+                    data: jdata.data,
+                    valueField: "PKID",
+                    textField: "SW_PN",
+                    panelHeight: "150px",
+                    required: true
+                });
+            }
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_EO_NO_VER",
+                configId: param.configId
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                $('#curEoNo').combobox({
+                    data: jdata.data,
+                    valueField: "EO_NO_VER",
+                    textField: "EO_NO_VER",
+                    panelHeight: "150px",
+                    required: true
+                });
+            }
+        });
+
+        if (op == "view") {
+            $('#saveBtn').hide();
+
+            $('#isApplicable').textbox("readonly", true);
+            $('#curSwId').textbox("readonly", true);
+            $('#curEoNo').textbox("readonly", true);
+            $('#memo').textbox("readonly", true);
+        } else {
+            $('#id_dest_row1').hide();
+            $('#id_dest_row2').hide();
+        }
+
+        if (op == "add") {
+            $('#configId').val(param.configId);
+            $('#isApplicable').combobox("setValue", "Y");
+            $('#appId').combobox('setValue', param.acid);
+            if (!! param.curSwId) {
+                $('#curSwId').combobox('setValue', param.curSwId);
+            }
+        } else {
+            InitDataForm(pkid);
+        }
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_APP_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.IS_APPLICABLE) {
+                        $('#curSwId').combobox({required: false, readonly: true, onlyview: true});
+                        $('#curEoNo').combobox({required: false, readonly: true, onlyview: true});
+                    }
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function save() {
+        if (! $('#mform').form('validate')) {
+            return;
+        }
+
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_APP_ADD",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+                    closeW();
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

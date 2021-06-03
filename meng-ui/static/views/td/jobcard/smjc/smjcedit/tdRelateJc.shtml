@@ -1,0 +1,235 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>选取关联工卡</title>
+</head>
+<body class="ibody">
+<div id="tt" style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+                <form id="ffSearch" class="form-horizontal">
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <td align="right" style="padding: 3px;" colspan="6">
+                                <input class="btn btn-primary" type="button" onclick="searchData();"
+                                       style="width: 50px;margin:5px;" value="查询"/>
+                                <input class="btn btn-primary" type="button" onclick="doClear_('#ffSearch')"
+                                       data-options="iconCls:'icon-clear'" value="重置"
+                                       style="width: 50px;background-color: #dd0000"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th" style="width:100px;" align="right">工卡号：</th>
+                            <td style="width: 180px;padding: 3px">
+                                <input class="easyui-textbox" id="cardNo" name="cardNo" data-options=""
+                                       style="width: 180px"/>
+                            </td>
+                            <th class="th" style="width:100px;" align="right">标题：</th>
+                            <td style="width: 310px;padding: 3px">
+                                <input class="easyui-textbox" id="subjectCn" name="subjectCn" data-options=""
+                                       style="width: 310px"/>
+                            </td>
+                            <th class="th" style="width:100px;" align="right">ATA：</th>
+                            <td style="width:90px;padding: 3px">
+                                <input class="easyui-combobox" id="ata" name="ata" data-options=""
+                                       style="width:90px"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+    <div id="mlayout" class="easyui-layout" style="height: 500px;">
+        <div id="lay_left" data-options="region:'west'" style="width:49%">
+            <fieldset class="fieldset_eui">
+                <legend>未选择</legend>
+                <p style="color: #dd0000">&nbsp;</p>
+                <br/>
+                <table id="dg"></table>
+            </fieldset>
+        </div>
+        <div data-options="region: 'center'" style="height: 500px; width: 6%">
+            <input class="btn btn-primary" type="button" onclick="save()" value=">>>"
+                   style="float:left;width:40px;margin-top: 200px;margin-left:28px "/>
+            <input class="btn btn-primary" type="button" onclick="cancel()" value="<<<"
+                   style="float:left;width:40px;margin-top: 5px;margin-left:28px"/>
+        </div>
+        <div id="lay_right" data-options="region:'east'" style="width: 44%">
+            <fieldset class="fieldset_eui">
+                <legend>已选择</legend>
+                <p style="color: #dd0000">&nbsp;</p>
+                <br/>
+                <table id="dg1"></table>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param = {};
+    param = getParentParam_();
+    var title;
+    var jcType;
+    var companyCode;
+    var fleet;
+    var markType;
+    var jcNo;
+    var fromType;
+    var jcPkid;
+
+    function i18nCallBack() {
+        title = param.title;
+        jcType = param.jcType;
+        fleet = param.fleet;
+        companyCode = param.companyCode;
+        markType = param.markType;
+        jcNo = param.jcNo;
+        fromType = "MARK_RELATE";
+        jcPkid = param.pkid;
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_ATA",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //ATA
+                    $('#ata').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.TD_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                }
+            }
+        });
+        //未选择的关联工卡
+        InitDataGrid();
+        //已选择的IFSD关联工卡
+        InitDataGrid2();
+    }
+
+    //未选择的关联工卡列表
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            fitColumns: true,
+            sortable: true,
+            singleSelect: false,
+            queryParams: {
+                jcType: jcType,
+                companyCode: companyCode,
+                fleet: fleet,
+                jcNo: jcNo,
+                fromType: fromType,
+                jcPkid: jcPkid
+            },
+            resize: function () {
+                return {height: 430, width: 610};
+            },
+            columns: {
+                param: {FunctionCode: 'TD_MAINTEN_RELATE_JC_CARD_NEW'},
+            },
+            onLoadSuccess: function (jdata) {
+
+            }
+        });
+    }
+
+    //已选择的关联工卡列表
+    function InitDataGrid2() {
+        var identity = 'dg1';
+        $("#dg1").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            fitColumns: true,
+            singleSelect: false,
+            queryParams: {jcPkid: jcPkid},
+            resize: function () {
+                return {height: 420, width: 546};
+            },
+            columns: {
+                param: {FunctionCode: 'TD_SELECTED_RELATE_JC_NEW'},
+            },
+            onLoadSuccess: function (jdata) {
+
+            }
+        });
+    }
+
+    //选择
+    function save() {
+        //序列化列表数据
+        var rows = $('#dg').datagrid('getChecked');
+        if (!rows || rows.length == 0) {
+            MsgAlert({content: '请至少选择一条未选择的记录', type: 'error'});
+            return;
+        }
+        var detailData = JSON.stringify(rows);
+        InitFuncCodeRequest_({
+            data: {
+                jcNo: jcNo,
+                detailData: detailData,
+                fromType: 'MARK_RELATE',
+                markType: markType,
+                jcPkid: jcPkid,
+                FunctionCode: "ADD_DM_IFSD_TO_RELATE_JC_NEW"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitDataGrid();
+                    InitDataGrid2();
+                    param.OWindow.InitDataForm(jcPkid, jcNo);
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //取消
+    function cancel() {
+        //序列化列表数据
+        var rows = $('#dg1').datagrid('getChecked');
+        if (!rows || rows.length == 0) {
+            MsgAlert({content: '请从已选择中至少选择一条记录', type: 'error'});
+            return;
+        }
+        var detailData = JSON.stringify(rows);
+        InitFuncCodeRequest_({
+            data: {
+                detailData: detailData,
+                FunctionCode: "DELETE_DM_IFSD_FROM_RELATE_JC_NEW"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitDataGrid();
+                    InitDataGrid2();
+                    param.OWindow.InitDataForm(jcPkid, jcNo);
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_(search, grid) {
+        $(search).form('clear');
+    }
+
+</script>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        var isEdit_;
+        var param = {};
+        param = getParentParam_();
+        var rangedataPkid = param.rangedataPkid;
+        isEdit_ = param.PKID;
+
+        function i18nCallBack() {
+            InitFuncCodeRequest_({
+                data: {domainCode: "LOGIC_OPERATOR,EM_MP_PRE_POST", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                        if (isEdit_) {
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: param.pkid,
+                                    FunctionCode: "EM_CMP_EVAL_PN_WHYQ_GETONE"
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        InitEditForm_();
+                                        ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                                        $('#pkid').val(jdata.data.PKID);
+                                        $('#lpPkid').val(jdata.data.LP_PKID);
+
+                                    } else {
+                                        MsgAlert({content: "信息错误", type: 'error'});
+                                    }
+                                }
+                            });
+
+                        } else {
+                            InitEditForm_();
+                            $('#lpPkid').val(param.lpPkid);
+                        }
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+
+
+        }
+
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'EM_CMP_EVAL_PN_WHYQ_UPDATE' : 'EM_CMP_EVAL_PN_WHYQ_ADD')
+                    });
+                    /*$("input:checkbox:checked").each(function(){
+
+                     });*/
+//                    console.log(data);
+//                    return false;
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                                $('#pkid').val(jdata.data.pkid);
+
+                                param.OWindow.reload_();
+
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: "信息错误", type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table class="table table-bordered table-info">
+                    <input type="hidden" id="pkid" name="pkid" style="width: 100px;"/>
+                    <input type="hidden" id="lpPkid" name="lpPkid" style="width: 100px;"/>
+                    <caption style="padding-bottom: 7px;font-weight:bold;">增加部件维护要求</caption>
+                    <tr>
+                        <td align="right" style="padding-top: 6px;" colspan="4">
+                            <input class="btn btn-primary" type="submit" id="submit" value="保存"/>&nbsp;&nbsp;
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">维护要求（中文）：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="whyqChn" name="whyqChn"
+                                   data-options="required:true" style="width: 500px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">维护要求（英文）：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="whyqEng" name="whyqEng" data-options=""
+                                   style="width: 500px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">备注（中文）：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="memoChn" name="memoChn"
+                                   data-options="multiline:true,required:true" style="width: 500px;height: 100px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">备注（英文）：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="memoEng" name="memoEng"
+                                   data-options="multiline:true,required:true" style="width: 500px;height: 100px"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+
+</script>
+
+</body>
+</html>

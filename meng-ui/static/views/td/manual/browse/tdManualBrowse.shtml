@@ -1,0 +1,423 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册浏览</title>
+</head>
+<body class="ibody">
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:true,collapsible:true" title="The SP Manual Tree." style="width: 23%;">
+        <ul id="locTree" class="easyui-tree"></ul>
+    </div>
+    <div id="lay_right" data-options="region:'center'" style="-webkit-overflow-scrolling:touch"  >
+        <span></span>
+        <div id="tt2" class="easyui-tabs" fit="true">
+            <div title="高级查询" style="padding:10px;display:none;">
+
+                <div id="tt" style="width:100%; height: 98%">
+                    <fieldset class="fieldset_eui">
+                        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+                        <form id="ffSearch" class="form-horizontal">
+                            <input type="hidden" id="sql" name="sql">
+                            <input type="hidden" id="cec" name="cec">
+                            <input type="hidden" id="acid" name="acid">
+                            <input type="hidden" id="dataGridType" value="0">
+                            <table cellspacing="0" cellpadding="0" class="table table-bordered table-info">
+                                <tr>
+                                    <th class="tdl" style="width: 120px">手册类型：</th>
+                                    <td class="tdr" width="180">
+                                        <input class="easyui-combobox" id="dataType" name="dataType"
+                                               style=" width:180px;"/>
+                                    </td>
+                                    <th class="tdl" style="width: 120px">机队：</th>
+                                    <td class="tdr" width="180">
+                                        <input class="easyui-combobox" id="fleet" name="fleet" style=" width:180px;"/>
+                                    </td>
+                                    <th class="tdl" style="width: 120px">机号：</th>
+                                    <td class="tdr" width="180">
+                                        <input class="easyui-combobox" id="acno" style=" width:180px;"/>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="tdl" style="width: 180px">TAKS CODE <label style="color: red;">(例:05-41-02)</label>：</th>
+                                    <td class="tdr" width="180">
+                                        <input class="easyui-textbox" id="taskCode" name="taskCode"
+                                               style=" width:180px;"/>
+                                    </td>
+                                    <th class="tdl" style="width: 120px">文件标题：</th>
+                                    <td class="tdr" width="180">
+                                        <input class="easyui-textbox" id="fileTitle" name="title"
+                                               style=" width:180px;"/>
+                                    </td>
+
+                                    <td>
+                                        &nbsp;<a class="searchBtn" href="javascript:void(0)" onclick="searchData()"
+                                                 data-options="iconCls:'icon-search'"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                                        &nbsp;<a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                        <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </form>
+                    </fieldset>
+                    <table id="dg"> </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var sql="";
+    var param;
+
+    var treeStatus = "default";// default:默认方式   jump:其他地方跳转过来
+    var jumpTaskCode = "";
+    var companyCode = "";//运营人
+    var fleet = "";//机队
+    var manualType = "";//手册类型
+    var dealOption = "";//编写方式
+
+    var fileId;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        param = getParentParam_();
+
+        treeStatus = param.treeStatus;
+        jumpTaskCode = param.jumpTaskCode;
+        companyCode = param.companyCode;
+        fleet = param.fleet;
+        manualType = param.manualType;
+        dealOption = param.dealOption;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_DATA_TYPE_BROWSE,DA_FLEET,TD_MANUAL_BROWSE_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机队
+                    $('#fleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#dataType').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DM_DATA_TYPE_BROWSE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#acno').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.TD_MANUAL_BROWSE_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        if (dealOption == "structured") {
+            fileId = fleet + "-" + manualType + "-" + jumpTaskCode.replace("-C", "C") + "-A00";
+        } else if (dealOption == "unstructured") {
+            InitFuncCodeRequest_({
+                data: {
+                    FunctionCode: "TD_MANUAL_TREE_NODE_ID",
+                    fleet: fleet,
+                    dataType: manualType,
+                    companyCode: companyCode,
+                    subtask: jumpTaskCode
+                },
+                async: false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (jdata.data != null) {
+                            fileId = jdata.data.ID;
+                        } else {
+                            MsgAlert({
+                                content: "文件数据异常，请检查链接或联系业务员！",
+                                type: "error"
+                            })
+                        }
+                    } else {
+                        MsgAlert({
+                            content: jdata.msg,
+                            type: "error"
+                        })
+                    }
+                }
+            });
+        }
+
+        getTree();
+        InitDataGrid();
+
+        //设置title输入后转成大写
+        $("#fileTitle").textbox({
+            onChange : function(value){
+                console.log(value);
+                $("#fileTitle").textbox({value:value.toUpperCase()});
+            }
+        });
+    }
+
+    function getTree() {
+        //初始化树
+        ajaxLoading();
+
+        $("#locTree").tree({
+            url: "/api/v1/plugins/TD_MANUAL_LIST_TREE",
+            lines: true,
+            animate: true,
+            formatter: function (tdata_) {
+                var ns = tdata_.nameString;
+                var ds = ns == "Y" ? "<button>DS</button>" : "";
+                var ps = (ns != "Y" && !! ns) ? ("&nbsp;" + ns) : "";
+                return ds + tdata_.name + ps;
+            },
+            loadFilter : function(jdata) {
+                ajaxLoadEnd();
+                var treeData = HandleTreeData_(jdata.data, 'pid');
+                var tdata_ = WarpTreeGridData_(treeData, "000", ['id', 'pid']);
+                return tdata_;
+            },
+            onSelect: function (node) {
+                if (node.nameString == "Y") {
+                    InitFuncCodeRequest_({
+                        data: {
+                            FunctionCode: "TD_MANUAL_TREE_DS",
+                            pkid: node.cmpPkid
+                        },
+                        async: false,
+                        successCallBack: function (jdata) {
+                            $.each(jdata.data, function (k, v) {
+                                ShowWindowIframe({
+                                    url: "/views/pdfMobile/web/viewer.html?url=" + v.URL,
+                                    title: v.ORG_NAME,
+                                    width: "1200",
+                                    height: "800"
+                                });
+                            });
+                        }
+                    });
+                }
+
+                $("#dataGridType").val("0");
+                var type = node.type;
+                if (type == "Link") {
+                    var ids = node.id.split("-");
+                    addTab("飞机交叉索引", '/views/td/rev/crossIndex.shtml?mpActype=' + ids[0] + '&manualType=' + ids[1]);
+                } else if (type == "unstructured") { //非机构化方式
+                    addTab(node.name, '/views/pdfMobile/web/viewer.html?url=' + node.url);
+                } else if (type == "structured") { //机构化方式
+                    addTab(node.name, '/views/pdfMobile/web/viewer.html?url=' + node.url);
+                } else if (type == "introduction") { //前言
+                    addTab(node.name, '/views/pdfMobile/web/viewer.html?url=' + node.url);
+                } else if (!! type) {
+                    $("#locTree").tree("expand", node.target);
+                } else {
+                    var id = $.trim(node.id);
+
+                    if (id.split("-").length >= 5) {
+                        sql = " AND T.PARENT_ID='" + id + "' ";
+                        $("#sql").val(sql);
+                        $("#dataGridType").val("1");
+                        onSearch_('dg', '#ffSearch');
+                    }
+
+                    $("#locTree").tree("expand", node.target);
+                }
+            },
+            onLoadSuccess: function (node, data) {
+                if (treeStatus == "jump" && data[0].type == "ACTYPE") {
+                    var arr = $.trim(jumpTaskCode).split("-");
+                    if (arr.length == 0) {
+                        MsgAlert({content: "解析跳转参数错误：TASKCODE格式输入的不正确!", type: 'error'});
+                        return;
+                    }
+                    if (arr.length < 3) {
+                        MsgAlert({content: "解析跳转参数错误：TASKCODE最少输入3位，请重试!", type: 'error'});
+                        return;
+                    }
+
+                    expandTreeById(fileId);
+                }
+
+            }
+        }).css({padding: '5px'});
+
+        $("#locTree").tree('doFilter');
+    }
+
+    function expandTreeById(id) {
+        var s = id.split("-");
+        var ids = [];
+        var str = [];
+        for (var i = 0; i < s.length - 1; i++) {
+            str.push(s[i]);
+            if (i <= 5) {
+                ids.push(str.join("-"));
+            } else if (i == s.length - 2) {
+                ids.push(str.join("-"));
+            }
+        }
+
+        for (var i = 0; i < ids.length; i++) {
+            (function (i) {
+                setTimeout(function () {
+                    node = $('#locTree').tree('find', ids[i]);
+                    $('#locTree').tree('expand', node.target);
+                }, 1000 * (i + 1));
+            })(i);
+        }
+
+        setTimeout(function () {
+            node = $('#locTree').tree('find', id);
+            $('#locTree').tree('select', node.target);
+        }, 1000 * 8);
+    }
+
+    function openTab(pkid, taskCode, url) {
+        if (pkid != 0) {
+            InitFuncCodeRequest_({
+                data: {
+                    FunctionCode: "TD_MANUAL_TREE_DS",
+                    pkid: pkid
+                },
+                async: false,
+                successCallBack: function (jdata) {
+                    $.each(jdata.data, function (k, v) {
+                        ShowWindowIframe({
+                            url: "/views/pdfMobile/web/viewer.html?url=" + v.URL,
+                            title: v.ORG_NAME,
+                            width: "1200",
+                            height: "800"
+                        });
+                    });
+                }
+            });
+        }
+        addTab(taskCode, url);
+    }
+
+    function addTab(title, url) {
+        $('#tt2').tabs('close', 1);
+        var content = '<iframe scrolling="auto" frameborder="0" src="' + url + '" style="width:100%;height:100%;"></iframe>';
+        $('#tt2').tabs('add', {
+            title: title,
+            content: content,
+            closable: true
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            firstLoad: false,
+            singleSelect: true,
+            pageSize: 22,
+            resize: function () {
+                return tabs_standard_resize($('#mlayout'), 0.01, 0, 0, 0);
+            },
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_TREE_LIST'},
+                alter: {
+                    TASK_CODE: {
+                        formatter: function (value, row, index) {
+                            var type = $("#dataGridType").val();
+                            var html="";
+                            if (type == "1") {
+                                var pkid = row.NAME_STRING == "Y" ? row.PKID : "0";
+                                html = '<a href="javascript:openTab(\'' + pkid + '\', \'' + row.TASK_CODE + '\',\'/views/pdfMobile/web/viewer.html?url=' + row.URL + '\');" >' + row.TASK_CODE + '</a>';
+                                if (row.NAME_STRING == "Y") {
+                                     html += "<button>DS</button>";
+                                }
+                            } else {
+                                html = '<a href="javascript:expandTreeById(\'' + row.ID + '\');" >' + row.TASK_CODE + '</a>';
+                            }
+                            return html;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    //查询
+    function searchData() {
+        var title = $.trim($("#fileTitle").textbox('getValue'));
+        var taskCode = $.trim($("#taskCode").textbox('getValue'));
+        var taskStr="";
+
+        sql="";
+
+        // if(title!=null && title!="" && taskCode!=null && taskCode!=""){
+        //     var arr = $.trim(taskCode).split("-");
+        //     if(arr.length==0){
+        //         MsgAlert({content: "TASKCODE格式输入的不正确，请重试!", type: 'error'});
+        //         return;
+        //     }
+        //     if(arr.length<3){
+        //         MsgAlert({content: "TASKCODE最少输入3位，请重试!", type: 'error'});
+        //         return;
+        //     }
+        //     taskStr = " AND T.TASK_CODE like '%" + taskCode + "%' ";
+        //     sql = taskStr+" AND T.Data_Title like '%"+title+"%' ";
+        // }
+        // if(title!=null && title!="" ){
+        //     sql=" AND T.Data_Title like '%"+title+"%' ";
+        // }
+        if (taskCode != null && taskCode != "") {
+            var arr = $.trim(taskCode).split("-");
+            if(arr.length==0){
+                MsgAlert({content: "TASKCODE格式输入的不正确，请重试!", type: 'error'});
+                return;
+            }
+            if(arr.length<3){
+                MsgAlert({content: "TASKCODE最少输入3位，请重试!", type: 'error'});
+                return;
+            }
+            // taskStr = " AND T.TASK_CODE like '%" + taskCode + "%' ";
+            // sql=taskStr;
+        }
+        //如果选择了机号，则必须选择手册类型
+        var acno = $("#acno").combobox("getValue");
+        if (acno != null && acno != "") {
+            var dataType = $("#dataType").combobox("getValue");
+            if (dataType == null || dataType == "") {
+                MsgAlert({content: "资料类型不能为空，请重试!", type: 'error'});
+                return;
+            }
+            var acnoArr = acno.split("|");
+            var acid = acnoArr[0];
+            $("#acid").val(acid);
+            var cec = acnoArr[1];
+            if (dataType == "SIPC") {
+                cec = acnoArr[2];
+            }
+            $("#cec").val(cec);
+        }
+
+        // $("#sql").val(sql);
+        onSearch_('dg', '#ffSearch');
+    }
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        onSearch_('dg', '#ffSearch');
+    }
+</script>
+</body>
+</html>

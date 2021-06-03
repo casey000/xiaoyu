@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">EA</title>
+</head>
+<body class="ibody">
+<div id="title" class="title" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:50px;" align="right">工卡号：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-textbox" id="jcNO" name="jcNO" style="width:135px;"/>
+                    </td>
+                    <td align="right">
+                        <input id="searchBtn" class="btn btn-primary" type="button" onclick="searchData()" value="查询"
+                               style="width: 50px;margin:10px;"/>
+                        <!--<input id="clearBtn" class="btn btn-primary" type="button" onclick="doClear_()" value="重置"-->
+                               <!--style="width: 50px;margin:10px;"/>-->
+                        <input class="btn btn-primary" type="button" onclick="openDetai('add','')" value="保存"
+                               style="width: 50px;margin:5px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var nalter = {};
+    var param = {};
+
+    function i18nCallBack() {
+        window.resizeTo("800", "500");
+        window.moveTo(300, 200);
+
+        param = getParentParam_();
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_JC_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_JC_STATUS"]);
+                    InitDataGrid()
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+//EM_EO_JC_RELATE_NRC_LIST
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            queryParams : {evalNo : param.evalNo},
+            columns: {
+                param: {FunctionCode: 'EM_MPD_JC_RELATE_NRC_LIST'},
+                alter:{
+                    STATUS: {
+                        formatter : function (value) {
+                            return  PAGE_DATA['status'][value];
+                        }
+                    }
+                }
+            },
+        });
+    }
+
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //打开资料类型详细页面
+    function openDetai() {
+        var rows = $('#dg').datagrid('getChecked');
+        var objs = [];
+        var pkids = new Set();
+        if (rows.length == 0) {
+            MsgAlert({content: "请先选择明细数据！", type: 'error'});
+            return;
+        }
+        for (i = 0; i < rows.length; i++) {
+            let obj = {};
+            obj["evalNo"] = param.evalNo;
+            obj["cardNo"] = rows[i].JC_NO;
+            objs.push(obj);
+        }
+
+
+        var detailData = JSON.stringify(objs);
+        InitFuncCodeRequest_({
+            data: {
+                detailData:detailData,
+                FunctionCode: "EM_MPD_JOB_CARD_SAVE2"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reloadg4();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+        }
+    </style>
+</head>
+<body>
+<div style="width:630px;margin:0 auto;">
+    <form class="form-horizontal m-t" id="mform">
+        <div id="p0" class="easyui-panel" title="增加变化量">
+            <input type="hidden" id="pkid" name="pkid">
+            <input type="hidden" id="initialDataPkid" name="initialDataPkid">
+            <input type="hidden" id="loadUnit" name="loadUnit">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td align="right" style="padding: 6px;">
+                        <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                        <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                               value="关闭"/>
+                    </td>
+                </tr>
+            </table>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="td5" style="width:110px;" align="right"><a href="###" onclick="chooseEo()">EO编号：</a></th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="eoNo" name="eoNo" data-options="required:true,editable:false,onlyview:true"
+                               style="width:150px;"/>
+                        <input id="eoPkid" type="hidden" name="eoPkid"/>
+                    </td>
+                    <th class="td5" style="width:110px;" align="right">EO版次：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="eoVer" name="eoVer" data-options="required:true,editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5" style="width:130px;" align="right"> 负载/LOAD变化量：</th>
+                    <td class="tdr">
+                        <input class="easyui-numberbox" id="loadChange" name="loadChange" data-options="required:true,precision:3,validType:['maxLength[10]']"
+                               style="width:150px;"/>
+                    </td>
+                    <th class="td5" style="width:150px;" align="right"> 功率因数/Factor变化量：</th>
+                    <td class="tdr">
+                        <input class="easyui-numberbox" id="factorChange" name="factorChange"
+                               data-options="required:true,min:-1,max:1,precision:3,validType:['maxLength[10]']"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5" style="width:110px;" align="right"> 确认人：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="modifyName" name="modifyName" data-options="required:true"
+                               style="width:150px;"/>
+                    </td>
+                    <th class="td5" style="width:110px;" align="right"> 确认日期：</th>
+                    <td class="tdr">
+                        <input class="easyui-datebox" id="modifyDate" name="modifyDate" data-options="required:true"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</div>
+<script type="application/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    var initialDataPkid;
+    var initialDataSource;
+    function i18nCallBack() {
+        param = getParentParam_();
+        if(param && param.initialDataPkid){
+            initialDataPkid = param.initialDataPkid;
+            initialDataSource = param.initialDataSource;
+            $("#initialDataPkid").val(initialDataPkid);
+            $("#loadUnit").val(param.initialDataUnit);
+        }
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "PM_MC_POSITION"},
+            successCallBack: function (jdata) {
+
+                $('#modifyName').textbox({editable: false, onlyview: true});
+                $('#modifyDate').datebox({editable: false, onlyview: true});
+                $("#modifyName").textbox({value: getLoginInfo().userName});
+                $("#modifyDate").datebox({value: formatterDate(new Date())});
+            }
+        });
+    }
+
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var data = $("#mform").serializeObject();
+        data = $.extend({}, data, {FunctionCode: 'EM_ELA_CHANGE_ADD_EDIT'});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    var pkid = jdata.data;
+                    $("#pkid").val(pkid);
+                    param.OWindow.InitDataGrid1();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function chooseEo() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 850, height: 520,
+            param:{},
+            url: "/views/em/emela/emela_choose_eo_list.shtml"
+        });
+    }
+    function chooseEoAfter(ids,eoNos,eoVers) {
+        $("#eoPkid").val(ids);
+        $("#eoNo").textbox('setValue',eoNos);
+        $("#eoVer").textbox('setValue',eoVers);
+    }
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                $("#mform").form('clear');
+            }
+        });
+    }
+</script>
+</body>
+</html>

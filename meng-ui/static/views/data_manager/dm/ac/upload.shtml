@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>超大附件上传</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">FTP存放路径：</th>
+                        <td style="padding: 3px">
+                            <input class="easyui-textbox" id="ftpFolderPath" name="ftpFolderPath" data-options="required:true,editable:false,onlyview: true"
+                                   style="width: 400px;"/>
+                            <input class="btn btn-primary" id="createFolderBtn"  type="button"  onclick="createFolder();" value="生成文件地址" style="width: 100px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">文件名：</th>
+                        <td style="padding: 3px">
+                            <input class="easyui-textbox" id="ftpFilePath" name="ftpFilePath" data-options="required:true,editable:true"
+                                   style="width: 400px;"></input>
+                            <font color="red">(例:Example.zip)</font>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="9" align="right">
+                            <input class="btn btn-primary" id="saveBtn" type="button" onclick="save()" value="提交"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var COMBOBOX_DATA = {};
+    var loginInfo;
+
+    param = getParentParam_();
+    loginInfo = getLoginInfo();//获取登录账号信息
+    var pkid = param.pkid;//pkid
+    var dataFrom = param.dataFrom;//来源厂家
+    var fleet = param.fleet;//机队
+    var dataType = param.dataType;//手册类型
+    var dataVer = param.dataVer;//版本号
+    // var ftpFolderPath = param.ftpFolderPath;//文件地址
+    // var ftpFilePath = param.ftpFilePath;//文件名
+
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "DM_DATA_REC_BY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                }
+            }
+        });
+    }
+
+
+    function createFolder(){
+        InitFuncCodeRequest_({
+            data: {
+                pkid:pkid,
+                dataFrom:dataFrom,
+                fleet:fleet,
+                dataType:dataType,
+                dataVer:dataVer,
+                FunctionCode: 'DM_DATA_REC_CREATE_FOLDER'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: "附件地址已创建成功."});
+                    $("#ftpFolderPath").textbox({value:jdata.data})
+                    //$("#createFolderBtn").attr("onclick","");
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var ftpFilePath = $("#ftpFilePath").textbox('getValue');
+        InitFuncCodeRequest_({
+            data: {
+                pkid:pkid,
+                ftpFilePath:ftpFilePath,
+                FunctionCode: 'DM_DATA_REC_UPLOAD_FILE'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</html>

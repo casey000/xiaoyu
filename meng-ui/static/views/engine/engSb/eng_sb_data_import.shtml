@@ -1,0 +1,83 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+</head>
+<body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <table class="table table-bordered table-info">
+                <form id="actionForm" method="post">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right"><span
+                                data-i18n="page:PAGE.Y_MM_SALE_OFFER_LIST.UPLOAD_FILE">导入文件：</span></th>
+                        <td class="tdr">
+                            <input type="file" id="file" size="300" name="file"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center">
+                            <div id="sc"><input class="btn btn-primary" type="button" id="buttonSubmit"
+                                                onclick="fileSure()" value="导&nbsp;&nbsp;入 Import"/></div>
+                        </td>
+                    </tr>
+                </form>
+            </table>
+        </div>
+        <span style='color: Red'>重要提醒：Comp. Date 字段必须为文本格式：YYYY-MM-DD</span>
+    </div>
+    <div id="textboxDiv"></div>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script type="text/javascript">
+    function fileSure() {
+        //判断是否选择了文件
+        const fileInputObj = $("#file");
+        const fileName = fileInputObj.val();
+        if (!$.trim(fileName)) {
+            MsgAlert({content: '请选择文件', type: 'error'});
+            return;
+        }
+
+        const files = document.getElementById("file").files[0];
+        const formData = new FormData();
+        formData.append("file", files);
+        const param = getParentParam_();
+        const url = ENVGlobal.gateWay + param.apiUrl;
+        ajaxLoading();
+        const header = {
+            "X-ENV": ENVGlobal.env
+        };
+        header["token"] = sessionStorage.getItem('token');
+        $.ajax({
+            url: url,
+            dataType: 'json',
+            type: 'post',
+            data: formData,
+            headers: header,
+            processData: false,
+            cache: false,
+            contentType: false,
+            success: function (jData) {
+                if (jData.success) {
+                    ajaxLoadEnd();
+                    param.OWindow.reload_();
+                    param.OWindow.MsgAlert({content: jData.obj ? jData.obj : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    ajaxLoadEnd();
+                    MsgAlert({content: jData.obj ? jData.obj : "系统错误，请联系管理员检查。", type: 'error'});
+                }
+            },
+            error: function (jData) {
+                ajaxLoadEnd();
+                MsgAlert({content: "系统错误，请联系管理员检查。", type: 'error'});
+            }
+        });
+    }
+</script>
+</body>
+</html>

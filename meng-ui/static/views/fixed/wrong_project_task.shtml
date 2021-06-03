@@ -1,0 +1,518 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <meta charset="UTF-8">
+    <title>flb_oilStatistics_view</title>
+    <link href="/css/nrc/nrc_add.css" rel="stylesheet">
+    <style type="text/css">
+        .feedback_top {
+            height: 40px;
+            line-height: 40px;
+            background-color: #F5F5F6;
+            border: 1px solid #ccc;
+
+        }
+
+        .feedback_top span {
+            margin-left: 10px;
+            margin-right: 5px;
+            font-size: 13px;
+        }
+
+        .span_doc {
+            color: #7f7f7f;
+            margin-right: 10px;
+            margin-left: 10px;
+        }
+
+        .red {
+            color: red;
+            margin-right: 15px;
+            margin-left: 5px;
+        }
+
+        th {
+            text-align: center;
+        }
+
+        tr {
+            height: 30px;
+        }
+
+        .calendar-dtable tr {
+            height: 20px;
+        }
+
+        td {
+            text-align: center;
+            color: #000;
+        }
+
+        .data_span {
+            cursor: pointer;
+            font-size: 14px;
+            color: red;
+        }
+        .shang_img{
+            position: absolute;
+            bottom: 9px;
+            right: 8px;
+            cursor: pointer;
+        }
+        .img_div{
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+    </style>
+</head>
+<body style="height: 100%;">
+<div>
+    <input class="textbox easyui-validatebox" onchange="atta_input_flie('atta_input_flie_a')"  type="file" id="atta_input_flie_a" size="300" name="file" data-options="required:true" style="display: none"/>
+    <input id="file_id" type="text" style="display: none">
+    <div class="feedback_top">
+        <span>Item No:</span><input class="easyui-textbox" id="item_No" style="width: 150px">
+        <span>ID:</span><input class="easyui-textbox easyui-validatebox" data-options="validType:['maxLength[20]'] " id="nanme_Id" style=" width:150px;"/>
+        <span>Comp Date:</span><input class="easyui-datetimebox" id="userCompleteDate" style="width: 150px"
+                                      type="text"/>
+    </div>
+    <div style="margin-top: 5px;line-height: 18px;">
+        模板：<span class="span_doc">EO工卡编写质量意见反馈表.doc</span>|<span class="span_doc">JC工卡编写质量意见反馈表.doc</span>|<span
+            class="span_doc">结构腐蚀/修理报告单.doc</span></br>
+        <span class="red">1、当工作者发现编写质量存在问题时，需填写质量意见反馈表，如无问题，则不需要填写；</span></br>
+        <span class="red">2、当工作者检查发现结构腐蚀时，需填写结构腐蚀/修理报告单并上传，如未发现腐蚀，则不需要填写。</span>
+    </div>
+    <div style="margin-top: 15px;line-height: 18px;">
+        友情提示：请核实下面工作包信息，请不要误关卡！！！</br>
+        WO NO:<span class="red" id="revno">201927306</span>AC:<span class="red" id="msgrp">B-1578</span>Level:<span class="red" id="checkLevel">A6</span>
+        Flight No:<span class="red" id="flightNo">20192</span>Planning Exc Date:<span class="red" id="planEndDate">2019-03-06</span>Planning Close
+        Date:<span class="red" id="planStartDate">2019-030-6</span>
+    </div>
+
+    <div style="overflow: auto">
+        <table class="table table-bordered table-info" id="table_data" style="width: 2000px">
+            <tr>
+                <th style="width: 20px"></th>
+                <th>项次号</th>
+                <th>工卡号</th>
+                <th>工卡类型</th>
+                <th>任务描述</th>
+                <th>人工时<span style="color: red">*</span></th>
+                <th id="title_pcyy">工时偏差原因<span style="color: red">*</span></th>
+                <th>工作者姓名</th>
+                <th>工作者工号<span style="color: red">*</span></th>
+                <th>必检/互检</th>
+                <th>检验员工号<span style="color: red" id="red_span">*</span></th>
+                <th>检验员姓名</th>
+                <th>完工时间<span style="color: red">*</span></th>
+                <th>反馈信息</th>
+                <th style="width: 150px">附件</th>
+
+            </tr>
+
+
+        </table>
+    </div>
+
+    <div class="boumnn">
+        <a onclick="table_data_sava()">确定</a>
+        <a onclick="release_close()" style="background-color: #ce3c3c">关闭</a>
+        <!--<a onclick="testBatchOpenForm()">测试批量反馈</a>-->
+    </div>
+
+    <div id="testBatchJcFeedBack">
+        <div style="padding:3px 2px;border-bottom:1px solid #ccc">测试批量反馈JC</div>
+        <table>
+            <tr>
+                <th>人工时<span style="color: red">*</span></th>
+                <td>
+                    <input class="easyui-textbox" style="width: 85%" type="text" id="testHours"/>
+                </td>
+            </tr>
+            <tr>
+                <th>工作者工号<span style="color: red">*</span></th>
+                <td>
+                    <input class="easyui-textbox" style="width: 85%" type="text" id="testMechanicSn" value="01379041"/>
+                </td>
+            </tr>
+            <tr>
+                <th>工作者姓名<span style="color: red">*</span></th>
+                <td>
+                    <input class="easyui-textbox" style="width: 85%" type="text" id="testMechanicName" value="陈家宝"/>
+                </td>
+            </tr>
+            <tr>
+                <th>检验员工号<span style="color: red;" >*</span></th>
+                <td>
+                    <input class="easyui-textbox" style="width: 85%" type="text" id="testCheckSn" value="89003722"/>
+                </td>
+            </tr>
+            <tr>
+                <th>检验员姓名<span style="color: red">*</span></th>
+                <td>
+                    <input class="easyui-textbox" style="width: 85%" type="text" id="testCheckName" value="张艳"/>
+                </td>
+            </tr>
+            <tr>
+                <th>完工时间<span style="color: red">*</span></th>
+                <td><input class="easyui-datetimebox" id="testCompleteDate" style="width: 85%" type="text"/></td>
+            </tr>
+            <tr>
+                <th>反馈信息</th>
+                <td><textarea id="testFeedbackCh" style="height: 50px"></textarea></td>
+            </tr>
+        </table>
+        <div class="boumnn">
+            <a onclick="testBatchGetData()">确定</a>
+        </div>
+    </div>
+</div>
+</body>
+<script src="/js/plugins/ajaxfileupload/ajaxfileupload.js" type="text/javascript"></script>
+<script src="../../../js/datagrid_utils.js" type="text/javascript"></script>
+<script type="text/javascript">
+    $(function () {
+        var obj =getParentParam_().obj;
+        //测试用
+        document.getElementById('testBatchJcFeedBack').style.display = "none";
+        $("#revno").text(obj.revno);
+        $("#msgrp").text(obj.msgrp);
+        $("#checkLevel").text(obj.checkLevel);
+        $("#flightNo").text(obj.flightNo);
+        $("#planEndDate").text(obj.planEndDate);
+        $("#planStartDate").text(obj.planStartDate);
+        $('#userCompleteDate').datetimebox({
+            onChange: function (e) {
+                $(".batch_data").datetimebox("setValue",e);
+            }
+        });
+
+            //下个审批人选择初始化
+            $("#nanme_Id").MyComboGrid({
+                idField: 'ACCOUNT_NUMBER',  //实际选择值
+                textField: 'ACCOUNT_NUMBER', //文本显示值
+                panelHeight: '180px',
+                required: true,
+                width: "150px",
+                params: {FunctionCode: 'FLOW_WORK_ACCOUNT'},
+                columns: [[
+                    {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                    {field: 'USER_NAME', title: '审核人', width: 50}
+                ]],
+                onHidePanel: function () {
+                    var t = $(this).combogrid('getValue');
+                    if (t != null && t != '' & t != undefined) {
+                        if (selectRow == null || t != selectRow.ACCOUNT_NUMBER) {//没有选择或者选项不相等时清除内容
+                            alert('请选择，不要直接输入！');
+                            $(this).combogrid({value: ''});
+                        }
+                    }
+                },
+                onSelect: function (index, row) {
+                    selectRow = row;
+                    $(".mechanicSn_name").textbox('setValue', row.USER_NAME);
+
+                    $(".mechanicSn_id").textbox('setValue',row.ACCOUNT_NUMBER);
+
+                    // $(this).combobox('setValue',row.ACCOUNT_ID);
+                    // $("#authName").combobox('setValue',row.USER_NAME);
+
+                }
+            });
+
+
+        $('#item_No').textbox({
+            onChange: function (e) {
+                if (e == "" || e == null) {
+
+                } else {
+                    var tags = document.getElementsByClassName("wrong");//获取标签
+                    for (var i = 0; i < tags.length; i++) {
+                        if ($("#"+tags[i].id).attr("itemno")== e) {
+                            alert("该数据已存在！");
+                            return
+                        }
+                    }
+                    $.ajax({
+                        type: "GET",
+                        url: "/api/v1/periodic/base/query_routine_order?itemNo=" + e + "&parentId=" + obj.workId,
+                        contentType: "application/json;charset=utf-8",
+                        dataType: "json",
+                        success: function (data) {
+                            if (data.code == 200) {
+                                var Rci_Rii=false;
+                                let a = "  <tr class=\"wrong\" id=\"" + data.data.id + "\" itemno=\"" + data.data.itemNo + "\" sapWorkType='"+data.data.sapWorkType+"' planeHours='"+data.data.planeHours+"' pcfw='"+data.data.pcfw+"'>\n" +
+                                    "                <td><span class='data_span' onclick=\"table_data_tr(" + data.data.id + ")\">×</span></td>\n" +
+                                    "                <td><span id=\"itemNo" + data.data.id + "\">" + data.data.itemNo + "</span></td>\n" +
+                                    "                <td><span id=\"cardNumber" + data.data.id + "\">" + data.data.cardNumber + "</span></td>\n" +
+                                    "                <td><span id=\"workType" + data.data.id + "\">" + data.data.workType + "</span></td>\n" +
+                                    "                <td><span id=\"description" + data.data.id + "\">" + data.data.description + "</span></td>\n" +
+                                    "                <td><input class=\"easyui-textbox\"  id=\"hours" + data.data.id + "\" style=\"width: 85%\"\n" +
+                                    "                           type=\"text\"></td>\n" +
+                                    "                <td><textarea id=\"pcyy" + data.data.id + "\" name=\"pcyy\" style=\"height: 50px\" disabled='disabled'></textarea></td>\n" +
+                                    "                <td class=\"mechanicSn" + data.data.id + "\"><input class=\"easyui-textbox name_in mechanicSn_name\" disabled=\"disabled\"  style=\"width: 85%\" type=\"text\" id=\"mechanicName" + data.data.id + "\"></td>\n" +
+                                    "                <td><input class=\"easyui-textbox easyui-validatebox mechanicSn_id\" data-options=\"validType:['maxLength[20]'] \"\n" +
+                                    "                           id=\"mechanicSn" + data.data.id + "\" name=\"repId\" style=\" width:85%;\"/></td>\n" +
+                                    "                <td><input id=\"isRii" + data.data.id + "\" name=\"aeType" + data.data.id + "\"  type=\"radio\" value=\"y\"><label\n" +
+                                    "                        for=\"isRii" + data.data.id + "\">必检</label></br>\n" +
+                                    "\n" +
+                                    "                    <input id=\"isRci" + data.data.id + "\" name=\"aeType" + data.data.id + "\" type=\"radio\" value=\"n\"><label\n" +
+                                    "                            for=\"isRci" + data.data.id + "\">互检</label></td>\n" +
+                                    "                <td><input class=\"easyui-textbox easyui-validatebox\" data-options=\"validType:['maxLength[20]'] \"\n" +
+                                    "                           id=\"checkSn" + data.data.id + "\" name=\"repId\" style=\" width:85%;\"/></td>\n" +
+                                    "                <td class=\"checkSn" + data.data.id + "\"><input class=\"easyui-textbox name_in\" disabled=\"disabled\"  style=\"width: 85%\"\n" +
+                                    "                           type=\"text\" id=\"checkName" + data.data.id + "\" ></td>\n" +
+                                    "                <td><input class=\"easyui-datetimebox batch_data\" id=\"completeDate" + data.data.id + "\" name=\"repTime\" style=\"width: 85%\" type=\"text\"></td>\n" +
+                                    "                <td><textarea id=\"feedbackCh" + data.data.id + "\" name=\"descChn\" style=\"height: 50px\"></textarea></td>\n" +
+                                    "                <td style='position: relative;'><div class='img_div' id=\"img_div" + data.data.id + "\"></div><img onclick=\"file_img("+data.data.id+")\" class='shang_img' src='/images/arrow_up.png'></img></td>\n" +
+                                    "            </tr>";
+                                let html_row = $(a);
+                                $("#table_data").append(html_row);
+                                if(data.data.isRci=="X"){
+                                    Rci_Rii=true;
+                                    $("#isRci" + data.data.id).prop("checked", true);
+
+                                }
+                                if(data.data.isRii=="X"){
+                                    Rci_Rii=true;
+                                    $("#isRii" + data.data.id).prop("checked", true);
+
+                                }
+                                fengzhuang("mechanicSn" + data.data.id);
+
+                                if(Rci_Rii){
+                                    fengzhuang("checkSn" + data.data.id);
+                                    $("#red_span").show();
+                                }else {
+                                    $("#red_span").hide();
+                                    $("#checkSn" + data.data.id).textbox({
+                                        disabled:true,
+                                    })
+                                }
+
+                                $("#hours" + data.data.id).textbox();
+                                $("#mechanicName" + data.data.id).textbox();
+                                $("#checkName" + data.data.id).textbox();
+                                $("#completeDate" + data.data.id).datetimebox();
+                                if(data.data.pcfw&&(data.data.sapWorkType=="EOJC"||data.data.sapWorkType=="EAJC"||data.data.sapWorkType=="MPJC"||data.data.sapWorkType=="NSJC")){
+                                    $("input",$("#hours" + data.data.id).next("span")).blur(function(){
+                                        let id =$(this).parent("span").parent("td").parent("tr").attr("id");
+                                        let rgHours = $(this).val();
+                                        let pcfw = $("#"+id).attr("pcfw");//pcvl
+                                        let planeHours = $("#"+id).attr("planeHours");
+                                        if(!!pcfw&&!!planeHours&&!!parseFloat(planeHours)&&Math.abs(rgHours-planeHours).toFixed(2)>planeHours*pcfw*0.01){
+                                            $("#pcyy"+id).removeAttr("disabled");
+                                        }else{
+                                            $("#pcyy"+id).val("");
+                                            $("#pcyy"+id).attr("disabled","disabled");
+                                        }
+                                    })
+                                }
+                            } else {
+                                if (data.msgData && data.msgData[0]) {
+                                    alert(data.msgData[0]);
+                                } else {
+                                    alert(data.msg);
+                                }
+                            }
+                        },
+                        error: function () {
+                            window.alert("失败！");
+                        }
+                    });
+                }
+
+            }
+        })
+    });
+
+    //测试批量反馈打开弹窗
+    function testBatchOpenForm() {
+        document.getElementById('testBatchJcFeedBack').style.display = "block";
+    }
+
+    //获得测试数据(含赋值)
+    function testBatchGetData() {
+        let testBatchData = {
+            "parentId": getParentParam_().obj.workId,
+            "completeDate": $("#testCompleteDate").datetimebox("getValue"),
+            "feedbackCh": $("#testFeedbackCh").val(),
+            "hours": $("#testHours").textbox("getValue"),
+            "checkSn": $("#testCheckSn").textbox("getValue"),
+            "checkName": $("#testCheckName").textbox("getValue"),
+            "mechanicSn": $("#testMechanicSn").textbox("getValue"),
+            "mechanicName": $("#testMechanicName").textbox("getValue"),
+        };
+        $.ajax({
+            type: "POST",
+            url: "/api/v1/periodic/base/test_query_routine_order",
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify(testBatchData),
+            dataType: "json",
+            success: function (data) {
+                if (200 === data.code) {
+                    submitBatchFeedBack(data.data);
+                } else if (data.msgData && data.msgData[0]) {
+                    window.alert(data.msgData[0]);
+                } else if (data.msg) {
+                    window.alert(data.msg);
+                }
+            },
+            error: function () {
+                window.alert("查询失败！");
+            }
+        });
+    }
+
+    function table_data_tr(id) {
+        var tags = document.getElementsByClassName("wrong");//获取标签
+        for (var i = 0; i < tags.length; i++) {
+            if (tags[i].id == id) {
+                $("#" + id).remove();
+            }
+        }
+    }
+
+    function file_img(id) {
+        $("#file_id").val(id);
+        $("#atta_input_flie_a").trigger("click");
+    }
+
+    var _fileInput =null;
+    function atta_input_flie(id) {
+        var fileInput = $("#" + id).get(0).files[0];
+        if (fileInput ) {
+            if(!_fileInput || _fileInput != fileInput){
+                _fileInput = fileInput;
+                $.ajaxFileUpload({
+                    url: Constant.API_URL + 'ATTACHMENT_UPLOAD',
+                    secureuri: false,
+                    fileElementId: id, //file控件id
+                    dataType: 'json',
+                    data: {
+                        "fileCategory": "feedback",
+                        "sourceId": $("#file_id").val()
+                    },
+                    success: function (data) {
+                        _fileInput = null;
+                        if (data.code == 200) {
+                            let a = "<span class='span_name'>"+fileInput.name+"</span></br></br>"
+                            let html_row = $(a);
+                            $("#img_div"+$("#file_id").val()).append(html_row);
+                        }
+                    }
+                })
+            }
+        } else {
+            alert("请选择上传文件！");
+        }
+    }
+
+    function table_data_sava() {
+        var tags = document.getElementsByClassName("wrong");//获取标签
+        let data_list = [];
+        for (var i = 0; i < tags.length; i++) {
+            let isRci = "";
+            let isRii = "";
+            let Rci_Riit = false;
+            if ($("#isRci" + tags[i].id).is(":checked")) {
+                isRci = "X";
+                isRii = "";
+                Rci_Riit = true;
+            }
+            if ($("#isRii" + tags[i].id).is(":checked")) {
+                isRci = "";
+                isRii = "X";
+                Rci_Riit = true;
+            }
+            if($("#hours" + tags[i].id).textbox("getValue")==""){
+                alert("人工工時不能为空！");
+                return
+            }
+
+            if($("#pcyy" + tags[i].id).not(':disabled').length!=0&&$.trim($("#pcyy" + tags[i].id).val()).length==0){
+                alert("偏差原因不能为空");
+                return
+            }
+
+            if($("#mechanicSn" + tags[i].id).textbox("getValue")==""){
+                alert("工作者工号不能为空！");
+                return
+            }
+            if(Rci_Riit){
+                if($("#checkSn" + tags[i].id).textbox("getValue")==""){
+                    alert("检验工号不能为空！");
+                    return
+                }
+            }
+
+            if($("#completeDate" + tags[i].id).textbox("getValue")==""){
+                alert("完工时间不能为空！");
+                return
+            }
+            // var span_name = document.getElementsByClassName("span_name");
+            // if(span_name.length==0){
+            //     alert("附件不能为空！");
+            //     return
+            // }
+            data_list.push({
+                "cardNumber": $("#cardNumber" + tags[i].id).text(),
+                "checkName": $("#checkName" + tags[i].id).textbox("getValue"),
+                "checkSn": $("#checkSn" + tags[i].id).textbox("getValue"),
+                "completeDate": $("#completeDate" + tags[i].id).datetimebox("getValue"),
+                "description": $("#description" + tags[i].id).text(),
+                "feedbackCh": $("#feedbackCh" + tags[i].id).val(),
+                "hours": $("#hours" + tags[i].id).textbox("getValue"),
+                "pcyy":$.trim($("#pcyy" + tags[i].id).val()),
+                "id": tags[i].id,
+                "isRci": isRci,
+                "isRii": isRii,
+                "itemNo": $("#itemNo" + tags[i].id).text(),
+                "mechanicName": $("#mechanicName" + tags[i].id).textbox("getValue"),
+                "mechanicSn": $("#mechanicSn" + tags[i].id).textbox("getValue"),
+                "workType": $("#cardNumber" + tags[i].id).text(),
+            })
+        }
+        submitBatchFeedBack(data_list);
+    }
+
+    function submitBatchFeedBack(data_list) {
+        $.ajax({
+            type: "POST",
+            url: "/api/v1/flb/feedBack/complete_batch_task",
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify(data_list),
+            dataType: "json",
+            success: function (data) {
+                console.log(data);
+                if (data.code == 200) {
+                    alert("反馈成功！");
+                    getParentParam_().Refresh();
+                    window.close();
+                } else if (data.code == 201) {
+                    for (var a = 0; a < data.data.length; a++) {
+                        var tags = document.getElementsByClassName("wrong");//获取标签
+                        for (var i = 0; i < tags.length; i++) {
+                            if (tags[i].id == data.data[a]) {
+                                $("#" + id).remove();
+                            }
+                        }
+                    }
+                    alert(data.msg);
+                } else if (data.msgData && data.msgData[0]) {
+                    alert(data.msgData[0]);
+                } else {
+                    alert(data.msg);
+                }
+            },
+            error: function () {
+                window.alert("保存失败！");
+            }
+        });
+    }
+
+
+</script>
+</html>

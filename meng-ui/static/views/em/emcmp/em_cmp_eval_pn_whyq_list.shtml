@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">时控件项目清单</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2">
+            </table>
+        </div>
+    </form>
+</fieldset>
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="">查询结果</legend>-->
+    <table id="dg"></table>
+    <table id="dg2"></table>
+</fieldset>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var identity = 'dg';
+    var param = {};
+    param = getParentParam_();
+
+
+    var lpPkid = param.pntlPkid;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_REV_CODE,EM_CMP_STATE,EM_CMP_VER_TYPE,USER_NAME,EM_NUM_LETTER",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+
+                    InitDataGrid();
+                    InitDataGrid2()
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function add_() {
+
+        ShowWindowIframe({
+            width: "70%",
+            height: "50%",
+            title: "时控件维护要求添加",
+            param: {lpPkid: lpPkid},
+            url: "/views/em/emcmp/em_cmp_eval_pn_add_edit.shtml"
+        });
+    }
+
+    function InitDataGrid() {
+
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            title: $.i18n.t(''),
+            queryParams: {lpPkid: lpPkid},
+            onClickRow: function () {
+                var rowdata = getDG(identity).datagrid('getSelected');
+                doSearch_(rowdata.PKID)
+            },
+            columns: {
+                param: {FunctionCode: 'EM_CMP_EVAL_PN_WHYQ_LIST'},
+                alter: {}
+            },
+            contextMenus: [], toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:RES.COMMON.CREATE'), auth: "",//创建
+                    handler: function () {
+                        add_();
+                    }
+                }
+            ]
+        });
+    }
+
+    function InitDataGrid2() {
+
+        var identity = 'dg2';
+        $("#dg2").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            title: $.i18n.t(''),
+            queryParams: {whyqPkid: '-'},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_EVAL_PN_INTERVAL_LIST'},
+                alter: {}
+            },
+            contextMenus: [], toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:RES.COMMON.CREATE'), auth: "",//创建
+                    handler: function () {
+                        add2_();
+                    }
+                }
+            ]
+        });
+    }
+
+
+    function add2_() {
+        var rowdata = getDG('dg').datagrid('getSelected');
+        if (!rowdata) {
+            MsgAlert({content: "请选则维护部件", type: 'error'});
+            return false;
+        }
+        ShowWindowIframe({
+            width: "50%",
+            height: "50%",
+            title: "时间维护要求间隔",
+            param: {whyqPkid: rowdata.PKID},
+            url: "/views/em/emcmp/em_cmp_eval_pn_interval_add_edit.shtml"
+        });
+    }
+
+    /*doSearch_查询*/
+    function doSearch_(whyqPkid) {
+
+        var dgopt = getDgOpts('dg2');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: {whyqPkid: whyqPkid}
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

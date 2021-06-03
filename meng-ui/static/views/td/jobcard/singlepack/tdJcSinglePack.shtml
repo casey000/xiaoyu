@@ -1,0 +1,427 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">工作包导入</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:50px;" align="right">机号：</th>
+                    <td class="td5" style="width:110px;">
+                        &nbsp;<input class="easyui-combobox" id="acno" name="acno" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">工作包号：</th>
+                    <td class="td5" style="width:110px;">
+                        &nbsp;<input class="easyui-textbox" id="import_pack_no" name="import_pack_no"
+                                     style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">定检级别：</th>
+                    <td class="td5" style="width:110px;">
+                        &nbsp;<input class="easyui-textbox" id="import_ck_level" name="import_ck_level"
+                                     style="width:100px;"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;<a class="searchBtn" type="button" onclick="searchData()"
+                                 data-options="iconCls:'icon-search'"><span
+                            data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        &nbsp;<a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'"><span
+                            data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                    <td class="td6" style="float:right;">
+                        &nbsp;<a class="excelBtn" type="button" onclick="downFile('','workpackimport.xlsx')"
+                                 data-options="iconCls:'icon-download'">
+                        <span data-i18n="">下载模板</span></a>
+                    </td>
+                    <td class="td7" style="float:right;">
+                        &nbsp;<a class="searchBtn" type="button" onclick="_doImport()"
+                                 data-options="iconCls:'icon-add'"> <span data-i18n=" ">导入</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+
+    <form id="ffSearch2" class="form-horizontal">
+        <div id="searchBar2">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td class="td2" style="float:right;">
+                        &nbsp;<a class="searchBtn" type="button" onclick="handlePrint(0)"
+                                 data-options="iconCls:'icon-search'"><span>合并打印</span></a>
+                        <!--<a  id="tdJcSinglePackHeBingDayin_a"  href="/images/myw3schoolimage.jpg" download="w3logo"><span id="tdJcSinglePackHeBingDayin"></span></spa></a>-->
+                    </td>
+                    <td class="td1" style="float:right;">
+                        &nbsp; <a class="searchBtn" type="button" onclick="handlePrint(1)"
+                                  data-options="iconCls:'icon-search'"><span>单张打印</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+    <table id="dg2">
+    </table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/common_sc.js"></script>
+<script type="text/javascript">
+    var refPkid;
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var printFlag = 0;
+    var progessId;
+
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "Y_FI_ACNO_ACTYPE2",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机号、机型
+                    PAGE_DATA['acnoActype'] = DomainCodeToMap_(jdata.data["Y_FI_ACNO_ACTYPE2"]);
+                    COMBOBOX_DATA['acnoActype'] = jdata.data["Y_FI_ACNO_ACTYPE2"];
+
+                    //初始化查询条件
+                    $('#acno').combobox({
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'VALUE',
+                        data: COMBOBOX_DATA['acnoActype'],
+                        onHidePanel: function () {
+                            validSelectValue_(this, "机号不存在！");
+                        }
+                    });
+                    InitDataGrid();
+                    InitDataGrid2(-1);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.5, 0, 75, -6);
+            },
+            columns: {
+                param: {FunctionCode: 'TD_SAP_PACKAGE_IMPORT_LIST'},
+                alter: {
+                    IMPORT_DATE: {
+                        type: 'date'
+                    },
+                    URL: {
+                        formatter: function (value, row, index) {
+                            if (value) {
+                                return "<a href='javascript:void(0);' class='color' onclick=downFileLocal('','" + value + "')>" + value + "</a>";
+                            }
+                        }
+                    }
+                }
+            },
+
+            contextMenus: [
+                {
+                    id: "m-workpackFather", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        if (!confirm("确认删除该记录？" + "将同时会删除该工作包下的所有工卡清单。"))
+                            return;
+                        var rowdata = $('#dg').datagrid('getSelected');
+                        var index = getDG("dg").datagrid('getRowIndex', rowdata);
+                        if (!rowdata.PACKAGE_NO) {
+                            $('#dg').datagrid('deleteRow', index);
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {packageno: rowdata.PACKAGE_NO, FunctionCode: 'TD_SAP_PACKAGE_CLEAR'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_(-1);
+                                } else {
+
+                                    MsgAlert({content: "操作失败" + jdata.msg, type: info});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+                refPkid = rowData.ROW_GUID;
+                dodg2(refPkid);
+            }
+        });
+    }
+
+    function InitDataGrid2(ref_Pkid) {
+        refPkid = ref_Pkid;
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            sortable: true,
+            singleSelect: true,
+            firstLoad: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.5, 0, 0, -6);
+            },
+            pagination: false,
+            queryParams: {refPkid: ref_Pkid},
+            columns: {
+                param: {FunctionCode: 'TD_SAP_TASK_IMPORT_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    }
+                }
+            },
+
+            contextMenus: [
+                {
+                    id: "m-workpackDetaile", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        if (!confirm("确认删除该条记录？"))
+                            return;
+                        var rowdata = $('#dg2').datagrid('getSelected');
+                        var index = getDG("dg2").datagrid('getRowIndex', rowdata);
+                        if (!rowdata.SAP_ID) {
+                            $('#dg2').datagrid('deleteRow', index);
+                            return;
+                        }
+
+                        // window.console.log(rowdata);
+
+
+                        InitFuncCodeRequest_({
+                            data: {sapid: rowdata.SAP_ID, FunctionCode: 'TD_SAP_TASK_CLEAR'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    var rowdataMain = $('#dg').datagrid('getSelected');
+                                    var refPkidOfMain = rowdataMain.ROW_GUID;
+                                    dodg2(refPkidOfMain);
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    // reload_(rowdata.PKID);
+                                } else {
+                                    // MsgAlert({content:"操作失败",type:info});
+                                    MsgAlert({content: "操作失败", type: "info"});
+
+                                }
+                            }
+                        });
+                    }
+                }
+            ]
+
+        });
+    }
+
+    //刷新子列表记录
+    function dodg2(refPkid) {
+        if (!refPkid) {
+            refPkid = -1;
+        }
+        getDG('dg2').datagrid('load', {refPkid: refPkid});
+    }
+
+    //刷新
+    function reload_(id) {
+        if ('dg2' == id) {
+            $("#dg2").datagrid("reload");
+        } else {
+            $("#dg").datagrid("reload");
+            dodg2();
+        }
+
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+        dodg2();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+
+    //导入
+    function _doImport() {
+        var sourceId = new Date().getTime();
+        common_uploadFile2({
+            identity: '',
+            param: {
+                cat: "singlePackService",
+                sourceId: sourceId,
+                operation: "TD_SAP_PACKAGE_IMPORT_ACTION",
+                upload: "N",
+                successCellBack: function () {
+                    CloseWindowIframe();
+                    reload_('dg')
+                },
+                fialCellBack: ''
+            }
+        })
+    }
+
+
+    //打印
+    function handlePrint(flag) {
+        var rowData = getDG('dg2').datagrid('getChecked');
+        var len = rowData.length;
+        var rowDataMain = getDG('dg').datagrid('getSelected');
+        if (rowDataMain == null) {
+            MsgAlert({content: "请先点击主表工作包号！", type: 'error'});
+            return;
+        }
+        var rowGuid = rowDataMain.ROW_GUID;
+        var timeLast = len * 2;
+        if (len == 0) {
+            MsgAlert({content: "请选择数据！", type: 'error'});
+            return;
+        }
+        //JC_NO
+        var jcs = "";
+        var ids = "";
+        $.each(rowData, function (index, obj) {
+            if (index == rowData.length - 1) {
+                ids += obj.SAP_ID;
+                jcs = obj.PACKAGE_NO;
+            }
+            else {
+                ids += obj.SAP_ID + ",";
+                //jcs += obj.PACKAGE_NO + ",";
+            }
+        });
+
+        // window.console.log("打印标志 0是合同 1是单卡："+flag);
+        //合并打印 开始
+        if (flag == 0) {
+            printFlag == 0;
+            MsgAlert({content: "后台正在处理打印...请稍后刷新主列表，查看打印结果。"});
+            InitFuncCodeRequest_({
+                data: {sourceId: ids, package_no: jcs, singlePrint: 0, FunctionCode: 'TD_JC_SINGLE_PACK_PRINT'},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        printFlag = 1;
+                    } else {
+                        printFlag = 1;
+                        MsgAlert({content: "操作失败," + jdata.msg, type: "info"});
+                    }
+                }
+            });
+
+        }
+        //单卡打印 开始
+        else if (flag == 1) {
+            //单张打印 选了多条数据
+            if (len > 1) {
+                //不合并打印
+                //window.console.log("package_no:"+jcs+"    sourceId"+ids);
+                MsgAlert({content: "后台正在处理打印...请稍后刷新主列表，查看打印结果。"});
+                InitFuncCodeRequest_({
+                    data: {sourceId: ids, package_no: jcs, singlePrint: 1, FunctionCode: 'TD_JC_SINGLE_PACK_PRINT'},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            printFlag = 1;
+                        } else {
+                            printFlag = 1;
+                            MsgAlert({content: "操作失败," + jdata.msg, type: "info"});
+                        }
+                    }
+                });
+
+                //单张打印选了一条数据
+            } else {
+                //单卡打印
+                //window.console.log("package_no:"+jcs+"    sourceId"+ids+"   单卡打印1条数据");
+                MsgAlert({content: "后台正在处理打印...请稍后刷新主列表，查看打印结果。"});
+                InitFuncCodeRequest_({
+                    data: {sourceId: ids, package_no: jcs, singlePrint: 1, FunctionCode: 'TD_JC_SINGLE_PACK_PRINT'},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            printFlag = 1;
+                        } else {
+                            printFlag = 1;
+                            MsgAlert({content: "操作失败," + jdata.msg, type: "info"});
+
+                        }
+                    }
+                });
+
+            }
+        } else {
+
+            MsgAlert({content: "错误的参数！", type: 'error'});
+
+        }
+    }
+
+
+    /**ajax加载遮罩层   */
+    function ajaxLoading(timelast) {
+        msgStr = "this has done!";
+        $("body").append("<div id='textboxDiv'></div>");
+        var id = "#textboxDiv";
+        var left = ($(window).outerWidth(true) - 190) / 2;
+        var top = ($(window).height() - 35) / 2;
+        var height = $(window).height();
+        var beginTime = Date.now();
+        var msgStr = "正在打印,预计用时" + timelast + "秒,请不要关闭浏览器。";
+
+        $("<div class=\"datagrid-mask\"></div>").css({display: "block", width: "100%", height: height}).appendTo(id);
+        $("<div class=\"datagrid-mask-msg\"></div>").html(msgStr).appendTo(id).css({
+            display: "block",
+            left: left,
+            top: top
+        });
+        // window.console.log("printFlag1 :"+printFlag);
+
+        printFlag = 0;
+        // window.console.log("printFlag2 :"+printFlag);
+
+        progessId = setInterval(upMsg, 1000);
+
+        function upMsg() {
+            if (printFlag == 1) {
+                clearInterval(progessId);
+
+            } else {
+                var endtime = Date.now();
+                var lastnow = Number((endtime - beginTime) / 1000).toFixed(0);
+                msgStr = "正在打印,预计用时" + timelast + "秒,请不要关闭浏览器。已用时" + lastnow + "秒";
+                window.console.log(msgStr);
+                $(".datagrid-mask-msg").remove();
+                $("<div class=\"datagrid-mask-msg\"></div>").html(msgStr).appendTo(id).css({
+                    display: "block",
+                    left: left,
+                    top: top
+                });
+            }
+        }
+    }
+
+</script>
+</body>
+</html>

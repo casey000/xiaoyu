@@ -1,0 +1,114 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="SC_I18N">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>待办详情</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <script type="text/javascript">
+
+    </script>
+</head>
+<body class="ibody">
+<div id="mlayout" class="easyui-layout"  style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:false" style="width: 100%;">
+<!--        <div class="panel-title panel-with-icon">系统概要</div>-->
+        <table id="dg0"></table>
+    </div>
+
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var PAGE_DATA = {};
+    var loginInfo=getLoginInfo();
+    var parentId = '';
+     param = getParentParam_();
+    // parentId = getUrlParam("menu_id");
+    // //获取url中的参数
+    // function getUrlParam(name) {
+    //     var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+    //     var r = window.location.search.substr(1).match(reg);
+    //     if (r != null) {
+    //         return decodeURI(r[2]);
+    //     } else {
+    //         return null;
+    //     }
+    // }
+
+    function i18nCallBack() {
+
+        InitFuncCodeRequest_({
+            data: {domainCode: "DA_ACNO,SUMMARY_INDEX_STATUS2", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["SUMMARY_INDEX_STATUS2"]);
+                    $('#acno').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.DA_ACNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataGrid(0);
+
+
+    }
+    function InitDataGrid(biz_type) {
+        $("#dg0").MyDataGrid({
+            fitColumns:true,
+            identity: 'dg0',
+            sortable: false,
+            singleSelect: false,
+            pagination: true,
+            queryParams: {evaManId:param.evaManId,modelName:param.modelName},
+            columns: {
+                param: {FunctionCode: 'WS_SYS_SUMMARY_DETAIL_LIST'},
+                alter: {
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'] [value];
+                        }
+                    },
+                }
+            },
+            // rowStyler: function(index,row){
+            //     if ((index % 2)==0){
+            //         return 'background-color:#fbc9a7;color:gray;font-weight:bold;';
+            //     }
+            //     else{
+            //         return 'color:gray;font-weight:bold;';
+            //     }
+            // },
+            onDblClickRow: function (index, field, value) {
+                // openDetai("view", value.EVA_MAN_ID);
+            }
+        });
+
+    }
+    //待办详情
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('待办详情');
+        ShowWindowIframe({
+            width: "850",
+            height: "300",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/system/summary_index_detail.shtml"
+        });
+    }
+
+    function reload_(){
+        $("#dg0").datagrid("reload");
+    }
+
+</script>
+</html>

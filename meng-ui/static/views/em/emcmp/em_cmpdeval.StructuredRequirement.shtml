@@ -1,0 +1,362 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <div class="form-horizontal m-t" id="mform">
+                <fieldset class="fieldset_eui">
+
+
+                    <fieldset class="fieldset_eui" style="float:left;width:95%; margin-right:5px">
+                        <legend data-i18n="">对应的间隔列表</legend>
+                        <table class="table table-bordered table-info">
+                            <tr>
+                                <td colspan="6" align="right">
+                                    <input class="btn btn-primary" type="button" onclick="addPart()" value="增加"/>
+                                    <input class="btn btn-primary" type="button" onclick="closeAdd();" value="关闭"/>
+                                </td>
+                            </tr>
+                        </table>
+                        <table id="dg2"></table>
+                    </fieldset>
+
+                    <fieldset class="fieldset_eui" style="float:left;width:95%; margin-right:5px">
+                        <legend data-i18n="">维护要求列表</legend>
+                        <table class="table table-bordered table-info">
+                            <tr>
+                                <td colspan="6" align="right">
+                                    <input type="hidden" id="pkid" name="pkid">
+                                    <input class="btn btn-primary" type="button" onclick="addPnInterval()"
+                                           value="增加"/>
+                                    <input class="btn btn-primary" type="button" onclick="deleteinterval()"
+                                           value="删除"/>
+                                </td>
+                            </tr>
+                        </table>
+                        <table id="dg3"></table>
+                    </fieldset>
+
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var PKID;
+    var type;
+    var aid;
+    var tiType;
+    var PAGE_DATA = {};
+    param = getParentParam_();
+    PKID = param.PKID;
+    type = param.type;
+
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_IF_EVAL_APL,EM_START_DATE,EM_MPD_THRINTERVAL"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['startDate'] = DomainCodeToMap_(jdata.data.EM_START_DATE);
+                    PAGE_DATA['tiType'] = DomainCodeToMap_(jdata.data.EM_MPD_THRINTERVAL);
+                    console.log(PAGE_DATA['startDate']);
+                    $('#ifEvalApl').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_IF_EVAL_APL,
+                        valueField: 'VALUE',
+                        textField: 'VALUE',
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataGrid();
+        InitDataGrid1(-1);
+    }
+
+    //为了得到pkid
+    $(function () {
+        InitFuncCodeRequest_({
+            data: {pkid: PKID, FunctionCode: "EM_CMP_EVAL_PN_WHYQ_GETONE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+
+                }
+            }
+        });
+    });
+
+    function InitDataGrid() {
+        var identity = 'dg2';
+        $("#dg2").MyDataGrid({
+            identity: identity,
+            enableHeaderClickMenu: true,//此属性开启表头列名称右侧那个箭头形状的鼠标左键点击菜单
+            queryParams: {PKID: PKID, type: type},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_EVAL_PN_WHYQ_LIST'},
+            },
+            resize: function () {
+                return {width: 470, height: 200};
+            },
+            onClickRow: function () {    //单击进行操作的方法
+                var row = $('#dg2').datagrid('getSelected');//获取选中行的数据
+                if (!row) {
+                    return false;//为防止意外情况可以选择加上此判断
+                }
+                aid = row.PKID;//获取选中行的id
+                InitDataGrid1(aid);
+            },
+            contextMenus: [
+
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG('dg2').datagrid('getSelected');
+                        PKID = rowdata.PKID;
+                        ShowWindowIframe({
+                            width: 500,
+                            height: 340,
+                            param: {PKID: PKID, isEdit: 1},
+                            title: "间隔增加",
+                            url: "/views/em/emcmp/em_cmpeval.add.StructuredRequirement.shtml"
+                        });
+                    }
+                },
+
+            ]
+
+        });
+    }
+
+    function InitDataGrid1(aid) {
+        var PKID = aid;
+        var identity = 'dg3';
+        $("#dg3").MyDataGrid({
+            identity: identity,
+            singleSelect: false,
+            sortable: true,
+            // firstLoad: false,
+            queryParams: {PKID: PKID},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_EVAL_PN_INTERVAL_LIST'},
+                alter: {
+                    'TI_TYPE': {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                panelHeight: 80,
+                                queryParams: {domainCode: "EM_MPD_THRINTERVAL"},//RSPL_PRSPL
+                                url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                                loadFilter: function (jdata) {
+                                    return jdata.data.EM_MPD_THRINTERVAL;
+                                },
+                            }
+                        }, formatter: function (value) {
+                            return PAGE_DATA['tiType'][value];
+                        }
+                    },
+                    'INTERVAL': {
+                        editor: {type: 'textbox', options: {tipPosition: 'top', validType: ['maxLength[100]']}}
+                    },
+                    'INTERVAL_UNIT': {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                panelHeight: 80,
+                                queryParams: {domainCode: "EM_MP_TICHK_UNIT"},//RSPL_PRSPL
+                                url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                                loadFilter: function (jdata) {
+                                    return jdata.data.EM_MP_TICHK_UNIT;
+                                },
+                            }
+                        }, formatter: function (value) {
+                            return value;
+                        }
+                    },
+                    'START_DATE': {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                panelHeight: 80,
+                                queryParams: {domainCode: "EM_START_DATE"},//RSPL_PRSPL
+                                url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                                loadFilter: function (jdata) {
+                                    return jdata.data.EM_START_DATE;
+                                },
+                            }
+                        }, formatter: function (value) {
+                            return PAGE_DATA['startDate'][value];
+                        }
+                    },
+                },
+            },
+            resize: function () {
+                return {width: 470, height: 200};
+            },
+            enableLineEdit: true,
+            onBeginEdit: function (index, row) {
+                if (
+                    (typeof (row.isadd__) == 'undefined') || (
+                    row.isadd__ == 1 && row.___editcount > 1)
+                ) ;
+
+            },
+            onEndEdit: function (index, row, changes) {
+                row = toCamelCase(row);
+                if (row.pkid) {
+                    row = $.extend({}, row, {FunctionCode: 'EM_CMP_EVAL_PN_INTERVAL_UPDATE'});
+                } else {
+                    row.whyqPkid = aid;
+                    row = $.extend({}, row, {FunctionCode: 'EM_CMP_EVAL_PN_INTERVAL_ADD'});
+                }
+                InitFuncCodeRequest_({
+                    data: row,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            reload_();
+                            //param.OWindow.reload_();
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            },
+        });
+    }
+
+    //页面增加部件维护结构化要求功能
+    function addPart() {
+        ShowWindowIframe({
+            width: 500,
+            height: 340,
+            param: {PKID: PKID, type: type},
+            title: "增加部件维护要求功能",
+            url: "/views/em/emcmp/em_cmpeval.add.StructuredRequirement.shtml"
+        });
+
+    }
+
+    //行编辑增加一行数据
+    function addPnInterval() {
+        if (aid == null) {
+            MsgAlert({content: '请选择选择上表的一行数据', type: 'error'});
+            return false;
+        }
+        $('#dg3').datagrid('appendRow', {isadd__: 1});
+    }
+
+    //删除一行记录
+    function deleteinterval() {
+        var rowData = $('#dg3').datagrid('getChecked');
+        rowData = toCamelCaseArray(rowData);
+        var rowDatas = JSON.stringify(rowData);
+        common_delete_R({
+            cfmI18next: "msg_tip:TIP.COMMON.DEL_CONFIRM",
+            param: {data: {rowDatas: rowDatas}},
+            FunctionCode: "EM_CMP_EVAL_PN_INTERVAL_DELETE",
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+
+                }
+            }
+        });
+    }
+
+    //调用通用删除的方法
+    function common_delete_R(copt) {
+        common_confirm_(copt);
+    }
+
+    function common_confirm_(copt) {
+        copt = $.extend({}, {checkRowData: true}, copt);
+        var rowData = {};
+        if (copt.checkRowData) {
+            rowData = getDG(copt.identity).datagrid('getChecked');
+            if (!rowData) {
+                layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.NO_SELECT_ROW_ERROR'), {icon: 5});
+                return;
+            }
+        }
+        var ci18next = copt.cfmI18next ? copt.cfmI18next : 'msg_err:ERRMSG.COMMON.DEL_CONFIRM';
+        layerConfirm_({
+            content: $.i18n.t(ci18next),
+            yesFunc: function (index) {
+                var d_ = {};
+                $.each((copt.param ? copt.param : {pkid: "PKID"}), function (k, v) {
+                    if (typeof(v) == 'string') {
+                        d_[k] = rowData[v] != undefined ? rowData[v] : "";
+                    }
+                });
+                d_.FunctionCode = copt.FunctionCode;
+                if (copt.param.data)
+                    d_ = $.extend({}, d_, copt.param.data);
+                InitFuncCodeRequest_({
+                    data: d_,
+                    successCallBack: function (jdata) {
+                        layerStandardMsg_(jdata, index, function () {
+                            common_reload_(copt);
+                            if (copt.successCallBack) {
+                                copt.successCallBack(jdata);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    /*  //页面增加部件维护库存要求功能
+     function addPart() {
+     evalNo = $("#evalNo").val();
+     ShowWindowIframe({
+     width: 500,
+     height: 340,
+     param: {evalNo: evalNo},
+     title: "增加部件维护要求功能",
+     url: "/views/em/emmpdeval/em_mpdeval.add.StructuredRequirement.shtml"
+     });
+
+     }*/
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#dg2").form('clear');
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg2").datagrid("reload");
+        $("#dg3").datagrid("reload");
+        param.OWindow.reload_();
+    }
+
+</script>
+</html>

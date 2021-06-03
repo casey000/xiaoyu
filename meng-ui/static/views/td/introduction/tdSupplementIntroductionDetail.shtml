@@ -1,0 +1,326 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>主管维详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="pdfUrl" name="pdfUrl"/>
+
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="9" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" id="uploadBtn" type="button" onclick="upload()"
+                                   value="上传附件" style="width: 80px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="viewAttach()" value="附件查看" style="width: 60px;margin:5px;"/>
+                            <input class="btn btn-primary" id="submitBtn" type="button" onclick="submitFlow()" value="提交"/>
+                            <input class="btn btn-primary" id="closeBtn" type="button" onclick="closeW();" value="关闭" style="margin-left:3px;margin-right: 18px;"/>
+                            <br/>
+                        </td>
+                    </tr>
+
+                    <tr>
+
+                        <th class="th" align="right" style="width: 80px;">标题：</th>
+                        <td style="width: 80px;  padding: 3px" colspan="3">
+                            <input class="easyui-textbox"  style="width: 500px;" id="dataTitle" name="dataTitle" data-options="required:true"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">是否生效：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-combobox"  style="width: 200px;" id="isActive" name="isActive" data-options="required:true"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">机型：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-combobox"  style="width: 200px;" id="fleet" name="fleet" data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">类型：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-combobox"  style="width: 200px;" id="dataType" name="dataType" data-options="required:true"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">显示顺序：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-textbox" style="width: 200px;" id="sortNo" name="sortNo"
+                                   data-options="validType:['positive'],required:true"/>
+                        </td>
+
+                    </tr>
+                    <!--<tr>-->
+                        <!--<th class="th" align="right" style="width: 80px;">PDF路径：</th>-->
+                        <!--<td style="width: 80px;  padding: 3px" colspan="3">-->
+                            <!--<input class="easyui-textbox"  style="width: 500px;" id="pdfUrl" name="pdfUrl" data-options="editable:false"/>-->
+                        <!--</td>-->
+                    <!--</tr>-->
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var COMBOBOX_DATA = {};
+    var pkid=null;//主表PKID
+    var selectRow=null;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        pkid=param.pkid;
+        $("#pkid").val(pkid);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,YESORNO,DM_DATA_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    //工卡状态
+                    COMBOBOX_DATA['fleet'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    $('#dataType').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DM_DATA_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //机型
+                    $('#fleet').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#isActive').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if (operation == 'view') {
+                        $("#saveBtn").hide();
+                        $("#uploadBtn").hide();
+                        $("#submitBtn").hide();
+                    }
+                    if (operation == 'flowView') {
+                        $("#saveBtn").hide();
+                        $("#uploadBtn").hide();
+                        $("#submitBtn").hide();
+                        $("#closeBtn").hide();
+                    }
+                    if (operation == 'flowEdit') {
+                        $("#closeBtn").hide();
+                        $("#submitBtn").hide();
+                    }
+                    if (param.pkid) {
+                        InitDataForm(param.pkid);
+                    }
+                }
+            }
+        })
+    }
+    //回填
+    function InitDataForm(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/online-manual/tdSupplementIntroduction/selectById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate){
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend(datas, {FunctionCode: 'TD_SUPPLEMENT_INTRODUCTION_SAVE',type:operation});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        // param.OWindow.onSearch_('dg', '#ffSearch');
+                        param.OWindow.reload_();
+                    }
+
+                    // CloseWindowIframe();
+                }else {
+                    if(jdata.msg.indexOf("UNI_TD_MANUAL_FLEET_MANAGER")!=-1){
+                        MsgAlert({content: "请检查[ 机队 ]是否重复.", type: 'error'});
+
+                    }else{
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            }
+        });
+    }
+    function submitFlow() {
+        pkid = $("#pkid").val();
+        if (!pkid) {
+            MsgAlert({content: "请先保存数据！", type: 'error'});
+            return;
+        }
+        var pdfUrl=$("#pdfUrl").val();
+        if(!pdfUrl){
+            MsgAlert({content: "请先上传附件", type: 'error'});
+            return;
+        }
+        if (!confirm("确认提交该记录？")) {
+            return;
+        }
+        datas = $.extend({}, {}, {FunctionCode: 'TD_SUPPLEMENT_INTRODUCTION_STATUS', pkid: pkid});
+        var flowKey = "tdSupplementIntroductionFlow";
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.data != null) {
+                    common_add_edit_({
+                        identity: '', isEdit: '', width: 520, height: 300, title: $.i18n.t('选择审批人'),
+                        param: {
+                            roleId: '',
+                            otherParam: pkid,
+                            FunctionCode_: 'TD_SUPPLEMENT_INTRODUCTION_SUMBIT',
+                            successCallback: closeW,
+                            flowKey: flowKey
+                        },
+                        url: "/views/flow/work_flow_account_select.shtml"
+                    });
+                } else {
+                    MsgAlert({content: "该数据已被提交过了。", type: 'error'});
+                }
+            }
+        });
+    }
+    function upload() {
+        var pkid=$("#pkid").val();
+        if (isEmpty(pkid)){
+            MsgAlert({content: "请先保存数据", type: 'error'});
+        }else {
+            //只允许上传一条数据
+            var pdfUrl=$("#pdfUrl").val();
+            if(pdfUrl){
+                MsgAlert({content: "请删除已有附件", type: 'error'});
+                return;
+            }
+            common_uploadFile({
+                identity: 'dg',
+                param: {
+                    cat: "tdSupplementIntroduction",
+                    sourceId: pkid,
+                    operation:param.operation,
+                    successCellBack: "uploadSuccess",
+                    fialCellBack: ""
+                }
+            });
+        }
+    }
+    /** 导入/上传 */
+    function common_uploadFile(edopt) {
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        ShowWindowIframe({
+            width: 575,
+            height: 200,
+            title: title_,
+            param: $.extend({}, edopt.param),
+            url: "/views/td/introduction/upload/attachment_add.shtml"
+        });
+    }
+    function reload3() {
+        var pkid=$("#pkid").val();
+        $("#pdfUrl").val("");
+        InitDataForm(pkid);
+    }
+    function reload_() {
+        var pkid=$("#pkid").val();
+        $("#pdfUrl").val("");
+        InitDataForm(pkid);
+        if (param.OWindow.onSearch_) {
+            param.OWindow.searchData();
+        }
+    }
+    function uploadSuccess() {
+        
+    }
+    function closeW(){
+        if (param.OWindow.onSearch_) {
+            param.OWindow.searchData();
+        }
+         CloseWindowIframe();
+    }
+    //附件查看
+    function viewAttach() {
+        var pkid=$("#pkid").val();
+        if (isEmpty(pkid)){
+            MsgAlert({content: "请先保存数据", type: 'error'});
+        }
+        InitFuncCodeRequest_({
+            data: {
+                SOURCE_ID: pkid,
+                CATEGORY: "tdSupplementIntroduction",
+                FunctionCode: 'ATTACHMENT_RSPL_GET'
+            },
+            successCallBack: function (jdata) {
+                //为0时提示没有上传附件，无法查看
+                if (jdata.data.length==0){
+                    MsgAlert({content: "请先上传附件", type: 'error'});
+
+                }else {
+                    //打开一个列表页面
+                    ShowWindowIframe({
+                        width: "515",
+                        height: "285",
+                        param: {
+                            pkid: pkid,
+                            category: "tdSupplementIntroduction",
+                            operation: operation
+                        },
+                        url: "/views/td/introduction/upload/editAttach.shtml"
+                    });
+                }
+            }
+        });
+    }
+
+    $.extend($.fn.validatebox.defaults.rules, {
+        positive: {
+            //正数且保留两位小数
+            validator: function (value, param) {
+                if (/^(?!0+(?:\.0+)?$)(?:[1-9]\d*|0)(?:\.\d{1,2})?$/.test(value)) {
+                    return true;
+                } else {
+                    return false;
+                }
+                // return value.length >= param[0];
+            },
+            message: '请输入正数'
+        }
+    });
+</script>
+
+</html>

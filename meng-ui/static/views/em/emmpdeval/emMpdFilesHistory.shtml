@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="emmpdeval">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">MPD</title>
+    <style type=text/css">
+        .datagrid-btable .datagrid-cell {
+            padding: 6px 4px; /*如果影响到其他单元格显示效果，则注释该行*/
+            overlow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            height: 200px
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<table id="dg"></table>
+
+<script type="text/javascript" src="datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = getParentParam_();
+    var evalNo = param.evalNo;
+    var fleet = param.fleet;
+    var itemNumber = param.itemNumber;
+    var type = param.type;
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_MPD_ITEM_TYPE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA ["EM_MPD_ITEM_TYPE"] = DomainCodeToMap_(jdata.data["EM_MPD_ITEM_TYPE"]);
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            queryParams: {type:type,itemNumber: itemNumber, fleet: fleet},
+            pagination: false,
+            columns: {
+                param: {FunctionCode: 'EM_MPD_FILES_HISTORY_BY_EVALNO'},
+                alter: {
+                    ITEM_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['EM_MPD_ITEM_TYPE'][value];
+                        }
+                    },
+                    TASK_DESC: {
+                        formatter: function (value) {
+                            if (value) {
+                                if (value.length > 800) {
+                                    return newLine(value.substring(0, 820) + "........", 100);
+                                } else {
+                                    return newLine(value, 100);
+                                }
+                            }
+                        }
+                    },
+                    TASK_DESC1: {
+                        formatter: function (value) {
+                            if (value) {
+                                return newLine(value, 100);
+                            }
+                        }
+                    },
+                    APPLICABILITY: {
+                        formatter: function (value) {
+                            if (value) {
+                                return newLine(value, 50);
+                            }
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                var row1 = data.rows[0];
+                var row2 = data.rows[1];
+                var changeColor = [];
+                var i = 0;
+                if (data) {
+                    $.each(row1, function (index, item) {
+                        if (item != row2[index]) {
+                            changeColor[i] = index;
+                            i++;
+                        }
+                    });
+                    $.each(row2, function (index, item) {
+                        if (item != row1[index]) {
+                            changeColor[i] = index;
+                            i++;
+                        }
+                    });
+
+                }
+                for (var j = 0; j < changeColor.length; j++) {
+                    $("td[field='" + changeColor[j] + "']").css("background-color", "#FF9900");
+                    //$(".datagrid-cell-c1-"+changeColor[j]).css("background-color","red");
+                }
+            }
+
+        });
+
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //换行
+    function newLine(str, n) {
+        if (str.length > n) {
+            return str.substring(0, n) + '</br>' + newLine(str.substring(n), n);
+        } else {
+            return str;
+        }
+    }
+</script>
+</body>
+
+</html>

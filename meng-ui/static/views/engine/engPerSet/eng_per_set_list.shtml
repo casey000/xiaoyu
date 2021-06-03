@@ -1,0 +1,436 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">监控阈值设置</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">机型：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acType" name="acType" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">机号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acRegs" name="acRegs" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="applyModel" name="applyModel" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">件号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:140px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span>查询</span></a>
+                        <a href="javascript:void(0)" auth="ENG_PER_SET_ADD" class="addBtn"
+                           onclick="addOrEditEngPerSet('add')"><span>新增</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:80px;" align="right">发动机序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="esns" name="esns" style="width:140px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+    <table id="dg1"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,ENG_PER_FLIGHT_PHASE,ENG_PER_ALERT_TYPE,ENG_PER_DATA_TYPE,ENG_PER_FORWARD_UNIT,ENG_BAS_COMPARE,ENG_PER_COL_NAME,ENG_PER_PERFM_TYPE,ENG_PER_SOURCE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //发动机型号
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/basTypeMapper/getEngtypesAll",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#applyModel').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '100px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#epn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                    onSelect: function (item) {
+                                        //获取发动机序号
+                                        InitGatewayRequest_({
+                                            async: false,
+                                            data: {matnr: item.VALUE},
+                                            path: "/meng-engine/baseOwn/getEngByType",
+                                            successCallBack: function (jdata) {
+                                                if (jdata.success == true) {
+                                                    $('#esns').combobox({
+                                                        data: jdata.obj,
+                                                        valueField: 'VALUE',
+                                                        textField: 'TEXT',
+                                                        panelHeight: '150px'
+                                                    });
+                                                } else {
+                                                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //获取发动机序号
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {matnr: ''},
+                        path: "/meng-engine/baseOwn/getEngByType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#esns').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px'
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //机号
+                    $('#acRegs').combobox({
+                        panelHeight: '100px',
+                        url: Constant.API_URL + 'DA_ACTYPE_GET_ACNOS',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        loadFilter: function (jdata) {
+                            return jdata.data;
+                        }
+                    });
+                    //机型
+                    $('#acType').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            $('#acRegs').combobox({ //机号
+                                panelHeight: '100px',
+                                queryParams: {acType: item.VALUE},
+                                url: Constant.API_URL + 'DA_ACTYPE_GET_ACNOS',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                loadFilter: function (jdata) {
+                                    return jdata.data;
+                                }
+                            });
+                        }
+                    });
+                    //DATA_SOURCE
+                    PAGE_DATA['dataSource'] = DomainCodeToMap_(jdata.data["ENG_PER_SOURCE_TYPE"]);
+                    //飞行阶段
+                    PAGE_DATA['perFlightPhase'] = DomainCodeToMap_(jdata.data["ENG_PER_FLIGHT_PHASE"]);
+                    //监控类别
+                    PAGE_DATA['alertType'] = DomainCodeToMap_(jdata.data["ENG_PER_ALERT_TYPE"]);
+                    //参数值处理类别
+                    PAGE_DATA['valueType'] = DomainCodeToMap_(jdata.data["ENG_PER_DATA_TYPE"]);
+                    //当前点往前推单位
+                    PAGE_DATA['hisForwardUnit'] = DomainCodeToMap_(jdata.data["ENG_PER_FORWARD_UNIT"]);
+                    //阈值比较类别
+                    PAGE_DATA['compareType'] = DomainCodeToMap_(jdata.data["ENG_BAS_COMPARE"]);
+                    //参数名称
+                    PAGE_DATA['perColName'] = DomainCodeToMap_(jdata.data["ENG_PER_PERFM_TYPE"]);
+                    InitDataGrid();
+                    InitDataGrid1(-1);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engPerSet/listByPage",
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.55, 0, 55, -6);
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_PER_SET_LIST'},
+                alter: {
+                    dataSource: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dataSource'][value];
+                        }
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view", i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngPerSet('view', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_PER_SET_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngPerSet('edit', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_PER_SET_DELETE",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/engPerSet/deleteEngPerSetById/" + rowData.pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    InitDataGrid();
+                                    InitDataGrid(-1);
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (loginUser == row.createUser) {
+                    items['编辑'].enable = true;
+                    items['删除'].enable = true;
+                } else {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                }
+                return items;
+            },
+            onClickRow: function (index, row) {
+                InitDataGrid1(row.pkid);
+            }
+        });
+    }
+
+    function InitDataGrid1(parentId) {
+        $("#dg1").GatewayDataGrid({
+            identity: 'dg1',
+            idField: "PKID",
+            queryParams: {
+                setId: parentId
+            },
+            pagination: true,
+            path: "/meng-engine/engPerSetDetail/listByPage",
+            fitcolumn: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.43, 0, 10, -6);
+            },
+            title: $.i18n.t('监控逻辑列表'),
+            columns: {
+                param: {FunctionCode: 'ENG_PER_SET_DETAIL_LIST'},
+                alter: {
+                    curParameter: {
+                        formatter: function (value) {
+                            return PAGE_DATA['perColName'][value];
+                        }
+                    },
+                    hisParameter: {
+                        formatter: function (value) {
+                            return PAGE_DATA['perColName'][value];
+                        }
+                    },
+                    curValueType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['valueType'][value];
+                        }
+                    },
+                    hisValueType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['valueType'][value];
+                        }
+                    },
+                    hisForwardUnit: {
+                        formatter: function (value) {
+                            return PAGE_DATA['hisForwardUnit'][value];
+                        }
+                    },
+                    compareType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['compareType'][value];
+                        }
+                    },
+                    alertType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['alertType'][value];
+                        }
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: []
+        });
+    }
+
+    //添加或编辑--监控阈值设置
+    function addOrEditEngPerSet(operation, pkid) {
+        var title_ = $.i18n.t('添加或编辑--监控阈值设置');
+        ShowWindowIframe({
+            width: "1020",
+            height: "680",
+            title: title_,
+            param: {pkid: pkid, operation: operation},
+            url: "/views/engine/engPerSet/eng_per_set_add_edit.shtml"
+        });
+    }
+
+    //刷新列表
+    function reload_() {
+        doSearch_();
+    }
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        getAcnosForReset();
+        getEsnsForReset();
+        InitDataGrid();
+        InitDataGrid1(-1);
+    }
+
+    //表单保存调用父页面的刷新方法
+    function reload_parent() {
+        InitDataGrid();
+    }
+
+    //获取重置后的机号
+    function getAcnosForReset() {
+        //机号
+        $('#acRegs').combobox({
+            panelHeight: '100px',
+            url: Constant.API_URL + 'DA_GET_ACNOS',
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            loadFilter: function (jdata) {
+                return jdata.data;
+            }
+        });
+    }
+
+    //获取重置后的发动机序号
+    function getEsnsForReset() {
+        //获取发动机序号
+        InitGatewayRequest_({
+            async: false,
+            data: {matnr: ''},
+            path: "/meng-engine/baseOwn/getEngByType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#esns').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px'
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

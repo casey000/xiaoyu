@@ -1,0 +1,296 @@
+// function CAS() {
+//     this.url = ENVGlobal.gateWay
+//     this.appKey = ENVGlobal.appKey
+//     this.appSecret = ENVGlobal.appSecret
+//     this.ENV = ENVGlobal.env
+//     this.callback = function(){
+//         location = "http://" + window.location.host + "/views/home.shtml";
+//     }
+//     this.casloginURL = 'http://cas.sit.sf-express.com/cas/login'
+//     this.caslogoutURL = 'http://cas.sit.sf-express.com/cas/logout'
+//     this.isLogin = false
+//     this.casURL();
+// }
+//
+// CAS.prototype.init = function (url, appKey, appSecret, ENV, callback) {
+//     this.url = url
+//     this.appKey = appKey
+//     this.appSecret = appSecret
+//     this.ENV = ENV
+//     this.callback = callback
+//     this.caslogoutURL = null
+//     this.casloginURL = null
+//     this.isLogin = false
+// }
+//
+// CAS.prototype.casURL = function(){
+//     if(this.ENV === 'sit' || this.ENV === 'dev' || this.ENV === 'uat' || this.ENV === 'test'){
+//         this.casloginURL = 'http://cas.sit.sf-express.com/cas/login'
+//         this.caslogoutURL = 'http://cas.sit.sf-express.com/cas/logout'
+//     }else if(this.ENV === 'pro'||this.ENV === 'pre'){
+//         this.casloginURL = 'https://cas.sf-express.com/cas/login'
+//         this.caslogoutURL = 'http://cas.sf-express.com/cas/logout'
+//     } else {
+//         alert('ENV环境参数值只能为sit、dev、uat、pro、pre')
+//     }
+// }
+//
+// CAS.prototype.triggerCASLogin = function () {
+//     window.location.href = this.casloginURL + '?service=' + this.redirectUrl;
+// }
+//
+// CAS.prototype.loginWithTicket = function (ticket) {
+//     if (!ticket) {
+//         return;
+//     }
+//
+//     if (!sessionStorage.deviceId) {
+//         sessionStorage.deviceId = getDeviceId()
+//     }
+//
+//     let that = this
+//     let xhr = GetXmlHttpObject()
+//     let params = {
+//         ticket: ticket,
+//         service: this.redirectUrl,
+//         appKey: this.appKey,
+//         appSecret: this.appSecret,
+//         deviceId: sessionStorage.deviceId
+//     }
+//     params = JSON.stringify(params)
+//     let ticketUrl = this.url + "/user/cas/knock"
+//     xhr.open("POST", ticketUrl, false);
+//     xhr.setRequestHeader("content-type", "application/json")
+//     xhr.send(params)
+//
+//     if (xhr.readyState === 4) {
+//         if (xhr.status === 200) {
+//             let response = JSON.parse(xhr.response);
+//             if (response.success === true) {
+//                 that.isLogin = true;
+//                 console.log("OK to knock gateway with cas-ticket,ready to navigation");
+//                 sessionStorage.setItem("token",response.obj.token);
+//                 sessionStorage.setItem('token',response.obj.token);
+//                 window.location.href = "http://" + window.location.host + "/views/home.shtml";
+//             } else if (response.success === false) {
+//                 alert(response.errorMessage)
+//             } else {
+//                 alert("网关" + that.url + "/knock接口访问错误！")
+//             }
+//         } else if (xhr.status === 430 || xhr.status === 401) {
+//             //失败,跳转到cas
+//             this.triggerCASLogin()
+//         } else {
+//             alert("网关" + that.url + "/knock接口访问错误！")
+//         }
+//     }
+// }
+//
+// CAS.prototype.doLogin = function (ticket) {
+//     if(!ticket){
+//         ticket = getQueryString("ticket")
+//     }
+//
+//     if(ticket) {
+//         this.loginWithTicket(ticket);
+//         return;
+//     }
+//
+//     // check token's validity
+//     let xhr = GetXmlHttpObject()
+//     let checkTokenUrl = this.url + "/gateway/check_token"
+//     console.log("begin to check token");
+//     xhr.open("GET", checkTokenUrl, false);
+//     xhr.send();
+//     if (xhr.readyState === 4) {
+//         if (xhr.status === 200) {
+//             if (JSON.parse(xhr.response).success === true) {
+//                 sessionStorage.userid = JSON.parse(xhr.response).obj.userid
+//                 sessionStorage.username = JSON.parse(xhr.response).obj.username
+//                 this.isLogin = true;
+//                 console.log("登陆成功！");
+//                 if (typeof this.callback === 'function' && this.callback) {
+//                     this.callback()
+//                 }
+//             } else if (JSON.parse(xhr.response).success === false) {
+//                 alert(JSON.parse(xhr.response).errorMessage)
+//             } else {
+//                 alert("网关" + this.url + "/check_token接口访问错误！")
+//             }
+//         } else if (xhr.status === 401) {
+//             this.triggerCASLogin()
+//         } else {
+//             alert("网关" + this.url + "/check_token接口访问错误！")
+//         }
+//     }
+// }
+//
+// CAS.prototype.checkLogin = function () {
+//     let that = this;
+//     that.loginCheckUrl = "http://" + window.location.host + "/api/login/check",
+//     $.ajax({
+//         url : that.loginCheckUrl,
+//         async: true,
+//         contentType: "application/json;charset=utf-8",
+//         dataType: "json",
+//         success : function (obj, textStatus) {
+//             if(obj.msg == "ERRMSG.COMMON.NOT_LOGIN"){
+//                 window.location = that.casloginURL + "?service=" + that.loginCheckUrl;
+//                 return;
+//             }
+//             CASGlobal.casLogin();
+//         },
+//         error : function(obj, textStatus){
+//             window.location = that.casloginURL + "?service=" + that.loginCheckUrl;
+//         }
+//     });
+// }
+//
+// CAS.prototype.casLogout = function () {
+//     let that = this
+//     let logoutXHR = GetXmlHttpObject()
+//     logoutXHR.timeout = 3000
+//     let logoutUrl = that.url + '/user/auth/logout'
+//     logoutXHR.open('GET', logoutUrl, true)
+//     logoutXHR.send()
+//     logoutXHR.onreadystatechange = function () {
+//         if (logoutXHR.readyState === 4) {
+//             sessionStorage.clear()
+//             if ((logoutXHR.status === 200 && JSON.parse(logoutXHR.response).success === true) || logoutXHR.status === 401) {
+//                 console.log("成功退出网关")
+//                 that.isLogin = false;
+//                 window.location.href = that.caslogoutURL + '?service=' + that.redirectUrl;
+//             } else {
+//                 console.log("网关 " + that.url + "访问错误！")
+//                 window.location.href = that.caslogoutURL + '?service=' + that.redirectUrl;
+//             }
+//         }
+//     }
+// }
+//
+// CAS.prototype.casLogin = function (ticket) {
+//     let that = this
+//     this.redirectUrl = "http://" + window.location.host + "/login.shtml";
+//
+//     // 原来的open方法
+//     let rawOpen = XMLHttpRequest.prototype.open;
+//     // 重写open方法
+//     XMLHttpRequest.prototype.open = function () {
+//         // console.info("request [" + arguments[1] + "] is ongoing...")
+//         rawOpen.apply(this, arguments);
+//         // 自定义请求头（需要在open方法后调用）
+//         try {
+//             this.setRequestHeader('X-ENV', ENVGlobal.env || 'dev');
+//             this.setRequestHeader('Cache-Control', 'no-cache');
+//             if (sessionStorage.token) {
+//                 this.setRequestHeader('token', sessionStorage.token);
+//             }
+//
+//             var requestUrl = arguments[1];
+//             if (requestUrl.indexOf('/user/cas/knock') === -1
+//                 && requestUrl.indexOf('/gateway/check_token') === -1
+//                 && requestUrl.indexOf('/user/auth/logout') === -1
+//                 && sessionStorage.userid) {
+//                 this.setRequestHeader('sgs-userid', sessionStorage.userid);
+//                 this.setRequestHeader('sgs-username', sessionStorage.userid);
+//             }
+//
+//             var path = requestUrl.replace(ENVGlobal.gateWay, "");
+//             if(/\/.*?\/.*?\//.test(path)){
+//                 var api = (requestUrl.match("/.*?/.*?/")[0]);
+//                 var version = ENVGlobal.version[api];
+//                 if(version){
+//           //          this.setRequestHeader('VERSION', version);
+//                 }
+//             }
+//         } catch (e) {
+//             console.error('e', e)
+//         }
+//
+//         // 允许跨域携带cookie
+//         this.withCredentials = true
+//     };
+//     this.doLogin(ticket)
+// }
+//
+//
+// function GetXmlHttpObject() {
+//     let xhr;
+//     if (window.XMLHttpRequest) {
+//         xhr = new XMLHttpRequest()
+//     } else {
+//         xhr = new ActiveXObject("Microsoft.XMLHTTP")
+//     }
+//     if (xhr === null) {
+//         alert('您的浏览器不支持ajax')
+//         return;
+//     }
+//     return xhr
+// }
+//
+// function setUseIdName(id, that) {
+//     let logoutXHR = GetXmlHttpObject(), logoutUrl;
+//     logoutUrl = that.url + '/auth/tsUser/selectUser?userId=' + id;
+//     console.log(logoutUrl)
+//     logoutXHR.open('GET', logoutUrl, true);
+//     logoutXHR.send();
+//     logoutXHR.onreadystatechange = function () {
+//         if (logoutXHR.readyState === 4) {
+//             console.log("___________xhr______________");
+//             console.log(logoutXHR)
+//             if ((logoutXHR.status === 200 && JSON.parse(logoutXHR.response).success === true) || logoutXHR.status === 401) {
+//                 console.log("成功")
+//             } else {
+//                 console.log("错误！")
+//             }
+//         }
+//     }
+// }
+//
+// function getQueryString(name) {
+//     var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+//     var r = window.location.search.substr(1).match(reg);
+//     if (r != null) return r[2];
+//     return '';
+// }
+//
+// function getCookie(name){
+//     var arr,reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
+//     if (arr = document.cookie.match(reg)) {
+//         return unescape(arr[2]);
+//     } else {
+//         return null;
+//     }
+// }
+//
+// function getDeviceId() {
+//     var s = [];
+//     var hexDigits = "abcdef";
+//     for (var i = 0; i < 10; i++) {
+//         s[i] = hexDigits.substr(Math.floor(Math.random() * 6), 1)
+//     }
+//     var uuid = s.join("") + new Date().getTime()
+//     return uuid
+// }
+//
+//
+// function funcUrlDel(name) {
+//     var loca = window.location;
+//     var baseUrl = loca.origin + loca.pathname + "?";
+//     var query = loca.search.substr(1);
+//     if (query.indexOf(name) > -1) {
+//         var obj = {}
+//         var arr = query.split("&");
+//         for (var i = 0; i < arr.length; i++) {
+//             arr[i] = arr[i].split("=");
+//             obj[arr[i][0]] = arr[i][1];
+//         }
+//         ;
+//         delete obj[name];
+//         var url = baseUrl + JSON.stringify(obj).replace(/[\"\{\}]/g, "").replace(/\:/g, "=").replace(/\,/g, "&");
+//         return url
+//     }
+//     ;
+// }
+//
+// CASGlobal = new CAS()

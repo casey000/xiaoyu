@@ -1,0 +1,165 @@
+<style>
+    td{
+        word-break: break-all;
+    }
+</style>
+<table class="table table-bordered table-info" style="padding-top:10px" id="worklogList">
+    
+    
+</table>
+    
+<script type="text/javascript">
+
+    
+
+    $(function(){
+        /** 获取列表数据 **/
+        function get_list_data(){
+            let defectId = parent.get_defectId()
+            let defectNo = parent.get_defectNo()
+            let url = "/api/v1/worklog/findWorkLogByDefect";
+            let form_data = new FormData();
+            form_data.append("id", defectId)
+            axios.post(url, form_data).then(response=>{
+                if(response.data.msg.toUpperCase().indexOf("SUCCESS") != -1){
+                    $("#worklogList").empty()
+                    console.log("response.worklog.data")
+                    console.log(response.data.data)
+                    let devide_dict = devide_list_data(response.data.data.lists);
+                    //先显示自己的worklog，不带标题
+                    load_list_data(response.data.data.workLogList)
+                    //再显示关联的worklog，带标题
+                    if(response.data.data.defectNos && Array.isArray(response.data.data.defectNos)){
+                        response.data.data.defectNos.forEach(key=>{
+                            load_list_data(devide_dict[key], key)
+                        })
+                    }
+                }else if(response.data.msg.toUpperCase().indexOf("ERROR") != -1){
+                    throw new Error("worklog列表获取失败")
+                }
+            }).catch(err=>{
+                load_list_data()
+                MsgAlert({type: "error", content: err.message})
+            })
+        }
+
+        function devide_list_data(list_data){
+            let devide_dict = {}
+            if(!list_data || !Array.isArray(list_data)){
+                return {}
+            }
+            list_data.forEach(item=>{
+                if(Array.isArray(devide_dict[item.defectNo])){
+                    devide_dict[item.defectNo].push(item)
+                }else{
+                    devide_dict[item.defectNo] = [];
+                    devide_dict[item.defectNo].push(item)
+                }
+            })
+            return devide_dict;
+        }
+
+        function load_list_data(data, key){
+            let header = `<tr>
+                            <th class="table-cell cell-normal">OPERATOR</th>
+                            <th class="table-cell cell-normal">IDENTITY</th>
+                            <th class="table-cell cell-normal">CREATE TIME</th>
+                            <th class="table-cell cell-normal">STATION</th>
+                            <th class="table-cell cell-normal">SECTION</th>
+                            <th class="table-cell cell-normal">WORK LOG</th>
+                            <th class="table-cell cell-normal">ANALYSIS</th>
+                            <th class="table-cell cell-normal">STATUS</th>
+                            <th class="table-cell cell-normal">OWNER</th>
+                            <th class="table-cell cell-normal">REMARK</th>
+                        </tr>`
+            if(key){
+                //关联的，带标题
+                let title = `<tr>
+                                <th style="text-align:left; height:40px; padding-left: 10px;" colspan="99">Relation Defect WorkLog Defect No:${key}</th>
+                            </tr>`
+                $("#worklogList").append(title)
+                $("#worklogList").append(header)
+            }else{
+                //自己的，不带标题
+                $("#worklogList").append(header)
+            }
+
+            if(!data || !Array.isArray(data) || data.length < 1){
+                //没有数据
+                $("#worklogList").append(`<tr>\r\n \
+                                    <td class="table-cell cell-normal" colspan="99">N/A</td>\r\n \
+                                </tr>\r\n`)
+            }else{
+                //显示数据
+                for(let i = 0, len = data.length; i < len; i++){
+                    each_table_row(i, data[i], key)
+                }
+            }
+        }
+
+        function each_table_row(index, row_data, key){
+            if(!row_data){
+                return ""
+            }
+            let html = "";
+            let createTime = row_data.creatTime ? formatterDate(new Date(row_data.creatTime)) : "";
+            html = `<tr>
+                        <td class="table-cell cell-normal"><a style="color: #f60" id="worklog${row_data.id}">${key?"": "edit"}</a></td>
+                        <td class="table-cell cell-normal"><a style="color: #f60" id="viewWorklog${row_data.id}">view</a></td>
+                        <td class="table-cell cell-normal">${createTime}</td>
+                        <td class="table-cell cell-normal">${row_data.station||""}</td>
+                        <td class="table-cell cell-normal">${row_data.section||""}</td>
+                        <td class="table-cell cell-normal">${row_data.workLog||""}</td>
+                        <td class="table-cell cell-normal">${row_data.analysis||""}</td>
+                        <td class="table-cell cell-normal">${row_data.status||""}</td>
+                        <td class="table-cell cell-normal">${row_data.owner||""}</td>
+                        <td class="table-cell cell-normal">${row_data.remark||""}</td>
+                    </tr>`
+            $("#worklogList").append(html)
+            if(!key) $("#worklog" + row_data.id).click(()=>openWorklog(row_data.id, row_data.defectId));
+            $("#viewWorklog" + row_data.id).click(()=>viewWorklog(row_data.id, row_data.defectId));
+            return html;
+        }
+
+        function openWorklog(id, defectId){
+            let title = "add worklog";
+            let param = {
+                defectId: defectId,
+                operation: "edit",
+                id: id,
+                successCallback: function(){
+                    get_list_data();
+                }
+            }
+            ShowWindowIframe({
+                width: "1200",
+                height: "700",
+                title: title,
+                param: param,
+                url: "/views/defect/worklog/addWorklog.shtml"
+            });
+            return
+        }
+
+        function viewWorklog(id, defectId){
+            let title = "view worklog";
+            let param = {
+                defectId: defectId,
+                operation: "edit",
+                id: id
+            }
+            ShowWindowIframe({
+                width: "1200",
+                height: "700",
+                title: title,
+                param: param,
+                url: "/views/defect/worklog/viewWorklog.shtml"
+            });
+            return
+        }
+        
+
+        get_list_data();
+    })
+    
+</script>

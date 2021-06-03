@@ -1,0 +1,307 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        var isEdit_;
+        var param = {};
+        param = getParentParam_();
+        var itemIntervalId = param.itemIntervalId;
+        isEdit_ = param.pkid;
+
+        function i18nCallBack() {
+            InitFuncCodeRequest_({
+                data: {domainCode: "LOGIC_OPERATOR,EM_MP_PRE_POST", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        $('#logicOperator').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.LOGIC_OPERATOR,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+
+                        $('#prePost').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_PRE_POST,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+
+                        if (isEdit_) {
+                            //编辑查询该适用性条件
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: param.pkid,
+                                    FunctionCode: "EM_CMP_EVAL_APL_CON_GETONE"
+                                },
+                                successCallBack: function (jdata2) {
+                                    if (jdata2.code == RESULT_CODE.SUCCESS_CODE) {
+                                        InitEditForm_();
+                                        ParseFormField_(jdata2.data, null, Constant.CAMEL_CASE);
+                                        InitDataGrid();
+                                    } else {
+                                        MsgAlert({content: jdata2.msg, type: 'error'});
+                                    }
+                                }
+                            });
+
+
+                        } else {
+                            //增加
+                            InitEditForm_();
+                            $('#aplPkid').val(itemIntervalId);
+                            InitDataGrid();
+                        }
+
+
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+
+
+        }
+
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'EM_CMP_EVAL_APL_CON_UPDATE' : 'EM_CMP_EVAL_APL_CON_ADD')
+                    });
+                    /*$("input:checkbox:checked").each(function(){
+
+                     });*/
+//                    console.log(data);
+//                    return false;
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                                $('#pkid').val(jdata.data.pkid);
+
+                                param.OWindow.doSearch_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+
+                            } else {
+
+                                MsgAlert({content: "信息错误", type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table class="table table-bordered table-info">
+                    <div style="display: none">
+                        <input type="hidden" id="pkid" name="pkid" style="width: 100px;"/>
+                        <input type="hidden" id="aplPkid" name="aplPkid" style="width: 100px;"/>
+                    </div>
+
+                    <caption style="padding-bottom: 7px;font-weight:bold;">适用性前后置条件</caption>
+                    <tr>
+
+                        <td align="right" style="padding-top: 6px;padding-right: 4px" colspan="6">
+                            <input class="btn btn-primary" type="submit" id="submit" value="保存"/>&nbsp;&nbsp;
+                            <input class="btn btn-primary" type="button" onclick="ch();" value="关闭"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:150px" align="right">与前一条数据的关系：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="logicOperator" name="logicOperator"
+                                   data-options="required:true" style="width: 100px;"/>
+                        </td>
+                        <th class="td5" style="width:115px" align="right">PRE OR POST：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="prePost" name="prePost" data-options=""
+                                   style="width: 100px;"/>
+                        </td>
+                        <th class="td5" style="width:60px" align="right">MOD：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="mod" name="mod"
+                                   data-options="required:true" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<div id="tab-tools" style="margin:4px" align="right">
+    <a class="easyui-linkbutton" type="button" id="add" onclick="daoRuSB();">
+        <span data-i18n="mm_wendor:PINVOIC_OPERATION.ADD">导入SB</span>
+    </a>
+
+</div>
+<div id="tt" class="easyui-tabs" style="width:1350px;height:246px;font-weight:bold;">
+
+    <div title="SB" style="display:none;">
+        <table id="SB"></table>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    function daoRuSB() {
+        var aplconPkid = $('#pkid').val();
+        ShowWindowIframe({
+            width: "60%",
+            height: "50%",
+            title: "导入SB",
+            param: {aplconPkid: aplconPkid},
+            url: "/views/em/emcmp/em_item_syx_sb.shtml"
+        });
+    }
+
+
+    function doSearch_() {
+        var aplconPkid = $('#pkid').val();
+        var dgopt = getDgOpts('SB');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: {aplconPkid: aplconPkid},
+        });
+    }
+
+
+    function InitDataGrid() {
+
+        var aplconPkid = $('#pkid').val();
+
+
+        if (aplconPkid == null) {
+            aplconPkid = '-';
+        }
+
+        var identity = 'SB';
+        $("#SB").MyDataGrid({
+            identity: identity,
+            fit: true,
+            sortable: true,
+            title: $.i18n.t(''),
+            queryParams: {aplconPkid: aplconPkid},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_EVAL_APL_SB_LIST'},
+                alter: {}
+            },
+            contextMenus: [
+                {
+                    id: "m-del", i18nText: "common:COMMON_OPERATION.EDIT", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+
+                        ShowWindowIframe({
+                            width: "70%",
+                            height: "50%",
+                            title: "增加SB",
+                            param: {pkid: rowdata.PKID},
+                            url: "/views/em/emcmp/em_cmp_aplsbcon_add_edit.shtml"
+                        });
+
+                    }
+                },
+
+                {
+                    id: "m-del", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+
+                        InitFuncCodeRequest_({
+                            data: {
+
+                                pkid: rowdata.PKID,
+                                FunctionCode: "EM_CMP_APLSBCON_DEL"
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    doSearch_();
+
+                                }
+                                else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:RES.COMMON.CREATE'), auth: "",//创建
+                    handler: function () {
+                        var aplconPkid = $('#pkid').val();
+
+                        ShowWindowIframe({
+                            width: "60%",
+                            height: "50%",
+                            title: "增加SB",
+                            param: {aplconPkid: aplconPkid},
+                            url: "/views/em/emcmp/em_cmp_aplsbcon_add_edit.shtml"
+                        });
+
+                    }
+                }
+            ]
+        });
+    }
+
+
+    function parentSearch_(date, id) {
+        var dgopt = getDgOpts(id);
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: date
+        });
+    }
+
+    /** 刷新列表数据 */
+
+
+
+    $(function () {
+
+        $(':checkbox[item=aa]').each(function () {
+            $(this).click(function () {
+                if ($(this).is(':checked')) {
+                    $(':checkbox[item=aa]').prop('checked', false);
+                    $(this).prop('checked', true);
+                }
+            });
+        });
+    });
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,434 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">轮胎扎伤报告管理主菜单</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" class="form-horizontal">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th style="width:40px;" align="right">编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="serialNumber"
+                               id="serialNumber" data-options=""
+                               style="width:90px;"/>
+                    </td>
+                    <th style="width:50px;" align="right">机号：</th>
+                    <td>
+                        <input class="easyui-combobox" name="plan" id="plan"
+                               data-options=""
+                               style="width:90px;"/>
+                    </td>
+                    <th align="right" style="width: 70px;">发现时间 ：</th>
+                    <td style="width: 50px">
+                        <input class="easyui-datebox" style="width: 90px;"
+                               id="discoveryStartDate"
+                               name="discoveryStartDate" data-options="required:false,editable:false"/>
+                    </td>
+                    <th style="width:15px;" align="center">至：</th>
+                    <td style="width: 50px">
+                        <input class="easyui-datebox" style="width: 90px;"
+                               id="discoveryEndDate"
+                               name="discoveryEndDate" data-options="required:false,editable:false"/>
+                    </td>
+                    <th style="width:40px;" align="right">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="status" id="status"
+                               data-options=""
+                               style="width:90px;"/>
+                    </td>
+                    <td class="td5" align="right" style="padding-right:5px">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="onSearchEvent()" auth="PM_MC_FOD_QUERY">查询</a>
+                        <a class="clearBtn" data-options="iconCls:'icon-search'" onclick="doClear_()">重置</a>
+                        <a class="addBtn" data-options="iconCls:'icon-search'" onclick="addBmAta('save')" auth="PM_MC_FOD_ADD">新增</a>
+                        <a class="ridoBtn" data-options="iconCls:'icon-search'" onclick="helpQuery('dg', 'EVENT_MANAGEMENT_LIST');" auth="PM_MC_FOD_HIGH_QUERY">高级查询</a>
+                        <a class="excelBtn" data-options="iconCls:'icon-search'" onclick="excelExport('dg', '轮胎扎伤报告')" auth="PM_MC_FOD_EXPORT"><span>导出</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+</div>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitDataGrid();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "MSGRP,PM_MC_BIRD_STATUS,PM_MC_FOD_LIST_DAMAGED",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    // PAGE_DATA['plan'] = DomainCodeToMap_(jdata.data["MSGRP"]);
+                    PAGE_DATA['damagedLocation'] = DomainCodeToMap_(jdata.data["PM_MC_FOD_LIST_DAMAGED"]);
+
+                    //飞机号
+                    $('#plan').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.MSGRP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //状态
+                    $('#status').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.PM_MC_BIRD_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EVENT_MANAGEMENT_LIST'},
+                alter: {
+                    TEST_UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.TEST_UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    OCCUR_DATE: {
+                        type: 'datetime',
+                        formatter: function (value) {
+                            if (value == null || value == "") {
+                                return "";
+                            }
+                            var date = new Date(value);
+                            var year = date.getFullYear().toString();
+                            var month = (date.getMonth() + 1);
+                            var day = date.getDate().toString();
+                            var hour = date.getHours().toString();
+                            var minutes = date.getMinutes().toString();
+                            var seconds = date.getSeconds().toString();
+                            if (month < 10) {
+                                month = "0" + month;
+                            }
+                            if (day < 10) {
+                                day = "0" + day;
+                            }
+                            if (hour < 10) {
+                                hour = "0" + hour;
+                            }
+                            if (minutes < 10) {
+                                minutes = "0" + minutes;
+                            }
+                            if (seconds < 10) {
+                                seconds = "0" + seconds;
+                            }
+                            return year + "-" + month + "-" + day + " " + hour + ":" + minutes + ":" + seconds;
+                        }
+                    },
+                    DAMAGED_LOCATION: {
+                        formatter: function (value) {
+                            return PAGE_DATA['damagedLocation'][value];
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "EVENTMANAGEMENT",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span auth="PM_MC_FOD_DEL" onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            // 状态：1-EDIT、2-HISTORY、3-ACTIVE
+            validAuth: function (row, items) {
+                var name = getLoginInfo().userName;
+                var accountId = getLoginInfo().accountNumber;
+                var nameId = name + "(" + accountId + ")";
+                //不是自己新增的不能删除
+                if (row.REPORT_NAME != nameId) {
+                    items['删除'].enable = false;
+                    items['编辑'].enable = false;
+                    items['改版'].enable = false;
+                    items['提交'].enable = false;
+                } else {
+                    //编写中
+                    if (row.STATUS == "EDIT") {
+                        items['改版'].enable = false;
+                    }//改版过
+                    else if (row.STATUS == "HISTORY") {
+                        items['提交'].enable = false;
+                        items['改版'].enable = false;
+                        items['删除'].enable = false;
+                        items['编辑'].enable = false;
+                    }//提交过
+                    else if (row.STATUS == "ACTIVE") {
+                        items['编辑'].enable = false;
+                        items['提交'].enable = false;
+                        items['删除'].enable = false;
+                    }
+                }
+
+                return items;
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "PM_MC_FOD_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+                    }
+                },
+                {
+                    id: "",
+                    i18nText: "删除",auth:"PM_MC_FOD_DEL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        var data = {
+                            pkid: rowData.PKID,
+                            delId: getLoginInfo().accountId,
+                            delName: getLoginInfo().userName
+                        };
+                        InitFuncCodeRequest_({
+                            data: $.extend(data, {FunctionCode: 'PM_MC_FOD_DEL'}),
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-browse", i18nText: "浏览", auth: "PM_MC_FOD_VIEW",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('browse', rowData.PKID);
+
+                    }
+                },
+                {
+                    id: "m-submit", i18nText: "提交", auth: "PM_MC_FOD_SUBMIT_FLOW",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        // var revNew=rowData.rev;
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var data = rowData.PKID;
+                        InitFuncCodeRequest_({
+                            data: {
+                                data: data,
+                                // revNew:revNew,
+                                FunctionCode: "PM_MC_FOD_LIST_SUBMIT"
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+
+                        });
+                    }
+                },
+                {
+                    id: "m-print", i18nText: "打印", auth: "PM_MC_FOD_PRINT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        var revOld = rowData.rev;
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        //openDetai('print', rowData.PKID);
+                        ajaxLoading();
+                        doPost(Constant.API_URL + 'PM_MCC_EVENT_MNG_PRINT',
+                          {pkid:rowData.PKID, domainCode: ''});
+                        ajaxLoadEnd()
+
+                    }
+                },
+                {
+                    id: "m-rev",
+                    i18nText: "改版",auth:"PM_MC_FOD_REV",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        openDetai('rev', rowData.PKID);
+                    }
+                },
+                /*{
+                    id: "m-change", i18nText: "变更日志", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        // openDetai('change', rowData.PKID);
+                        viewLogs(rowData.PKID)
+
+                    }
+                 },*/
+                {
+                    id: "m-upload", i18nText: "上传附件", auth: "PM_MC_FOD_UPLOAD",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        common_upload_({
+                            identity: 'dg',
+                            param: {
+                                cat: "EVENTMANAGEMENT",
+                                sourceId: rowData.PKID,
+                                PKID:rowData.PKID,
+                                successCallBack: function () {
+                                    reload_();
+                                },
+                                fialCellBack: ""
+                            }
+                        });
+
+                    }
+                },
+            ],
+            //双击进入
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai('view', value.PKID);
+            },
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 15)
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //打开补充手册编写页面
+    function openDetai(operation, pkid) {
+        ShowWindowIframe({
+            width: "1000",
+            height: "550",
+            title: "轮胎扎伤报告管理详情页",
+            param: {operation: operation, pkid: pkid},
+            url: "\\views\\pm\\mc\\event\\event_managemen_Detail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //新增
+    function addBmAta(operation) {
+        ShowWindowIframe({
+            width: "1000",
+            height: "550",
+            title: "轮胎扎伤报告管理详情页",
+            param: {operation: operation},
+            url: "\\views\\pm\\mc\\event\\event_managemen_Detail.shtml"
+        });
+    }
+
+    //查询
+    function onSearchEvent() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //上传
+    function common_uploadFile(edopt) {
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        ShowWindowIframe({
+            width: 575,
+            height: 200,
+            title: title_,
+            param: $.extend({}, edopt.param),
+            url: "/views/data_manager/dm/upload/attachment_add.shtml"
+        });
+    }
+</script>
+</body>
+</html>

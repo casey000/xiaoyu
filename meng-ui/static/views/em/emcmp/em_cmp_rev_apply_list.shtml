@@ -1,0 +1,533 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">方案更改单管理</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">机队：</th>
+                    <td>
+                        <input class="easyui-combobox" id="fleet" name="fleet" style="width:140px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;" align="right">更改单编号：</th>
+                    <td>
+                        <input class="easyui-textbox" id="applyNo" name="applyNo" style="width:140px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;" align="right">章节：</th>
+                    <td>
+                        <input class="easyui-combobox" id="ata" name="ata" style="width:140px"/>
+                    </td>
+                    <td colspan="3">
+                        &nbsp;&nbsp;
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" auth="EM_CMP_REV_APPLY_QUERY"
+                           onclick="onSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a class="addBtn" data-options="iconCls:'icon-add'" auth="EM_CMP_REV_APPLY_UPDATE"
+                           onclick="addOrEdit('add')"><span data-i18n="common:COMMON_OPERATION.ADD">新增</span></a>&nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'"
+                           auth="EM_CMP_REV_APPLY_QUERY">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">更改单状态：</th>
+                    <td>
+                        <input class="easyui-combobox" id="applyState" name="applyState" style="width:140px"/>
+                    </td>
+                    <th data-i18n="" style="width:90px;" align="right">是否报可靠委：</th>
+                    <td>
+                        <input class="easyui-combobox" id="ifReportRe" name="ifReportRe" style="width:140px"/>
+                    </td>
+                    <th data-i18n="" style="width:90px;" align="right">更改者：</th>
+                    <td>
+                        <input class="easyui-combobox" id="applyName" name="applyName" style="width:140px"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">日期从：</th>
+                    <td>
+                        <input class="easyui-datebox" id="applyStartDate" name="applyStartDate" style="width:140px"/>
+                    </td>
+                    <th data-i18n="" style="width:90px;" align="right">到：</th>
+                    <td>
+                        <input class="easyui-datebox" id="applyEndDate" name="applyEndDate" style="width:140px"/>
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/FileSaver.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,DA_ATA,EM_APPLY_STATE,YESORNO,EM_CMPREV_APPLY_NAME",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    jdata.data.DA_ATA.push({TEXT: "XX", VALUE: "XX", NAME: "XX"});
+                    $('#fleet').combobox({
+                        panelHeight: '150',
+                        editable: true,
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ata').combobox({
+                        panelHeight: '150',
+                        editable: true,
+                        data: jdata.data.DA_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#applyState').combobox({
+                        panelHeight: '150',
+                        editable: true,
+                        data: jdata.data.EM_APPLY_STATE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ifReportRe').combobox({
+                        panelHeight: '80',
+                        editable: true,
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#applyName').combobox({
+                        panelHeight: '80',
+                        editable: true,
+                        data: jdata.data.EM_CMPREV_APPLY_NAME,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#applyName').combobox('setValue', getLoginInfo().userName);
+                    PAGE_DATA['FLEET'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    PAGE_DATA['ATA'] = DomainCodeToMap_(jdata.data["DA_ATA"]);
+                    PAGE_DATA['YESORNO'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA['APPLY_STATE'] = DomainCodeToMap_(jdata.data["EM_APPLY_STATE"]);
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            singleSelect: true,
+            pageSize: 15,
+            enableLineEdit: false,
+            queryParams: {applyName: getLoginInfo().userName},
+            columns: {
+                param: {FunctionCode: 'EM_CMPREV_APPLY_LIST'},
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    FLEET: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['FLEET'][value];
+                        }
+                    },
+                    APPLY_STATE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['APPLY_STATE'][value];
+                        }
+                    },
+                    IF_REPORT_RE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['YESORNO'][value];
+                        }
+                    },
+                    CMP_VER_TYPE: {
+                        formatter: function (value, row, index) {
+                            if (row.CMP_VER_TYPE) {
+                                if (row.CMP_VER_TYPE == "F") {
+                                    value = "正式";
+                                } else if (row.CMP_VER_TYPE == "T") {
+                                    value = "临时";
+                                }
+                                return value;
+                            }
+                        }
+                    },
+                    APPLY_DATE: {
+                        type: 'date'
+                    },
+                    FAGCS_DATE: {
+                        type: 'date'
+                    },
+                    OTHER_DATE: {
+                        type: 'date'
+                    },
+                    KSLD_DATE: {
+                        type: 'date'
+                    },
+                    BLD_DATE: {
+                        type: 'date'
+                    },
+                    REGCS_DATE: {
+                        type: 'date'
+                    },
+                    REVIEW_DATE: {
+                        type: 'date'
+                    },
+                    GRACE_PERIOD: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+                //上传成功之后给图标绑定方法
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.APPLY_NO,
+                                CATEGORY: "CMPREVAPPLY",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === 200) {
+
+                                }
+                                var html = "";
+                                if (row.APPLY_STATE == '01') {
+                                    for (var i = 0; i < jdata.data.length; i++) {
+                                        html += '<li><a target="_blank" onclick="downFileLocal(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                    }
+                                } else {
+                                    for (var i = 0; i < jdata.data.length; i++) {
+                                        html += '<li><a target="_blank" onclick="downFileLocal(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                    }
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "EM_CMP_REV_APPLY_UPDATE",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        var fleet = rowData.FLEET;
+                        if (!rowData.APPLY_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (rowData.APPLY_STATE != '01' && rowData.APPLY_STATE != '11' && rowData.APPLY_STATE != '02') {
+                            MsgAlert({content: '状态不是已创建、任务退回，不允许编辑！', type: 'error'});
+                            return;
+                        }
+                        addOrEdit('edit', fleet);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "删除", auth: "EM_CMP_REV_APPLY_UPDATE",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if (!rowData.APPLY_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (!rowData.APPLY_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (rowData.APPLY_STATE != '01') {
+                            MsgAlert({content: '状态不是已创建，不允许删除！', type: 'error'});
+                            return;
+                        }
+                        $.messager.confirm('', '是否确认删除该记录？', function (r) {
+                            if (r) {
+                                InitFuncCodeRequest_({
+                                    data: {applyNo: rowData.APPLY_NO, FunctionCode: 'EM_CMPREV_APPLY_DELETE'},
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            MsgAlert({content: (jdata.msgData && jdata.msgData.length > 0) ? jdata.msgData[0] : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                            reload_();
+                                        } else {
+                                            MsgAlert({
+                                                content: jdata.msgData ? jdata.msgData[0] : jdata.msg,
+                                                type: 'error'
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "作废", auth: "EM_CMP_REV_APPLY_DISCARD",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if (!rowData.APPLY_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (!rowData.APPLY_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (rowData.APPLY_STATE != '01') {
+                            MsgAlert({content: '状态不是已创建，不允许作废！', type: 'error'});
+                            return;
+                        }
+                        $.messager.confirm('', '是否确认作废该记录？', function (r) {
+                            if (r) {
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        applyNo: rowData.APPLY_NO,
+                                        opeartion: 'discard',
+                                        FunctionCode: 'EM_CMPREV_APPLY_DISCARD_OR_RECOVER'
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            MsgAlert({content: (jdata.msgData && jdata.msgData.length > 0) ? jdata.msgData[0] : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                            reload_();
+                                        } else {
+                                            MsgAlert({
+                                                content: jdata.msgData ? jdata.msgData[0] : jdata.msg,
+                                                type: 'error'
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "恢复", auth: "EM_CMP_REV_APPLY_RECOVER",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if (!rowData.APPLY_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (!rowData.APPLY_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (rowData.APPLY_STATE != '12') {
+                            MsgAlert({content: '状态不是已作废，不允许恢复！', type: 'error'});
+                            return;
+                        }
+                        $.messager.confirm('', '是否确认恢复该记录？', function (r) {
+                            if (r) {
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        applyNo: rowData.APPLY_NO,
+                                        opeartion: 'recover',
+                                        FunctionCode: 'EM_CMPREV_APPLY_DISCARD_OR_RECOVER'
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            MsgAlert({content: (jdata.msgData && jdata.msgData.length > 0) ? jdata.msgData[0] : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                            reload_();
+                                        } else {
+                                            MsgAlert({
+                                                content: jdata.msgData ? jdata.msgData[0] : jdata.msg,
+                                                type: 'error'
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-sub", i18nText: "提交", auth: "EM_CMP_REV_APPLY_SUBMIT",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if (!rowData.APPLY_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (rowData.APPLY_STATE != '01') {
+                            MsgAlert({content: '状态不是已创建，不允许提交！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: '', isEdit: '', width: 520, height: 300, title: $.i18n.t('选择审批人'),
+                            param: {
+                                roleId: '',
+                                otherParam: rowData.APPLY_NO,
+                                FunctionCode_: 'EM_CMPREV_APPLY_SUBMIT',
+                                successCallback: reload_
+                            },
+                            url: "/views/em/workflow/work_flow_account_select.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-pdf", i18nText: "查看&打印PDF", auth: "EM_CMP_REV_APPLY_PDF",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if (!rowData.APPLY_NO) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        print(rowData.APPLY_NO)
+                    },
+
+
+                },
+                {
+                    id: "m-view", i18nText: "查看办理轨迹", auth: "EM_CMP_REV_APPLY_QUERY",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if (rowData.APPLY_STATE == '01') {
+                            MsgAlert({content: '此记录还未提交！', type: 'error'});
+                            return;
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 600,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.APPLY_NO, objKey: "EM_CMPREV_APPLY"},
+                            url: '/views/em/workflow/work_flow_history_task_list.shtml'
+                        });
+                    }
+                }
+            ],
+            onDblClickRow: function (index, field, value) {
+                addOrEdit("view");
+            },
+            rowStyler: function (index, row) {
+                var applyState = row.APPLY_STATE;
+                if (applyState == '10') {
+                    return 'background-color:#3CB371;';
+                }
+                if (applyState == '12') {
+                    return 'background-color:#68838B;';
+                }
+            }
+        });
+    }
+
+    /** 编辑、新增、查看 */
+    function addOrEdit(operation, fleet) {
+        var title_;
+        var isEdit;
+        if ('add' == operation) {
+            title_ = $.i18n.t('新增');
+            isEdit = '';
+        } else if ('edit' == operation) {
+            title_ = $.i18n.t('编辑');
+            isEdit = '1';
+        } else {
+            title_ = $.i18n.t('查看');
+            isEdit = '1';
+        }
+        common_add_edit_({
+            identity: 'dg', isEdit: isEdit, width: 1000, height: 650, title: title_,
+            param: {operation: operation, fleet: fleet},
+            url: "/views/em/emcmp/em_cmp_rev_apply_add.shtml"
+        });
+    }
+
+    function print(applyNo) {
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {
+                applyNo: applyNo,
+                FunctionCode: "EM_CMPREV_APPLY_PRINTPDF"
+            },
+            successCallBack: function (jdata1) {
+                ajaxLoadEnd();
+                if (jdata1.code == 200) {
+                    jcPreview(jdata1.data);
+                }
+                else {
+                    MsgAlert({content: jdata1.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function jcPreview(url) {
+        ShowWindowIframe({
+            width: 1200,
+            height: 650,
+            param: {url: url},
+            title: "更改单预览PDF",
+            url: "/views/em/emeo/emeo_add_pdf.shtml"
+        });
+    }
+
+    /**
+     * 打印pdf
+     * */
+    /* function print(applyNo){
+         ajaxLoading();
+         var url = "/api/v1/plugins/EM_CMPREV_APPLY_PRINTPDF";
+         var xhr = new XMLHttpRequest();//创建新的XHR对象
+         xhr.open('post', url);//指定获取数据的方式和url地址
+
+         //  xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+         xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded;");
+         xhr.responseType = 'blob';//以blob的形式接收数据，一般文件内容比较大
+         xhr.onload = function(e) {
+             var blob = this.response;//Blob数据
+             if (this.status == 200) {
+                 ajaxLoadEnd();
+                 if (blob.size < 200) {
+                     MsgAlert({content:"下载失败"});
+                 }else {
+                     if (blob && blob.size > 0) {
+                      saveAs(blob, "更改方案"+applyNo+".pdf");//处理二进制数据，让浏览器认识它
+                     }
+                 }
+
+             }
+         };
+         xhr.send( "applyNo="+ applyNo ); //post请求传的参数
+     }*/
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+</script>
+</body>
+</html>

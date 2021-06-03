@@ -1,0 +1,155 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">反馈情况</title>
+</head>
+<body class="ibody">
+<div id="title" class="title" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <div style="width: 100%" align="right">
+            <input class="btn btn-primary" type="button" id="pdfShow" onclick="closeTB()" value="关闭TB"/>
+<!--            <input class="btn btn-primary" type="button" id="upload" onclick="closeTask()" value="关闭任务"/>-->
+        </div>
+    </fieldset>
+
+    <div id="lay_right" data-options="region:'center'">
+        <div>已选中</div>
+        <div>
+            <table id="dg2" style="height: 95%"></table>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var nalter = {};
+    var param = {};
+    var listCode = "";
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EMTB_FEEDBACK_STATUS"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['emtbFeedbackStatus'] = DomainCodeToMap_(jdata.data["EMTB_FEEDBACK_STATUS"]);
+
+                    InitDataGrid2(param.recordId)
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function reset() {
+        $("#nos").textbox("setValue", "");
+    }
+
+    function InitDataGrid2(tbPkid) {
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 50) / 20);
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            sortable: true,
+            singleSelect: true,
+            pageSize: pageSize,
+            pageList: [pageSize],
+            resize: function () {
+                return tabs_standard_resize($("#title"), 0.1, 0.0001, 0, 0);
+            },
+            queryParams: {
+                tbPkid: tbPkid,
+                normalInvalid: "N"
+            },
+            columns: {
+                param: {FunctionCode: 'EMTB_LIST_SEND'},
+                alter: {
+                    TEST_UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.TEST_UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    FEEDBACK_STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['emtbFeedbackStatus'] [value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+                $("#dg2").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg2").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "emTbSend",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    function closeTB() {
+        var datas = $.extend({pkid: param.recordId}, {FunctionCode: 'EM_TB_CLOSE'});
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_TB_CLOSE",
+                pkid: param.recordId,
+                msgpkid: param.msgpkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+                    param.OWindow.reloadTodo();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function closeTask() {
+        var datas = $.extend({msgpkid: param.msgpkid, pkid: param.recordId}, {FunctionCode: 'EM_TB_CLOSE_TASK'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+                    param.OWindow.reloadTodo();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

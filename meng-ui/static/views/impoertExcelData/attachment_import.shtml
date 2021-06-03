@@ -1,0 +1,326 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>上传附件</title>
+</head>
+<body>
+<script src="/js/plugins/ajaxfileupload/ajaxfileupload.js" type="text/javascript"></script>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <table class="table table-bordered table-info">
+                <form id="actionForm" method="post">
+                    <tr id="catBox">
+                        <input class="textbox easyui-validatebox" type="hidden" id="baseVer" size="30" name="baseVer"
+                               data-options="required:true"/>
+                        <input class="textbox easyui-validatebox" type="hidden" id="applyRange" size="30"
+                               name="applyRange" data-options="required:true"/>
+                        <th class="tdl">文件分类：</th>
+                        <td class="tdr">
+                            <input class="textbox easyui-validatebox" type="text" id="fileCategory" size="30"
+                                   name="fileCategory" data-options="required:true"/>
+                            <input class="textbox easyui-validatebox" type="text" id="sourceId" size="30"
+                                   name="sourceId" value="" placeholder="来源标识"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right"><span
+                                data-i18n="page:PAGE.Y_MM_SALE_OFFER_LIST.UPLOAD_FILE">上传文件：</span></th>
+                        <td class="tdr">
+                            <input class="textbox easyui-validatebox" type="file" id="fileToUpload" size="300"
+                                   name="file" data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center">
+                            <div id="sc"><input class="btn btn-primary" type="button" id="buttonSubmit"
+                                                value="上&nbsp;&nbsp;传 Upload"/></div>
+                        </td>
+                    </tr>
+                </form>
+            </table>
+        </div>
+    </div>
+    <div id="textboxDiv"></div>
+</div>
+</body>
+<script type="text/javascript">
+    var param = {};
+    param = getParentParam_();
+    var parentPkid = param.parentId;
+    var acno = param.acno;
+    var ckLevel = param.ckLevel;
+    var actype = param.actype;
+    var paramPkid = param.paramPkid;
+    var operatorCode = param.operatorCode;
+    var applyRange = param.applyRange;
+    var baseVer = param.baseVer;
+    var fileCategory = param["cat"];
+    var sourceId = param["sourceId"];
+    if (!param.cat) {
+        $("#catBox").show();
+    } else {
+        $("#catBox").hide();
+        $("#fileCategory").val(fileCategory);
+        $("#sourceId").val(sourceId);
+    }
+
+    $(function () {
+        $("#buttonSubmit").click(function () {
+            var sourceId = $("#sourceId").val();
+            var fileCategory = $.trim($('#fileCategory').val());
+            if (fileCategory == "") {
+                MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.WJBWK'), type: 'error'});
+                return;
+            }
+            var fileToUpload = $.trim($('#fileToUpload').val());
+            if (fileToUpload == "") {
+                MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.WJBWKJ'), type: 'error'});
+                return;
+            }
+            if (!param["operation"]) {//只上传附件
+                //上传文件时去校验
+                if (!checkFile()) {
+                    return;
+                }
+                $.ajaxFileUpload({
+                    url: Constant.API_URL + 'ATTACHMENT_UPLOAD',
+                    secureuri: false,
+                    fileElementId: 'fileToUpload',
+                    dataType: 'json',
+                    data: {
+                        "fileCategory": fileCategory,
+                        "sourceId": sourceId
+                    },
+                    success: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (jdata.data == 'repeat') {
+                                tanchuang();
+                                return;
+                            }
+                            if (jdata.data !== 'repeat') {
+                                param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_SUCCESS')});
+                                if (typeof(param['successCellBack']) == 'function') {
+                                    param['successCellBack'](jdata);
+                                } else {
+                                    param.OWindow.reload_();
+                                }
+                                CloseWindowIframe();
+                            }
+
+
+                        } else {
+                            MsgAlert({
+                                content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_FALIED') + jdata.msg,
+                                type: 'error'
+                            });
+                        }
+                    }
+                })
+            } else {//导入
+                var f_index = fileToUpload.lastIndexOf(".");
+                var f_fileType = fileToUpload.substring(f_index + 1, fileToUpload.length).toLowerCase();
+                if (f_fileType != 'xls' && f_fileType != 'xlsx' && f_fileType != 'xml' && param["operation"]) {
+                    MsgAlert({content: '文件类型不正确或未配置方法', type: 'error'});
+                    return;
+                }
+                importData(param["operation"], param['upload'])
+            }
+        })
+    });
+
+    function importData(functionCode, upload) {
+        if (!upload) {
+            upload = 'N';
+        }
+        if (upload == 'Y') {
+            if (!checkFile()) {
+                return;
+            }
+        }
+        //导入操作
+        ajaxLoading();
+        $.ajaxFileUpload({
+            url: Constant.API_URL + functionCode,
+            secureuri: false,
+            fileElementId: 'fileToUpload',
+            dataType: 'json',
+            data: {
+                "parentId": parentPkid,
+                "fileCategory": fileCategory,
+                "paramPkid": paramPkid,
+                "acno": acno,
+                "ckLevel": ckLevel,
+                "actype": actype,
+                "applyRange": applyRange,
+                "baseVer": baseVer,
+                "operatorCode": operatorCode,
+                "sourceId": sourceId
+            },
+            success: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (upload == 'Y') {
+                        $.ajaxFileUpload({
+                            url: Constant.API_URL + 'ATTACHMENT_UPLOAD',
+                            secureuri: false,
+                            fileElementId: 'fileToUpload',
+                            dataType: 'json',
+                            data: {
+                                "fileCategory": fileCategory,
+                                "sourceId": sourceId
+                            },
+                            success: function (jdata) {
+                                ajaxLoadEnd();
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    if (jdata.data === 'repeat') {
+                                        tanchuang();
+                                        return;
+                                    }
+                                    if (jdata.data !== 'repeat') {
+                                        param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_SUCCESS')});
+                                        if (typeof(param['successCellBack']) == 'function') {
+                                            param['successCellBack'](jdata);
+                                        } else {
+                                            param.OWindow.reload_();
+                                        }
+                                    }
+                                    CloseWindowIframe();
+                                } else {
+                                    if (typeof(param.fialCellBack) == 'function') {
+                                        param['fialCellBack'](jdata);
+                                    }
+                                    MsgAlert({
+                                        content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_FALIED') + jdata.msg,
+                                        type: 'error'
+                                    });
+                                }
+                            }
+                        })
+                    } else {
+                        ajaxLoadEnd();
+                        if (typeof(param['successCellBack']) == 'function') {
+                            param['successCellBack'](jdata);
+                            param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_SUCCESS')});
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: $.i18n.t('操作成功！')});
+                            CloseWindowIframe();
+                        }
+                    }
+                } else {
+                    ajaxLoadEnd();
+                    if (typeof(param.fialCellBack) == 'function') {
+                        param['fialCellBack'](jdata);
+                    }
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.IMPORT_FALIED') + jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function tanchuang() {
+        layerConfirm_({
+            content: '己存在相同文件名的文件，是否覆盖并保存？',
+            yesFunc: function (index) {
+                var sourceId = $("#sourceId").val();
+                var fileCategory = $.trim($('#fileCategory').val());
+                if (fileCategory == "") {
+                    MsgAlert({content: "文件分类不能为空", type: 'error'});
+                    return;
+                }
+                var fileToUpload = $.trim($('#fileToUpload').val());
+                if (fileToUpload == "") {
+                    MsgAlert({content: "请选择上传文件", type: 'error'});
+                    return;
+                }
+                $.ajaxFileUpload({
+                    url: Constant.API_URL + 'ATTACHMENT_UPLOAD',
+                    secureuri: false,
+                    fileElementId: 'fileToUpload', //file控件id
+                    dataType: 'json',
+                    data: {
+                        "fileCategory": fileCategory,
+                        "sourceId": sourceId,
+                        "repeat": "repeat"
+                    },
+                    success: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (param["operation"]) {
+                                importData(param["operation"], param['upload'])
+                            } else {
+                                param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_SUCCESS')});
+                                param.OWindow.reload_();
+                                CloseWindowIframe();
+                            }
+                        }
+                        else {
+                            MsgAlert({
+                                content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_FALIED') + jdata.msg,
+                                type: 'error'
+                            });
+                        }
+                    }
+                })
+            },
+            noFunc: function (index) {
+                CloseWindowIframe();
+            }
+        });
+    }
+
+    function ajaxLoading() {
+        var id = "#textboxDiv";
+        var left = ($(window).outerWidth(true) - 190) / 2;
+        var top = ($(window).height() - 35) / 2;
+        var height = $(window).height();
+        $("<div class=\"datagrid-mask\"></div>").css({display: "block", width: "100%", height: height}).appendTo(id);
+        $("<div class=\"datagrid-mask-msg\"></div>").html("正在导入,请稍候...Waiting...").appendTo(id).css({
+            display: "block",
+            left: left,
+            top: top
+        });
+    }
+
+    function ajaxLoadEnd() {
+        $(".datagrid-mask").remove();
+        $(".datagrid-mask-msg").remove();
+    }
+
+    //校验文件名称、类型、大小
+    function checkFile() {
+        var errMsg;
+        var file = document.getElementById('fileToUpload').files[0];
+        var fileName = file.name;
+        //var fileSize = file.size;
+        if (file == null || file == "") {
+            MsgAlert({content: $.i18n.t('page:PAGE.UPLOAD_TIPS.FILE_NOT_EXISTS'), type: 'error'});//"请选择要上传的文件！"
+            return false;
+        }
+        var reg = /[~#^$@%&!?%*\s]/gi;//文件名不能包含  ~#^$@%&!?%* 和 空格 等特殊字符
+        if (reg.test(fileName.substring(0, fileName.lastIndexOf(".")))) {
+            MsgAlert({content: $.i18n.t('page:PAGE.UPLOAD_TIPS.FILE_NAME_REG'), type: 'error'});//"上传文件名不能包含特殊字符或空格！"
+            return false;
+        }
+        if (fileName.lastIndexOf('.') == -1) {//如果不存在".XXX"
+            MsgAlert({content: $.i18n.t('page:PAGE.UPLOAD_TIPS.FILE_PATH'), type: 'error'});//"上传文件路径不正确！"
+            return false;
+        }
+        var AllExt = ".txt|.pdf|.doc|.docx|.xls|.xlsx|.ppt|.jpg|.jpeg|.gif|.bmp|.png|.zip|.rar|.xps|.xml|";
+        var extName = fileName.substring(fileName.lastIndexOf(".")).toLowerCase();//把文件类型的所有字母全部转换为小写
+        if (AllExt.indexOf(extName + "|") == -1) {
+            errMsg = $.i18n.t('page:PAGE.UPLOAD_TIPS.FILE_TYPE_A') + AllExt + $.i18n.t('page:PAGE.UPLOAD_TIPS.FILE_TYPE_B') + extName;
+            //errMsg = "该文件类型不允许上传。</br>请上传 "+AllExt+" 类型的文件。</br>当前文件类型为"+extName;files of type
+            MsgAlert({content: errMsg, type: 'error'});
+            return false;
+        }
+        // fileSize = Math.round(fileSize/1024); //单位为KB
+        // if(fileSize > 10 * 1024){
+        //     MsgAlert({content: $.i18n.t('page:PAGE.UPLOAD_TIPS.FILE_SIZE'), type: 'error'});//"文件大小不能大于4M！"
+        //     return false;
+        // }
+        return true;
+    }
+</script>
+</html>

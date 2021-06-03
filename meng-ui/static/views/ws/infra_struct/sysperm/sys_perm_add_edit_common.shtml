@@ -1,0 +1,136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+    <script type="text/javascript">
+
+        var isEdit_;
+        var param = {};
+        $(function () {
+            param = getParentParam_();
+            $("#pid").combobox({value: param.pid});
+            InitFuncCodeRequest_({
+                data: {domainCode: "Y001", FunctionCode: "WS_SYS_DOANOPERM_GET"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        $("#pid").combobox({
+                            data: jdata.data.WsSysPerm,
+                            valueField: 'pkid',
+                            textField: 'permName',
+                            onHidePanel: ComboboxOnHidePanel
+                        });
+                        /*$("#type").combobox({
+                         data: jdata.data.WsDataDomain,
+                         valueField: 'VALUE',
+                         textField: 'TEXT',
+                         onHidePanel: ComboboxOnHidePanel
+                         });*/
+                        isEdit_ = param && param.PKID;
+                        if (isEdit_) {
+                            InitFuncCodeRequest_({
+                                data: {pkid: param.PKID, FunctionCode: "WS_SYS_PERM_GET"},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+
+                                        InitEditForm_();
+                                    } else {
+                                        layer.msg(jdata.msg, {icon: 5});
+                                    }
+                                }
+                            })
+                        } else {
+                            InitEditForm_();
+                        }
+                    } else {
+                        layer.msg(jdata.msg, {icon: 5});
+                    }
+                }
+            })
+
+        });
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'WS_SYS_PERM_EDIT' : 'WS_SYS_PERM_ADD_COMMON')
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reloadRdg_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <input type="hidden" name="pkid" value=""/>
+
+                    <tr>
+                        <th class="tdl">权限KEY前缀 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="permKeyB"
+                                   data-options="multiline:true, validType:['maxLength[40]'] "
+                                   style="height:25px; width: 60%;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">权限名称前缀 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="permNameB"
+                                   data-options="multiline:true, validType:['maxLength[40]'] "
+                                   style="height:25px; width: 60%;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">权限组：</th>
+                        <td class="tdr">
+                            <input id="pid" name="pid" class="easyui-combobox" panelHeight="120"
+                                   data-options="required:true" style="width:80px"/>
+                        </td>
+                    </tr>
+                    <!-- <tr>
+                         <th class="tdl">类型：</th>
+                         <td class="tdr">
+                             <input id="type" name="type" class="easyui-combobox"  panelHeight="120" data-options="required:true" style="width:80px"/>
+                         </td>
+                     </tr>-->
+                    <tr>
+                        <td colspan="6" align="center"><input class="searchBtn" type="submit" value="提交"
+                                                              style="border: none;cursor: pointer;"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

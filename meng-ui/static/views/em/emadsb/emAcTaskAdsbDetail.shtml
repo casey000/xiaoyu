@@ -1,0 +1,556 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">SBI管理</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="mform" class="form-horizontal">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <!--<input type="hidden" id="status" name="status"/>-->
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr id="view">
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" id="submitBtn" type="button" onclick="submitFlow()"
+                                   value="提交"
+                                   style="width: 70px;margin:5px;"/>
+                            <input class="btn btn-primary" id="saveBtn" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" id="closeBtn" type="button" onclick="CloseWindowIframe();"
+                                   value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">机型：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="fleet" name="fleet" data-options="required:true"
+                                   style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">SB：</th>
+                        <td class="td5" colspan="3">
+                            <input class="easyui-textbox" id="sbNo" data-options="editable:false" name="sbNo"
+                                   style="width:150px;"/>
+                            <!-- - -->
+                            <!--<input class="easyui-textbox" id="sbVer" data-options="editable:false" name="sbVer"-->
+                                   <!--style="width:80px;"/>-->
+                            <a href="javascript:" id="openSBList" onclick="openSBList();" class="easyui-linkbutton"
+                               iconCls="icon-search"></a>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">SBI编号：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="sbiNo" name="sbiNo"
+                                   data-options="onlyview:true,editable:false"
+                                   style="width:150px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">SBI版本：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="ver" data-options="onlyview:true,editable:false"
+                                   name="ver"
+                                   style="width:100px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">章节 ：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-combobox" style="width: 150px;" id="ata" name="ata"
+                                   data-options="required:true,editable:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">改版原因：</th>
+                        <td class="td5" colspan="5">
+                            <textarea style="width: 780px;height:60px" id="revReason" name="revReason"></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var param;
+    var operation;
+    var applyModel;
+    var pkid;
+    var fleetArr;
+    var SBI_CHANGE_STATUS;
+    var SB_VER_DIC;
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        pkid=param.pkid;
+        if (operation == "view") {
+            $("#submitBtn").hide();
+            $("#saveBtn").hide();
+        }
+        if (operation == "flowEdit") {
+            $("#submitBtn").hide();
+            $("#closeBtn").hide();
+        }
+        if (operation == "flowView") {
+            $("#submitBtn").hide();
+            $("#saveBtn").hide();
+            $("#closeBtn").hide();
+        }
+        //新增时给SBI版本默认设置为1
+        if (operation == "save") {
+            $("#ver").textbox("setValue", 1);
+        }
+        if (param.pkid != "") {
+            InitDataForm(param.pkid);
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,SBI_CHANGE_STATUS,TD_MANUAL_SBI_FLEET_F,DM_ATA,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //资料来源
+                    $('#fleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (data) {
+                            changeFleet(data, jdata);
+                        }
+                    });
+                    $('#ata').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_ATA,
+                        // multiple: true,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //手册处理状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_EVAL_DETAIL_STA"]);
+                    PAGE_DATA['SBI_FLEET'] = DomainCodeToMap_(jdata.data["TD_MANUAL_SBI_FLEET_F"]);
+                    PAGE_DATA['SBI_CHANGE_STATUS'] = DomainCodeToMap_(jdata.data["SBI_CHANGE_STATUS"]);
+                    SBI_CHANGE_STATUS=jdata.data["SBI_CHANGE_STATUS"];
+                    PAGE_DATA['yesorno'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    applyModel = $("#fleet").combobox("getValue");
+                    pkid = $("#pkid").val();
+
+                    InitFuncCodeRequest_({
+                        data: {
+                            applyModel: applyModel,
+                            companyCode: param.companyCode,
+                            FunctionCode: "TD_MANUAL_SBI_FLEET_DIC"
+                        },
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                fleetArr = jdata.data;
+                                InitDataGrid(pkid, jdata);
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitFleet(PAGE_DATA) {
+        InitFuncCodeRequest_({
+            data: {companyCode: param.companyCode, FunctionCode: "TD_MANUAL_SBI_FLEET_F"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['SBI_FLEET'] = DomainCodeToMap_(jdata.data);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitUpperGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/online-manual/tdManualSbi/findManualSbiById/" + pkid ,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.operation == "rev") {
+                        jdata.data.VER = Number(jdata.data.VER) + 1;
+                    }
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $("#ata").combobox({value: jdata.data.ATA});
+                    $("#fleet").combobox({value: jdata.data.FLEET});
+                    reloadSbSelect(jdata.data.SB_NO);
+                    //如果是改版则将机型和SB设为不可编辑,清空pkid
+                    if (param.operation == "rev") {
+                        // $("#pkid").val("");
+                        $("#fleet").combobox({editable: false, onlyview: true});
+                        $("#openSBList").hide();
+                        $("#sbNo").textbox({onlyview: true});
+                        $("#sbVer").textbox({onlyview: true});
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    // function InitDataGrid(pkid, jdata) {
+    function InitDataGrid() {
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            enableLineEdit: true,
+            // enableCellEdit: true,
+            queryParams: {"sbiPkid": pkid},
+            path: "/online-manual/tdManualSbiApplyAirplane/queryPageManualSbiAplList",
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_SBI_DETAIL_LIST'},
+                alter: {
+                    CHANGE_STATUS: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                data: SBI_CHANGE_STATUS,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                singleSelect: true,
+
+                            }
+                        }
+                        ,
+                        formatter: function (value) {
+                            return value;
+                        }
+                    },
+                    SB_INFO: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                data: SB_VER_DIC,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                singleSelect: true,
+
+                            }
+                        }
+                        ,
+                        formatter: function (value) {
+                            return value;
+                        }
+                    },
+                    AC_ID: {
+                        editor: {
+                            type: 'combogrid',
+                            options: {
+                                idField: 'AC_ID',
+                                textField: 'MODEL', //文本显示值
+                                editable: true,
+                                pagination: true,
+                                panelWidth: '250px',
+                                panelHeight: '250px',
+                                multiple: true,
+                                width: 250,
+                                mode: 'remote',
+                                queryParams: {applyModel: applyModel, companyCode: param.companyCode},
+                                url: Constant.API_URL + 'TD_MANUAL_SBI_FLEET',
+                                columns: [[
+                                    {field: 'AC_ID', title: 'ACID', width: 100, sortable: true, hidden: true},
+                                    {field: 'MODEL', title: '名称', width: 250, sortable: true}
+                                ]],
+                                // onLoadSuccess:function(){
+                                // this.combogrid('grid').datagrid('selectRecord',value);
+                                //
+                                // }
+                            }
+                        },
+                        formatter: function (value) {
+                            var fleet = "";
+                            if (value != undefined) {
+                                var arr = value.split(',');
+                                for (var i = 0; i < arr.length; i++) {
+                                    for (var j = 0; j < fleetArr.length; j++) {
+                                        if (arr[i] == fleetArr[j].AC_ID) {
+                                            fleet = fleet + fleetArr[j].MODEL;
+                                            break;
+                                        }
+                                    }
+                                }
+                                return fleet;
+                            }
+                        }
+                    },
+                    MEMO: {
+                        editor: {
+                            type: 'textbox',
+                        }
+                    },
+                    IS_EXPORT: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesorno'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (row) {
+                formatterUpperDataGrid(row,"dg");
+            },
+            onBeforeLoad: function (data) {
+
+            },
+            contextMenus: [
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        var row = $('#dg').datagrid('getSelected');
+                        var rowIndex = $('#dg').datagrid('getRowIndex', row);
+                        if (!row.PKID) {
+                            //如果没有保存，直接在datagrid移除该行
+                            $('#dg').datagrid('deleteRow', rowIndex);
+                        } else {
+                            InitFuncCodeRequest_({
+                                data: {pkid: row.PKID, FunctionCode: 'TD_MANUAL_SBI_DETAIL_DEL'},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        $('#dg').datagrid('deleteRow', rowIndex);
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        // reload_();
+                                        // i18nCallBack();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+
+            ],
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('增加行'),
+                iconCls: 'icon-add',
+                handler: function () {
+                    addDatagridRow('add');
+                }
+            }],
+            validAuth: function (row, items) {
+                if (operation == 'view' || operation == "flowView") {
+                    items['删除'].enable = false;
+                }
+                return items;
+            },
+            onBeforeLoad: function (data) {
+                if (operation == "view") {
+                    $("div.datagrid-toolbar [id ='btnAdd']").eq(0).hide();
+
+                }
+                if (operation == "flowView") {
+                    $("div.datagrid-toolbar [id ='btnAdd']").eq(0).hide();
+
+                }
+            },
+            onEndEdit: function (index, row, changes) {
+                //如果是改版，则修改了信息时则将
+                    $('#dg').datagrid('updateRow', {
+                        index: index,
+                        row: {
+                            IS_EXPORT: 'N',
+                        }
+                    });
+                // editDate(index, row, changes);
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    function changeFleet(data, jdata) {
+        applyModel = $("#fleet").combobox("getValue");
+        InitDataGrid(param.pkid, jdata);
+    }
+
+    //刷新
+    function reload_() {
+        pkid = $("#pkid").val();
+        InitDataForm(pkid);
+        // $("#dg").datagrid("reload");
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,SBI_CHANGE_STATUS,TD_MANUAL_SBI_FLEET_F",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //资料来源
+                    applyModel = $("#fleet").combobox("getValue");
+                    pkid = $("#pkid").val();
+                    InitDataGrid(pkid, jdata);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function openSBList() {
+        applyModel = $("#fleet").combobox("getValue");
+        if (applyModel == "") {
+            MsgAlert({content: '请先选择机型', type: 'error'});
+            return;
+        }
+        var title_ = $.i18n.t('SB列表');
+        ShowWindowIframe({
+            width: "650",
+            height: "400",
+            title: title_,
+            param: {applyModel: applyModel},
+            url: "/views/td/sbi/sbList.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //新增
+    function addDatagridRow() {
+        //提示先选择机型
+        applyModel = $("#fleet").combobox("getValue");
+        if (applyModel == "") {
+            MsgAlert({content: '请先选择机型', type: 'error'});
+            return;
+        }
+       var sbNo = $("#sbNo").textbox("getValue");
+        if (sbNo == "") {
+            MsgAlert({content: '请先选择SB号', type: 'error'});
+            return;
+        }
+        //提示选择SBI版本
+        $('#dg').datagrid('appendRow', {TD_PKID: param.pkid,});
+    }
+
+    function submitFlow() {
+        pkid = $("#pkid").val();
+        if (!pkid) {
+            MsgAlert({content: "请先保存数据！", type: 'error'});
+            return;
+        }
+        if (!confirm("确认提交该记录？")) {
+            return;
+        }
+        datas = $.extend({}, {}, {FunctionCode: 'TD_MANUAL_SBI_STATUS', pkid: pkid});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.data != null) {
+                    common_add_edit_({
+                        identity: '', isEdit: '', width: 520, height: 300, title: $.i18n.t('选择审批人'),
+                        param: {
+                            roleId: '',
+                            otherParam: pkid,
+                            FunctionCode_: 'TD_MANUAL_SBI_SUMBIT',
+                            successCallback: closeW
+                        },
+                        url: "/views/flow/work_flow_account_select.shtml"
+                    });
+                } else {
+                    MsgAlert({content: "该数据已被提交过了。", type: 'error'});
+                }
+            }
+        });
+    }
+   //刷新SB编号下拉框
+    function reloadSbSelect(sbNo) {
+        applyModel = $("#fleet").combobox("getValue");
+        InitFuncCodeRequest_({
+            data: {dataNo: sbNo,applyModel:applyModel,companyCode: param.companyCode, FunctionCode: "TD_MANUAL_SB_LIST2"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    SB_VER_DIC=jdata.data;
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        
+    }
+    function closeW() {
+        //刷新父页面
+        param.OWindow.reload_();
+        CloseWindowIframe();
+    }
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        //序列化列表数据
+        var rows = $('#dg').datagrid('getRows');
+
+        for (i = 0; i < rows.length; i++) {
+            // rows[i] = toCamelCase(rows[i]);
+            if (rows[i].CHANGE_STATUS == undefined || rows[i].AC_ID == undefined || rows[i].CHANGE_STATUS == "" || rows[i].AC_ID == "") {
+                MsgAlert({content: '适用性和变更状态不能为空', type: 'error'});
+                rows = "";
+                return;
+            }
+        }
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+        }
+        var detailData = JSON.stringify(rows);
+        //获取主表数据
+        //如果是改版，则去掉pkid的值
+
+        var mainData = JSON.stringify($('#mform').serializeObject());
+        InitFuncCodeRequest_({
+            data: {
+                detailData: detailData,
+                mainData: mainData,
+                type: param.operation,
+                FunctionCode: "TD_MANUAL_SBI_SAVE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    if (param.operation == "rev") {
+                        param.operation = "edit";
+                    }
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    reload_();
+                    //刷新父页面
+                    param.OWindow.reload_();
+                } else {
+                    //提示唯一性校验
+                    if (jdata.msg.indexOf("SBI_NO_VER_UNIQUE") != -1) {
+                        MsgAlert({content: "当前SB已有SBI", type: 'error'});
+
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+
+                }
+            }
+        });
+
+    }
+</script>
+</body>
+</html>

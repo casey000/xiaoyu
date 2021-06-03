@@ -1,0 +1,682 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+    <style>
+        #dgdiv {
+            margin: 0 auto;
+            width: 300px;
+            height: 170px;
+        }
+
+    </style>
+</head>
+
+<body class="ibody">
+<div style="" id="tt">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <form class="form-horizontal m-t" id="mform">
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <input type="hidden" id="evalNo" name="evalNo"/>
+                    <table class="table table-bordered table-info" width="30%">
+                        <tr id="view">
+                            <td colspan="6" align="right">
+                                <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                       style="width: 50px;margin:5px;"/>
+                                <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                       style="width: 50px;margin:5px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th" align="right" style="width: 80px;">范围类型：</th>
+                            <td class="tdr" style="width: 150px">
+                                <input class="easyui-combobox" id="rangeType" name="rangeType"
+                                       data-options="editable:true" style="width: 150px;"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+    <div id="dgdiv">
+        <table id="dg" aligh="center"></table>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var evapkid;
+    var applType;
+    var pkid;
+    var rangeType;
+    var func;
+    var PAGE_DATA = {};
+    var groupid;
+    var fleet;
+    var applyModel;
+    var eng;
+    var rvalues;
+    var sflag;
+    var ranPkid;
+    var rangValues = [];
+    var rfjzch = "";
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        evapkid = param.evapkid;
+        applType = param.applType;
+        rangeType = param.rangeType;
+        groupid = param.groupid;
+        pkid = param.pkid;
+        fleet = param.fleet;
+        applyModel = param.applyModel;
+        rvalues = param.rvalues;
+        sflag = param.sflag;
+        ranPkid = param.ranPkid;
+        if(rangeType == 'FJZCH'){
+            rvalues = param.acids;
+        }
+        if (pkid == undefined) {
+            pkid = "";
+        } else {
+            $("#pkid").val(pkid);
+        }
+        if (sflag != "add") {
+            $("#rangeType").combobox({onlyview: true, editable: false});
+        }
+        $("#evapkid").val(evapkid);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_AIR_CATEGORY,EM_FILE_APL_RANGE_TYPE_S,EM_EXP_OP,YESORNO,EM_FILE_APL_RANGE_TYPE,EM_FILE_PART_RANGE_TYPE,EM_FILE_ENG_RANGE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    if (applType == "APL") {
+                        if (fleet == "B737" || fleet == "B757") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        } else if (fleet == "B747" || fleet == "B767") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE_S,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        } else {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        }
+                    } else if (applType == "PART") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_PART_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    } else if (applType == "ENG") {//暂时去掉 发动机型号、发动机子型号
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_ENG_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    }
+                    $("#expOp").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_EXP_OP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    PAGE_DATA['airCategory'] = DomainCodeToMap_(jdata.data["DA_ACREG_AIR_CATEGORY"]);
+                }
+                //给范围类型设置值
+                $('#rangeType').combobox('setValue', rangeType);
+
+                if (param.pkid) {
+//                    InitDataForm(param.pkid);
+                } else {
+//                    changeRangeType();
+                }
+
+                setFunc();
+                checked();
+
+                if (rangeType == "ENG") {
+                    InitDataGridEng();
+                } else {
+                    InitDataGrid();
+                }
+            }
+        });
+    }
+
+    function setFunc() {
+        if (rangeType == "JXXL") {
+            func = "EM_FILE_FLEET_LIST";
+        } else if (rangeType == "FJZCH") {
+            func = "EM_FILE_ACNO_LIST";
+        } else if (rangeType == "GZCS") {
+            func = "EM_FILE_MRO_LIST";
+        } else if (rangeType == "FJKBH") {
+            func = "EM_FILE_FJKBH_LIST";
+        } else if (rangeType == "ENG") {
+            func = "EM_FILE_ENG_LIST";
+            eng = applyModel;
+            if (applType == "APL") {
+                func = "EM_FILE_ENG_LIST_A";
+                eng = fleet;
+            }
+        } else if (rangeType == "ENGSUB") {
+            func = "EM_FILE_ENGSUB_LIST";
+        } else if (rangeType == "ENGSERI") {
+            func = "EM_FILE_ENGSERI_LIST";
+        }
+    }
+
+    function checked() {
+        var strs = [];
+        if(rvalues){
+            if (rvalues.indexOf(";") != -1) {
+                strs = rvalues.split(";");
+                for (var i = 0; i < strs.length; i++) {
+                    rangValues[i] = strs[i];
+                }
+            } else {
+                rangValues[0] = rvalues;
+            }
+        }
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            pageSize: 15,
+            pagination: false,
+            fitcolumn: true,
+            enableLineEdit: true,
+            enableCellEdit: true,
+            queryParams: {fleet: fleet},
+            resize: function () {
+                return tabs_standard_resize($('#tt'), -200, 0.4, 0, 1);
+            },
+            columns: {
+                param: {FunctionCode: func},
+                alter: {
+                    AIR_CATEGORY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['airCategory'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                if (data) {
+                    $.each(data.rows, function (index, item) {
+                        var rvalue = '';
+                        if(rangeType == 'FJZCH'){
+                            rvalue = item.ACID;
+                        }else{
+                            rvalue = item.RANGE_VALUE;
+                        }
+                        for (var j = 0, len = rangValues.length; j < len; j++) {
+                            if (rangValues[j] == rvalue) {
+                                $('#dg').datagrid('checkRow', index);
+                            }
+                        }
+                    });
+                }
+            },
+            onBeforeLoad: function (data) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    function InitDataGridEng() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            pageSize: 15,
+            pagination: false,
+            fitcolumn: true,
+            enableLineEdit: true,
+            enableCellEdit: true,
+            queryParams: {eng: eng},
+            resize: function () {
+                return tabs_standard_resize($('#tt'), -200, 0.4, 0, 1);
+            },
+            columns: {
+                param: {FunctionCode: func},
+                alter: {
+                    AIR_CATEGORY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['airCategory'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                if (data) {
+                    $.each(data.rows, function (index, item) {
+                        for (var j = 0, len = rangValues.length; j < len; j++) {
+                            if (rangValues[j] == item.RANGE_VALUE) {
+                                $('#dg').datagrid('checkRow', index);
+                            }
+                        }
+                    });
+                }
+            },
+            onBeforeLoad: function (data) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        //校验同范围类型不允许重复添加
+        var rangeType = $("#rangeType").textbox('getValue');
+        if (sflag == "add") {
+            var curCou = 0;
+            InitFuncCodeRequest_({
+                data: {groupid: groupid, rangeType: rangeType, FunctionCode: 'EM_FILE_CHECK_RANGE_TYPE_OTHER'},
+                async: false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (jdata.data != null) {
+                            curCou = jdata.data.COU;
+                        }
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+            if (curCou != 0) {
+                MsgAlert({content: "范围类型重复，请重新选择！", type: 'error'});
+                return;
+            }
+        } else {
+            pkid = ranPkid;
+        }
+
+        if (applType == "PART") {
+            if (rangeType == "ENG" || rangeType == "ENGSUB") {
+                MsgAlert({content: "暂不支持此类型新增！", type: 'error'});
+                return;
+            }
+        }
+
+        //序列化列表数据
+        var mpTypes = "";
+        var pkids = "";
+        var rows = $('#dg').datagrid('getChecked');
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+            mpTypes = mpTypes + "," + rows[i].rangeValue;
+            pkids = pkids + "," + rows[i].acid;
+        }
+        mpTypes = mpTypes.substring(1, mpTypes.length);
+        pkids = pkids.substring(1, pkids.length);
+        if (rangeType == 'FJZCH') {
+            checkFjzch(pkids);
+        } else if (rangeType == 'ENG') {
+            checkEngA(mpTypes);
+        } else if (rangeType == 'GZCS') {
+            checkGzcs(mpTypes);
+        } else if (rangeType == 'JXXL') {
+            checkJxxl(mpTypes);
+        }
+
+        if (rfjzch != "") {
+            MsgAlert({content: "以下飞机已经存在：" + rfjzch, type: 'error'});
+            return;
+        }
+
+
+        var detailData = JSON.stringify(rows);
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var mainData = JSON.stringify($('#mform').serializeObject());
+        InitFuncCodeRequest_({
+            data: {
+                detailData: detailData,
+                mainData: mainData,
+                groupid: groupid,
+                evapkid: evapkid,
+                mpTypes: mpTypes,
+                applType: applType,
+                pkid: pkid,
+                fleet: fleet,
+                FunctionCode: "EM_FILE_EVAL_GROUP_FLEET_SAVE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    pkid = jdata.data.pkid;
+                    $("#pkid").val(pkid);
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    param.OWindow.parReload("#dg4");
+                    param.OWindow.parReload("#dg5");
+                    param.OWindow.parReload("#dg17");
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //页面重新加载
+    function setPages(rangeType) {
+        if (rangeType == "") {
+            window.location.href = '/views/em/emfileeval/applic/addAllApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+            window.resizeTo("550", "300");
+        }
+        if (applType == "APL") {
+            if (rangeType == 'JXXL' || rangeType == 'ENG' || rangeType == 'GZCS' || rangeType == 'FJZCH') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'FJXH' || rangeType == 'PTF' || rangeType == 'FJKBH') {
+                window.location.href = '/views/em/emfileeval/applic/addLineNoApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            }
+        } else if (applType == "ENG") {
+            if (rangeType == 'ENG' || rangeType == 'ENGSUB') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'ENGSERI') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("900", "700");
+            }
+        } else if (applType == "PART") {
+            if (rangeType == 'DESC') {
+                window.location.href = '/views/em/emfileeval/applic/addDescApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("550", "250");
+            } else if (rangeType == 'PN' || rangeType == 'SN') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("900", "700");
+            }
+        }
+    }
+
+    function checkFjzch(pkids) {
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                groupid: groupid,
+                groupid: groupid,
+                pkids: pkids,
+                FunctionCode: 'EM_FILE_CHECK_FJZCH'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            evapkid: evapkid,
+                                            groupId: groupid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_FILE_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkEngA(mpTypes) {
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                groupid: groupid,
+                groupid: groupid,
+                mpTypes: mpTypes,
+                FunctionCode: 'EM_FILE_CHECK_ENG_A'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            evapkid: evapkid,
+                                            groupId: groupid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_FILE_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkGzcs(mpTypes) {
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                groupid: groupid,
+                groupid: groupid,
+                mpTypes: mpTypes,
+                FunctionCode: 'EM_FILE_CHECK_GZCS'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            evapkid: evapkid,
+                                            groupId: groupid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_FILE_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkJxxl(mpTypes) {
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                groupid: groupid,
+                groupid: groupid,
+                mpTypes: mpTypes,
+                FunctionCode: 'EM_FILE_CHECK_JXXL'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            evapkid: evapkid,
+                                            groupId: groupid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_FILE_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</html>

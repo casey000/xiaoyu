@@ -1,0 +1,342 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>增加上营运人发动机执行文件</title>
+</head>
+
+<body>
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform">
+        <input type="hidden" class="easyui-textbox" id="pkid" name="pkid"/>
+        <input type="hidden" class="easyui-textbox" id="eoEa" name="eoEa"/>
+        <table class="table table-bordered table-info">
+            <tr>
+                <td class="tdr" colspan="6">
+                    <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                           style="width: 50px;margin-left: 450px"/>
+                    <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                           style="width: 50px;margin:5px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="th" nowrap style="width: 80px;" align="right">文件编号：</th>
+                <td class="tdr" style="width: 80px">
+                    <input class="easyui-textbox" style="width: 90px" id="exeNo" name="exeNo"
+                           data-options="required:true"/>
+                </td>
+                <th class="th" style="width: 80px;" align="right">文件版次：</th>
+                <td class="tdr" style="width: 80px">
+                    <input class="easyui-textbox" id="exeVer" name="exeVer" style="width: 80px"
+                    />
+                </td>
+                <th class="th" style="width: 80px;" align="right">SHOP_VIST：</th>
+                <td class="tdr" style="width: 80px">
+                    <input class="easyui-combobox" id="shopVist" name="shopVist" style="width: 80px"
+                           data-options="required:true"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="th" style="width: 80px;" align="right">上次执行时间：</th>
+                <td class="tdr" style="width: 90px">
+                    <input class="easyui-datebox" id="lastExeTime" name="lastExeTime" style="width: 90px"
+                           data-options="editable:false"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="th" style="width: 80px;" align="right">TSN：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="tsn" name="tsn" data-options="events:{blur:checkNum}"
+                           style="width: 80px"
+                           data-options="editable:true"/>
+                </td>
+                <th class="th" style="width: 80px;" align="right">CSN：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="csn" name="csn" data-options="events:{blur:checkNum}"
+                           style="width: 80px"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="th" style="width: 80px;" align="right">TSO：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="tso" name="tso" data-options="events:{blur:checkNum}"
+                           style="width: 90px"
+                           data-options="editable:true"/>
+                </td>
+                <th class="th" style="width: 80px;" align="right">CSO：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="cso" name="cso" data-options="events:{blur:checkNum}"
+                           style="width: 80px"/>
+                </td>
+                <th id="id_n_master" class="th" style="width: 80px;" align="right">是否主改装：</th>
+                <td id="id_v_master" class="tdr">
+                    <input class="easyui-combobox" id="ifMaster" name="ifMaster" style="width: 80px"
+                    />
+                </td>
+            </tr>
+            <tr>
+                <th class="th" align="right">备注：</th>
+                <td class="tdr" colspan="5">
+                                <textarea class="easyui-textbox " id="memo" name="memo"
+                                          multiline="true" data-options="editable:true"
+                                          style="height:50px;width: 100%;"
+                                ></textarea>
+                </td>
+            </tr>
+        </table>
+    </form>
+    <fieldset class="fieldset_eui" style="width: 100%">
+        <legend>适用性</legend>
+        <table id="dg" aligh="center"></table>
+    </fieldset>
+</div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var pkid;
+    var dealOpinion;
+    var dealMeasure;
+    var evapkid;
+    var taskId;
+    var needMaster;
+    var applyType;
+    var rvalues;
+    var taskNature;
+    var workType;
+    var rangValues = [];
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        dealOpinion = param.dealOpinion;
+        dealMeasure = param.dealMeasure;
+        evapkid = param.evapkid;
+        taskId = param.taskId;
+        needMaster = param.needMaster;
+        applyType = param.applyType;
+        taskNature = param.taskNature;
+        workType = param.workType;
+
+        if (!pkid) {
+            pkid = "";
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#shopVist').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if (needMaster) {
+                        $("#ifMaster").combobox({required: true});
+                        $('#id_n_master').show();
+                        $('#id_v_master').show();
+                        $('#ifMaster').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.YESORNO,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                    } else {
+                        $("#ifMaster").combobox({required: false});
+                        $('#id_n_master').hide();
+                        $('#id_v_master').hide();
+                    }
+                }
+            }
+        });
+
+        if (!! pkid) {
+            InitFuncCodeRequest_({
+                data: {
+                    FunctionCode: "EM_FILE_EVAL_OPENG_PKID",
+                    pkid: pkid
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        ParseFormField_(jdata.data, $('#mform'), Constant.CAMEL_CASE);
+                        rvalues = jdata.data.APPS;
+                        if (rvalues) {
+                            checked(rvalues);
+                        }
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+        }
+
+        InitDataGrid();
+    }
+
+    function checked(rvalues) {
+        var strs = [];
+        if (rvalues.indexOf(",") != -1) {
+            strs = rvalues.split(",");
+            for (var i = 0; i < strs.length; i++) {
+                rangValues[i] = strs[i];
+            }
+        } else {
+            rangValues[0] = rvalues;
+        }
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            fitcolumn: true,
+            pagination: false,
+            resize: function () {
+                return {width: 600, height: 250}
+            },
+            queryParams: {
+                evapkid: evapkid,
+                taskId: taskId,
+                pkid: pkid,
+                taskNature: taskNature
+            },
+            columns: {
+                param: {FunctionCode: "EM_FILE_SF_GROUP_ENG_LIST"}
+            },
+            onLoadSuccess: function (data) {
+                if (data) {
+                    $.each(data.rows, function (index, item) {
+                        for (var j = 0, len = rangValues.length; j < len; j++) {
+                            if (rangValues[j] == item.APP_MDATA_PKID) {
+                                $('#dg').datagrid('checkRow', index);
+                            }
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var lastExeTime = $('#lastExeTime').datebox('getValue');
+        var cso = $('#cso').textbox('getValue');
+        var tso = $('#tso').textbox('getValue');
+        var csn = $('#csn').textbox('getValue');
+        var tsn = $('#tsn').textbox('getValue');
+        var ifMaster = $('#ifMaster').combobox('getValue');
+//        if (needMaster && workType == 'GZ' && ifMaster != 'Y') {
+//            MsgAlert({content: "改装类的上营运人执行文件只能选是主改装！", type: 'error'});
+//            $('#ifMaster').combobox('setValue', '');
+//            return;
+//        }
+        if (! lastExeTime && (! cso || ! tso) && (! tsn || ! csn)) {
+            MsgAlert({
+                content: "上次执行时间、CSO/TSO、CSN/TSN三者至少填写一项！",
+                type: "warn"
+            });
+            return;
+        }
+
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length != 1) {
+            MsgAlert({content: "适用性必须选，且只能选择一条！", type: 'error'});
+            return;
+        } else {
+            var sn = rows[0].APP_MDATA_PKID;
+            //校验适用性分组是否存在
+            var pkid = $('#pkid').textbox('getValue');
+            var exeNo = $('#exeNo').textbox('getValue');
+            var exeVer = $('#exeVer').textbox('getValue');
+            var curCou = 0;
+            InitFuncCodeRequest_({
+                data: {
+                    FunctionCode: 'EM_FILE_CHECK_OPENG',
+                    pkid: pkid,
+                    taskId: taskId,
+                    sn: sn
+                },
+                async: false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (jdata.data != null) {
+                            curCou = jdata.data.COU;
+                        }
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+
+            if (curCou > 0) {
+                MsgAlert({content: "发动机执行文件编号、版次、发动机序号重复！", type: 'error'});
+                return;
+            }
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({taskId: taskId}, datas, {FunctionCode: 'EM_FILE_EVAL_OPENG_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#pkid").textbox('setValue', jdata.data.pkid);
+                    saveApplic(jdata.data.pkid);
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function saveApplic(pkid) {
+        var rows = $('#dg').datagrid('getChecked');
+        var dedata = null;
+        if (rows.length > 0) {
+            rows[0] = toCamelCase(rows[0]);
+        }
+        dedata = JSON.stringify(rows);
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_FILE_EVAL_GROUP_SAVE",
+                taskNature: "CFX",
+                opFlag: "ENG",
+                detailData: dedata,
+                sfpkid: pkid,
+                exePkid: "",
+                dealOpinion: "",
+                applyType: applyType //prev
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_("#dg4");
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkNum() {
+        var str = $(this).val();
+        if (isNaN(Number(str))) {
+            alert('请输入数字！');
+            $(this).val('');
+
+        }
+    }
+
+</script>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        var param = {};
+        var isEdit_;
+        $(function () {
+            param = getParentParam_();
+            isEdit_ = param && param.PKID;
+            if (isEdit_) {
+                InitFuncCodeRequest_({
+                    data: {pkid: param.PKID, FunctionCode: "SYS_ROLE_GET"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                            InitEditForm_();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                })
+            } else {
+                InitEditForm_();
+            }
+
+            InitDataGrid();
+        });
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'SYS_ROLE_EDIT' : 'SYS_ROLE_ADD')
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+
+        function InitDataGrid() {
+            var roleId = '-1';
+            if(param.PKID){
+                roleId = param.PKID;
+            }
+            var identity = 'dg';
+            $("#dg").MyDataGrid({
+                identity: identity,
+                singleSelect: true,
+                allowPaging: true,
+                enableLineEdit: false,
+                sortable: true,
+                queryParams: {roleId:roleId},
+                columns: {
+                    param: {
+                        FunctionCode: "SYS_ROLE_USER_LIST"
+                    },
+                    alter: {}
+                },
+                onLoadSuccess: function () {
+                },
+                contextMenus: [],
+                validAuth: function (row, items) {
+                }
+            });
+        }
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" name="pkid" value=""/>
+                <div>
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <th class="tdl" width="">角色名称：</th>
+                            <td class="tdr">
+                                <input class="txtbox" name="roleName" style="width: 80%"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">角色描述：</th>
+                            <td class="tdr">
+                                <textarea class="txtbox" name="roleDesc" style="height:40px; width: 80%;"></textarea>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="6" align="center"><input class="searchBtn" type="submit" value="提交"/></td>
+                        </tr>
+                    </table>
+                </div>
+                <div>
+                    <table id='dg'>
+                    </table>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

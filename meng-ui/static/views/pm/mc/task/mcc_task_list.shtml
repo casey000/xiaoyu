@@ -1,0 +1,273 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>MCC任务查询</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend>搜索</legend>
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                    <tr>
+                        <th style="width: 100px;" align="right">工包编号：</th>
+                        <td>
+                            <input class="easyui-textbox" id="packageNumber" name="packageNumber" data-options=""
+                                   style="width:120px"/>
+                        </td>
+                        <th class="td5"> 计划日期从：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="jobDateBegin" name="jobDateBegin" style="width:120px;"
+                                   data-options="editable:false"/>
+                        </td>
+                        <th class="td5"> 至：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="jobDateEnd" name="jobDateEnd" style="width:120px;"
+                                   data-options="editable:false"/>
+                        </td>
+                        <th style="width: 100px;" align="right">任务状态：</th>
+                        <td>
+                            <input class="easyui-combobox" id="status" name="status" data-options="" style="width:120px"/>
+                        </td>
+                        <th style="width: 100px;" align="right">执行部门：</th>
+                        <td>
+                            <input class="easyui-combobox" id="zxbm" name="zxbm" data-options="" style="width:120px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 100px;" align="right">机型：</th>
+                        <td>
+                            <input class="easyui-combobox" id="actype" name="actype" data-options="" style="width:120px"/>
+                        </td>
+                        <th style="width: 100px;" align="right">机号：</th>
+                        <td>
+                            <input class="easyui-combobox" id="acReg" name="acReg" data-options="" style="width:120px"/>
+                        </td>
+                        <th style="width: 100px;" align="right">任务类别：</th>
+                        <td>
+                            <input class="easyui-combobox" id="workType" name="workType" data-options=""
+                                   style="width:120px"/>
+                        </td>
+                        <td colspan="2" nowrap>
+                            <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="onSearch_()" auth="PM_MC_TASK_QUERY"><span>查询</span></a>
+                            <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="onClear_()"><span>重置</span></a>
+                            <a class="ridoBtn" data-options="iconCls:'icon-search'"onclick="helpQuery('dg', 'EVENT_MANAGEMENT_LIST');" auth="PM_MC_TASK_HIGH_QUERY">高级查询</a>
+                            <a class="excelBtn" data-options="" onclick="excelExport('dg','MCC任务清单');" auth="PM_MC_TASK_EXPORT"><span>导出</span></a>
+                        </td>
+                    </tr>
+
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    var WeekFirstDay;
+    var WeekLastDay;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_MP_ACTYPE,MSGRP,WORKORDER_STATUS,PM_MC_TASK_TYPE,MCC_EXECUTION_COMPANY,MCC_PACKAGE_TYPE,WORKORDER_CANCEL_TYPE"
+            },
+            successCallBack: function (jdata) {
+                PAGE_DATA['taskStatus'] = DomainCodeToMap_(jdata.data.WORKORDER_STATUS);
+                PAGE_DATA['taskType'] = DomainCodeToMap_(jdata.data.PM_MC_TASK_TYPE);
+                PAGE_DATA['zxbm'] = DomainCodeToMap_(jdata.data.MCC_EXECUTION_COMPANY);
+                //工包类型
+                PAGE_DATA['revtp'] = DomainCodeToMap_(jdata.data.MCC_PACKAGE_TYPE);
+                PAGE_DATA['cancelType'] = DomainCodeToMap_(jdata.data.WORKORDER_CANCEL_TYPE);
+                $('#status').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.WORKORDER_STATUS
+                });
+                $('#zxbm').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MCC_EXECUTION_COMPANY
+                });
+                $('#actype').combobox({
+                    panelHeight: '120px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data['DA_ACREG_MP_ACTYPE'],
+                    onSelect: function (item) {
+                        InitFuncCodeRequest_({
+                            data: {actype: item.VALUE, FunctionCode: "SELECT_ACNO_BY_ACTYPE"},
+                            successCallBack: function (jdata) {
+                                $('#acReg').combobox({
+                                    panelHeight: '160px',
+                                    valueField: 'VALUE',
+                                    textField: 'VALUE',
+                                    data: jdata.data
+                                });
+                            }
+                        })
+                    }
+                });
+                $('#acReg').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                $('#workType').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.PM_MC_TASK_TYPE
+                });
+                var Nowdate = new Date();
+                WeekFirstDay = new Date(Nowdate - (Nowdate.getDay() - 1) * 86400000);
+                WeekLastDay = new Date((WeekFirstDay / 1000 + 6 * 86400) * 1000);
+                $("#jobDateBegin").datebox({value: formatterDate(WeekFirstDay)});
+                $("#jobDateEnd").datebox({value: formatterDate(WeekLastDay)});
+                $("#zxbm").combobox({value: "A"});
+                InitDataGrid();
+            }
+        });
+    }
+    function viewMRP(cardId,cardNo,taskNum){
+        ShowWindowIframe({
+            width: "1060",
+            height: "650",
+            title: "航材需求",
+            param: {taskNumber: taskNum,cardNo: cardNo, cardId: cardId, type: 'A'},
+            url: "/views/pm/mc/task/weekPlan_mate_list.shtml"
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            queryParams: {
+                zxbm: 'A',
+                jobDateBegin:formatterDate(WeekFirstDay).substring(0, 10),
+                jobDateEnd:formatterDate(WeekLastDay).substring(0, 10)
+            },
+            columns: {
+                param: {FunctionCode: 'MCC_WORKORDER_LIST_BY_PACKAGE'},
+                alter: {
+                    EXECUTION_DEPARTMENT: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['zxbm'][value];
+                        }
+                    },
+                    STATION: {
+                        formatter: function (value, row, index) {
+                            var isSpecialJob = row.IS_SPECIAL_JOB;
+                            if ("X" == isSpecialJob) {
+                                var greenHtml = "<span style='background-color: green'>" + value + "</span>";
+                                return greenHtml;
+                            }
+                            return value;
+
+                        }
+                    },
+                    JOB_DATE: {
+                        type: 'date'
+                    },
+                    PACKAGE_NUMBER: {
+                        formatter: function (value, row, index) {
+                            if (row.PACKAGE_NUMBER == undefined) {
+                                return "";
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP == undefined) {
+                                return row.PACKAGE_NUMBER;
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP != undefined) {
+                                return row.PACKAGE_NUMBER + PAGE_DATA['revtp'][row.REVTP];
+                            }
+                        }
+                    },
+                    BZST: {
+                        formatter: function (value, row, index) {
+                            let a = '';
+                            if (value && value>0){
+                                switch (row.WORK_TYPE) {
+                                    case "NRC":
+                                        a = `<a onclick="viewMRP('${row.CARD_ID}','${row.CARD_NUMBER}','')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                        break;
+                                    case "NRCT":
+                                        a = `<a onclick="viewMRP('${row.CARD_ID}','${row.CARD_NUMBER}','')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                        break;
+                                    case "TO":
+                                        a = `<a onclick="viewMRP('${row.CARD_ID}','${row.CARD_NUMBER}','')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                        break;
+                                    case "CCO":
+                                        a = `<a onclick="viewMRP('','','${row.TASK_NUMBER}')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                        break;
+                                    default:
+                                        a = `<a onclick="viewMRP('','${row.CARD_NUMBER}','${row.TASK_NUMBER}')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                }
+                            }
+                            return a;
+                        }
+                    },
+                    MR: {
+                        formatter: function (value, row, index) {
+                            if (!row.MR) {
+                                return "";
+                            }
+                            var html = "";
+                            var mrs = row.MR.split(',');
+                            for (var i = 0; i < mrs.length; i++) {
+                                let mr = mrs[i].split('~');
+                                let mrNum = "MR"+mr[0].substring(1,mr[0].length);
+                                let mrstatus = mr[1];
+                                html += `<a href="###" style="text-decoration:underline;" onclick="viewDet('${mr[0]}','undefined','undefined')">${mrNum}</a>` + "(" + mrstatus + ")" + ",";
+                            }
+                            return html.substring(0, html.length - 1);
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['taskStatus'][value];
+                        }
+                    },
+                    EXPIRE_DATE: {
+                        type: 'date'
+                    },
+                    PPC_PLAN_DATE: {
+                        type: 'date'
+                    },
+                    CANCEL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['cancelType'][value];
+                        }
+                    },
+                    POSITION: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['position'][row.POSITION];
+                        }
+                    }
+                }
+            },
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 45)
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+</script>
+</body>
+</html>

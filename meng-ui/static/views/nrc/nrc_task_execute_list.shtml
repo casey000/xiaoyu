@@ -1,0 +1,114 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>NRC TASK执行记录</title>
+
+</head>
+<body class="ibody">
+<table id="dg"></table>
+<div class="easyui-window" data-options="closed:true" id="checkUpload" style="width:600px;height:300px;display: none;"
+     title="查看文件">
+    <div style="padding-left: 10px;font-size: 14px;line-height: 30px;border-bottom: 1px solid #ddd">
+        <span style="margin-right: 20px;display: inline-block;width: 50%;">适用类型：<span id="aeTypeCn"></span></span>
+        <span style="margin-right: 20px">飞机号/发动机号：<span id="acEng"></span></span>
+    </div>
+    <div style="padding-left: 10px;font-size: 14px;line-height: 30px;border-bottom: 1px solid #ddd">
+        <span style="margin-right: 20px; display: inline-block;width: 50%;">NRC TASK编号：<span id="nrcTaskNo"></span></span>
+        <span style="margin-right: 20px">NRC 编号：<span id="NrcNo"></span></span>
+    </div>
+    <div style="padding-left: 10px;font-size: 14px;line-height: 30px;border-bottom: 1px solid #ddd">
+        <span style="margin-right: 20px; display: inline-block;width: 50%;">CSN：<span id="csn"></span></span>
+        <span style="margin-right: 20px">TSN：<span id="tsn"></span></span>
+    </div>
+    <div style="padding-left: 10px;margin-top: 15px">附件：</div>
+    <div id="uploadList" style="color:#FF6600"></div>
+
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var nrcTaskNo;
+    var functionCode = 'NRC_TASK_EXECUTIVE_LOG_LIST';
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        nrcTaskNo = param.nrcTaskNo;
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 20,
+            queryParams: {nrcTaskNo : nrcTaskNo,sort:"COMPLETE_DATE",order:"asc"},
+            columns: {
+                param: {FunctionCode: functionCode},
+                alter:{
+                    TSN: {
+                        formatter: function (value) {
+                            return ChangeHourMinutestr(value);
+                        }
+                    },
+                    NUM_OF_FILES:{
+                        formatter: function (value, row) {
+                            if (value && value > 0) {
+                                var rowObj = JSON.stringify(row)
+                                return "<span onclick = 'attachDetail(" + rowObj + ")' style='color: #f60; cursor: pointer;'>有(" + value + ")</span>";
+                            }else{
+                                return "<span  style='color: #f60;'>无(0)</span>";
+
+                            }
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+
+            },
+            contextMenus: [
+
+            ]
+
+        });
+    }
+
+    function attachDetail(obj) {
+        $("#uploadList").empty();
+        $('#aeTypeCn').text(obj.AE_TYPE_CN ||'')
+        $('#acEng').text(obj.AC_ENG ||'')
+        $('#nrcTaskNo').text(obj.NRC_TASK_NO ||'')
+        $('#NrcNo').text(obj.NRC_NO ||'')
+        $('#csn').text(obj.CSN ||'')
+        $('#tsn').text(ChangeHourMinutestr(obj.TSN) ||'')
+        var feedbackFiles ;
+        InitFuncCodeRequest_({
+            data: {
+                category: "feedback",
+                sourceId: obj.WORKORDER_ID,
+                FunctionCode: 'ATTACHMENT_LIST',
+            },
+            async:false,
+            successCallBack: function (jdata) {
+                if(jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    feedbackFiles = jdata.data;
+                } else {
+                    MsgAlert({content: jdata.msgData[0] ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+
+            }
+        });
+        for (var i = 0; i < feedbackFiles.length; i++) {
+            var trHTML = '<tr><td class="td5"><a style="min-height: 20px;line-height: 20px;display: block;padding-left: 10px" target="_blank" onclick="downFile(' + feedbackFiles[i].PKID + ',' + feedbackFiles[i].PKID + ')">' + feedbackFiles[i].ORG_NAME + '</a></td></tr>';
+            $("#uploadList").append(trHTML);//在table最后面添加一行
+            // downFile(jdata.data[i].PKID,jdata.data[i].PKID);
+        }
+        $('#checkUpload').window('open');
+    }
+
+</script>
+</html>

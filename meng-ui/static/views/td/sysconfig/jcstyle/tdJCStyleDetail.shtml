@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>样式表配置详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="companyCode" name="companyCode"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th align="right" style="width: 100px;">机队：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="fleet" name="fleet"
+                                   data-options="required:true,editable:false" style="width: 100px;"/>
+                        </td>
+                        <th align="right" style="width: 100px;">工卡类型：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="jcType" name="jcType"
+                                   data-options="required:true,editable:false" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th align="right" style="width: 100px;">样式表类型：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="styleType" name="styleType"
+                                   data-options="required:true,editable:false" style="width: 100px;"/>
+                        </td>
+                        <th align="right" style="width: 100px;">样式表文件名称：</th>
+                        <td colspan="3" style="padding: 3px;">
+                            <input class="easyui-textbox" id="styleFile" name="styleFile"
+                                   data-options="required:true" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th align="right" style="width: 100px;">样式表文件路径：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="styleFilePath" name="styleFilePath"
+                                   data-options="required:true" style="width: 100px;"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var type;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        type = param.type;
+        InitFuncCodeRequest_({
+            data: {domainCode: "DA_FLEET,TD_JCSTYLE_STYLETYPE", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#fleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange: function () {
+                            //获取选中的机队信息
+                            var fleetValue = $('#fleet').combobox('getValue');
+                            if (fleetValue == null || fleetValue == "") {
+                                return;
+                            }
+                            //ajax初始化工卡类型
+                            InitFuncCodeRequest_({
+                                data: {fleet: fleetValue, FunctionCode: 'TD_JC_STYLE_FLEETANDJCTYPE'},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        //对工卡类型赋值
+                                        $('#jcType').combobox({
+                                            panelHeight: '110px',
+                                            data: jdata.data,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT'
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    $('#styleType').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.TD_JCSTYLE_STYLETYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                }
+                if (param.pkid) {
+                    InitDataForm(param.pkid);
+                }
+                if (type == "view") {
+                    $('#saveBtn').hide();
+                }
+            }
+        })
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_JC_STYLE_GETBY_PK_ID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#fleet').combobox({value: jdata.data.FLEET});
+                    $('#jcType').combobox({value: jdata.data.JC_TYPE});
+                    $('#styleType').combobox({value: jdata.data.STYLE_TYPE});
+
+                    if (type == "view") {
+                        $('#fleet').combobox({onlyview: true, editable: false});
+                        $('#jcType').combobox({onlyview: true, editable: false});
+                        $('#styleType').combobox({onlyview: true, editable: false});
+                        $('#styleFile').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+                        $('#styleFilePath').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+                    }
+                    if (type == "edit") {
+                        $('#fleet').combobox({onlyview: true, editable: false});
+                        $('#jcType').combobox({onlyview: true, editable: false});
+                        $('#styleType').combobox({onlyview: true, editable: false});
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'TD_JC_STYLE_ADDORUPDATE', type: type});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.onSearch_('dg', '#formSerch');
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

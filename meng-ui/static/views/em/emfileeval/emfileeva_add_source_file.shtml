@@ -1,0 +1,221 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <title>新增源文件</title>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+                    <input style="display:none;" name="evaPkid" id="evaPkid"/>
+                    <!--源文件pkid-->
+                    <input style="display:none;" name="sourceFilePkid" id="sourceFilePkid"/>
+                    <!--替代文件pkid-->
+                    <input style="display:none;" name="replaceFilePkid" id="replaceFilePkid"/>
+                    <tr>
+                        <td align="center" colspan="4">
+                            <span style="color: red;font-size: 15px">增加有效源文件时，无需填写替代文件信息!</span></br>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">
+                            <a href="#" onclick="chooseSoureFile()" style="text-decoration:underline;">源文件编号:</a>
+                        </th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="sourceFileNo" id="sourceFileNo"
+                                   data-options="onlyview:true,editable:false" />
+                        </td>
+                        <th class="tdl">
+                            <a href="#" onclick="chooseReplceFile()" style="text-decoration:underline;">被替代文件编号:</a>
+                        </th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="replaceFileNo" id="replaceFileNo"
+                                   data-options="onlyview:true,editable:false" />
+                        </td>
+
+
+                    </tr>
+                    <tr>
+                        <th class="tdl">源文件版次:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="sourceFileVer" id="sourceFileVer"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+
+                        <th class="tdl">被替代文件版次:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="replaceFileVer" id="replaceFileVer"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+
+
+                    </tr>
+
+                    <tr>
+
+                        <th class="tdl">源文件类型:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="sourceFileType" id="sourceFileType"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th class="tdl">被替代文件类型:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="replaceFileType" id="replaceFileType"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="8" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript">
+
+    var param = {};
+    var datan;
+    var otherData;
+    var otherDatan = [];
+    var pkid;
+    var evaPkid;
+    var dataType;
+    var applyType;
+
+    function i18nCallBack() {
+        window.resizeTo("600", "420");
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        pkid = param.pkid;
+        evaPkid = param.evaPkid;
+        dataType = param.dataType;
+        applyType = param.applyType;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "WS_SYS_ACCOUNT_STATE,WS_SYS_ACCOUNT_TYPE,HR_SEX,HR_ORG",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    /*if (param.pkid) {
+                        InitDataForm(param.pkid);
+                    }*/
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    /**
+     * 初始化数据
+     * @param pkid
+     * @constructor
+     */
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {pkid: pkid, FunctionCode: "EM_EO_ONBOARD_APP_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitSaveForm_() {
+        $('#evaPkid').val(param.evaPkid);
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var sourceFilePkid = $('#sourceFilePkid').val();
+                if(!sourceFilePkid){
+                    MsgAlert({content: '请选择源文件', type:'error'});
+                    return;
+                }
+
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {FunctionCode: "EM_EO_FILE_SOURCE_ADD"});
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: '操作成功'});
+                            param.OWindow.reload_('#dg1');
+                            param.OWindow.param.OWindow.reload_();
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+    function chooseSoureFile() {
+        var title_ = $.i18n.t('选取源文件');
+        ShowWindowIframe({
+            width: 850,
+            height: 412,
+            title: title_,
+            param: {applyType:applyType},
+            url: "/views/em/emfileeval/emfileeva_choose_source_file_list.shtml"
+        });
+    }
+
+    function chooseReplceFile() {
+        var title_ = $.i18n.t('选取替代文件');
+        ShowWindowIframe({
+            width: 774,
+            height: 412,
+            title: title_,
+            param: {evaPkid : evaPkid},
+            url: "/views/em/emfileeval/emfileeva_choose_replace_file_list.shtml"
+        });
+    }
+
+    //回显源文件
+    function setSourceFile(obj) {
+        $('#sourceFilePkid').val(obj.PKID);
+        $('#sourceFileNo').textbox('setValue', obj.DATA_NO);
+        $('#sourceFileVer').textbox('setValue', obj.DATA_VER);
+        $("#sourceFileType").textbox("setValue", obj.DATA_TYPE);
+    }
+
+    //回显替代文件
+    function setReplaceFile(obj) {
+        $('#replaceFilePkid').val(obj.SOURCE_FILE_PKID);
+        $('#replaceFileNo').textbox('setValue', obj.DATA_NO);
+        $('#replaceFileVer').textbox('setValue', obj.DATA_VER);
+        $("#replaceFileType").textbox("setValue", obj.DATA_TYPE);
+    }
+
+</script>
+</html>

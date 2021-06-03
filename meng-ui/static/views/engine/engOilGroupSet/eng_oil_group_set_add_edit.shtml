@@ -1,0 +1,217 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>特殊组别维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <script type="text/javascript" src="/js/td/jobcard/mater/tdJcMaterDetail.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="特殊组别维护" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <input type="hidden" id="ser" name="ser"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>组别标题：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="groupCode" name="groupCode" data-options="required: true"
+                                   style="width: 426px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>组别描述：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="memo" name="memo" data-options="required: true"
+                                   style="width: 426px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>适用序号：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="appAcReg" name="appAcReg"
+                                   data-options="onlyview:true,editable:false,multiline:true,validType:['maxLength[4000]']"
+                                   style="width: 378px;height:60px;"/>
+                            <input class="btn btn-primary" type="button" id="applicSelect" name="applicSelect"
+                                   onclick="chooseSernr()" style="height: 58px" value="选择"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>维护人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName" style="width: 164px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th>维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate" style="width: 164px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var operation;
+    var pkid;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        $("#modifyName").textbox('setValue', userLogin.userName);
+        $("#modifyUser").val(userLogin.accountId);
+        var currentDate = new Date();
+        var year = currentDate.getFullYear().toString();
+        var month = (currentDate.getMonth() + 1).toString();
+        var day = currentDate.getDate().toString();
+        $("#modifyDate").datebox('setValue', year + "-" + month + "-" + day);
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+        if (pkid) {
+            $("#groupCode").textbox({onlyview: true, editable: false, required: false});
+            InitDataForm(pkid);
+        }
+        if (operation == "view") { //预览
+            $(".easyui-textbox").textbox({onlyview: true, editable: false, required: false});
+            $("#saveBtn").hide();
+            $("#applicSelect").hide();
+        }
+    }
+
+    //回显
+    function InitDataForm(pkid) {
+        $('#pkid').val(pkid);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/EngOilGroupSet/getEngOilGroupSetById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    if (operation == "view") {
+                        ParseFormField_(jdata.obj, $("#mform"));
+                    } else {
+                        $("#groupCode").textbox('setValue', jdata.obj.groupCode);
+                        $("#memo").textbox('setValue', jdata.obj.memo);
+                        $("#appAcReg").textbox('setValue', jdata.obj.appAcReg);
+                    }
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var appAcReg = $("#appAcReg").textbox('getValue');//适用发动机
+        if (appAcReg == null || appAcReg == "") {
+            MsgAlert({content: "适用发动机不能为空，请先选择适用发动机！", type: 'error'});
+            return;
+        }
+        if (operation == "add") { //添加
+            var groupCode = $("#groupCode").textbox('getValue');//组别代码
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: "/meng-engine/EngOilGroupSet/checkDataIfIllegalBeforeAdd/" + groupCode,
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        var data = jdata.obj;
+                        if (data > 0) {
+                            MsgAlert({content: "组别代码已存在,请重新输入", type: 'error'});
+                        } else {
+                            saveOrEditJobcard(operation);
+                        }
+                    } else {
+                        MsgAlert({content: jdata.errorMessage, type: 'error'});
+                    }
+                }
+            });
+        } else { //编辑
+            saveOrEditJobcard(operation);
+        }
+    }
+
+    function saveOrEditJobcard(operation) {
+        var $form = $("#mform");
+        var ser = $("#ser").val();
+        var datas = $form.serializeObject();
+        datas['operation'] = operation;
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/EngOilGroupSet/addOrEditEngOilGroupSet",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#pkid').val(jdata.obj.pkid);
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //选择机号
+    function chooseSernr() {
+        var title_ = $.i18n.t('勾选发动机');
+        var appAcReg = $("#appAcReg").textbox('getValue');
+        var pkid = $('#pkid').val();
+        ShowWindowIframe({
+            width: "660",
+            height: "500",
+            title: title_,
+            param: {appAcReg: appAcReg,pkid:pkid},
+            url: "/views/engine/engOilGroupSet/eng_oil_group_acno_list.shtml"
+        });
+    }
+
+    //回填机号集(以逗号隔开)
+    function addAcnos(sernrs,appAcReg) {
+        $("#appAcReg").textbox('setValue', appAcReg);
+        $("#ser").val(sernrs);
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>系统子构型维护</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend>子构型选项</legend>
+        <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <input type="hidden" id="configId" name="configId"/>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td colspan="9" align="right">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                        <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                               style="margin-left:3px;margin-right: 18px;"/>
+                        <br/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 100px;">子构型编号：</th>
+                    <td class="tdr" style="width: 400px;  padding: 3px">
+                        <input class="easyui-combobox" id="subConfigNo" name="subConfigNo" data-options="required:true" style="width: 50px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 100px;">子构型名称：</th>
+                    <td class="tdr" style="width: 400px;  padding: 3px">
+                        <input class="easyui-textbox" id="subConfigName" name="subConfigName"
+                               data-options="required:true" style="width: 250px;"/>
+                        <a id="sourceSelect" href="javascript:void(0)" class="easyui-linkbutton"
+                           data-options="iconCls:'icon-add'"
+                           onclick="addSource()"><span>选择</span></a>
+                    </td>
+
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 100px;">子构型名称（英）：</th>
+                    <td class="tdr" style="width: 400px;  padding: 3px">
+                        <input class="easyui-textbox" id="subConfigNameEn" name="subConfigNameEn" data-options="required:true" style="width: 250px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <fieldset class="fieldset_eui">
+        <legend>子构型选项值清单</legend>
+        <table id="dg"></table>
+    </fieldset>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param; // operation[add,edit,view],...
+    var pkid = null;//主表PKID
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_SYSCONFIG_SUB_NO"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    $('#subConfigNo').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_SYSCONFIG_SUB_NO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    // $("#subConfigName").MyComboGrid({
+                    //     idField: 'CONFIG_NO',  //实际选择值
+                    //     textField: 'CONFIG_DESC', //文本显示值
+                    //     panelHeight: '200px',
+                    //     panelWidth: '350px',
+                    //     required: true,
+                    //     width: 160,
+                    //     params: {type: "1", FunctionCode: 'EM_CONFIG_DESC'},
+                    //     columns: [[
+                    //         {field: 'CONFIG_NO', title: '编号', width: 50},
+                    //         {field: 'CONFIG_DESC', title: '中文描述', width: 50},
+                    //         {field: 'CONFIG_DESC_EN', title: '英文描述', width: 50},
+                    //     ]],
+                    //     onHidePanel: function () {
+                    //         var t = $(this).combogrid('getValue');
+                    //         if (t) {
+                    //             if (selectRow == null || t != selectRow.CONFIG_NO) {//没有选择或者选项不相等时清除内容
+                    //                 alert('请选择，不要直接输入！');
+                    //                 $(this).combogrid({value: ''});
+                    //             }
+                    //         }
+                    //     },
+                    //     onSelect: function (index, row) {
+                    //         selectRow = row;
+                    //         $("#configDescNo").val(row.CONFIG_NO);
+                    //         $("#subConfigNameEn").textbox('setValue', row.CONFIG_DESC_EN);
+                    //     }
+                    // });
+                    pkid = param.pkid;
+                    if (pkid) {
+                        InitDataForm(pkid);
+                        InitDataGrid(pkid);
+                    } else {
+                        $('#configId').val(param.configId);
+                    }
+                }
+            }
+        });
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_SUB_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    // $("#subConfigName").combogrid('setValue', jdata.data.SUB_CONFIG_NAME);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(pkid) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            resize: function () {
+                return {width: 580, height: 205};
+            },
+            queryParams: {subConfigId: pkid},
+            columns: {
+                param: {FunctionCode: 'EM_SYSCONFIG_SUB_VALUE_LIST'}
+            },
+            toolbar: [{
+                id: 'btnAdd',
+                text: "添加",
+                iconCls: 'icon-add',
+                handler: function () {
+                    common_add_edit_({
+                        url: "/views/em/emsysconfig/em_sysconfig_sub_value_add.shtml?operation=add&configId="
+                            + $('#configId').val() + "&subConfigId=" + pkid + "&subConfigNo=" + $('#subConfigNo').combobox('getValue'),
+                        isEdit: 0,
+                        width: 400,
+                        height: 200
+                    });
+                }
+            }],
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "common:COMMON_OPERATION.EDIT",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/emsysconfig/em_sysconfig_sub_value_add.shtml?operation=edit&pkid=" + rowdata.PKID,
+                            identity: 'dg',
+                            isEdit: 1,
+                            width: 400,
+                            height: 200
+                        });
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "common:COMMON_OPERATION.DEL",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_SYSCONFIG_SUB_VALUE_DEL',
+                                pkid: rowData.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ]
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var subConfigNameEn = $('#subConfigNameEn').textbox('getValue');
+        for (var i = 0; i < subConfigNameEn.length; i++) {
+            var unicode_code = subConfigNameEn.charCodeAt(i);
+            if (unicode_code > 127) {
+                MsgAlert({
+                    content: "子构型名称（英）必须全部录入英文及英文字符！",
+                    type: "warn"
+                });
+                return;
+            }
+        }
+
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_SUB_ADD",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    if (! $('#pkid').val()) {
+                        ParseFormField_(jdata.data, $("#mform"));
+                        InitDataGrid(jdata.data.pkid);
+                    }
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload", {subConfigId: $('#pkid').val()});
+        param.OWindow.reload_();
+    }
+
+    function addSource() {
+        ShowWindowIframe({
+            width: 590,
+            height: 670,
+            param: {type: "1"},
+            title: "构型描述",
+            url: "/views/em/emsysconfig/em_sysconfig_desc.shtml"
+        });
+    }
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

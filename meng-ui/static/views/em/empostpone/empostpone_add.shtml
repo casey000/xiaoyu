@@ -1,0 +1,277 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+</head>
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <form class="form-horizontal m-t" id="mform">
+                    <input type="hidden" name="pkid" id="pkid"/>
+                    <input type="hidden" name="tbStatus" value=""/>
+                    <input type="hidden" name="postponeObjectPkid" id="postponeObjectPkid" value=""/>
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <td colspan="4" align="right">
+                                <input class="btn btn-primary" type="button" value="提交工作流" onclick="commit()"
+                                       style="margin:5px;"/>
+                                <input class="btn btn-primary" type="submit" value="保存"
+                                       style="margin:5px;"/>
+                                <input class="btn btn-primary" onclick="closeAdd()" type="button" value="关闭"
+                                       style="margin-right:10px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th" align="right">延期类型：</th>
+                            <td class="tdr">
+                                <input class="easyui-combobox " id="postponeSort" name="postponeSort"
+                                       data-options="editable:false,onlyview:true "/>
+                            </td>
+                            <th class="tdl" align="right">延期对象编号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox " id="postponeObjectNo" name="postponeObjectNo"
+                                       data-options="editable:false,onlyview:true "/>
+                            </td>
+
+                        </tr>
+                        <tr>
+                            <th class="tdl" align="right">原期限：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox " id="originalDeadline" name="originalDeadline"
+                                       data-options="editable:false,onlyview:true "/>
+                            </td>
+                            <th class="tdl" align="right">延期日期：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox " id="postponeDate" name="postponeDate" style="150px"
+                                       data-options="required:true,validType:['maxLength[20]']"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th" align="right" style="width: 60px">延期原因：</th>
+                            <td colspan="3">
+                                <textarea class="easyui-textbox" id="postponeReason" name="postponeReason"
+                                          multiline="true"
+                                          style="height:50px;width: 520px;border: 1px solid #ddd;"
+                                ></textarea>
+                            </td>
+                        </tr>
+
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param = '';
+    var pkid = '';
+    var postponeSort = '';
+    var postponeObjectNo = '';
+    var originalDeadline = '';
+    var postponeObjectPkid = '';
+    var executionId = ""; //流程实例ID
+    var PAGE_DATA = {};
+    param = getParentParam_();
+    function i18nCallBack() {
+
+        pkid = param.pkid;
+        postponeSort = param.postponeSort;
+        postponeObjectNo = param.postponeObjectNo;
+        originalDeadline = param.originalDeadline;
+        postponeObjectPkid = param.postponeObjectPkid;
+        $("#postponeObjectPkid").val(postponeObjectPkid);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_POSTPONE_SORT",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['postponeSort'] = DomainCodeToMap_(jdata.data["EM_POSTPONE_SORT"]);
+                    $('#postponeSort').combobox({
+                        panelHeight: '120px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EM_POSTPONE_SORT,
+                    });
+
+
+                    if (pkid) {
+                        InitDataForm(pkid);
+                    } else {
+                        $('#postponeSort').combobox('setValue', postponeSort);
+                        $('#postponeObjectNo').textbox('setValue', postponeObjectNo);
+                        $('#originalDeadline').textbox('setValue', originalDeadline);
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitEditForm_();
+    }
+
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_FILE_DELAY_BY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                        $('#postponeSort').combobox({value: jdata.data.POSTPONE_SORT});
+                        $('#postponeDate').datebox({value: jdata.data.POSTPONE_DATE});
+                        postponeSort = jdata.data.POSTPONE_SORT;
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitEditForm_();
+    }
+
+    function InitEditForm_() {
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var data = $form.serializeObject();
+                pkid = $("#pkid").val();
+                data = $.extend({}, data, {FunctionCode: ('EM_POSTPONE_ADD')});
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            $("#pkid").val(jdata.data.pkid);
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            if (postponeSort == "EM_FILE_EVALUATE") {
+                                param.OWindow.reload_("#dg12");
+                                param.OWindow.openTab("评估延期情况");
+                            }
+
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#mform").form('clear');
+            }
+        });
+    }
+
+
+
+    /**
+     * 提交审核工作流
+     * @returns {boolean}
+     */
+    function commit() {
+        pkid = $("#pkid").val();
+        if (pkid) {
+            var flush = param.OWindow.reload_;
+            if (postponeSort == "EM_FILE_EVALUATE") {
+                flush = param.OWindow.reload_12;
+                //评估单需要校验日期
+                var tempDate = $('#postponeDate').datebox('getValue');
+                var effectDate = null;
+                var dateNo = null;
+                InitFuncCodeRequest_({
+                    data: {pkid: postponeObjectPkid, FunctionCode: 'EM_FILE_GET_AD'},
+                    async: false,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (jdata.data != null) {
+                                effectDate = jdata.data.EFFECT_DATE;
+                                dateNo = jdata.data.DATA_NO;
+                                if(jdata.data.DATA_VER != null){
+                                    dateNo = dateNo + ' R'+jdata.data.DATA_VER;
+                                }
+                            }
+                        } else {
+                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                        }
+                    }
+                });
+                if (tempDate > effectDate) {
+                    MsgAlert({content: "针对初始版本评估单，填写延期日期不能大于评估单中源文件中生效状态的 "+dateNo+"的生效日期【"+effectDate.substring(0,10)+"】！", type: 'error'});
+                    return;
+                }
+            }
+
+            var execid = validWorkFlow("EM_FILE_EVAL_DELAY", pkid);
+            if (execid != null && execid != "") {
+                MsgAlert({content: '已经存在流程，请保存后在我的待办中提交！', type: 'warn'});
+                return false;
+            } else {
+                $.messager.confirm('', '是否提交？', function (r) {
+                    if (r) {
+                        ShowWindowIframe({
+                            identity: 'dg', isEdit: '', width: 520, height: 300, title: "选择审核人",
+                            title: "提交审核",
+                            param: {
+                                roleId: '',
+                                PKID: pkid,
+                                otherParam: param.postponeSort,
+                                FunctionCode_: 'EM_POSTPONE_WORKFLOW',
+                                successCallback: flush
+                            },
+                            url: "/views/flow/work_flow_account_select.shtml"
+                        });
+                    }
+                });
+            }
+        } else {
+            MsgAlert({content: "请先保存数据", type: 'error'});
+            return false;
+        }
+
+
+    }
+
+    function reload_() {
+        CloseWindowIframe();
+    }
+
+    /**
+     * 校验工作流是否已经存在
+     *
+     **/
+    function validWorkFlow(objKey, objNo) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {objKey: objKey, objNo: objNo, FunctionCode: 'VALID_WORK_FLOW'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        executionId = jdata.data.EXECUTION_ID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return executionId;
+    }
+
+</script>
+</html>

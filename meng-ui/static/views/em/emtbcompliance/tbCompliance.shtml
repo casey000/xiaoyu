@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">TB符合性</title>
+</head>
+<body class="ibody">
+<div id="tt" class="title" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <div id="searchBar">
+            <form id="ffSearch" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">TB编号：</th>
+                        <td style="width:120px">
+                            <input class="easyui-textbox" id="tbNo" name="tbNo" style="width:98%;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">发送单位：</th>
+                        <td style="width:120px">
+                            <input class="easyui-textbox" id="sendDep" name="sendDep" style="width:98%;"/>
+                        </td>
+                        <th class="th" style="width:90px;" align="right">符合性状态：</th>
+                        <td style="width:120px">
+                            <input class="easyui-combobox" id="comStatus" name="comStatus" style="width:98%;"/>
+                        </td>
+                        <td class="th">
+                            <a class="searchBtn" type="button" onclick="searchData()"
+                               data-options="iconCls:'icon-search'">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </div>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var flag = "";
+    var companyCode;
+    var name = getLoginInfo().userName;
+    var accountId = getLoginInfo().accountId;
+    var executionId = ""; //流程实例ID
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_TB_COM_STATUS,APP_TYPE,EMTB_APPLY_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //适用类型
+                    $('#comStatus').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.EM_TB_COM_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['appType'] = DomainCodeToMap_(jdata.data["APP_TYPE"]);
+                    PAGE_DATA['applyType'] = DomainCodeToMap_(jdata.data["EMTB_APPLY_TYPE"]);
+                    InitDataGrid();
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: companyCode,
+            columns: {
+                param: {FunctionCode: 'EM_TB_COMPLIANCE_LIST'},
+                alter: {
+                    APP_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['appType'][value];
+                        }
+                    },
+                    APPLY_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['applyType'][value];
+                        }
+                    }
+                }
+
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {},
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                }
+
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        var fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts('dg');
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            let radis = {};
+
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams, radis);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</body>
+</html>

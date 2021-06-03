@@ -1,0 +1,590 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>发动机月报</title>
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th style="width:80px" align="right">年月：</th>
+                    <td style="width:120px">
+                        <input class="easyui-textbox" id="monthly" name="monthly" style="width:120px"/>
+                    </td>
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="resetForm()"><span
+                                data-i18n="">重置</span></a>
+                        <a class="ridoBtn" data-options="iconCls:'icon-search" onclick="genReport()"><span
+                                data-i18n="">重新生成当前月度报表</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<div id="tt" class="easyui-tabs">
+    <div title="发动机/APU信息" style="width:98%; margin-right:5px" id="searchBar1">
+        <form id="ffSearch1" method="post">
+            <fieldset class="fieldset_eui" style="">
+                <table id="repRes"></table>
+            </fieldset>
+        </form>
+    </div>
+    <div title="高循环发动机" style="display:none;" id="searchBar2">
+        <form id="ffSearch2" method="post">
+            <fieldset class="fieldset_eui" style="float:left;">
+                <table id="repHighCyc"></table>
+            </fieldset>
+        </form>
+    </div>
+    <div title="换发计划" style="display:none;" id="searchBar3">
+        <form id="ffSearch3" method="post">
+            <fieldset class="fieldset_eui" style="float:left;">
+                <table id="repReplace"></table>
+            </fieldset>
+        </form>
+    </div>
+    <div title="备发预测" style="display:none;" id="searchBar4">
+        <form id="ffSearch4" method="post">
+            <fieldset class="fieldset_eui" style="float:left;">
+                <table id="repResDeail"></table>
+            </fieldset>
+        </form>
+    </div>
+    <div title="备发预测图表" style="display:none;" id="searchBar5">
+        <div id="main" style="width:1000px;height:600px;"></div>
+    </div>
+    <div title="重点监控清单" style="display:none;" id="searchBar6">
+        <form id="ffSearch6" method="post">
+            <fieldset class="fieldset_eui" style="float:left;">
+                <table id="repKeylist"></table>
+            </fieldset>
+        </form>
+    </div>
+    <div title="防空停信息" style="display:none;" id="searchBar7">
+        <form id="ffSearch7" method="post">
+            <fieldset class="fieldset_eui" style="float:left;">
+                <table id="repFsdTask"></table>
+            </fieldset>
+        </form>
+    </div>
+</div>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var userLogin = getLoginInfo();
+    var loginUser = userLogin.accountId;
+
+    var address=window.location.origin; //url
+    var port=document.location.port;//ip:端口号
+    if(!port){
+        port = ':'+port;
+    }else{
+        port = '';
+    }
+    var ctx = address+port;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_REP_STATUS,ENG_FORE_PLAN_REMOVE_REASON,ENG_FSD_MEETING_TASK_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //发动机型号
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#epn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px'
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //月报状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["ENG_REP_STATUS"]);
+                    //预测类型或拆发原因
+                    PAGE_DATA['reason'] = DomainCodeToMap_(jdata.data["ENG_FORE_PLAN_REMOVE_REASON"]);
+                    PAGE_DATA['taskStatus'] = DomainCodeToMap_(jdata.data["ENG_FSD_MEETING_TASK_STATUS"]);
+                    InitDataGrid();
+                    InitDataGrid1(-1);
+                    InitDataGrid2(-1);
+                    InitDataGrid3(-1);
+                    InitDataGrid4(-1);
+                    InitDataGrid6(-1);
+                    InitDataGrid7(-1);
+                    loadEcharts(-1);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        var identity = 'dg';
+        $("#dg").GatewayDataGrid({
+            identity: identity,
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engRep/selectEngRepListByPage",
+            resize: function () {
+                return {
+                    height: $(document.body).height() - $("fieldset").height() - 325,
+                    width: $(document.body).width()
+                };
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_REP_LIST'},
+                alter: {
+                    fileUpload: {
+                        formatter: function (value, row, index) {
+                            if (row.fileUpload) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach attach4">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    status: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            onClickRow: function () {    //单击进行操作的方法
+                var row = $('#dg').datagrid('getSelected');//获取选中行的数据
+                if (!row) {
+                    return false;//为防止意外情况可以选择加上此判断
+                }
+                var aid = row.pkid;//获取选中行的id
+                InitDataGrid1(aid);
+                InitDataGrid2(aid);
+                InitDataGrid3(aid);
+                InitDataGrid4(aid);
+                InitDataGrid6(aid);
+                InitDataGrid7(aid);
+                loadEcharts(aid);
+            },
+            contextMenus: [
+                {
+                    id: "m-uploadFile", i18nText: "附件上传",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        common_upload_({
+                            identity: 'dg',
+                            resize: {},
+                            param: {
+                                cat: 'ENGREP',
+                                sourceId: rowData.pkid,
+                                PKID: rowData.pkid,
+                                successCallBack: reload_,
+                                failCallBack: ""
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-export", i18nText: "导出",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+
+                        var pkid = rowData.pkid;
+
+                        InitGatewayRequest_({
+                            async: false,
+                            type:"get",
+                            path: "/meng-engine/engRep/genExcel/"+pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    url = jdata.obj;
+                                    window.location.href = ctx + url;
+
+                                } else {
+                                    MsgAlert({content:"导出失败!", type: 'error'});
+                                }
+                            }
+                        });
+
+                    }
+                },
+                {
+                    id: "m-archive", i18nText: "归档",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        archive(rowData.pkid);
+                    }
+                }
+            ],
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.pkid,
+                                CATEGORY: "ENGREP",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+                                    var html = "";
+                                    for (var i = 0; i < jdata.data.length; i++) {
+                                        if (loginUser == row.createUser) { //只能删除本人上传的附件
+                                            html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteEngRep(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                        } else {
+                                            html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                        }
+                                    }
+                                    callback(html);
+                                }
+                            }
+                        });
+                    }
+                });
+                $("#dg").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+            },
+            validAuth: function (row, items) {
+                items['归档'].enable = false;
+                if ("1" == row.status) { //编写中
+                    items['归档'].enable = true;
+                }
+                if ("2" == row.status) { //已归档
+                    items['附件上传'].enable = false;
+                }
+                return items;
+            }
+        });
+    }
+
+    //发动机/APU信息列表
+    function InitDataGrid1(aid) {
+        $("#repRes").GatewayDataGrid({
+            identity: 'repRes',
+            queryParams: {
+                repId: aid
+            },
+            pagination: true,
+            path: "/meng-engine/engRep/selectEngRepResListByPage",
+            fitcolumn: true,
+            resize: function () {
+                return {height: 260};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_REP_RES_LIST'},
+                alter: {}
+            }
+        })
+    }
+
+    //高循环发动机列表
+    function InitDataGrid2(aid) {
+        $("#repHighCyc").GatewayDataGrid({
+            identity: 'repHighCyc',
+            queryParams: {
+                repId: aid
+            },
+            pagination: true,
+            path: "/meng-engine/engRep/selectEngRepHighCycListByPage",
+            fitcolumn: true,
+            resize: function () {
+                return {height: 260};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_REP_HIGH_CYC_LIST'},
+                alter: {
+                    forecastRemoveDate: {
+                        type: 'date'
+                    }
+                }
+            }
+        });
+    }
+
+    //换发计划
+    function InitDataGrid3(aid) {
+        $("#repReplace").GatewayDataGrid({
+            identity: 'repReplace',
+            queryParams: {
+                repId: aid
+            },
+            pagination: true,
+            path: "/meng-engine/engRep/selectEngRepReplaceListByPage",
+            fitcolumn: true,
+            resize: function () {
+                return {height: 260};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_REP_RES_REPLACE_LIST'},
+                alter: {
+                    planRemoveDate: {
+                        type: 'date'
+                    },
+                    installDate: {
+                        type: 'date'
+                    }
+                }
+            }
+        });
+    }
+
+    //备发预测
+    function InitDataGrid4(aid) {
+        $("#repResDeail").GatewayDataGrid({
+            identity: 'repResDeail',
+            queryParams: {
+                repId: aid
+            },
+            pagination: true,
+            path: "/meng-engine/engRep/selectEngRepResDeailListByPage",
+            fitcolumn: true,
+            resize: function () {
+                return {height: 260};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_REP_RES_DEAIL_LIST'},
+                alter: {
+                    asOfDate: {
+                        type: 'date'
+                    }
+                }
+            }
+        });
+    }
+
+    //重点监控清单
+    function InitDataGrid6(aid) {
+        $("#repKeylist").GatewayDataGrid({
+            identity: 'repKeylist',
+            queryParams: {
+                repId: aid
+            },
+            pagination: true,
+            path: "/meng-engine/engRep/selectEngRepKeyListByPage",
+            fitcolumn: true,
+            resize: function () {
+                return {height: 260};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_REP_KEY_LIST'},
+                alter: {}
+            }
+        });
+    }
+
+    //重点监控清单
+    function InitDataGrid7(aid) {
+        $("#repFsdTask").GatewayDataGrid({
+            identity: 'repFsdTask',
+            queryParams: {
+                repId: aid
+            },
+            pagination: true,
+            path: "/meng-engine/engRep/selectEngRepTaskListByPage",
+            fitcolumn: true,
+            resize: function () {
+                return {height: 260};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_REP_TASK_LIST'},
+                alter: {
+                    taskStatus: {
+                        formatter: function (value) {
+                            return PAGE_DATA['taskStatus'][value];
+                        }
+                    },
+                    limitDate: {
+                        type: 'date'
+                    }
+                }
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        InitDataGrid();
+    }
+
+    //查询
+    function searchData() {
+        InitDataGrid();
+    }
+
+    //重置
+    function resetForm() {
+        $("#ffSearch").form('clear');
+        i18nCallBack();
+    }
+
+    //删除附件
+    function deleteEngRep(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: 'ATTACHMENT_RSPL_DEL'},
+            successCallBack: function (jdata) {
+                if (jdata.code == 200) {
+                    reload_();
+                }
+            }
+        });
+    }
+
+    //归档
+    function archive(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engRep/updateEngRepStatusToArchive/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //报表
+    function genReport() {
+        InitGatewayRequest_({
+            async: false,
+            data:[],
+            path: "/meng-engine/engRep/genEngRep",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function loadEcharts(aid) {
+
+        var myChart = echarts.init(document.getElementById('main'));
+        InitGatewayRequest_({
+            async: false,
+            data: {repId: aid},
+            path: "/meng-engine/engRep/queryForChart",
+            successCallBack: function (data) {
+
+                var legendData = [];
+                var xAxisData = [];
+                var seriesData = [];
+
+                for (var i = 0; i < data.length; i++) {
+                    var engType = data[i].engType;
+                    var forecastDate = changeDateFormat(data[i].forecastDate);
+                    var emergencyQty = data[i].emergencyQty;
+                    if (legendData.indexOf(engType) === -1) {
+                        legendData.push(engType);
+                        seriesData.push({
+                            name: engType,
+                            type: "line",
+                            smooth: false,
+                            data: [emergencyQty],
+                            label: {
+                                normal: {
+                                    show: true,
+                                    position: "top"
+                                }
+                            }
+                        })
+                    } else {
+                        seriesData[seriesData.length - 1].data.push(emergencyQty);
+                    }
+                    xAxisData.indexOf(forecastDate) === -1 ? xAxisData.push(forecastDate) : null;
+                }
+
+                // 指定图表的配置项和数据
+                var option = {
+                    title: {
+                        text: '备发数量预测'
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: legendData
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '5%',
+                        containLabel: true
+                    },
+                    toolbox: {
+                        feature: {
+                            saveAsImage: {}
+                        }
+                    },
+                    xAxis: {
+                        data: xAxisData,
+                        axisLabel: {
+                            lineHeight: 150,
+                            rotate: -60
+                        },
+                        offset: -10
+                    },
+                    yAxis: {
+                        type: 'value'
+                    },
+                    series: seriesData
+                };
+
+                myChart.setOption(option, true);
+            }
+        });
+    }
+
+    function changeDateFormat(cellval) {
+        if (cellval != null) {
+            var date = new Date(parseInt(cellval, 10));
+            var month = date.getMonth() + 1 < 10 ? "0" + (date.getMonth() + 1) : date.getMonth() + 1;
+            var currentDate = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
+            return date.getFullYear() + "-" + month + "-" + currentDate;
+        }
+    }
+
+</script>
+</body>
+</html>

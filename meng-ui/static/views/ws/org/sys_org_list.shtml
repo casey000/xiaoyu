@@ -1,0 +1,424 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.SYS_MENU_LIST.TITLE">菜单维护</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+            </table>
+        </div>
+    </form>
+</fieldset>
+
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:true" style="width: 50%;">
+        <div>
+            <table id="l_dg"></table>
+        </div>
+    </div>
+    <div id="lay_right" data-options="region:'center'">
+
+        <table class="table table-bordered table-info" style="border:none">
+            <caption style="padding-bottom: 7px;font-weight:bold;">部门信息</caption>
+        </table>
+        <tr>
+            <td colspan="8" align="right">
+                <input class="btn btn-primary" type="button" onclick="addChildren()" value="增加下级"
+                       style="margin:5px;"/>
+        </tr>
+        <tr>
+            <td colspan="8" align="right">
+                <input class="btn btn-primary" onclick="deleteNode()" type="button" value="删除"
+                       style="margin:5px;"/>
+        </tr>
+        <tr>
+            <td colspan="8" align="right">
+                <input class="btn btn-primary" type="button" onclick="saveOrg()" value="保存"
+                       style="margin:5px;"/>
+        </tr>
+        <form id="myform">
+            <fieldset class="fieldset_eui">
+                <legend data-i18n="">部门信息</legend>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">部门名称：</th>
+                        <input type="hidden" id="orgId" name="orgId">
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="orgName" name="orgName"
+                                   data-options="required:true,onChange:changValue"/>
+                        </td>
+                        <th class="tdl">上级部门：</th>
+                        <td class="tdr">
+                            <input type="hidden" id='parentOid' name="parentOid">
+                            <input class="easyui-textbox" id="pname2" name="pname2"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">拼音码：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="pym" name="pym"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                        <th class="tdl">组织编码：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="orgNo" name="orgNo" data-options="required: true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">组织类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="orgType" name="orgType"
+                                   data-options="required: true"/>
+                        </td>
+                        <th class="tdl">启用：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="enable" name="enable"
+                                   data-options="required: true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">顺序：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="orgSeq" name="orgSeq"
+                                   data-options="required:true"/>
+                        </td>
+                        <th class="tdl">基地代码：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="orgBase" name="orgBase"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">操作人：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="operator" name="operator"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+
+                        <th class="tdl">操作时间：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="operateDate" name="operateDate"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">备注：</th>
+                        <td class="tdr" colspan="4">
+                            <input class="easyui-textbox" id="memo" name="memo"
+                                   data-options="multiline:true, validType:['maxLength[50]'] "
+                                   style="height:50px; width: 70%;"/>
+
+                        </td>
+
+                    </tr>
+
+                </table>
+            </fieldset>
+        </form>
+        <div>
+            <table id="r_dg"></table>
+        </div>
+
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/pinyin.js"></script>
+<script type="text/javascript">
+    var FuncCode_ = 'SYS_ORG_LIST';
+    var ORG_ID = "";
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: 'ROUTE_ORG_TYPE,YSEORNO_NUMBER', FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#orgType').combobox({
+                        panelHeight: '150',
+                        editable: false,
+                        data: jdata.data.ROUTE_ORG_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    $('#enable').combobox({
+                        panelHeight: '150',
+                        editable: false,
+                        data: jdata.data.YSEORNO_NUMBER,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                }
+            }
+        });
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitLeftDataGrid();
+        InitRightDataGrid();
+//        InitEditForm_()
+    }
+
+    //    function doSearch_(){
+    //        var queryParams = $("#ffSearch").serializeObject();
+    //        queryParams = $.extend({}, queryParams, {FunctionCode: FuncCode_});
+    //        InitFuncCodeRequest_({
+    //            data: queryParams,
+    //            successCallBack: function (jdata) {
+    //                if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+    //                    layer.msg(jdata.msg, {icon: 5});
+    //                    return;
+    //                }
+    //                var tdata_ = WarpTreeGridData_(jdata.data, "0", ['PKID', 'PID']);
+    //                $("#l_dg").treegrid('loadData', tdata_);
+    //            }
+    //        });
+    //
+    //    }
+
+    //    function doClear_(){
+    //        $("#queryValue").textbox('setValue', '');
+    //        doSearch_();
+    //    }
+
+    function changValue() {
+        var name = $('#orgName').textbox('getValue')
+        var a = makePy(name)
+        $('#pym').textbox({value: a})
+    }
+
+    function InitLeftDataGrid() {
+
+
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "SYS_ORG_LIST"},
+            successCallBack: function (jdata) {
+
+
+                if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+                    layer.msg(jdata.msg, {icon: 5});
+                    return;
+                }
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    var data = HandleTreeData_(jdata.data, "PARENT_OID")
+                    var tdata_ = _WarpTreeMenuData(data, "0", ['ORG_ID', 'PARENT_OID'], function (tdata_) {
+                        return {
+                            id: tdata_.ORG_ID,
+                            text: tdata_.ORG_NAME,
+                            checked: false,
+                            state: 'open'
+                        }
+                    });
+                    if (!tdata_) {
+                        return;
+                    }
+                    $("#l_dg").tree({
+                        data: tdata_, lines: false,
+                        animate: true, checkbox: false,
+                        formatter: function (node) {
+                            return node.text;//@todo node.attributes.i18nText ? $.i18n.t('common:'+node.attributes.i18nText) : node.text;
+                        },
+                        onClick: function (node) {
+                            ORG_ID = node.id
+                            console.log(ORG_ID)
+                            $("#r_dg").datagrid('reload', {orgId: ORG_ID})
+                            selectDataDorOrg()
+                        }
+                    }).css({padding: '5px'});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitRightDataGrid() {
+        var identity = 'r_dg';
+        $("#r_dg").MyDataGrid({
+            identity: identity,
+            firstLoad: false,
+            checkOnSelect: true,
+            singleSelect: false,
+            title: $.i18n.t('部门内人员'),
+            queryParams: {orgId: ORG_ID},
+            columns: {param: {FunctionCode: 'ROUTE_SYS_ORGLIST'}},
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('关联人员'), auth: "",//创建
+                    handler: function () {
+                        var id = $("#l_dg").tree('getSelected')
+                        if (!id) {
+                            MsgAlert({content: "请先选择一个部门", type: 'error'});
+                            return false;
+                        }
+                        var id = $("#l_dg").tree('getSelected').id
+                        ShowWindowIframe({
+                            width: "40%",
+                            height: "50%",
+                            title: "增加项目",
+                            param: {id: id},
+                            url: "/views/ws/org/sys_org_adduser.shtml"
+                        });
+                    }
+                },
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('删除人员'), auth: "",//创建
+                    handler: function () {
+                        var rowdata = getDG(identity).datagrid('getChecked');
+                        var rows = getDG(identity).datagrid('getChecked');
+                        rows = JSON.stringify(rows)
+
+                        console.log(rowdata)
+                        if (!rowdata[0]) {
+                            MsgAlert({content: "请先选择一个用户", type: 'error'});
+                            return false;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rows, FunctionCode: "ROUTE_USER_DEL"},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reloadRdg_()
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        })
+                    }
+                }
+            ]
+        });
+    }
+
+    function reloadRdg_() {
+        $("#r_dg").datagrid("reload");
+    }
+
+    function selectDataDorOrg() {
+
+        InitFuncCodeRequest_({
+            data: {orgId: ORG_ID, FunctionCode: 'ROUTE_ORG_DATA'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    console.log(jdata)
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                }
+            }
+        });
+    }
+
+    function addChildren() {
+        var id = $("#l_dg").tree('getSelected')
+        if (!id) {
+            MsgAlert({content: "请先选择一个节点", type: 'error'});
+            return false;
+        }
+        $('#myform').form('clear');
+        $(':input', '#myform')
+            .not(':button, :submit, :reset, :hidden')
+            .val('')
+            .removeAttr('checked')
+            .removeAttr('selected');
+        var id = $("#l_dg").tree('getSelected').id
+        var name = $("#l_dg").tree('getSelected').text
+        $("#parentOid").val(id)
+        $("#pname2").textbox({value: name})
+        $("#operator").textbox({value: getLoginInfo().userName})
+        $("#operateDate").datebox({value: formatDate(new Date())})
+        $("#orgBase").textbox({value: 'ZPPP'})
+
+    }
+
+    function deleteNode() {
+        var id = $("#l_dg").tree('getSelected')
+        if (!id) {
+            MsgAlert({content: "请先选择一个节点", type: 'error'});
+            return false;
+        }
+        id = $("#l_dg").tree('getSelected').id
+
+        if (id == "0") {
+            MsgAlert({content: "不允许删除", type: 'error'});
+            return false;
+        }
+        InitFuncCodeRequest_({
+            data: {orgId: id, FunctionCode: "ROUTE_ORG_DELETE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitLeftDataGrid()
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                } else {
+                    MsgAlert({content: "删除节点下如果有人员，则必须清空人员，方可删除", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function saveOrg() {
+        var id = $("#l_dg").tree('getSelected')
+        if (!id) {
+            MsgAlert({content: "请先选择一个节点", type: 'error'});
+            return false;
+        }
+        var $form = $("#myform");
+        var isValidate = $("#myform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var data = $form.serializeObject();
+        console.log(data)
+        data = $.extend({}, data, {
+            FunctionCode: ('ROUTE_ORG_INSORUPDA')
+        });
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+//                    $('#l_dg').tree('reload');
+                    InitLeftDataGrid()
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return false;
+    }
+
+    //    function InitEditForm_() {
+    //        var $form = $("#myform");
+    //        $form.form({
+    //            onSubmit: function () {
+    //                alert(111)
+    ////                var isValidate = $(this).form('validate');
+    ////                if (!isValidate) {
+    ////                    return false;
+    ////                }
+    //                var data = $form.serializeObject();
+    //                data = $.extend({}, data, {
+    //                    FunctionCode: ( 'ROUTE_ORG_INSORUPDA')
+    //                });
+    //                InitFuncCodeRequest_({
+    //                    data: data,
+    //                    successCallBack: function (jdata) {
+    //                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+    //                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+    //                            } else {
+    //                                MsgAlert({content: jdata.msg, type: 'error'});
+    //                            }
+    //                    }
+    //                });
+    //                return false;
+    //            }
+    //        });
+    //    }
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,651 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+    <style>
+    </style>
+</head>
+
+<body class="ibody">
+<div style="" id="tt">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <form class="form-horizontal m-t" id="mform">
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <input type="hidden" id="evalNo" name="evalNo"/>
+                    <table class="table table-bordered table-info">
+                        <tr id="view">
+                            <td colspan="6" align="right">
+                                <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                       style="width: 50px;margin:5px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th" align="right" style="width: 80px;">范围类型：</th>
+                            <td class="tdr" style="width: 150px">
+                                <input class="easyui-combobox" id="rangeType" name="rangeType"
+                                       data-options="editable:true" style="width: 150px;"/>
+                            </td>
+                            <th id="pn1" class="th" align="right" style="width: 80px;">件号：</th>
+                            <td id="pn2" class="tdr" style="width: 150px">
+                                <input class="easyui-textbox" id="pn" name="pn"
+                                       data-options="editable:true" style="width: 120px;"/>
+                            </td>
+                            <th id="sn1" class="th" align="right" style="width: 80px;">序号：</th>
+                            <td id="sn2" class="tdr" style="width: 150px">
+                                <input class="easyui-textbox" id="sn" name="sn"
+                                       data-options="editable:true" style="width: 120px;"/>
+                            </td>
+                            <td id="querbtn" class="tdr" style="width: 150px">
+                                <a href="javascript:" id="querySn" onclick="openPnList();" class="easyui-linkbutton"
+                                   iconCls="icon-search"></a>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+    <div id="mlayout" class="easyui-layout" style="height: 500px;">
+        <div id="lay_left" data-options="region:'west',split:false" style="width: 415px;">
+            <fieldset class="fieldset_eui">
+                <legend>未选择</legend>
+                <table id="dg"></table>
+            </fieldset>
+        </div>
+        <div data-options="region: 'center'" style="height: 500px; width: 40px">
+            <input class="btn btn-primary" type="button" onclick="save()" value=">>>"
+                   style="width: 40px;margin:5px; margin-top: 200px"/>
+            <input class="btn btn-primary" type="button" onclick="cancel()" value="<<<"
+                   style="width:40px;margin:5px; margin-top: 5px"/>
+        </div>
+        <div id="lay_right" data-options="region:'east'" style="width: 415px">
+            <fieldset class="fieldset_eui">
+                <legend>已选择</legend>
+                <table id="dg2"></table>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var evapkid;
+    var applType;
+    var pkid;
+    var rangeType;
+    var PAGE_DATA = {};
+    var groupid;
+    var fleet;
+    var pn;
+    var sn;
+    var applyModel;
+    var sflag;
+    var ranPkid;
+    var rfjzch = "";
+    var rangValues = [];
+    var rvalues;
+    var pnValues = "";
+    var beforeExpValues = "";
+    var afterExpValues = "";
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        evapkid = param.evapkid;
+        applType = param.applType;
+        rangeType = param.rangeType;
+        groupid = param.groupid;
+        pkid = param.ranPkid;
+        fleet = param.fleet;
+        applyModel = param.applyModel;
+        sflag = param.sflag;
+        ranPkid = param.ranPkid;
+        rvalues = param.rvalues;
+        pnValues = param.pnValue;
+        beforeExpValues = param.beforeExpValue;
+        afterExpValues = param.afterExpValue;
+        if (typeof(pkid) == 'undefined' || pkid == 'undefined') {
+            pkid = "-1";
+        } else {
+            $("#pkid").val(pkid);
+        }
+
+        if (sflag != "add") {
+            $("#rangeType").combobox({onlyview: true, editable: false});
+        }
+        if (operation == "view") {
+            $("#view").hide();
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EXP_OP,YESORNO,EM_FILE_APL_RANGE_TYPE,EM_FILE_APL_RANGE_TYPE_S,EM_FILE_PART_RANGE_TYPE,EM_FILE_ENG_RANGE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (applType == "APL") {
+                        if (fleet == "B737" || fleet == "B757") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        } else if (fleet == "B747" || fleet == "B767") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE_S,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        } else {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        }
+                    } else if (applType == "PART") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_PART_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    } else if (applType == "ENG") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_ENG_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    }
+                }
+
+//                checked();
+                //给范围类型设置值
+                $('#rangeType').combobox('setValue', rangeType);
+
+                InitDataGrid();
+                InitDataGrid2();
+            }
+        });
+    }
+
+    function checked() {
+        var strs = [];
+        if (rvalues.indexOf(";") != -1) {
+            strs = rvalues.split(";");
+            for (var i = 0; i < strs.length; i++) {
+                rangValues[i] = strs[i];
+            }
+        } else {
+            rangValues[0] = rvalues;
+        }
+    }
+
+    function openPnList() {
+        if (rangeType == "ENGSERI") {
+            pn = $("#pn").textbox("getValue");
+            sn = $("#sn").textbox("getValue");
+        } else if (rangeType == "PN") {
+            pn = $("#pn").textbox("getValue");
+        } else if (rangeType == "SN") {
+            pn = $("#pn").textbox("getValue");
+            sn = $("#sn").textbox("getValue");
+        }
+
+        InitDataGrid();
+    }
+
+
+    function InitDataGrid() {
+        var func = "";
+        if (rangeType == "ENGSERI") {
+            func = "EM_FILE_ENGSERI_LIST";
+            $("#pn1").show();
+            $("#pn2").show();
+            $("#sn1").show();
+            $("#sn2").show();
+            $("#dg").MyDataGrid({
+                identity: 'dg',
+                sortable: true,
+                fitcolumn: true,
+                enableLineEdit: true,
+                queryParams: {pkid: pkid, pn: pn, sn: sn},
+                enableCellEdit: true,
+                resize: function () {
+                    return {width: 400, height: 460}
+                },
+                columns: {
+                    param: {FunctionCode: func}
+                }
+            });
+        } else if (rangeType == "PN") {
+            $("#pn1").show();
+            $("#pn2").show();
+            $("#sn1").hide();
+            $("#sn2").hide();
+            func = "EM_FILE_PN_LIST";
+            $("#dg").MyDataGrid({
+                identity: 'dg',
+                sortable: true,
+                fitcolumn: true,
+                enableLineEdit: true,
+                queryParams: {pkid: pkid, pn: pn, sn: sn},
+                enableCellEdit: true,
+                resize: function () {
+                    return {width: 400, height: 460}
+                },
+                columns: {
+                    param: {FunctionCode: func}
+                }
+            });
+        } else if (rangeType == "SN") {
+            $("#pn1").show();
+            $("#pn2").show();
+            $("#sn1").show();
+            $("#sn2").show();
+            func = "EM_FILE_SN_LIST";
+            $("#dg").MyDataGrid({
+                identity: 'dg',
+                sortable: true,
+                fitcolumn: true,
+                enableLineEdit: true,
+                queryParams: {
+                    pkid: pkid, pn: pn, sn: sn, pnValues: pnValues,
+                    beforeExpValues: beforeExpValues, afterExpValues: afterExpValues
+                },
+                enableCellEdit: true,
+                resize: function () {
+                    return {width: 400, height: 460}
+                },
+                columns: {
+                    param: {FunctionCode: func}
+                }
+            });
+        }
+
+    }
+
+    // 适用性
+    function reload2() {
+        $("#dg2").datagrid("reload");
+    }
+
+    function reload() {
+        $("#dg").datagrid("reload");
+    }
+
+    function InitDataGrid2() {
+        var func = "";
+        if (rangeType == "ENGSERI") {
+            func = "EM_FILE_ENGSERI_RANGE_VALUE_LIST";
+        } else if (rangeType == "PN") {
+            func = "EM_FILE_PN_RANGE_VALUE_LIST";
+        } else if (rangeType == "SN") {
+            func = "EM_FILE_SN_RANGE_VALUE_LIST";
+        }
+
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            sortable: true,
+            fitcolumn: true,
+            enableLineEdit: true,
+            queryParams: {pkid: pkid},
+            enableCellEdit: true,
+            resize: function () {
+                return {width: 400, height: 460}
+            },
+            columns: {
+                param: {FunctionCode: func},
+                alter: {}
+            },
+            onLoadSuccess: function (index, row) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            contextMenus: [
+            ],
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+                // editDate(index, row, changes);
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var rows = $('#dg').datagrid('getChecked');
+        if (!rows || rows.length == 0) {
+            MsgAlert({content: '请从未选择中至少选择一条记录', type: 'error'});
+            return;
+        }
+        //校验同范围类型不允许重复添加
+        ajaxLoading();
+        var rangeType = $("#rangeType").textbox('getValue');
+        var curCou = 0;
+        InitFuncCodeRequest_({
+            data: {groupid: groupid, rangeType: rangeType, pkid: pkid, FunctionCode: 'EM_FILE_CHECK_RANGE_TYPE'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        curCou = jdata.data.COU;
+                    }
+
+                    if (curCou != 0) {
+                        MsgAlert({content: "范围类型重复，请重新选择！", type: 'error'});
+                        ajaxLoadEnd();
+                        return;
+                    }
+                    //序列化列表数据
+                    var pkids = "";
+                    var pns = "";
+                    var rows = $('#dg').datagrid('getChecked');
+                    for (i = 0; i < rows.length; i++) {
+                        rows[i] = toCamelCase(rows[i]);
+                        pkids = pkids + "," + rows[i].engid;
+                        pns = pns + "," + rows[i].rangeValue;
+                    }
+                    pkids = pkids.substring(1, pkids.length);
+                    pns = pns.substring(1, pns.length);
+                    var detailData = JSON.stringify(rows);
+
+
+                    if (rangeType == 'ENGSERI' || rangeType == 'SN') {
+                        checkSeri(pkids);
+                    } else if (rangeType == 'PN') {
+                        checkPn(pns);
+                    }
+                    if (rfjzch != "" && rangeType != 'PN') {
+                        if (rangeType == 'PN') {
+                            MsgAlert({content: "以下件号已经存在：" + rfjzch, type: 'error'});
+                        } else {
+                            MsgAlert({content: "以下序号已经存在：" + rfjzch, type: 'error'});
+                        }
+                        ajaxLoadEnd();
+                        return;
+                    }
+
+                    var isValidate = $("#mform").form('validate');
+                    if (!isValidate)
+                        return;
+                    var $form = $("#mform");
+                    var mainData = JSON.stringify($('#mform').serializeObject());
+                    InitFuncCodeRequest_({
+                        data: {
+                            detailData: detailData,
+                            mainData: mainData,
+                            groupid: groupid,
+                            evapkid: evapkid,
+                            pkid: pkid,
+                            rangeType: rangeType,
+                            FunctionCode: "EM_FILE_EVAL_APPLIC_SN_SAVE"
+                        },
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                if (jdata.data != null) {
+                                    pkid = jdata.data.pkid;
+                                    $("#pkid").val(pkid);
+                                    InitDataGrid();
+                                    InitDataGrid2();
+
+                                    param.OWindow.preload_();
+                                    param.OWindow.parReload("#dg4");
+                                    ajaxLoadEnd();
+                                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                }
+
+                            } else {
+                                ajaxLoadEnd();
+                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                            }
+                        }
+                    });
+
+                } else {
+                    ajaxLoadEnd();
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function cancel() {
+        var rangeType = $("#rangeType").textbox('getValue');
+        //序列化列表数据
+        var rows = $('#dg2').datagrid('getChecked');
+        if (!rows || rows.length == 0) {
+            MsgAlert({content: '请从已选择中至少选择一条记录', type: 'error'});
+            return;
+        }
+        ajaxLoading();
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var mainData = JSON.stringify($('#mform').serializeObject());
+        var mpTypes;
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+            mpTypes = mpTypes + "、" + rows[i].rangeValue;
+        }
+
+        var detailData = JSON.stringify(rows);
+        mpTypes = mpTypes.substring(1, mpTypes.length);
+        InitFuncCodeRequest_({
+            data: {
+                detailData: detailData,
+                mainData: mainData,
+                evapkid: evapkid,
+                groupid: groupid,
+                rangeType: rangeType,
+                pkid: pkid,
+                FunctionCode: "EM_FILE_EVAL_ENGSERI_VALUE_DEL"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        pkid = jdata.data.pkid;
+                    } else {
+                        pkid = '-1';
+                    }
+                    $("#pkid").val(pkid);
+                    param.OWindow.preload_();
+                    param.OWindow.parReload("#dg4");
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    if (pkid == '-1') {
+                        CloseWindowIframe();
+                    } else {
+                        InitDataGrid();
+                        InitDataGrid2();
+                    }
+                    reload2();
+                    reload();
+                    ajaxLoadEnd();
+                } else {
+                    ajaxLoadEnd();
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    //页面重新加载
+    function setPages(rangeType) {
+        if (rangeType == "") {
+            window.location.href = '/views/em/emfileeval/applic/addAllApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+            window.resizeTo("550", "300");
+        }
+        if (applType == "APL") {
+            if (rangeType == 'JXXL' || rangeType == 'ENG' || rangeType == 'GZCS' || rangeType == 'FJZCH') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'FJXH' || rangeType == 'PTF' || rangeType == 'FJKBH') {
+                window.location.href = '/views/em/emfileeval/applic/addLineNoApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            }
+        } else if (applType == "ENG") {
+            if (rangeType == 'ENG' || rangeType == 'ENGSUB') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'ENGSERI') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("900", "700");
+            }
+        } else if (applType == "PART") {
+            if (rangeType == 'DESC') {
+                window.location.href = '/views/em/emfileeval/applic/addDescApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("550", "250");
+            } else if (rangeType == 'PN' || rangeType == 'SN') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("900", "700");
+            }
+        }
+    }
+
+
+    function checkSeri(pkids) {
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                groupid: groupid,
+                groupid: groupid,
+                pkids: pkids,
+                FunctionCode: 'EM_FILE_CHECK_SERI'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            evapkid: evapkid,
+                                            groupId: groupid,
+                                            serialnum: taskArray[j].SERIALNUM,
+                                            FunctionCode: 'EM_FILE_CHECK_SERI_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].SERIALNUM + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkPn(pns) {
+        InitFuncCodeRequest_({
+            data: {evapkid: evapkid, groupid: groupid, groupid: groupid, pns: pns, FunctionCode: 'EM_FILE_CHECK_PN'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            evapkid: evapkid,
+                                            groupId: groupid,
+                                            partno: taskArray[j].PARTNO,
+                                            FunctionCode: 'EM_FILE_CHECK_PN_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].PARTNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</html>

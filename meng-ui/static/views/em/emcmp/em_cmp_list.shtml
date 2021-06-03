@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">维修方案管理</title>
+</head>
+<body class="ibody">
+
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:true" style="width: 18%;">
+        <ul id="locTree" class="easyui-tree"></ul>
+    </div>
+
+    <div id="lay_right" data-options="region:'center'">
+
+            <span>
+
+                   <!--    <a href="#" class="" onclick="addTab('机队1','/views/em/emcmp/em_cmp_wxfa_list.shtml')">机队1</a>
+                       <a href="#" class="" onclick="addTab('MP项目查询','/views/em/emcmp/em_cmp_mpxm_list.shtml')">MP项目查询</a>
+                       <a href="#" class="" onclick="addTab('具体版次的方案','/views/em/emcmp/em_cmp_jtbcfa_list.shtml')">具体版次的方案</a>
+                      <a href="#" class="" onclick="addTab('有效页清单','/views/em/emcmp/em_cmp_effective_list.shtml')">有效清单</a>
+                      <a href="#" class="" onclick="addTab('适用机号范围','/views/em/emcmp/em_cmp_acMain_list.shtml')">适用机号范围</a>
+                      <a href="#" class="" onclick="addTab('修订记录','/views/em/emcmp/em_cmp_xdjj_list.shtml')">修订记录</a>
+                      <a href="#" class="" onclick="addTab('MP项目清单','/views/em/emcmp/em_cmp_xmqd_list.shtml')">MP项目清单</a>
+                      <a href="#" class="" onclick="addTab('文件维护具体版次','/views/em/emcmp/em_cmp_prolog.shtml')">文件维护具体版次</a>
+                      <a href="#" class="" onclick="addTab('适用机号范围[具体版次]页面','/views/em/emcmp/em_cmp_acMain_list.shtml')">适用机号范围[具体版次]页面</a>
+                     </br>
+                     <a href="#" class="" onclick="addTab('修订记录','/views/em/emcmp/em_cmp_xdjj_list.shtml')">	修订记录</a>
+                <a href="#" class="" onclick="addTab('修订记录','/views/em/emcmp/em_cmp_pntl_list.shtml')">	查询部件信息</a>-->
+                 </span>
+
+        <div id="tt2" class="easyui-tabs" fit="true"></div>
+    </div>
+</div>
+</div>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var objUrl = {};
+    var urlMiaoshu = {};
+
+    function i18nCallBack() {
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_CMP_OBJ_URL,EM_CMP_OBJ_LINK",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    objUrl = DomainCodeToMap_(jdata.data["EM_CMP_OBJ_URL"]);
+                    urlMiaoshu = DomainCodeToMap_(jdata.data["EM_CMP_OBJ_LINK"]);
+                    getTree();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function getTree() {
+        FuncCode_ = 'EM_CMP_LIST_TREE';
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams = $.extend({}, queryParams, {FunctionCode: FuncCode_});
+        InitFuncCodeRequest_({
+            data: queryParams,
+            successCallBack: function (jdata) {
+                if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+                    layer.msg(jdata.msg, {icon: 5});
+                    return;
+                }
+                var treeData = HandleTreeData_(jdata.data, 'pid');
+                var tdata_ = WarpTreeGridData_(treeData, "000", ['id', 'pid']);
+
+                if (!tdata_) {
+                    return;
+                }
+
+                $("#locTree").tree({
+                    data: tdata_,
+                    lines: true,
+                    animate: true,
+                    onLoadSuccess: function () {
+                        $("#locTree").tree("collapseAll");
+                    },
+                    formatter: function (tdata_) {
+                        return tdata_.name;
+                    },
+                    onContextMenu: function (e, node) {
+                        e.preventDefault();
+                        // 查找节点
+                        $('#tt').tree('select', node.target);
+                        // 显示快捷菜单
+                        $('#mm').menu('show', {
+                            left: e.pageX,
+                            top: e.pageY
+                        });
+                    },
+                    onClick: function (node) {
+                        var node = $('#locTree').tree('getSelected');
+                        if (node.type == "jd") {
+                            var fleet = node.oid;
+                            addTab('机队', '/views/em/emcmp/em_cmp_wxfa_list.shtml' + '?fleet=' + fleet);
+                        } else if (node.type == "xmcx") {
+                            var fleet = node.pid;
+                            addTab('MP项目查询', '/views/em/emcmp/em_cmp_mpxm_list.shtml' + '?fleet=' + fleet);
+                        } else if (node.type == "qyfl") {
+                            var fleet = node.pid;
+                            addTab('前言附录审批', '/views/em/emcmp/em_cmp_approval_form_list.shtml' + '?fleet=' + fleet);
+                        } else if (node.type == 'jtbc') {
+                            var configMsg = node.name;
+                            configMsg = configMsg.replace('/', '-');
+                            var oid = node.oid;
+                            var fleet = node.pid;
+                            var op = node.operator;
+                            var name = node.name;
+                            addTab('具体版次的方案', '/views/em/emcmp/em_cmp_jtbcfa_list.shtml' + '?oid=' + oid + '&configMsg=' + configMsg + '&fleet=' + fleet + '&op=' + op + '&name=' + name)
+                        } else if (objUrl[node.type]) {
+                            var oid = node.oid;
+                            var cmpPkid = node.cmpPkid;
+                            addTab(urlMiaoshu[node.type], objUrl[node.type] + '?oid=' + oid + '=' + cmpPkid);
+                        } else if (node.type == "gbdl") {
+                            var oid = node.oid;
+                            addTab('方案改版队列', '/views/em/emcmp/em_cmp_fagbdl_list.shtml' + '?oid=' + oid)
+                        } else if (node.type == "REV") {
+                            var cmpPkid = node.cmpPkid;
+                            addTab('修订记录', '/views/em/emcmp/em_cmp_rev_list.shtml' + '?cmpPkid=' + cmpPkid)
+                        } else if (node.type == "DIR") {
+                            addTab('amro', '/views/em/emcmp/em_background.shtml')
+                        }
+                    }
+                }).css({padding: '5px'});
+                $("#locTree").tree('doFilter');
+            }
+        });
+    }
+
+    function addTab(title, url) {
+        if ($('#tt2').tabs('exists', title)) {
+            var tab = $('#tt2').tabs('getSelected');  // 获取选择的面板
+            $('#tt2').tabs('close', title);
+            var content = '<iframe scrolling="auto" frameborder="0" src="' + url + '" style="width:100%;height:100%;"></iframe>';
+            $('#tt2').tabs('add', {
+                title: title,
+                content: content,
+                closable: true
+            });
+        } else {
+            var content = '<iframe scrolling="auto" frameborder="0" src="' + url + '" style="width:100%;height:100%;"></iframe>';
+            $('#tt2').tabs('add', {
+                title: title,
+                content: content,
+                closable: true
+            });
+        }
+    }
+
+    $('#tt2').tabs({
+        onBeforeClose: function (title, index) {
+            if (urlMiaoshu['FILE'] == title || urlMiaoshu['ED_FILE'] == title) {
+                alert("若修订附件，请注意上传最新版!");
+            }
+
+        }
+    });
+
+    function shaxintree() {
+        getTree();
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+</script>
+</body>
+</html>

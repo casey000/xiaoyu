@@ -1,0 +1,217 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">备发预测</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 10%">
+    <fieldset class="fieldset_eui">
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">发动机型号：</th>
+                    <td style="width: 150px" class="td5">
+                        <input class="easyui-combobox" id="engType" name="engType" style="width:150px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">日期：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="forecastDateFrom" name="forecastDateFrom"
+                               style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">至：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="forecastDateEnd" name="forecastDateEnd" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="loadEcharts()"><span>查询</span></a>
+                        <a href="javascript:void(0)" class="ridoBtn" data-options="iconCls:'icon-search'"
+                           onclick="doCompute()" auth="ENG_RX_EMERGENCY1"><span>重新预测</span></a>
+                        <a href="javascript:void(0)" class="addBtn" onclick="showArgs()" auth="ENG_RX_EMERGENCY2"><span>备发数量变更</span></a>
+                        <a href="javascript:void(0)" class="addBtn" onclick="showTempInfo()"><span>备发数量详情</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <!--<table id="dg"></table>-->
+</div>
+<div style="width:100%; height: 80%">
+    <div id="main" style="width:1000px;height:600px;"></div>
+</div>
+<script>
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngTypeNew",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#engType').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        loadEcharts();
+    }
+
+    function loadEcharts() {
+
+        var myChart = echarts.init(document.getElementById('main'));
+
+        var queryParams = $("#ffSearch").serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            data: queryParams,
+            path: "/meng-engine/rxEmergency/queryForChart",
+            successCallBack: function (data) {
+
+                var legendData = [];
+                var xAxisData = [];
+                var seriesData = [];
+
+                for (var i = 0; i < data.length; i++) {
+                    var engType = data[i].engType;
+                    var forecastDate = changeDateFormat(data[i].forecastDate);
+                    var emergencyQty = data[i].emergencyQty;
+                    if (legendData.indexOf(engType) === -1) {
+                        legendData.push(engType);
+                        seriesData.push({
+                            name: engType,
+                            type: "line",
+                            smooth: false,
+                            data: [emergencyQty],
+                            label: {
+                                normal: {
+                                    show: true,
+                                    position: "top"
+                                }
+                            }
+                        })
+                    } else {
+                        seriesData[seriesData.length - 1].data.push(emergencyQty);
+                    }
+                    xAxisData.indexOf(forecastDate) === -1 ? xAxisData.push(forecastDate) : null;
+                }
+
+                // 指定图表的配置项和数据
+                var option = {
+                    title: {
+                        text: '备发数量预测'
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: legendData
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '5%',
+                        containLabel: true
+                    },
+                    toolbox: {
+                        feature: {
+                            saveAsImage: {}
+                        }
+                    },
+                    xAxis: {
+                        data: xAxisData,
+                        axisLabel: {
+                            lineHeight: 150,
+                            rotate: -60
+                        },
+                        offset: -10
+                    },
+                    yAxis: {
+                        type: 'value',
+                        minInterval: 1
+                    },
+                    series: seriesData
+                };
+
+                myChart.setOption(option, true);
+            }
+        });
+    }
+
+    function showArgs() {
+        var title_ = $.i18n.t('备发数量变更');
+        ShowWindowIframe({
+            width: "970",
+            height: "570",
+            title: title_,
+            url: "/views/engine/rx/emergency/eng_rx_emergency_arg_list.shtml"
+        });
+    }
+
+    function showTempInfo() {
+        var queryParams = $("#ffSearch").serializeObject();
+        var title_ = $.i18n.t('备发数量详情');
+        ShowWindowIframe({
+            width: "970",
+            height: "570",
+            title: title_,
+            param: {queryData: queryParams},
+            url: "/views/engine/rx/emergency/eng_rx_emergency_arg_temp.shtml"
+        });
+    }
+
+    function doCompute() {
+        MaskUtil.mask('正在计算...');
+        InitGatewayRequest_({
+            path: "/meng-engine/rxEmergency/compute",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    loadEcharts();
+                    MaskUtil.unmask();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function changeDateFormat(cellval) {
+        if (cellval != null) {
+            var date = new Date(parseInt(cellval, 10));
+            var month = date.getMonth() + 1 < 10 ? "0" + (date.getMonth() + 1) : date.getMonth() + 1;
+            var currentDate = date.getDate() < 10 ? "0" + date.getDate() : date.getDate();
+            return date.getFullYear() + "-" + month + "-" + currentDate;
+        }
+    }
+
+</script>
+</body>
+</html>

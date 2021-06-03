@@ -1,0 +1,326 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">查看改变量</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 50px">机号：</th>
+                    <td>
+                        <input class="easyui-combobox" name="acno" id="acno" data-options=""
+                               style="width:80px;" />
+                    </td>
+                    <th data-i18n="" style="width: 50px">机型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fleet" id="fleet" data-options=""
+                               style="width:80px;" />
+                    </td>
+                    <th data-i18n="" style="width: 99px">称重报告编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="reportNo" id="reportNo" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">称重日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="startDate" id="startDate" data-options=""
+                               style="width:120px;"/>至
+                        <input class="easyui-datebox" name="endDate" id="endDate" data-options=""
+                               style="width:120px;"/>
+
+                    </td>
+                    <th data-i18n="" style="width: 50px">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="status" id="status" data-options="editable:false"
+                               style="width:120px;" />
+                    </td>
+
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="searchData()"
+                           >查询</a>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="addOrUpdate('', '', 'add')"
+                           >增加</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var acno;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        acno = param.acno ? param.acno : '';
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_MAN_ACNO,EM_WB_REPORT_STATUS,EM_WB_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data["DA_ACREG_MAN_ACNO"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_WB_REPORT_STATUS"]);
+                    PAGE_DATA['EM_WB_FLEET'] = DomainCodeToMap_(jdata.data["EM_WB_FLEET"]);
+                    $('#acno').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DA_ACREG_MAN_ACNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.EM_WB_REPORT_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#fleet').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.EM_WB_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if(acno){
+                        $('#acno').combobox('setValue', acno);
+                    }
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 10,
+            queryParams: {acno : acno},
+            columns: {
+                param: {FunctionCode: 'EM_WB_REPORT_LIST'},
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        addOrUpdate(rowdata.PKID, rowdata.REPORT_NO, 'edit');
+
+                    }
+                },
+                {
+                    id: "m-upload", i18nText: "上传附件", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_uploadFile({
+                            identity: 'dg',
+                            param: {
+                                cat: "emWbReport",
+                                sourceId: rowData.PKID,
+                                successCellBack: "",
+                                fialCellBack: ""
+                            },
+                        });
+                        reload_();
+
+                    }
+                },
+                {
+                    id: "m-submit", i18nText: "提交", auth: "",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        var pkid = rowData.PKID;
+                        if(!rowData.REPORT_NO){
+                            MsgAlert({content: '请选择记录！',type: 'error'});
+                            return;
+                        }
+                        var size = 0;
+                        InitFuncCodeRequest_({
+                            data: {    SOURCE_ID: pkid,
+                                CATEGORY:"emWbReport",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'},
+                            async: false,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    if (jdata.data != null) {
+                                        size = jdata.data.length;
+                                    }
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        });
+                        if (!(size > 0)) {
+                            if (!confirm("称重报告未上传附件，确认是否提交？")) {
+                                return;
+                            }
+                        }
+
+                        common_add_edit_({
+                            identity: '', isEdit: '', width: 520, height : 300,title:$.i18n.t('选择审批人'),
+                            param: {pkid : rowData.PKID, roleId: '',otherParam: rowData.REPORT_NO,FunctionCode_:'EM_WB_REPORT_SUBMIT',successCallback: reload_},
+                            url: "/views/em/workflow/work_flow_account_select.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if(!rowData.PKID){
+                            MsgAlert({content: '请选择记录！',type: 'error'});
+                            return;
+                        }
+                        ajaxLoading();
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'EM_WB_REPORT_DEL_PKID'},
+                            successCallBack: function (jdata) {
+                                ajaxLoadEnd();
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    reload_();
+                                    MsgAlert({content: '操作成功'});
+                                } else {
+                                    MsgAlert({content: '操作失败', type: "error"});
+                                }
+                            }
+                        });
+
+                    }
+                },
+            ],
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "emWbReport",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    //当资料状态为已发布时，不允许删除附件
+                                    if (row.STATUS != 'BXZ') {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                    } else {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                    }
+
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            validAuth: function (row, items) {
+                if (row.STATUS != "BXZ") {
+                    if(row.STATUS != "RWTH"){
+                        items['编辑'].enable = false;
+                        items['上传附件'].enable = false;
+                    }
+                    items['提交'].enable = false;
+                    if(row.STATUS != 'RWTH'){
+                        items['删除'].enable = false;
+                    }
+                }
+            }
+
+        });
+    }
+
+
+    function addOrUpdate(pkid, reportNo, operation) {
+        var acno = $('#acno').combobox('getValue');
+        if(!acno && operation == 'add'){
+            MsgAlert({content: "请先选择机号！", type: 'error'});
+            return;
+        }
+        var reqCou = 0;
+        InitFuncCodeRequest_({
+            data: {acno: acno, FunctionCode: 'EM_WB_REQ_COU'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        reqCou = jdata.data.COU;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+        if (reqCou > 0 && operation == 'add') {
+            MsgAlert({content: "已经存在非生效/归档状态的数据，不允许新增！", type: 'error'});
+            return;
+        }
+        ShowWindowIframe({
+            width: 900,
+            height: 350,
+            title: "新增载重平衡改变量",
+            param:{
+                acno : acno,
+                pkid : pkid,
+                reportNo : reportNo,
+                operation : operation
+            },
+            url: "/views/em/emwb/em_wb_report_add.shtml"
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+
+
+</script>
+</body>
+</html>

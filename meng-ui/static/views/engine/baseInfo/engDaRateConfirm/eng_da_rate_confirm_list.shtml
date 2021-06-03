@@ -1,0 +1,258 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">发动机日利用率确认</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">机型：</th>
+                    <td style="width: 120px">
+                        <input class="easyui-combobox" id="mpActype" name="mpActype" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">机型系列：</th>
+                    <td style="width: 120px">
+                        <input class="easyui-combobox" id="modelSeries" name="modelSeries" style="width:120px;"/>
+                    </td>
+
+                    <th class="th" style="width:60px;" align="right">机号：</th>
+                    <td style="width: 120px">
+                        <input class="easyui-combobox" id="acno" name="acno" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">年月：</th>
+                    <td style="width: 120px">
+                        <input class="easyui-textbox" id="yearMonth" name="yearMonth" style="width:120px;"/>
+                    </td>
+                    <td>
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchClick();"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_MP_FLEET,DA_ACREG_MODEL_SERIES",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#acno').combobox({ //机号
+                        panelHeight: '120px',
+                        queryParams: {modelSeries: ''},
+                        url: Constant.API_URL + 'DA_MODEL_SERIES_GET_ACNOS',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        loadFilter: function (jdata1) {
+                            return jdata1.data;
+                        }
+                    });
+                    $('#modelSeries').combobox({ //机型系列
+                        panelHeight: '120px',
+                        queryParams: {acType: ''},
+                        url: Constant.API_URL + 'DA_ACTYPE_GET_MODEL_SERIES',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        loadFilter: function (jdata1) {
+                            return jdata1.data;
+                        }
+                    });
+                    $('#modelSeries').combobox({ //机型系列
+                        panelHeight: '120px',
+                        queryParams: {acType: ''},
+                        url: Constant.API_URL + 'DA_ACTYPE_GET_MODEL_SERIES',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        loadFilter: function (jdata1) {
+                            return jdata1.data;
+                        },
+                        onSelect: function (item2) {
+                            $('#acno').combobox({ //机型系列
+                                panelHeight: '120px',
+                                queryParams: {modelSeries: item2.VALUE},
+                                url: Constant.API_URL + 'DA_MODEL_SERIES_GET_ACNOS',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                loadFilter: function (jdata2) {
+                                    return jdata2.data;
+                                }
+                            })
+                        }
+                    });
+                    //机型
+                    $("#mpActype").combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.DA_MP_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            $('#modelSeries').combobox({ //机型系列
+                                panelHeight: '100px',
+                                queryParams: {acType: item.VALUE},
+                                url: Constant.API_URL + 'DA_ACTYPE_GET_MODEL_SERIES',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                loadFilter: function (jdata) {
+                                    return jdata.data;
+                                },
+                                onSelect: function (item1) {
+                                    $('#acno').combobox({ //机型系列
+                                        panelHeight: '120px',
+                                        queryParams: {modelSeries: item1.VALUE},
+                                        url: Constant.API_URL + 'DA_MODEL_SERIES_GET_ACNOS',
+                                        valueField: 'VALUE',
+                                        textField: 'TEXT',
+                                        loadFilter: function (jdata1) {
+                                            return jdata1.data;
+                                        }
+                                    })
+                                }
+                            });
+                        }
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var data_ = [];
+        //验证网关查询接口
+        var queryParams = $("#ffSearch").serializeObject();
+        $('#dg').GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engDaRateConfirm/engDaRateConfirmlistByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_DA_RATE_CONFIRM_LIST'},
+                alter: {
+                    eqart: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['eqart'][value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "确认",
+                    auth: "ENG_DA_RATE_CONFIRM_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        editOrViewEngDaRateConfirmInfo(rowData);
+                    }
+                }
+            ]
+        });
+    }
+
+    function onSearchClick() {
+        InitDataGrid();
+    }
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        i18nCallBack();
+    }
+
+    //编辑或查看发动机日利用率信息
+    function editOrViewEngDaRateConfirmInfo(rowData) {
+        var pkid = "";
+        if (rowData) {
+            pkid = rowData.pkid;
+        }
+        var title_ = $.i18n.t('发动机日利用率确认');
+        ShowWindowIframe({
+            width: "620",
+            height: "400",
+            title: title_,
+            param: {pkid: pkid},
+            url: "/views/engine/baseInfo/engDaRateConfirm/eng_da_rate_confirm_edit_view.shtml"
+        });
+    }
+
+    function reload_() {
+        InitDataGrid();
+    }
+
+    //获取重置后的机号
+    function getAcnosForReset() {
+        //机号
+        $('#acno').combobox({
+            panelHeight: '100px',
+            url: Constant.API_URL + 'DA_GET_ACNOS',
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            loadFilter: function (jdata) {
+                return jdata.data;
+            }
+        });
+    }
+
+    //获取重置后的机型系列
+    function getModelSeriesForReset() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_MODEL_SERIES",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata3) {
+                if (jdata2.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#modelSeries').combobox({ //机型系列
+                        panelHeight: '120px',
+                        data: jdata3.data.DA_ACREG_MODEL_SERIES,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata3.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

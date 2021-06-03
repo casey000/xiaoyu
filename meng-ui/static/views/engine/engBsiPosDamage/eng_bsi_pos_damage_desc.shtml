@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>特征描述关联</title>
+</head>
+<body class="ibody">
+<div id="tt" style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <div id="p0" class="easyui-panel" title="特征描述关联" style="width: 100%;"></div>
+        </div>
+    </div>
+    <div id="mlayout" class="easyui-layout" style="height: 500px;">
+        <div id="lay_left" data-options="region:'west'" style="width:49%">
+            <fieldset class="fieldset_eui">
+                <div id="p1" class="easyui-panel" title="缺陷位置及特征尺寸库" style="width: 100%;"></div>
+                <table id="dg"></table>
+            </fieldset>
+        </div>
+        <div data-options="region: 'center'" style="height: 500px; width: 6%">
+            <input class="btn btn-primary" type="button" onclick="save()" value=">>>"
+                   style="float:left;width:40px;margin-top: 200px;margin-left:28px "/>
+            <input class="btn btn-primary" type="button" onclick="cancel()" value="<<<"
+                   style="float:left;width:40px;margin-top: 5px;margin-left:28px"/>
+        </div>
+        <div id="lay_right" data-options="region:'east'" style="width: 44%">
+            <fieldset class="fieldset_eui">
+                <div id="p2" class="easyui-panel" title="结构化设置-特征描述" style="width: 100%;"></div>
+                <table id="dg1"></table>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var PAGE_DATA = [];
+
+    var title;
+    var currentMenuId;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        title = param.title;
+        currentMenuId = param.pkid;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_BSI_POS_OR_CD,ENG_BSI_UNIT",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['posCd'] = DomainCodeToMap_(jdata.data["ENG_BSI_POS_OR_CD"]);
+                    PAGE_DATA['unit'] = DomainCodeToMap_(jdata.data["ENG_BSI_UNIT"]);
+                    if (currentMenuId) {
+                        //缺陷位置及特征尺寸库
+                        InitDataGrid(currentMenuId);
+                        //孔探-位置及缺陷设置明细
+                        InitDataGrid2(currentMenuId);
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //缺陷位置及特征尺寸库
+    function InitDataGrid(damageId) {
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: {
+                posDamageId: damageId
+            },
+            pagination: true,
+            path: "/meng-engine/engBsiPosDamage/selectBsiPosCdListByDamageId",
+            fitcolumn: true,
+            resize: function () {
+                return {width: 610, height: 452};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_BSI_POS_CD_NOT_SELECTED'},
+                alter: {
+                    posCd: {
+                        formatter: function (value) {
+                            return PAGE_DATA['posCd'][value];
+                        }
+                    },
+                    unit: {
+                        formatter: function (value) {
+                            return PAGE_DATA['unit'][value];
+                        }
+                    }
+                }
+            },
+            contextMenus: []
+        });
+    }
+
+    //孔探-位置及缺陷设置明细
+    function InitDataGrid2(damageId) {
+        var identity = 'dg1';
+        $("#dg1").GatewayDataGrid({
+            identity: 'dg1',
+            queryParams: {
+                posDamageId: damageId
+            },
+            pagination: true,
+            path: "/meng-engine/engBsiPosDamage/selectBsiPosDamageDetailList",
+            fitcolumn: true,
+            resize: function () {
+                return {height: 452, width: 546};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_BSI_POS_CD_SELECTED'},
+                alter: {
+                    posCdFlag: {
+                        formatter: function (value) {
+                            return PAGE_DATA['posCd'][value];
+                        }
+                    },
+                    unit: {
+                        formatter: function (value) {
+                            return PAGE_DATA['unit'][value];
+                        }
+                    }
+                }
+            },
+            contextMenus: []
+        });
+    }
+
+    //选择
+    function save() {
+        //序列化列表数据
+        var rows = $('#dg').datagrid('getChecked');
+        if (!rows || rows.length == 0) {
+            MsgAlert({content: '请至少选择一条未选择的记录', type: 'error'});
+            return;
+        }
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/addPosCdToPosDamageDetail",
+            data: {
+                engBsiPosCdList: rows,
+                damageId: currentMenuId
+            },
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    InitDataGrid(currentMenuId);
+                    InitDataGrid2(currentMenuId);
+                    param.OWindow.reload_();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //取消
+    function cancel() {
+        //序列化列表数据
+        var rows = $('#dg1').datagrid('getChecked');
+        if (!rows || rows.length == 0) {
+            MsgAlert({content: '请从已选择中至少选择一条记录', type: 'error'});
+            return;
+        }
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/removePosDamageDetail",
+            data: {
+                engBsiPosDamageDetailList: rows
+            },
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    InitDataGrid(currentMenuId);
+                    InitDataGrid2(currentMenuId);
+                    param.OWindow.reload_();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</html>

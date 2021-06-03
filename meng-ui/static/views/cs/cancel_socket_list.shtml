@@ -1,0 +1,332 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <meta charset="UTF-8">
+    <title>RETURNED MARTERIAL  LIST</title>
+    <link href="/css/nrc/nrc_add.css" rel="stylesheet">
+    <link href="/css/common_new.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/ui.jqgrid.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_new.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_from_me.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/dialog_default.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/easyui.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/ztree/zTreeStyle.css" rel="stylesheet" type="text/css"/>
+    <!-- <link rel="stylesheet" type="text/css" href="/css/easyui/gray/easyui.css"/> -->
+    <link href="/css/common_qc.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/jquery-ui-multiselect/jquery.multiselect.css" rel="stylesheet" type="text/css"/>
+
+
+    <script src="/js/global_var.js"></script>
+
+    <script src="/js/jquery/easyui/jquery-1.8.0.min.js" type="text/javascript"></script>
+
+    <!-- multiSelect -->
+    <script src="/js/jquery-ui-1.8.16.custom.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jquery-ui-multiselect/src/jquery.multiselect.js" type="text/javascript"></script>
+
+    <!-- easy UI -->
+    <script src="/js/jquery/easyui/jquery.easyui.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js" type="text/javascript"></script>
+
+    <!-- Ztree 使用了tree类型的查询条件定义则需要引入此js -->
+    <script src="/js/jquery/ztree/jquery.ztree.core-3.4.js" type="text/javascript"></script>
+    <script src="/js/jquery/ztree/jquery.ztree.excheck-3.4.js" type="text/javascript"></script>
+
+    <!-- jqGrid-->
+    <script src="/js/jquery/jqGrid/jquery.jqGrid.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jqGrid/i18n/grid.locale-cn.js" type="text/javascript"></script>
+
+    <script src="/js/jquery/lhgdialog/lhgdialog.js" type="text/javascript"></script>
+
+    <script src="/js/sfa-query-1.0.js" type="text/javascript"></script>
+    <script src="/js/date_utils_from_me.js" type="text/javascript"></script>
+    <script src="/js/sfa-executor.js" type="text/javascript"></script>
+    <script src="/js/sfa-export.js" type="text/javascript"></script>
+
+    <!--<script src="/js/cs/cancel_socket_list.js" type="text/javascript"></script>-->
+    <script src="../../../js/datagrid_utils.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/js/common.js"></script>
+</head>
+
+<body>
+<table class="addnrc_table">
+    <tr>
+        <td class="key" colspan="2">退料单信息<div class="button_a" style="position: absolute;right: 0;top: -4px;">
+            <a class="checking" onclick="addData()">新增退料单</a>
+        </div></td>
+
+
+    </tr>
+    <tr>
+        <td colspan="2">
+            <table class="addnrc_table" id="cc_data">
+                <tr>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%" >MR编号</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">件号</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">序号</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">批次号</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">数量</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">单位</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">退库数量</td>
+                    <td style="background-color:rgb(245, 245, 246) ;width: 6%">航材状态</td>
+                    <td style="background-color:rgb(245, 245, 246) ;width: 6%">退库类型</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">任务航站</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">目的航站</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">是否随机运输</td>
+                    <td style="background-color:rgb(245, 245, 246);width: 6%">差异</td>
+                    <td style="background-color:rgb(245, 245, 246) ;width: 8%">操作</td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+<!--临时进入点start-->
+<!--<div class="button_a">-->
+<!--    <a class="checking" onclick="addNoNumData()">编辑页面临时点击进入点</a>-->
+<!--</div>-->
+<!--临时进入点end-->
+<!--<div class="button_a">-->
+<!--    <a class="checking" onclick="addData()">新增退料单</a>-->
+<!--</div>-->
+</body>
+
+<script type="application/javascript">
+
+    var sub_win, P, s_params = getParentParam_();
+    var obj = {};
+    $(function () {
+        queryCCTable();
+    });
+
+    var fromStation=s_params.fromStation;
+    //添加CC成功后回调函数
+    function queryCCTable() {
+        $.ajax({
+            type: "GET",
+            url: "/api/v1/cancelSock/selectByWorkorderId/" + s_params.workorderId,
+            contentType: "application/json;charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+                if (data.code == 200) {
+                    $(".close_sign").remove();
+                    for (var i in data.data) {
+                        //数量,改装包余料的数量不显示
+                        let qty;
+                        if(data.data[i].cancelStockType == "5"){
+                            qty="";
+                        }else{
+                            qty=data.data[i].qty;
+                        }
+                        let dataStatus=data.data[i].cancelStockStatus;
+                        let offname = "";
+                        if (data.data[i].offName == "" || data.data[i].offName == null) {
+                            offname = data.data[i].onName;
+                        } else {
+                            offname = data.data[i].offName;
+                        }
+                        let offPosition = "";
+                        if (data.data[i].offPosition == "" || data.data[i].offPosition == null) {
+                            offPosition = data.data[i].onPosition;
+                        } else {
+                            offPosition = data.data[i].offPosition;
+                        }
+
+                        //添加操作start
+                        let opration;
+                        if(dataStatus==""||dataStatus==null){
+                            opration = `<td class="table-cell cell-normal" >
+                            <a class="searchBtn" type="button" onclick="update('edit','${data.data[i].id}')" style="margin: 0 5px 0 5px">
+                            <span>编辑</span>
+                            </a>
+                            <a class="searchBtn" type="button" onclick="cs_delete('${data.data[i].id}')" style="margin: 0 5px 0 5px;" >
+                            <span>删除</span>
+                            </a>
+                            </td>`;
+                        }else{
+                            opration = `<td class="table-cell cell-normal" >
+                            <a class="searchBtn" type="button" onclick="update('edit','${data.data[i].id}')" style="margin: 0 5px 0 5px">
+                            <span>编辑</span>
+                            </a>
+                            <a class="searchBtn" type="button" onclick="cs_delete('${data.data[i].id}')" style="margin: 0 5px 0 5px; background: #999c9e;pointer-events: none" >
+                                <span>删除</span>
+                            </a>
+                            </td>`;
+                        }
+
+                        //添加操作end
+                        // let file = "<tr class='close_sign'>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"   style=\"width: 85%\" type=\"text\" value=\"" + null_(data.data[i].mrNo) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\" readonly=\"readonly\"   style=\"width: 85%\" type=\"text\" value=\"" + null_(data.data[i].pn) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + null_(data.data[i].sn) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"   style=\"width: 85%\" type=\"text\" value=\"" + null_(data.data[i].batchNo) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + null_(qty) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + null_(data.data[i].unit) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + null_(data.data[i].cancelStockQty) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + aMateState(data.data[i].airMaterialState) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + backType(data.data[i].cancelStockType) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + null_(data.data[i].fromStation) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + null_(data.data[i].toStation) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + istransport(data.data[i].transport) + "\"></td>\n" +
+                        //     "                    <td><input class=\"beiliao\"  readonly=\"readonly\"  style=\"width: 85%\" type=\"text\" value=\"" + null_(data.data[i].difference) + "\"></td>\n" +
+                        //     opration +
+                        //     "                </tr>";
+                        let file =`<tr class='close_sign'>
+                                        <td>${null_(data.data[i].mrNo)}</td>
+                                        <td>${null_(data.data[i].pn)}</td>
+                                        <td>${null_(data.data[i].sn)}</td>
+                                        <td>${null_(data.data[i].batchNo)}</td>
+                                        <td>${null_(qty)}</td>
+                                        <td>${null_(data.data[i].unit)}</td>
+                                        <td>${null_(data.data[i].cancelStockQty)}</td>
+                                        <td>${aMateState(data.data[i].airMaterialState)}</td>
+                                        <td>${backType(data.data[i].cancelStockType)}</td>
+                                        <td>${null_(data.data[i].fromStation)}</td>
+                                        <td>${null_(data.data[i].toStation)}</td>
+                                        <td>${istransport(data.data[i].transport)}</td>
+                                        <td>${null_(data.data[i].difference)}</td>
+                                        ${opration}
+                                   </tr> `;
+                        let html_row = $(file);
+                        $("#cc_data").append(html_row);
+                    }
+
+                } else {
+                    alert(data.msg);
+                }
+
+
+            },
+            error: function () {
+                window.alert("失败！");
+            }
+        });
+    }
+
+    function addData(id, result) {
+        var curWidth = ($(window).width() * 0.85).toString();
+        var curheight = $(window).height().toString();
+        var param = {
+            workorderId: s_params.workorderId,
+            fromStation:s_params.fromStation,
+            flightNo:s_params.flightNo,
+            flightId:s_params.flightId,
+        };
+
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: "",
+            param: param,
+            url: "/views/cs/add_withdrawal_application.shtml",
+        });
+    }
+
+    //临时start
+    function addNoNumData(id, result) {
+        var curWidth = ($(window).width() * 0.85).toString();
+        var curheight = $(window).height().toString();
+        var param = {
+            workorderId: s_params.workorderId,
+            fromStation:s_params.fromStation,
+            flightNo:s_params.flightNo,
+            flightId:s_params.flightId,
+        };
+
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: "",
+            param: param,
+            // url: "/views/cs/add_no_number_cc.shtml",
+            url: "/views/cs/edit_withdrawal_application.shtml"
+        });
+    }
+    //临时end
+
+    function null_(data) {
+        if (data == null||!data) {
+            return "--";
+        }
+        return data;
+    }
+
+    function backType(data) {
+        var dataType="";
+        if(data == "1"){
+            dataType = "拆下有序号退料"
+        }else if(data == "2"){
+            dataType = "领出未用退料"
+        }else if(data == "3"){
+            dataType = "拆下无序号件退料"
+        }else if(data == "4"){
+            dataType = "装机未用退料"
+        }else if(data == "5"){
+            dataType = "改装包退料"
+        }
+        return dataType;
+    };
+    //航材状态转换
+    function aMateState(data){
+        var stateAir="";
+        if(data == "A"||data=="UNUSED"){
+            stateAir = "不可用件"
+        }else if(data == "B"||data=="USED"){
+            stateAir = "可用件"
+        }else if(data == "C"||data=="WDISPOSE"){
+            stateAir = "待观察件"
+        }
+        return stateAir;
+    }
+    function istransport(data) {
+        var dataType="";
+        if(data == "1"){
+            dataType = "随机运行"
+        }else if(data == "2"){
+            dataType = "不随机运输"
+        }
+        return dataType;
+    };
+
+    function update(operation,id){
+        let title = "Edit CancelSock";
+        let param = {
+            operation: operation,
+            id:id,
+        };
+        ShowWindowIframe({
+            width: "1200",
+            height: "700",
+            title: title,
+            param: param,
+            url: "/views/cs/edit_withdrawal_application.shtml"
+        });
+
+    }
+
+    function cs_delete(id) {
+        if (confirm("确定删除吗")) {
+            $.ajax({
+                type: "GET",
+                url: "/api/v1/cancelSock/delete/" + id,
+                contentType: "application/json;charset=utf-8",
+                dataType: "json",
+                success: function (data) {
+                    if(data.code==200){
+                        alert("删除成功！");
+                        queryCCTable();//删除成功后，回调刷新页面
+                    }else {
+                        alert(data.msg);
+                    }
+                },
+                error: function () {
+                    window.alert("删除失败！");
+                }
+            });
+        }
+    }
+
+</script>
+</html>

@@ -1,0 +1,177 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>菜单维护</title>
+    <script type="text/javascript">
+        var isEdit_;
+        var param = {};
+        $(function () {
+            InitCboxTree();
+        });
+
+        function InitPage() {
+            param = getParentParam_();
+            console.log(param);
+            isEdit_ = param && param.PKID;
+            if (isEdit_) {
+                InitFuncCodeRequest_({
+                    data: {pkid: param.PKID, FunctionCode: "SYS_MENU_GET"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code = RESULT_CODE.SUCCESS_CODE) {
+                            ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                            if (jdata.data.PID == "0") {
+                                $('#cboxtree').combotree('setValue', '');
+                            }
+                            InitForm_();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            } else {
+                if (param && param.PID) {
+                    $('#cboxtree').combotree('setValue', param.PID);
+                }
+                InitForm_();
+            }
+        }
+
+        function InitCboxTree() {
+            InitFuncCodeRequest_({
+                data: {FunctionCode: 'MENU_TREE_DATA'},
+                successCallBack: function (jdata) {
+                    if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                        return;
+                    }
+                    jdata.data["0"].unshift({id: "", pid: "0", name: "顶级菜单", i18nText: "MENU.TOPLVL.NAME"});
+                    var tdata_ = _WarpTreeMenuData(jdata.data, "0", ["PKID", "PID"], function (tdata_) {
+
+                        return {
+                            id: tdata_.PKID,
+                            text: tdata_.MENU_NAME,
+                            checked: false,
+                            state: 'open',
+                            attributes: {url: tdata_.URL, i18nText: tdata_.I18N_TEXT}
+                        }
+                    });
+                    $('#cboxtree').combotree({
+                        data: tdata_,
+                        formatter: function (node) {
+                            return node.text;//node.attributes.i18nText ? $.i18n.t("common:"+node.attributes.i18nText) : node.text;
+                        },
+                        required: true
+                    });
+
+                    InitPage();
+                }
+            });
+        }
+
+        function InitForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (isValidate) {
+                        var data = $('#mform').serializeObject();
+                        data = $.extend({}, data, {
+                            FunctionCode: (isEdit_ ? 'SYS_MENU_EDIT' : 'SYS_MENU_ADD')
+                        });
+                        if (data.pid == "") {
+                            data.pid = 0;
+                        }
+                        if (data.pid === data.pkid) {
+                            layer.msg("所属父菜单不可选择自己!", {icon: 5});
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: data,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    param.OWindow.doSearch_();
+                                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                    CloseWindowIframe();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                    return false;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" name="pkid" value=""/>
+                <input type="hidden" name="state" value="0"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">菜单编码：</th>
+                        <td class="tdr">
+                            <input class="textbox easyui-validatebox" name="menuCode" value=""
+                                   data-options="required:true, validType:['maxLength[5]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">菜单名称：</th>
+                        <td class="tdr">
+                            <input class="textbox easyui-validatebox" name="menuName" value=""
+                                   data-options="required:true, validType:['length[1,40]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">国际化文本：</th>
+                        <td class="tdr">
+                            <input class="textbox easyui-validatebox" name="i18nText" style="width:260px;"
+                                   value="" data-options="required:true, validType:['maxLength[140]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">所属父级菜单：</th>
+                        <td class="tdr">
+                            <input id="cboxtree" class="easyui-combotree" name="pid" data-options="required:true"
+                                   style="width: 280px;" panelHeight="150"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">URL：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox " name="url"
+                                   data-options="multiline:true, validType:['maxLength[400]']"
+                                   style="width:330px;height:80px">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">排序：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-numberbox" name="sort"
+                                   data-options="required:true, validType:['length[1,4]']" missingMessage="必须填写整数值!"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">样式Text：</th>
+                        <td class="tdr">
+                            <input class="textbox easyui-validatebox" name="styleText" value=""
+                                   data-options="validType:['maxLength[100]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="searchBtn" type="submit" value="确定"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

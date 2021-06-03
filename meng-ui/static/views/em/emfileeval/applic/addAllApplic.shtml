@@ -1,0 +1,217 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="evalNo" name="evalNo"/>
+                <input type="hidden" id="spkid" name="spkid"/>
+                <table class="table table-bordered table-info">
+                    <tr id="view">
+                        <td colspan="2" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="th" align="right">范围类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="rangeType" name="rangeType"
+                                   data-options="required:true"/>
+                        </td>
+                        <!--<th class="th" align="right">范围值：</th>
+                        <td class="tdr">
+                            <textarea id="rangeValue" name="rangeValue" data-options=""
+                                      style="height:60px;"></textarea>
+                        </td>-->
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var evalNo;
+    var applType;
+    var pkid;
+    var groupid;
+    var evapkid;
+    var rangeType;
+    var fleet;
+    var applyModel;
+    var ranType;
+    var rvalues;
+    var sflag;
+    var ranPkid;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        evalNo = param.evalNo;
+        groupid = param.groupid;
+        evapkid = param.evapkid;
+        applType = param.applType;
+        fleet = param.fleet;
+        rangeType = param.rangeType;
+        applyModel = param.applyModel;
+        ranType = param.ranType;
+        rvalues = param.rvalues;
+        sflag = param.sflag;
+        ranPkid = param.ranPkid;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_FILE_APL_RANGE_TYPE,EM_FILE_APL_RANGE_TYPE_S,EM_FILE_PART_RANGE_TYPE,EM_FILE_ENG_RANGE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    if (applType == "APL") {
+                        if (fleet == "B737" || fleet == "B757") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        } else if (fleet == "B747" || fleet == "B767") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE_S,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        } else {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_FILE_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        }
+                    } else if (applType == "PART") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_PART_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    } else if (applType == "ENG") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_FILE_ENG_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    }
+
+
+                }
+                if (ranType) {
+                    setPages(ranType);
+                }
+                if (param.pkid) {
+                } else {
+//                    changeRangeType();
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'EM_MPD_EVAL_APPLIC_ALL_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+//                    param.OWindow.reloadg3();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //页面重新加载
+    function setPages(rangeType) {
+        if (rangeType == "") {
+            window.location.href = '/views/em/emfileeval/applic/addAllApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+            window.resizeTo("550", "300");
+        }
+        if (applType == "APL") {
+            if (rangeType == 'JXXL' || rangeType == 'ENG' || rangeType == 'GZCS' || rangeType == 'FJZCH') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'FJXH' || rangeType == 'PTF' || rangeType == 'FJKBH') {
+                window.location.href = '/views/em/emfileeval/applic/addLineNoApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            }
+        } else if (applType == "ENG") {
+            if (rangeType == 'ENG' || rangeType == 'ENGSUB') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'ENGSERI') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("900", "700");
+            }
+        } else if (applType == "PART") {
+            if (rangeType == 'DESC') {
+                window.location.href = '/views/em/emfileeval/applic/addDescApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("550", "250");
+            } else if (rangeType == 'PN' || rangeType == 'SN') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&fleet=' + fleet + '&rvalues=' + rvalues + '&sflag=' + sflag + '&ranPkid=' + ranPkid;
+                window.resizeTo("900", "700");
+            }
+        }
+    }
+</script>
+</html>

@@ -1,0 +1,261 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+        }
+
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <div id="p0" class="easyui-panel" title="航班任务维护" style="width: 100%"></div>
+        <input type="hidden" id="pkid" name="pkid">
+        <input type="hidden" id="refPkid" name="refPkid">
+        <input type="hidden" id="pkid2" name="pkid2">
+        <table class="table table-bordered table-info">
+            <tr>
+                <td align="right" style="padding-right:10px;height:35px">
+                    <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" onclick="uploadFile();" value="上传附件"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                           value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 类别：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="type" name="type" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 机号</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="acno" name="acno" data-options=""
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 任务创建人：</th>
+                <td class="tdr">
+                    <input class="easyui-combogrid" id="modifyName" name="modifyName" data-options=""
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 创建人工号：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="modifyId" name="modifyId"
+                           data-options="onlyview: true,editable: false"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 简述：</th>
+                <td class="tdr" colspan="3">
+                    <input class="easyui-textbox " name="description" id="description"
+                           data-options="validType:['maxLength[1000]']" multiline="true"
+                           style="height:50px; width:478px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 工程师：</th>
+                <td class="tdr">
+                    <input class="easyui-combogrid" id="handlerName" name="handlerName" data-options=""
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 工程师工号：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="handlerId" name="handlerId"
+                           data-options="onlyview: true,editable: false"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> LOG：</th>
+                <td class="tdr" colspan="3">
+                    <input class="easyui-textbox " name="log" id="log" data-options="validType:['maxLength[3000]']"
+                           multiline="true" style="height:100px; width:478px;"/>
+                </td>
+            </tr>
+
+        </table>
+    </form>
+</div>
+</div>
+<script type="application/javascript">
+    var param;
+    var identity = 'dg';
+    var identity1 = 'dg1';
+    var PAGE_DATA = {};
+    var selectRow;
+    var hoPkid;
+    var thisFlightOrLastFlight;
+    function i18nCallBack() {
+        param = getParentParam_();
+        if (param.hoPkid) {
+            hoPkid = param.hoPkid;
+            $("#refPkid").val(param.hoPkid);
+        }
+        if (param.thisFlightOrLastFlight) {
+            thisFlightOrLastFlight = param.thisFlightOrLastFlight;
+        }
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "AIRLINE_ITEM_TYPE,MSGRP"},
+            successCallBack: function (jdata) {
+                // 初始化查询条件
+                $("#modifyName").MyComboGrid({
+                    idField: 'USER_NAME',  //实际选择值
+                    textField: 'USER_NAME', //文本显示值
+                    panelHeight: '220px',
+                    width: 150,
+                    params: {FunctionCode: 'FLOW_WORK_ACCOUNT'},
+                    columns: [[
+                        {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                        {field: 'USER_NAME', title: '工程师', width: 50}
+                    ]],
+                    onHidePanel: function () {
+                        var t = $("#modifyId").textbox('getValue');
+                        if (selectRow == null || t != selectRow.ACCOUNT_NUMBER) {//没有选择或者选项不相等时清除内容
+                            alert('请选择，不要直接输入！');
+                            $(this).combogrid({value: ''});
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        selectRow = row;
+                        $("#modifyId").textbox({value: row.ACCOUNT_NUMBER});
+                    }
+                });
+                $("#handlerName").MyComboGrid({
+                    idField: 'USER_NAME',  //实际选择值
+                    textField: 'USER_NAME', //文本显示值
+                    panelHeight: '220px',
+                    width: 150,
+                    params: {FunctionCode: 'FLOW_WORK_ACCOUNT'},
+                    columns: [[
+                        {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                        {field: 'USER_NAME', title: '工程师', width: 50}
+                    ]],
+                    onHidePanel: function () {
+                        var t = $("#handlerName").textbox('getValue');
+                        if (selectRow == null || t != selectRow.USER_NAME) {//没有选择或者选项不相等时清除内容
+                            alert('请选择，不要直接输入！');
+                            $(this).combogrid({value: ''});
+                            $("#handlerId").textbox({value: ''});
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        selectRow = row;
+                        $("#handlerId").textbox({value: row.ACCOUNT_NUMBER});
+                    }
+                });
+                $('#type').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.AIRLINE_ITEM_TYPE
+                });
+                $('#acno').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                if (param.PKID) {
+                    $("#titleCaption").html("编辑任务");
+                    $("#pkid").val(param.PKID);
+                    $("#pkid2").val(param.PKID2);
+                    InitDataForm(param.PKID);
+                }
+                $("#modifyName").combogrid({value: getLoginInfo().userName});
+                $("#modifyId").textbox({value: getLoginInfo().accountNumber});
+            }
+        });
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "PM_MC_AIRLINE_ITEM_GET"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                    if (thisFlightOrLastFlight == 'lastFlight') {
+                        $("#type").combobox({editable: false, onlyview: true});
+                        $("#type").combobox('setValue', jdata.data.TYPE);
+                        $("#acno").combobox({editable: false, onlyview: true});
+                        $("#acno").combobox('setValue', jdata.data.ACNO);
+                        $("#description").textbox({editable: false, onlyview: true});
+                        $("#description").textbox('setValue', jdata.data.DESCRIPTION);
+                        $("#modifyName").combogrid({editable: false, onlyview: true});
+                        $("#modifyName").combogrid('setValue', jdata.data.INPUTER_NAME);
+                    }
+                }
+            }
+        });
+    }
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var data = $("#mform").serializeObject();
+        data = $.extend({}, data, {FunctionCode: 'AIRLINE_ITEM_ADD_EDIT'});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    $("#pkid").val(jdata.data.pkid);
+                    $("#pkid2").val(jdata.data.pkid2);
+                    var pkid2 = $("#pkid2").val();
+                    param.OWindow.reload_();
+                    //CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    //上传文件
+    function uploadFile() {
+        var pkid = $("#pkid2").val();
+        if (!pkid) {
+            MsgAlert({content: '请先保存数据', type: 'error'});
+            return false;
+        }
+        common_upload_({
+            identity: 'dg',
+            param: {
+                cat: 'AIRLINEHOITEM',
+                sourceId: pkid,
+                PKID: pkid,
+                successCallBack: function () {
+                    param.OWindow.reload_();
+                },
+                failCallBack: ""
+            }
+        });
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#mform").form('clear');
+            }
+        });
+    }
+</script>
+</body>
+</html>

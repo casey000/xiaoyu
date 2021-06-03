@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>结构化设置-复制</title>
+
+</head>
+<body>
+
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="结构化设置复制" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid" value=""/>
+                <input type="hidden" id="modifyUser" name="modifyUser" value=""/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="确定"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>新名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="dataName" name="dataName" data-options="required:true"
+                                   style="width: 225px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var param = {};
+    var currentMenuId;
+    var parentId;
+    var flawFlag;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        currentMenuId = param.currentMenuId;
+        parentId = param.parentId;
+        flawFlag = param.flawFlag;
+
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "BSI_POS_DAMAGE_SON_MENU_NAME",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if ("0" == parentId) { //第一层级
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/baseOwn/getEngTypeNew",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    $('#dataName').combobox({
+                                        data: jdata.obj,
+                                        valueField: 'VALUE',
+                                        textField: 'TEXT',
+                                        panelHeight: '150px'
+                                    });
+                                } else {
+                                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                                }
+                            }
+                        });
+                    } else {
+                        if ("Y" == flawFlag) { //缺陷
+                            $("#dataName").combobox({
+                                required: true,
+                                editable: true,
+                                hasDownArrow: true,
+                                panelHeight: 150,
+                                data: jdata.data.BSI_POS_DAMAGE_SON_MENU_NAME,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                filter: function (q, row) {
+                                    var opts = $(this).combobox('options');
+                                    return row[opts.textField].indexOf(q) > -1;
+                                }
+                            })
+                        } else { //非缺陷
+                            $("#dataName").combobox({
+                                required: true,
+                                editable: true,
+                                hasDownArrow: false,
+                                panelHeight: 1
+                            })
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var dataName = $("#dataName").textbox('getValue');
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/checkDataIllegalBeforeCopy/" + dataName + "/" + parentId,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    if (jdata.obj > 0) {
+                        MsgAlert({content: "新名称在同一层级中不能重复!", type: 'error'});
+                    } else {
+                        saveOrEdit(dataName, currentMenuId);
+                    }
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function saveOrEdit(dataName, currentMenuId) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/copyBsiPosDamage/" + dataName + "/" + currentMenuId,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">EO/EA数据变更影响软件构型</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="mform" method="post">
+        <div id="searchBar">
+            <table>
+                <tr id = 'comBtn'>
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="save()"
+                           >确认</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 80px;">飞机注册号：</td>
+                    <td style="width:150px;" >
+                        <input class="easyui-textbox" name="acno" id="acno" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+                <!--<tr>
+                    <td style="width: 40px;" align="right">编号：</td>
+                    <td style="width:150px;" align="left">
+                        <input class="easyui-textbox" name="dataNo" id="dataNo" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <td style="width: 60px;" align="right">EO编号：</td>
+                    <td style="width:150px;" align="left">
+                        <input class="easyui-textbox" name="eoNo" id="eoNo" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <td style="width: 60px;" align="right">EO版次：</td>
+                    <td style="width:60px;" align="left">
+                        <input class="easyui-textbox" name="eoVer" id="eoVer" data-options="editable:false,onlyview:true"
+                               style="width:60px;"/>
+                    </td>
+                </tr>-->
+            </table>
+            <table id="dg">
+            </table>
+        </div>
+    </form>
+</fieldset>
+<script type="text/javascript">
+var PAGE_DATA = {};
+var param;
+var eoPkid;
+var acId;
+var acno;
+var accountId;
+var eoNo;
+var recordId;
+var operation;
+function i18nCallBack() {
+    param = getParentParam_();
+    recordId = param.recordId;
+    operation = param.operation;
+    if(recordId){
+        eoPkid = recordId.split(',')[0];
+    }
+    acId = param.acid;
+    acno = param.acno;
+    eoNo = param.eoNo;
+    accountId = getLoginInfo().accountId;
+    if(operation == 'view'){
+        $('#comBtn').hide();
+    }
+    InitFuncCodeRequest_({
+        data: {
+            FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+            domainCode: "EM_EO_EXE_SBI_MP_OP"
+        },
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                InitDataGrid(eoPkid);
+                $('#acno').textbox('setValue', acno);
+            }
+        }
+    });
+
+}
+
+
+function InitDataGrid(eoPkid) {
+    var identity = 'dg';
+    $("#dg").MyDataGrid({
+        identity: identity,
+        sortable: true,
+        singleSelect: true,
+        pageSize: 15,
+        queryParams: {eoPkid: eoPkid, accountId: accountId, acId: acId},
+        columns: {
+            param: {FunctionCode: 'EM_EO_EXE_ONBOARD_LIST'},
+            alter: {
+
+            }
+        },
+        toolbar: [],
+        contextMenus: [],
+    });
+}
+
+
+//保存
+function save() {
+    var sta = '';
+    var configNo = '';
+    var ver = '';
+    var no = '';
+    InitFuncCodeRequest_({
+        data: {eoPkid: eoPkid,acId:acId, FunctionCode: 'EM_EO_EXE_ONBOARD_STATUS'},
+        async: false,
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                var swArr = jdata.data;
+                if (Array.isArray(swArr)) {
+                    if (swArr.length > 0 && swArr[0] != null) {
+                        for (var i = 0; i < swArr.length; i++) {
+                            var sw = swArr[i];
+                            sta = sw.STATUS;
+                            configNo = sw.CONFIG_NO;
+                            ver = sw.VER;
+                            if(sta && sta != 'ACTIVE'){
+                                var temp = configNo + " R" + ver;
+                                no = no + temp + ';';
+                            }
+                        }
+                    }
+                }
+                if (no) {
+                    MsgAlert({content: "以下软件构型最高版["+no+"]状态不是已生效，不允许处理任务！", type: 'warn'});
+                    return;
+                }else{
+                    MaskUtil.mask("正在处理...");
+                    InitFuncCodeRequest_({
+                        data: {acId: acId, eoNo:eoNo, eoPkid: eoPkid, FunctionCode:"EM_EO_EXE_ONBOARD_CONFIRM"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                MaskUtil.unmask();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                param.OWindow.reload_();
+                                CloseWindowIframe();
+                            }
+                            else {
+                                MaskUtil.unmask();
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+            } else {
+                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+            }
+        }
+    });
+}
+
+</script>
+</body>
+</html>

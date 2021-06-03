@@ -1,0 +1,273 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_SWCONFIG_REG.TITLE">机载软件查询</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <div title="装机软件查询">
+        <fieldset class="fieldset_eui">
+            <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+            <form id="ffSearch" method="post">
+                <div id="searchBar">
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <th style="width: 70px">构型名称：</th>
+                            <td>
+                                <input class="easyui-textbox" name="configName" id="configName" style="width:120px;"/>
+                            </td>
+                            <th style="width: 70px">机型：</th>
+                            <td>
+                                <input class="easyui-combobox" name="fleet" id="fleet" style="width:120px;"/>
+                            </td>
+                            <th style="width: 70px">注册号：</th>
+                            <td>
+                                <input class="easyui-combobox" name="appId" id="appId" style="width:120px;"/>
+                            </td>
+                            <th style="width: 90px">当前软件件号：</th>
+                            <td>
+                                <input class="easyui-combobox" name="curSwPn" id="curSwPn" style="width:120px;"/>
+                            </td>
+                            <td>
+                                <a class="searchBtn" data-options="iconCls:'icon-search'"
+                                   data-i18n="common:COMMON_OPERATION.QUERY" onclick="searchData()">查询</a>
+                                <a class="ridoBtn" data-options="iconCls:'icon-search'"
+                                   onclick="helpQuery('dg', 'EM_SWCONFIG_ONBOARD_LIST');" >高级查询</a>
+                                <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                    <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                                <a class="excelBtn" data-options="iconCls:'icon-page_excel'"
+                                   onclick="excelExport('dg','装机软件清单','EM_SWCONFIG_ONBOARD_LIST')"><span>导出</span></a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </form>
+        </fieldset>
+        <table id="dg"></table>
+    </div>
+    <div title="装机软件下载" style="display:none;" id="searchBar2">
+        <fieldset class="fieldset_eui">
+            <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+            <form id="ffSearch2" method="post">
+                <div>
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <th style="width: 70px">构型名称：</th>
+                            <td>
+                                <input class="easyui-textbox" name="configName" id="configName2" style="width:120px;"/>
+                            </td>
+
+                            <th style="width: 90px">当前软件件号：</th>
+                            <td>
+                                <input class="easyui-textbox" name="swPn" id="swPn" style="width:120px;"/>
+                            </td>
+                            <th style="width: 70px">磁盘件号：</th>
+                            <td>
+                                <input class="easyui-textbox" name="diskPn" id="diskPn" style="width:120px;"/>
+                            </td>
+
+                            <td>
+                                <a class="searchBtn" data-options="iconCls:'icon-search'"
+                                   data-i18n="common:COMMON_OPERATION.QUERY" onclick="searchData2()">查询</a>
+                                <a class="clearBtn" onclick="doClear_2()" data-options="iconCls:'icon-clear'">
+                                    <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </form>
+        </fieldset>
+        <table id="dg2"></table>
+    </div>
+
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <script type="text/javascript">
+        function i18nCallBack() {
+            InitFuncCodeRequest_({
+                data: {
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                    domainCode: "EM_SWCONFIG_ACNO," +
+                    "DA_FLEET," +
+                    "EM_SWCONFIG_SW_PN"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                        $('#fleet').combobox({
+                            panelHeight: '100px',
+                            data: jdata.data.DA_FLEET,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        $('#appId').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_SWCONFIG_ACNO,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        $('#curSwPn').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_SWCONFIG_SW_PN,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+            InitDataGrid();
+            InitDataGrid2();
+        }
+
+        function InitDataGrid() {
+            var identity = 'dg';
+            $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                singleSelect: true,
+                pageSize: 15,
+                resize: function () {
+                    return tabs_standard_resize($('#tt'), 50)
+                },
+                columns: {
+                    param: {FunctionCode: 'EM_SWCONFIG_ONBOARD_LIST'},
+                    alter: {
+                        TEST_UPLOAD: {
+                            formatter: function (value, row, index) {
+                                if (row.TEST_UPLOAD) {
+                                    return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                        '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                                }
+                            }
+                        }
+                    }
+                },
+                contextMenus: [
+                    {
+                        id: "m-view",
+                        i18nText: "查看",
+                        auth: "",
+                        onclick: function () {
+                            var rowdata = getDG(identity).datagrid('getSelected');
+                            if (!rowdata.PKID) {
+                                MsgAlert({content: '请选择记录！', type: 'error'});
+                                return;
+                            }
+                            common_add_edit_({
+                                url: "/views/em/emswconfig/em_swconfig_app_add.shtml?" +
+                                "operation=view" +
+                                "&configId=" + rowdata.CONFIG_ID +
+                                "&pkid=" + rowdata.PKID,
+                                identity: identity,
+                                isEdit: 0,
+                                width: 600,
+                                height: 400
+                            });
+                        }
+                    }
+                ],
+                onLoadSuccess: function () {
+                    InitSuspend(
+                        'a.attach',
+                        {
+                            'onmouseover': function (thiz, event, callback) {
+                                var index = $(thiz).attr("rowindex");
+                                var row = $("#dg").datagrid('getRows')[index];
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        SOURCE_ID: row.CUR_SW_ID,
+                                        CATEGORY: "emswconfig",
+                                        FunctionCode: 'ATTACHMENT_RSPL_GET'
+                                    },
+                                    successCallBack: function (jdata) {
+                                        var html = "";
+                                        for (var i = 0; i < jdata.data.length; i++) {
+                                            html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                        }
+                                        callback(html);
+                                    }
+                                });
+                            }
+                        },"ident1");
+                }
+            });
+        }
+
+        function InitDataGrid2() {
+            var identity = 'dg2';
+            $("#dg2").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                singleSelect: true,
+                pageSize: 15,
+                resize: function () {
+                    return tabs_standard_resize($('#tt'), 50)
+                },
+                columns: {
+                    param: {FunctionCode: 'EM_SWCONFIG_ONBOARD_SW_LIST'},
+                    alter: {
+                        TEST_UPLOAD: {
+                            formatter: function (value, row, index) {
+                                if (row.TEST_UPLOAD) {
+                                    return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach2">' +
+                                        '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                                }
+                            }
+                        },
+                    }
+                },
+
+                onLoadSuccess: function () {
+                    InitSuspend('a.attach2', {
+                        'onmouseover': function (thiz, event, callback) {
+                            var index = $(thiz).attr("rowindex");
+                            var row = $("#dg2").datagrid('getRows')[index];
+                            InitFuncCodeRequest_({
+                                data: {
+                                    SOURCE_ID: row.PKID,
+                                    CATEGORY: "emswconfig",
+                                    FunctionCode: 'ATTACHMENT_RSPL_GET'
+                                },
+                                successCallBack: function (jdata) {
+                                    var html = "";
+                                    for (var i = 0; i < jdata.data.length; i++) {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                    }
+                                    callback(html);
+                                }
+                            });
+                        }
+                    }, 'ident2');
+                }
+            });
+        }
+
+        /** 刷新列表数据 */
+        function reload_() {
+            $("#dg").datagrid("reload");
+        }
+
+        //查询
+        function searchData() {
+            onSearch_('dg', '#ffSearch');
+        }
+
+        function searchData2() {
+            onSearch_('dg2', '#ffSearch2');
+        }
+
+        //重置
+        function doClear_() {
+            $("#ffSearch").form('clear');
+            searchData();
+        }
+
+        function doClear_2() {
+            $("#ffSearch2").form('clear');
+            searchData2();
+        }
+    </script>
+</div>
+</body>
+</html>

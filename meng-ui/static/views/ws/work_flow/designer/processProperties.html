@@ -1,0 +1,112 @@
+<script type="text/javascript">
+    var process = workflow.process;
+    jq(function () {
+        setTimeout(function () {
+            InitProcessGeneral();
+            InitTransmitVariable();
+        }, 100);
+    });
+
+    function InitProcessGeneral() {
+        var grid = jq('#pg');
+        grid.propertygrid({
+            width: 250,
+            columns: [[
+                {field: 'name', title: '属性名', width: 90},
+                {
+                    field: 'value', title: '属性值', width: 150,
+                    formatter: function (value, row) {
+                        return row[[row.field] + "_name"] || value;
+                    }
+                }
+            ]],
+            fitColumns: true,
+            showGroup: true,
+            scrollbarSize: 0
+        });
+        var rows = [
+            {"name": "流程ID", "group": "基本属性", "value": process.id, "field": "processId", editor: "text"},
+            {"name": "流程名称", "group": "基本属性", "value": process.name, "field": "processName", editor: "text"},
+            {
+                "name": "Documentation",
+                "group": "基本属性",
+                "value": process.documentation || '',
+                "field": "documentation",
+                editor: {type: 'textbox', options: {multiline: true, height: 60}}
+            },
+            {
+                "name": "默认业务表单", "group": "基本属性", "value": processDefFormId, "field": "processDefFormId", editor: {
+                    type: 'combobox',
+                    options: {
+                        valueField: 'VALUE', textField: 'TEXT',
+                        url: Constant.API_URL + "PROCESS_FORM_CBX",
+                        loadFilter: function (result) {
+                            return result.data;
+                        },
+                        //queryParams:{ },
+                        tipPosition: 'top', panelHeight: 140
+                    }
+                }
+            }
+        ];
+        //process.category
+        grid.propertygrid('loadData', {total: rows.length, rows: rows});
+        jq.each(rows, function (k, it) {
+            grid.propertygrid('beginEdit', k);
+        });
+    }
+
+    /**
+     * 初始化-传递（流程）变量
+     * @constructor
+     */
+    function InitTransmitVariable() {
+        var rows = evalJsonStr(process.variables, []);
+        var data = {total: rows.length, rows: rows};
+        jq('#pgvar').datagrid({
+            rownumbers: true, striped: true, width: 250, height: 200,
+            data: data,
+            columns: [[
+                {field: 'key', title: '名称', width: 100},
+                {field: 'type', title: '类型', width: 100},
+                {field: 'value', title: '值', width: 100}
+            ]],
+            loadFilter: function (result) {
+                if (!checkAjaxResult(result)) {
+                    return;
+                }
+                return {total: result.data.length, rows: result.data};
+            }
+        });
+    }
+
+    function saveProcessProperties() {
+        var grid = jq('#pg');
+        var propData = getProData(grid);
+        process.id = propData.processId;
+        process.name = propData.processName;
+//	process.category = jq('#category').val();
+        process.documentation = propData.documentation;
+        process.processDefFormId = propData.processDefFormId;
+        var rows = $("#transmitVariable").datagrid('getRows');
+        process.variables = JSON.stringify(rows);
+        jq.messager.alert('操作提示', '保存完成!', 'info');
+    }
+
+</script>
+<div id="process-properties-layout" class="easyui-layout" fit="true">
+    <div id="task-properties-toolbar-panel" region="north" border="false" style="height:30px;background:#E1F0F2;">
+        <a href="##" id="sb2" class="easyui-linkbutton" plain="true" iconCls="icon-save"
+           onclick="saveProcessProperties()">保存</a>
+    </div>
+    <div id="process-properties-panel" region="center" border="true">
+        <div class="easyui-accordion" fit="true" border="false">
+            <div id="general" title="基本信息" selected="true" class="properties-menu">
+                <table id="pg"></table>
+            </div>
+            <div id="transmitVariable" title="传递（流程）变量" selected="true" class="properties-menu">
+                <table id="pgvar"></table>
+            </div>
+        </div>
+    </div>
+</div>

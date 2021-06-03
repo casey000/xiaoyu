@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">构型反馈</title>
+</head>
+<body class="ibody">
+<div sclass="title">
+    <fieldset class="easyui-panel  " style="width:100%; height: 100%">
+        <legend>构型反馈</legend>
+        <form id="mform" class="form-horizontal">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <table class="table table-bordered table-info">
+                <tr id="id_btn_row">
+                    <td colspan="6" align="right">
+                        <input class="btn btn-primary" type="button" onclick="showConfig()" value="构型详情"/>
+                        <input class="btn btn-primary" type="button" id="upload" onclick="uploadFile()" value="上传附件"/>
+                        <input class="btn btn-primary" type="button" id="feedback" onclick="configFeedback()" value="反馈"/>
+                        <br/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">构型编号：</th>
+                    <td style="width: 80px;  padding: 3px">
+                        <input class="easyui-textbox" id="configNo" name="configNo" readonly style="width: 150px;"/>
+                    </td>
+                    <th class="th" align="right" style="width: 60px;">版次：</th>
+                    <td style="width: 80px;  padding: 3px">
+                        <input class="easyui-textbox" id="ver" name="ver" data-options="required:true" readonly style="width: 80px;"/>
+                    </td>
+                    <th class="th" align="right" style="width: 70px;">适用类型：</th>
+                    <td style="width: 80px;  padding: 3px">
+                        <input class="easyui-combobox" id="appType" name="appType" data-options="required:true" readonly style="width: 80px;"/>
+                    </td>
+                </tr>
+                <tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">通知部门：</th>
+                    <td style="width: 80px;  padding: 3px">
+                        <input class="easyui-textbox" id="sendDept" name="sendDept" data-options="required:true"
+                               readonly />
+                    </td>
+                </tr>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">反馈描述：</th>
+                    <td colspan="5" style="padding: 3px;">
+                        <input id="feedbackDesc" name="feedbackDesc"
+                               class="easyui-textbox" style="width: 99%;height:60px"
+                               placeholder=""
+                               data-options="required:true,multiline:true,prompt:'对业务的影响、需采取措施（包括但不限于手册修订、发布提示、培训等）以及计划完成日期'"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">反馈人：</th>
+                    <td style="padding: 3px">
+                        <input id="operator" name="operator"
+                               class="easyui-combobox" style="width: 150px;"
+                               data-options="required:true,disabled:true"/>
+                    </td>
+                    <th class="th" align="right">反馈日期：</th>
+                    <td style="padding: 3px">
+                        <input id="operatorDate" name="operatorDate"
+                               class="easyui-datebox   " style="width: 150px;" data-options="disabled:true"/>
+                    </td>
+                    <th class="th" align="right">反馈状态：</th>
+                    <td style="padding: 3px">
+                        <input class="easyui-combobox" id="status" name="status" data-options="required:true" readonly style="width: 80px;"/>
+                    </td>
+                </tr>
+
+            </table>
+        </form>
+    </fieldset>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var nalter = {};
+    var param = {};
+    var tbPkid = "";
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+
+        InitFuncCodeRequest_({
+            //适用型号 //ATA //新飞机 没配
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_APPL_TYPE," +
+                    "CONFIG_FEEDBACK_STATUS,"+
+                        "EM_SYSCONFIG_ORG"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    //适用类型
+                    $('#appType').combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.EM_APPL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //反馈状态
+                    $('#status').combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.CONFIG_FEEDBACK_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    var orgList = jdata.data.EM_SYSCONFIG_ORG;
+                    for (var i = 0; i < orgList.length; i++) {
+                        var orgId = orgList[i].ORG_ID;
+                        var orgName = orgList[i].ORG_NAME;
+                        $('#sendTo').append("&nbsp;<input id='send_" + orgId + "' value='" + orgId + "' name='dept' type='checkbox' disabled /> " + orgName);
+                    }
+                }
+                if (param.recordId) {
+                    InitDataForm(param.recordId);
+                }
+            }
+        });
+    }
+
+    function InitDataForm(recordId) {
+
+        $.ajax({
+            url: '/api/v1/emSysConfigFeedback/findConfigFeedbackDetailById/'+recordId,
+            type: 'get',
+            data: "",
+            contentType: "application/json;charset=utf-8",
+            dataType: "json",
+            success: function (jdata) {
+                //判断操作是否成功
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"),"");
+                    if (jdata.data.sendDept && jdata.data.sendDept.length > 0) {
+                        var sends = jdata.data.sendDept.split(",");
+                        for (var i = 0; i < sends.length; i++) {
+                            $('#send_' + sends[i]).prop("checked", true);
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function reset() {
+        $("#nos").textbox("setValue", "");
+    }
+
+    //保存反馈消息
+    function configFeedback() {
+
+        if (confirm("确认反馈吗？")) {
+
+            var isValidate = $("#mform").form('validate');
+            if (!isValidate) return;
+
+            var $form = $("#mform");
+            var data = {
+                pkid: param.recordId,
+                feedbackDesc: $('#feedbackDesc').textbox('getValue')
+            };
+
+            $.ajax({
+                url: '/api/v1/emSysConfigFeedback/configFeedback',
+                type: 'post',
+                data: JSON.stringify(data),
+                contentType: "application/json;charset=utf-8",
+                dataType: "json",
+                success: function (data) {
+                    //判断操作是否成功
+                    if (data.code == RESULT_CODE.SUCCESS_CODE) {
+                        // 关闭窗口
+                        CloseWindowIframe();
+                        if (param.OWindow) {
+                            if (param.OWindow.reload_) {
+                                param.OWindow.reload_()
+                            }
+                        }
+                    } else {
+                        MsgAlert({content: data.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+
+    function showConfig() {
+        common_add_edit_({
+            url: "/views/em/emsysconfig/em_sysconfig_view.shtml?pkid=" +  param.configId,
+            identity: "dg",
+            isEdit: 0,
+            width: 800,
+            height: 600
+        });
+
+    }
+
+    //上传
+    function uploadFile() {
+        let pkid = $("#pkid").val();
+        if (pkid == -1 || pkid == "") {
+            MsgAlert({content: '请先创建保存TB', type: 'error'});
+            return;
+        }
+
+        common_uploadFile({
+            identity: 'dg',
+            param: {
+                cat: 'sysConfigFeedback',
+                sourceId: param.recordId,
+                successCellBack: "",
+                fialCellBack: ""
+            }
+        });
+    }
+
+
+    function reload_() {
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,247 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>增加经济性评估</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" class="easyui-textbox" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="4" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                                   style="width: 50px;margin:10px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right">分组名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="groupName" name="groupName"/>
+                        </td>
+                        <th class="th" align="right">CONFIG：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="appConfig" name="appConfig"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right">器材包费用：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="materialCost" name="materialCost" style="width: 120px"
+                                   data-options="required:true,validType:['IntDeminumber','length[1,8]']"/>
+                            美金
+                        </td>
+                        <th class="th" align="right">人工时：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="manHour" name="manHour" style="width: 120px"
+                                   data-options="required:true,editable:true,validType:['IntDeminumber','length[1,8]']"/>
+                            MH
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right">工时单价：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="unitPrice" name="unitPrice" style="width: 120px"
+                                   data-options="required:true,validType:['IntDeminumber','length[1,8]']"/>
+                            美金
+                        </td>
+                        <th class="th" align="right" style="width:120px">需执行数量：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="aircraftQty" name="aircraftQty"
+                                   data-options="required:true,editable:true,validType:['number','length[1,3]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right">备注：</th>
+                        <td class="tdr" colspan="3">
+                            <textarea class="easyui-textbox " id="memo" name="memo"
+                                      data-options="multiline:true"
+                                      style="height:50px;width:98%;border: 1px solid #ddd;border-radius: 5px;"></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var operation;
+    var pkid;
+    var evapkid;
+    var applyType;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+        evapkid = param.evapkid;
+        applyType = param.applyType;
+
+        $("#unitPrice").textbox({onlyview: true, editable: false});
+        var pric = '';
+        InitFuncCodeRequest_({
+            data: {evapkid: pkid, FunctionCode: 'EM_FILE_CHECK_PRIC'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        pric = jdata.data.EE_MHOUR_PRICE;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+        if (pric == '') {
+            MsgAlert({content: "请先维护EE经济性性评估工时单价！", type: 'error'});
+            return;
+        } else {
+            $("#unitPrice").textbox('setValue', pric);
+        }
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: 'EM_FILE_GROUP',
+                evapkid: evapkid
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#groupName').combobox({
+                        data: jdata.data,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                        required: true,
+                        onSelect: function (data) {
+                            getConfig(data.VALUE);
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+        if (!! pkid) {
+            InitDataForm(pkid);
+        }
+    }
+
+    function getConfig(groupid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: 'EM_FILE_GROUP_CONFIG',
+                evapkid: evapkid,
+                groupid: groupid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#appConfig').combobox({
+                        data: jdata.data,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_FILE_ECON_BY_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    //初始化范围值
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) return;
+
+        var groupid = $('#groupName').textbox('getValue');
+        var appConfig = $('#appConfig').textbox('getValue');
+        var aircraftQty = $('#aircraftQty').textbox('getValue');
+        var detailQty = 0;
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_FILE_ECON_CONFIG_QTY",
+                groupId: groupid,
+                appConfig: appConfig
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    detailQty = jdata.data.DETAIL_QTY;
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+        if (applyType != 'PART' && detailQty < aircraftQty) {
+            MsgAlert({
+                content: "需执行数量不能高于该分组指定Config数量！",
+                type: 'error'
+            });
+            return;
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        InitFuncCodeRequest_({
+            data: $.extend({
+                FunctionCode: 'EM_FILE_ECON_ADD',
+                evapkid: evapkid,
+                groupid: groupid
+            }, datas),
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#pkid").textbox('setValue', jdata.data.pkid);
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    pkid = jdata.data.pkid;
+                    param.OWindow.reload_("#dg11");
+                    if (operation != 'edit') {
+                        $("#mform").form('clear');
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function checkNum() {
+        var str = $(this).val();
+        if (isNaN(Number(str))) {
+            alert('请输入数字！');
+            $(this).val('');
+
+        }
+    }
+</script>
+</html>

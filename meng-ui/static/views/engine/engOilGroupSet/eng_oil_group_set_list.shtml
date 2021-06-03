@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">特殊组别设置</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">组别标题：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="groupCode" name="groupCode" style="width:160px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a href="javascript:void(0)" class="addBtn" auth = 'ENG_OIL_GROUP_SET1'
+                           onclick="addOrEditSpecialGroup('add')"><span>新增</span></a>&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var loginUser;
+    var loginName;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitDataGrid();
+    }
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/EngOilGroupSet/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_OIL_GROUP_SET_LIST'},
+                alter: {
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_OIL_GROUP_SET2",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditSpecialGroup('edit', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_OIL_GROUP_SET3",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: 'get',
+                            async: false,
+                            path: "/meng-engine/EngOilGroupSet/checkIfUsed/" + rowData.groupCode,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    var msg = jdata.obj;
+                                    if (msg != '' && msg != null) {
+                                        MsgAlert({content: "该组别已被引用在以下模块[" + msg + "]，不允许删除!", type: 'error'});
+
+                                    } else {
+                                        if (!confirm("是否确认删除？")) {
+
+                                        } else {
+                                            deleteEngOilGroupSet(rowData.pkid);
+                                        }
+                                    }
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (loginUser != row.createUser) {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEditSpecialGroup("view", value.pkid);
+            }
+        });
+    }
+
+    //添加或编辑单元体(父)
+    function addOrEditSpecialGroup(operation, pkid) {
+        var title_ = $.i18n.t('特殊组别维护');
+        ShowWindowIframe({
+            width: "540",
+            height: "266",
+            title: title_,
+            param: {pkid: pkid, operation: operation},
+            url: "/views/engine/engOilGroupSet/eng_oil_group_set_add_edit.shtml"
+        });
+    }
+
+    //刷新列表
+    function reload_() {
+        InitDataGrid();
+    }
+
+    function deleteEngOilGroupSet(pkid){
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/EngOilGroupSet/deleteEngOilGroupSet/" + pkid + "/" + loginUser + "/" + loginName,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        reload_();
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">EO/EA数据变更影响手册-TB</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="mform" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr id = 'comBtn'>
+                    <td colspan="6" align="right">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="save()"
+                           >确认</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 40px;" align="right">编号：</td>
+                    <td style="width:150px;" align="left">
+                        <input class="easyui-textbox" name="tbNo" id="tbNo" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <td style="width: 60px;" align="right">EO编号：</td>
+                    <td style="width:150px;" align="left">
+                        <input class="easyui-textbox" name="eoNo" id="eoNo" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <td style="width: 60px;" align="right">EO版次：</td>
+                    <td style="width:60px;" align="left">
+                        <input class="easyui-textbox" name="eoVer" id="eoVer" data-options="editable:false,onlyview:true"
+                               style="width:60px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 60px">机号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="acno" id="acno" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 60px">件号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="pn" id="pn" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 60px">序号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="sn" id="sn" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 60px;" align="right">执行操作：</td>
+                    <td style="width:150px;" align="left">
+                        <input class="easyui-combobox" name="op" id="op" data-options="required:true"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+            </table>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<script type="text/javascript">
+var PAGE_DATA = {};
+var param;
+var eoPkid;
+var eoNo;
+var eoVer;
+var tbNo;
+var recordId;
+var acno;
+var pn;
+var sn;
+var operation;
+function i18nCallBack() {
+    param = getParentParam_();
+    recordId = param.recordId;
+    eoPkid = recordId.split(',')[0];
+    eoNo = param.eoNo;
+    eoVer = param.eoVer;
+    tbNo = param.tbNo;
+    acno = param.acno;
+    pn = param.pn;
+    sn = param.sn;
+    operation = param.operation;
+    if(operation == 'view'){
+        $('#comBtn').hide();
+    }
+    InitFuncCodeRequest_({
+        data: {
+            FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+            domainCode: "EM_EO_EXE_SBI_MP_OP"
+        },
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                PAGE_DATA['EM_EO_EXE_SBI_MP_OP'] = DomainCodeToMap_(jdata.data["EM_EO_EXE_SBI_MP_OP"]);
+                $('#op').combobox({
+                    data: jdata.data.EM_EO_EXE_SBI_MP_OP,
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    panelHeight: 'auto'
+                });
+                InitForm();
+
+            }
+        }
+    });
+
+}
+
+
+function InitForm() {
+    $('#tbNo').textbox('setValue', tbNo);
+    $('#eoVer').textbox('setValue', eoVer);
+    $('#eoNo').textbox('setValue', eoNo);
+    if(acno){
+        $('#acno').textbox('setValue', acno);
+    }
+    if(pn){
+        $('#pn').textbox('setValue', pn);
+    }
+    if(sn){
+        $('#sn').textbox('setValue', sn);
+    }
+}
+
+
+//保存
+function save() {
+    var op = $('#op').combobox('getValue');
+    if(!op){
+        MsgAlert({content: '请选择执行操作', type: 'error'});
+        return;
+    }
+
+    var data = $("#mform").serializeObject();
+    data.op =  op;
+    data.eoPkid = eoPkid;
+    data.tbNo = tbNo;
+    data.recordId = recordId;
+
+    data = $.extend({}, data, {FunctionCode: 'EM_EO_EXE_TB_CONFIRM'});
+    MaskUtil.mask("正在处理...");
+    InitFuncCodeRequest_({
+        data: data,
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                MaskUtil.unmask();
+                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                param.OWindow.reload_();
+                CloseWindowIframe();
+            }
+            else {
+                MaskUtil.unmask();
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+}
+
+</script>
+</body>
+</html>

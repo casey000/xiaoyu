@@ -1,0 +1,188 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <!-- 禁止浏览器从本地缓存中调阅页面。网页不保存在缓存中，每次访问都刷新页面。  -->
+    <meta content="no-cache" http-equiv="pragram"/>
+    <!-- 同上面意思差不多，必须重新加载页面  -->
+    <meta content="no-cache, must-revalidate" http-equiv="cache-control"/>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <title>无标题文档</title>
+    <!-- load css -->
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link href="/css/dialog_default.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/dwm/source.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/dialog_default.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/easyui.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/icon.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/ztree/zTreeStyle.css" rel="stylesheet" type="text/css"/>
+    <style type="text/css">
+        .errorMessage {
+            color: red
+        }
+
+        .td-font-red {
+            color: red
+        }
+
+        a {
+            color: #6e6e6e;
+            text-decoration: none;
+        }
+
+        .td-line-hight-background {
+            background: #f2f2f2;
+        }
+    </style>
+    <!-- load js -->
+    <script src="/js/jquery/easyui/jquery-1.8.0.min.js" type="text/javascript"></script>
+    <script charset="utf-8" src="/js/jquery/easyui/jquery.easyui.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/lhgdialog/lhgdialog.js" type="text/javascript"></script>
+    <script src="/js/jquery.form.js" type="text/javascript"></script>
+    <script src="/js/global_var.js" type="text/javascript"></script>
+    <script src="/js/jquery.validate.js" type="text/javascript"></script>
+    <script src="/js/sfa-query-1.0.js" type="text/JavaScript"></script>
+
+</head>
+
+<body>
+<form action="" id="repeat_faults_list" method="post">
+    <table border="1" bordercolor="#B2C9E0" cellpadding="0" cellspacing="0" class="post_table" style="padding-top:10px"
+           width="100%">
+        <tr>
+            <td class="td-line-hight-background" width="23%">Multiple Faults</td>
+            <td id="multipleNo" width="26%"></td>
+            <td class="td-line-hight-background" width="26%">Model</td>
+            <td id="model" width="25%"></td>
+        </tr>
+
+        <tr>
+            <td class="td-line-hight-background">ATA</td>
+            <td id="ata"></td>
+            <td class="td-line-hight-background">Multiple Faults Date</td>
+            <td id="multipleFaultsDate"></td>
+        </tr>
+
+        <tr>
+            <td class="td-line-hight-background">Found Date(Min)</td>
+            <td id="minFoundDate"></td>
+            <td class="td-line-hight-background">Found Date(Max)</td>
+            <td id="maxFoundDate"></td>
+        </tr>
+        <tr id="deletedDefectNosTr">
+            <td class="td-line-hight-background ">Deleted DefectNos:</td>
+            <td colspan="3">
+                <div id="deletedDefectNos"
+                     style='word-wrap:break-word; word-break:break-all;display:block;width:100%;'></div>
+                <input id="view_deleted_defect" style="display: inline-block;float: right" type="button"
+                       value="View DEFECT"/>
+            </td>
+        </tr>
+        <tr>
+            <td class="td-line-hight-background ">DefectNos:</td>
+            <td colspan="3">
+                <div id="DefectNos" style="word-wrap:break-word;word-break: break-word;display:block;width:100%;"></div>
+                <input id="view_defect" style="display: inline-block;float: right" type="button" value="View DEFECT"/>
+            </td>
+        </tr>
+    </table>
+</form>
+</body>
+<script src="/js/date_format.js" type="text/JavaScript"></script>
+<script>
+    var api = frameElement.api, P = api.opener;
+
+    $(function () {
+        var data = api.data;
+        var s_params = data.rowObject;
+        var defectNoList = data.defectNoList;
+        var deletedDefectNoList = data.deletedDefectNoList;
+        $("#multipleNo").text(s_params.multipleFaults);
+        $("#model").text(s_params.model);
+        $("#ata").text(s_params.ata == null ? '' : s_params.ata);
+        if(s_params.multipleFaultsDate) {
+            $("#multipleFaultsDate").text(new Date(s_params.multipleFaultsDate).format('yyyy-MM-dd'));
+        }
+        if(s_params.minFoundDate) {
+            $("#minFoundDate").text(new Date(s_params.minFoundDate).format('yyyy-MM-dd'));
+        }
+        if(s_params.maxFoundDate) {
+            $("#maxFoundDate").text(new Date(s_params.maxFoundDate).format('yyyy-MM-dd'));
+        }
+        if (defectNoList) {
+            var a = "";
+            $.each(defectNoList, function (i, v) {
+                a += "<a id='" + v.id + "' href='javascript:void(0)' style='color:#f60'>" + v.defectNo + "</a>&nbsp&nbsp";
+            });
+            $("#DefectNos").html(a);
+        }
+        if (deletedDefectNoList) {
+            var a = "";
+            $.each(deletedDefectNoList, function (i, v) {
+                a += "<a id='" + v.id + "' href='javascript:void(0)' style='color:#f60'>" + v.defectNo + "</a>&nbsp&nbsp";
+            });
+            $("#deletedDefectNos").html(a);
+        } else {
+            $("#deletedDefectNosTr").hide();
+        }
+
+        $("#DefectNos, #deletedDefectNos").find("a").click(function () {
+            var defectId = $(this).attr("id");
+            viewDefectDetail(defectId);
+        });
+        api.button({
+            name: 'Close'
+        });
+
+        var defectIds = $("#DefectNos>a").map(function (idx, val) {
+            return $.trim($(this).attr('id'));
+        }).get().join(',');
+
+        var deletedDefectIds = $("#deletedDefectNos>a").map(function (idx, val) {
+            return $.trim($(this).attr('id'));
+        }).get().join(',');
+
+        $("#view_defect").click(function () {
+            queryDefects(defectIds);
+        });
+
+        $("#view_deleted_defect").click(function () {
+            queryDefects(deletedDefectIds);
+        });
+    });
+
+    function queryDefects(defectIds) {
+        defectIds = defectIds == "" ? 0 : defectIds;
+        var dlg = $(this).sfaQueryDialog({
+            dialogId: "view_defects",
+            dialogTitle: "View DEFECT",
+            view: 'DEFECT_FOR_VERIFY_MULTIPLE_FAULT',
+            dialogWidth: 1000,
+            qcOptions: {
+                qcBoxId: 'qc_box',
+                showSavedQueries: false
+            },
+            defaultParam: {
+                'qname': ["id"],
+                'qoperator': ["in"],
+                'qvalue': [defectIds]
+            },
+            gridOptions: {},
+            close: function () {
+                dlg = null;
+            }
+        });
+    }
+
+    function viewDefectDetail(defectId) {
+        ShowWindowIframe({
+            width: "1000",
+            height: "700",
+            title: 'Defect Detail',
+            param: {defectId: defectId},
+            url: "/views/defect/defectDetails.shtml"
+        });
+    }
+</script>
+</html>

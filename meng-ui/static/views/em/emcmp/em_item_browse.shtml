@@ -1,0 +1,814 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="da_mm">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        //ycl
+        var type;
+
+        // APL机身   ENG发动机 APU APU  PART部件
+        var APL = 'APL';//机身
+        var ENG = 'ENG';
+        var PART = 'PART';
+        var APU = 'APU';
+        var isEdit_;
+        var param = {};
+        var ifTmp = [{TEXT: '是', VALUE: 'Y'}, {TEXT: '否', VALUE: 'N'}];
+        var applType_bj = 'PART';
+        var applType_js = 'APL';
+        param = getParentParam_();
+        //ycl
+        type = param.type;
+        isEdit_ = param.itemPkid;
+
+
+        //获取当前时间
+        function formatDates(date) {
+            var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+            var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+                + (date.getMonth() + 1);
+            var hor = date.getHours();
+            var min = date.getMinutes();
+            var sec = date.getSeconds();
+            return date.getFullYear() + '-' + month + '-' + day + " " + hor + ":" + min + ":" + sec;
+        }
+
+        function i18nCallBack() {
+
+            InitFuncCodeRequest_({
+                data: {
+                    domainCode: "EM_REV_CODE,EM_MP_APPLICABILITY,EM_MPD_ITEM_TYPE,EM_MP_CTRL_TYPE,EM_MP_CHK_LEVEL,EM_MP_INTERVAL_RULE,EM_MP_CALENDAR_UNIT,EM_MP_ATTACH_INFO",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                        //改版标识
+                        /*   $('#revCode').combobox({
+                         panelHeight: '150px',
+                         data: jdata.data.EM_REV_CODE,
+                         valueField: 'VALUE',
+                         textField: 'TEXT',
+                         });*/
+
+                        //适用类别
+                        $('#applType').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_APPLICABILITY,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function () {
+                                var applType = $(this).combobox('getValue');
+                                if (applType == applType_bj) {
+                                    $('#ctlType').combobox('setValue', 'BJ');
+                                }
+                                if (applType != applType_js) {
+                                    //需要过渡
+                                    $('#ifTmp').combobox({editable: false, onlyview: true});
+                                    //过渡FH
+                                    $('#tmpFh').numberbox({editable: false, onlyview: true});
+                                    //过渡FC
+                                    $('#tmpFc').numberbox({editable: false, onlyview: true});
+                                    //过渡日历日
+                                    $('#tmpCal').textbox({editable: false, onlyview: true});
+                                    //过渡日历日单位
+                                    $('#tmpCalUnit').combobox({editable: false, onlyview: true});
+                                    //过渡要求
+                                    $('#tmpRequire').textbox({editable: false, onlyview: true, required: false});
+                                } else {
+                                    //需要过渡
+                                    $('#ifTmp').combobox({editable: true, onlyview: false});
+                                    //过渡FH
+                                    $('#tmpFh').numberbox({editable: true, onlyview: false});
+                                    //过渡FC
+                                    $('#tmpFc').numberbox({editable: true, onlyview: false});
+                                    //过渡日历日
+                                    $('#tmpCal').textbox({editable: true, onlyview: false});
+                                    //过渡日历日单位
+                                    $('#tmpCalUnit').combobox({editable: true, onlyview: false});
+                                    //过渡要求
+                                    $('#tmpRequire').textbox({editable: true, onlyview: false, required: true});
+                                }
+
+                            }
+                        });
+
+
+                        //控制类型
+                        $('#ctlType').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_CTRL_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+
+                        });
+
+                        //项目分类
+                        $('#itemType').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MPD_ITEM_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+
+                        //检验等级
+                        $('#chkLevel').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_CHK_LEVEL,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+
+
+                        //监控方法
+                        $('#intervalRule').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_INTERVAL_RULE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+
+                        //过渡时限日历日单位
+                        $('#tmpCalUnit').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_CALENDAR_UNIT,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+
+                        //附注信息
+                        $('#attachOption').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_ATTACH_INFO,
+                            multiple: true,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+
+                        });
+
+                        //需要过渡
+                        $('#ifTmp').combobox({
+                            panelHeight: '150px',
+                            data: ifTmp,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function () {
+                                var ifTmp = $(this).combobox('getValue');
+                                if (ifTmp == 'N') {
+                                    //过渡FH
+                                    $('#tmpFh').numberbox({editable: false, onlyview: true, value: ''});
+                                    //过渡FC
+                                    $('#tmpFc').numberbox({editable: false, onlyview: true, value: ''});
+                                    //过渡日历日
+                                    $('#tmpCal').textbox({editable: false, onlyview: true, value: ''});
+                                    //过渡日历日单位
+                                    $('#tmpCalUnit').combobox({editable: false, onlyview: true, value: ''});
+                                    //监控方法
+                                    $('#intervalRule').combobox({required: false});
+                                    //过渡要求
+
+                                    $('#tmpRequire').textbox({required: false});
+                                } else {
+                                    var tmpCalUnit = $('#tmpCalUnit').combobox('getValue');
+                                    //过渡FH
+                                    $('#tmpFh').numberbox({editable: true, onlyview: false});
+                                    //过渡FC
+                                    $('#tmpFc').numberbox({editable: true, onlyview: false});
+                                    //过渡日历日
+                                    $('#tmpCal').textbox({editable: true, onlyview: false});
+                                    //过渡日历日单位
+                                    $('#tmpCalUnit').combobox({editable: true, onlyview: false, value: tmpCalUnit});
+                                    //监控方法
+                                    $('#intervalRule').combobox({required: true});
+                                }
+                            }
+                        });
+
+                        if (isEdit_) {
+                            InitFuncCodeRequest_({
+
+                                data: {
+                                    pkid: param.itemPkid,
+                                    FunctionCode: "EM_CMP_ITEM_GETONE"
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        //项目分类
+                                        $('#itemType').combobox({editable: false, onlyview: true});
+                                        InitEditForm_();
+                                        //修订日期
+                                        $('#revDate').datebox({value: formatDates(new Date())});
+                                        ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                                        $('#pkid').val(jdata.data.PKID);
+                                        $('#cmpPkid').val(param.cmpPkid);
+
+                                        var checkbox1 = document.getElementById("ifWb");
+                                        var checkbox2 = document.getElementById("ifSpl");
+                                        var checkbox3 = document.getElementById("ifOptimized");
+
+                                        if (jdata.data.IF_WB == 'Y') {
+                                            $(':checkbox[name=ifWb]').prop('checked', true);
+                                        } else {
+                                            $(':checkbox[name=ifWb]').prop('checked', false);
+                                        }
+
+                                        if (jdata.data.IF_SPL == 'Y') {
+                                            $(':checkbox[name=ifSpl]').prop('checked', true);
+                                        } else {
+                                            $(':checkbox[name=ifSpl]').prop('checked', false);
+                                        }
+
+                                        if (jdata.data.IF_OPTIMIZED == 'Y') {
+                                            $(':checkbox[name=ifOptimized]').prop('checked', true);
+                                        } else {
+                                            $(':checkbox[name=ifOptimized]').prop('checked', false);
+                                        }
+
+
+                                        //if(jdata.data.IF_LEP == 'N')
+                                        checkbox1.disabled = true;
+                                        checkbox2.disabled = true;
+                                        checkbox3.disabled = true;
+
+                                        var applType = $('#applType').combobox('getValue');
+                                        //APL机身   ENG发动机 APU APU  PART部件
+
+                                        /*       var APL ='APL';//机身
+                                         var ENG ='ENG'
+                                         var PART ='PART';
+                                         var APU ='APU';*/
+                                        if (applType == APL) {
+                                            $('#tt').show();
+                                            $('#tt2').hide();
+                                        }
+
+                                        if (applType != APL && applType != '') {
+
+                                            $('#tt').hide();
+                                            $('#tt2').show();
+                                        }
+
+                                        //获取附注信息
+                                        InitFuncCodeRequest_({
+                                            data: {
+                                                itemPkid: param.itemPkid,
+                                                FunctionCode: "EM_CMP_ATTACH_OPTIONS_GET"
+                                            }, successCallBack: function (jdata) {
+                                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                    //获取数组
+                                                    var arr = [];
+                                                    for (var a = 0; a < jdata.data.length; a++) {
+                                                        arr.push(jdata.data[a].ATTACH_OPTION);
+                                                    }
+                                                    $('#attachOption').combobox('setValues', arr);
+                                                }
+                                            }
+                                        });
+                                        InitDataGrid();
+                                        InitDataGrid2();
+                                    } else {
+                                        MsgAlert({content: "信息错误", type: 'error'});
+                                    }
+                                }
+                            });
+
+                        } else {
+                            //$('#revCode').combobox("setValue",'N');
+                            $('#cmpPkid').val(param.cmpPkid);
+                            $('#fleet').val(param.fleet);
+                            InitEditForm_();
+                            //修订日期
+                            $('#revDate').datebox({value: formatDates(new Date())});
+                            if (param.type) {
+                                $('#type').val(param.type);
+
+                                $('#pkid').val(param.pkid);
+
+                            }
+                            var applType = $('#applType').combobox('getValue');
+                            if (applType == APL) {
+                                $('#tt').show();
+                                $('#tt2').hide();
+                            }
+
+                            if (applType != APL && applType != '') {
+                                $('#tt').hide();
+                                $('#tt2').show();
+                            }
+                            if (applType == '') {
+                                $('#tt').hide();
+                                $('#tt2').hide();
+                            }
+                            InitDataGrid();
+                            InitDataGrid2();
+                        }
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+
+                }
+
+            });
+
+
+        }
+
+        function DomainCodeToMap_(list) {
+            var d = {};
+            $.each(list, function (k, it) {
+                d[it.VALUE] = it.TEXT;
+            });
+            return d;
+        }
+
+        function pdUnit() {
+            var tmpCal = $('#tmpCal').textbox('getValue');
+            if (tmpCal) {
+                $('#tmpCalUnit').combobox({required: true});
+            } else {
+                $('#tmpCalUnit').combobox({required: false});
+            }
+        }
+
+        function changifWb() {
+
+            var ata = $('#ata').textbox('getValue');
+            if (ata == 8 || ata == 08;
+        )
+            {
+                $('#ifWb').prop('checked', true);
+            }
+
+        }
+
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+
+                    //需要过渡
+                    var ifTmp = $('#ifTmp').textbox('getValue');
+                    //如果选择Y，则【过渡FH】、【过渡FC】、【过渡日历日】必须有一个填写。
+                    if (ifTmp == 'Y') {
+                        //过渡FH
+                        var tmpFh = $('#tmpFh').textbox('getValue');
+                        //过渡日历日
+                        var tmpCal = $('#tmpCal').textbox('getValue');
+                        //过渡FC
+                        var tmpFc = $('#tmpFc').textbox('getValue');
+                        var total = tmpFh + tmpCal + tmpFc;
+                        if (!total) {
+                            MsgAlert({content: "如果需要过渡选择Y，则【过渡FH】、【过渡FC】、【过渡日历日】必须有一个填写。", type: 'error'});
+                            return false;
+                        }
+                    }
+                    //适用类别'机身'的项目，才允许增加项目间隔，发动机、APU、部件类只能增加部件信息。
+                    // 期望点击创建按钮时，系统给出提示。
+                    var applType = $('#applType').combobox('getValue');
+
+                    if (applType == APL) {
+                        $('#tt').show();
+                        $('#tt2').hide();
+                    }
+                    if (applType != APL && applType != '') {
+                        $('#tt').hide();
+                        $('#tt2').show();
+                    }
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'EM_CMP_ITEM_UPDATE' : 'EM_CMP_ITEM_ADD')
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                $('#pkid').val(jdata.data.pkid);
+                                reload_();
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+
+                            } else {
+                                MsgAlert({content: "信息错误", type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="cmpPkid" name="cmpPkid" style="width: 100px;"/>
+                <input type="hidden" id="fleet" name="fleet" style="width: 100px;"/>
+                <input type="hidden" id="pkid" name="pkid" style="width: 100px;"/>
+                <input type="hidden" id="type" name="type" style="width: 100px;"/>
+
+                <table class="table table-bordered table-info">
+                    <caption style="padding-bottom: 7px;font-weight:bold;">评估信息--修订标识N</caption>
+                    <tr>
+                        <th class="td5" align="right">项目号：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="itemNo" name="itemNo"
+                                   data-options="editable:false,onlyview:true"
+                                   style="width: 435px;"/>
+                        </td>
+                        <th class="td5" align="right">ATA：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="ata" name="ata"
+                                   data-options="editable:false,onlyview:true"
+                                   style="width: 455px;"/>
+                        </td>
+                        <td align="right" style="padding-top: 6px;" colspan="4">
+                            <!-- <input class="btn btn-primary" type="submit" id="submit" value="保存"/>&nbsp;&nbsp;-->
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:80px" align="right">适用类别：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="applType" name="applType"
+                                   data-options="editable:false,onlyview:true" style="width: 150px;"/>
+                        </td>
+                        <th class="td5" style="width:80px" align="right">AMM参考：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="ammRef" name="ammRef"
+                                   data-options="editable:false,onlyview:true"
+                                   style="width: 150px;"/>
+                        </td>
+                        <th class="td5" style="width:80px" align="right">控制类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="ctlType" name="ctlType"
+                                   data-options="editable:false,onlyview:true" style="width: 150px;"/>
+                        </td>
+                        <th class="td5" style="width:100px" align="right">检验等级：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="chkLevel" name="chkLevel"
+                                   data-options="editable:false,onlyview:true" style="width: 150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+
+                        <th class="td5" style="width:100px" align="right">任务源：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="source" name="source"
+                                   data-options="editable:false,onlyview:true" style="width: 435px;"/>
+                        </td>
+                        <th class="td5" style="width:100px" align="right">中文描述：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="chnDesc" name="chnDesc"
+                                   data-options="editable:false,onlyview:true" style="width: 455px;"/>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">区域：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="zone" name="zone"
+                                   data-options="editable:false,onlyview:true" style="width: 435px;"/>
+                        </td>
+
+                        <th class="td5" style="width:100px" align="right">英文描述：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="engDesc" name="engDesc"
+                                   data-options="editable:false,onlyview:true" style="width: 455px;"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">监控方法：</th>
+                        <td class="tdr" colspan="7">
+                            <input class="easyui-combobox" id="intervalRule" name="intervalRule"
+                                   data-options="editable:false,onlyview:true" style="width: 150px;"/>
+                            <input type="checkbox" id="ifWb" name="ifWb" style="width: 50px;" value="Y"
+                                   data-options="editable:false,onlyview:true"/>称重项目
+
+                            <input type="checkbox" id="ifSpl" name="ifSpl"
+                                   data-options="editable:false,onlyview:true" style="width: 50px;" value="Y"/>抽样项目
+
+                            <input type="checkbox" id="ifOptimized" name="ifOptimized"
+                                   data-options="editable:false,onlyview:true" style="width: 50px;" value="Y"/>优化项目
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">附注信息：</th>
+                        <td class="tdr" colspan="2">
+                            <input class="easyui-combobox" id="attachOption" name="attachOption"
+                                   data-options="editable:false,onlyview:true" style="width: 200px;"/>
+                        </td>
+                        <th class="td5" style="width:100px" align="right">项目分类：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-combobox" id="itemType" name="itemType"
+                                   data-options="editable:false,onlyview:true" style="width: 200px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">需要过渡：</th>
+                        <td class="tdr" colspan="7">
+                            <input class="easyui-combobox" id="ifTmp" name="ifTmp"
+                                   data-options="editable:false,onlyview:true" style="width: 150px;"/>
+                            <span style="margin-left: 50px">从方案生效起过渡时限FH：</span>
+                            <input class="easyui-numberbox" id="tmpFh" name="tmpFh"
+                                   data-options="editable:false,onlyview:true" style="width: 100px;"/>
+                            <span style="margin-left: 50px">过渡时限FC：</span>
+                            <input class="easyui-numberbox" id="tmpFc" name="tmpFc"
+                                   data-options="editable:false,onlyview:true" style="width: 100px;"/>
+                            <span style="margin-left: 50px">过渡时限日历日：</span>
+                            <input class="easyui-textbox" id="tmpCal" name="tmpCal"
+                                   data-options="editable:false,onlyview:true" style="width: 74px;"/>
+                            <input class="easyui-combobox" id="tmpCalUnit" name="tmpCalUnit"
+                                   data-options="editable:false,onlyview:true" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">过渡要求：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="tmpRequire" name="tmpRequire"
+                                   data-options="editable:false,onlyview:true" style="width: 200px;"/>
+                        </td>
+                        <th class="td5" style="width:100px" align="right">接近盖板：</th>
+                        <td class="tdr" colspan="1">
+                            <input class="easyui-textbox" id="accesses" name="accesses"
+                                   data-options="editable:false,onlyview:true" style="width: 300px;"/>
+                        </td>
+                        <th class="td5" style="width:100px" align="right">修订日期：</th>
+                        <td class="tdr" colspan="1">
+                            <input class="easyui-datebox" id="revDate" name="revDate"
+                                   data-options="editable:false,onlyview:true" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">修订说明：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="revDesc" name="revDesc"
+                                   data-options="editable:false,onlyview:true" style="width: 432px;"/>
+                        </td>
+                        <th class="td5" style="width:100px" align="right">备注：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="memo" name="memo"
+                                   data-options="editable:false,onlyview:true" style="width: 450px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<div id="tt" class="easyui-tabs" style="width:100%;height:170px;font-weight:bold;">
+    <div id="div1" title="项目间隔" style="display:none;">
+        <table id="emCmpItemInterval"></table>
+    </div>
+</div>
+
+<div id="tt2" class="easyui-tabs" style="width:100%;height:170px;font-weight:bold;">
+    <div title="部件信息" data-options="" style="display:none;">
+        <table id="emCmpPntl"></table>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+
+    //重新加载
+    function reload_() {
+
+        var itemPkid = $('#pkid').val();
+        var dgopt = getDgOpts('emCmpItemInterval');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: {itemPkid: itemPkid},
+        });
+
+    }
+
+    function ch() {
+        if (confirm('是否保存?')) {
+            $("form").submit();
+            CloseWindowIframe();
+            param.OWindow.reload_();
+            return false;
+        } else {
+            CloseWindowIframe();
+            param.OWindow.reload_();
+            return false;
+        }
+    }
+
+
+    function InitDataGrid() {
+        var itemPkid = $('#pkid').val();
+
+        var identity = 'emCmpItemInterval';
+        if (itemPkid == null) {
+            itemPkid = '-';
+        }
+        $("#emCmpItemInterval").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            title: $.i18n.t(''),
+            queryParams: {itemPkid: itemPkid},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_ITEM_INTERVA_LIST'},
+                alter: {}
+            },
+            contextMenus: [
+                /*      {
+                 id: "m-add", i18nText: "浏览适用性", auth: "",
+                 onclick: function () {
+                 /!* var rowdata = getDG('emCmpItemInterval').datagrid('getSelected');
+                 var itemPkidget= $('#pkid').val();
+                 if(!itemPkidget)
+                 {
+                 MsgAlert({content: "请先保存主目录", type: 'error'});
+                 return false
+                 }
+                 ShowWindowIframe({
+                 width: "90%",
+                 height: "80%",
+                 title:"增加项目",
+                 param:{pkid:rowdata.PKID,itemPkid:itemPkid},
+                 url:"/views/em/emcmp/em_item_syx_add_edit.shtml"
+                 });*!/
+                 }
+                 },
+                 {
+                 id: "m-add", i18nText: "查看飞机号", auth: "",
+                 onclick: function () {
+                 var rowdata = getDG('emCmpItemInterval').datagrid('getSelected');
+
+
+                 var itemPkidget= $('#pkid').val();
+                 if(!itemPkidget)
+                 {
+                 MsgAlert({content: "请先保存主目录", type: 'error'});
+                 return false
+                 }
+                 ShowWindowIframe({
+                 width: "90%",
+                 height: "80%",
+                 title:"查看机号",
+                 param:{intervaPkid:rowdata.PKID},
+                 url:"/views/em/emcmp/em_cmp_item_apldetail_list.shtml"
+                 });
+                 }
+                 }
+                 ,
+                 {
+                 id: "m-add", i18nText: "查看维修项目范围", auth: "",
+                 onclick: function () {
+                 var rowdata = getDG('emCmpItemInterval').datagrid('getSelected');
+
+
+                 ShowWindowIframe({
+                 width: "90%",
+                 height: "80%",
+                 title:"增加项目",
+                 param:{wxpkid:rowdata.PKID},
+                 url:"/views/em/emcmp/em_item_syx_add_edit.shtml"
+                 });
+                 }
+                 },
+                 {
+                 id: "m-add", i18nText: "浏览项目间隔", auth: "",
+                 onclick: function () {
+                 var rowdata = getDG('emCmpItemInterval').datagrid('getSelected');
+                 var itemPkidget= $('#pkid').val();
+                 ShowWindowIframe({
+                 width: "90%",
+                 height: "80%",
+                 title:"编辑项目间隔",
+                 param:{pkid:rowdata.PKID,itemPkid:itemPkidget},
+                 url:"/views/em/emcmp/em_cmp_item_interval_add.shtml"
+                 });
+                 }
+                 },*/
+
+
+            ],
+            toolbar: []
+        });
+    }
+
+
+    function InitDataGrid2() {
+        var itemPkid = $('#pkid').val();
+
+        var identity = 'emCmpPntl';
+        if (itemPkid == null) {
+            itemPkid = '-';
+        }
+        $("#emCmpPntl").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            title: $.i18n.t(''),
+            queryParams: {itemPkid: itemPkid},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_PNTL_LIST'},
+                alter: {
+
+                    REV_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            contextMenus: [
+                /* {
+                 id: "m-del", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                 onclick: function () {
+                 var rowdata = getDG('emCmpPntl').datagrid('getSelected');
+
+                 InitFuncCodeRequest_({
+                 data: {
+                 pkid:rowdata.PKID,
+                 FunctionCode: "EM_CMP_PNTL_DEL"
+                 },
+                 successCallBack: function (jdata) {
+                 if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                 MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                 reloadInitDataGrid2_();
+                 } else {
+                 MsgAlert({content: "信息错误", type: 'error'});
+                 }
+                 }
+                 });
+
+                 }
+                 },
+                 {
+                 id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "",
+                 onclick: function () {
+                 var rowdata = getDG('dg').datagrid('getSelected');
+
+                 ShowWindowIframe({
+                 width: "90%",
+                 height: "80%",
+                 title:"增加部件信息",
+                 param:{pkid:rowdata.PKID},
+                 url:"/views/em/emcmp/em_cmp_pntl_add_edit.shtml"
+                 });
+
+                 }
+                 },
+                 {
+                 id: "m-edit", i18nText: "common:COMMON_OPERATION.BROWSE", auth: "",
+                 onclick: function () {
+                 var rowdata = getDG('dg').datagrid('getSelected');
+                 common_add_edit_({
+                 identity: identity, isEdit: 0, width: 1150, height : 620,title:$.i18n.t('common:RES.COMMON.CREATE'),
+                 url: '/views/em/emcmp/em_cmp_item_interval_add.shtml'
+                 });
+                 }
+                 }*/
+            ],
+            toolbar: []
+        });
+    }
+
+
+    function reloadInitDataGrid2_() {
+        var itemPkidget = $('#pkid').val();
+        var dgopt = getDgOpts('emCmpPntl');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: {itemPkid: itemPkidget}
+        });
+
+    }
+
+
+    function parentSearch_(date, id) {
+        var dgopt = getDgOpts(id);
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: date
+        });
+    }
+
+    /** 刷新列表数据 */
+
+
+</script>
+
+</body>
+</html>

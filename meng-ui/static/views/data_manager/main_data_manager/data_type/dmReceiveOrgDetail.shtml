@@ -1,0 +1,248 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>资料接收单位维护详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid" />
+                <input type="hidden" id="createBy" name="createBy" />
+                <input type="hidden" id="createTime" name="createTime" />
+                <input class="easyui-textbox" type="hidden" id="orgId" name="orgId" />
+                <input type="hidden" id="hdKeyword" />
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">单位类型：</th>
+                        <td class="tdr" style="width: 100px;">
+                            <input class="easyui-combobox" id="deptType" name="deptType" data-options="required:true" style="width: 100px;" />
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">联系人：</th>
+                        <td class="tdr" style="width: 60px">
+                            <input class="easyui-combogrid" id="contactMan" name="contactMan" data-options="required:true" data-options="editable:true" style="width: 80px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">电话：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="phone" name="phone"  data-options="editable:true" style="width: 60px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">电子邮件：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="email" name="email"  data-options="editable:true" style="width: 100px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">站点：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="station" name="station"   data-options="onlyview:true,editable:false" style="width: 80px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">邮编：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="postalCode" name="postalCode"   data-options="editable:true" style="width: 60px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">单位名称：</th>
+                        <td class="tdr" colspan="5">
+                            <input class="easyui-textbox" id="orgName" name="orgName"  data-options="onlyview:true,editable:false"  style="width: 425px;" ></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">详细地址：</th>
+                        <td class="tdr" colspan="5">
+                            <input class="easyui-textbox" id="address" name="address" data-options="editable:true" style="width: 425px;" ></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">备注：</th>
+                        <td class="tdr" colspan="5">
+                            <textarea id="memo" name="memo" data-options="editable:true" style="width: 425px;height:60px;" ></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" id="saveBtn" type="button" onclick="save()" value="保存" style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe_();" value="关闭" style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var COMBOBOX_DATA ={};
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+
+        InitFuncCodeRequest_({
+            data: {domainCode: "DM_DEPT_TYPE,DM_RECEIVE_ORG_USER",FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    COMBOBOX_DATA['dept_type'] = jdata.data.DEPT_TYPE;
+                    //单位类型
+                    $("#deptType").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_DEPT_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+
+                    if(operation == 'add') {
+                        $("#deptType").combobox("setValue", "NBDW");
+
+                    }
+
+                    //联系人
+                    InitContactMan();
+                    //联系人
+                  /*  $("#contactMan").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_RECEIVE_ORG_USER,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function(row){
+                            InitOrgName(row.VALUE);
+                        }
+                    });*/
+
+                    if (param.pkid){
+                        InitDataForm(param.pkid);
+                    }
+
+                    //站点
+
+                }
+
+                if(operation == 'view'){
+                    $("#saveBtn").hide();
+                }
+
+
+            }
+        })
+    }
+
+    //初始化联系人
+    function InitContactMan(){
+            $("#contactMan").MyComboGrid({
+                idField: 'PKID',
+                textField: 'NAME',
+                width: 80,
+                singleSelect:true,
+                mode:'remote',
+                params: {FunctionCode:'DM_RECEIVE_ORG_CONTANT_MAN'},
+                url : Constant.API_URL + 'DM_RECEIVE_ORG_CONTANT_MAN',
+                columns:[[
+                    {field:'NO',title:'工号',width:10},
+                    {field:'NAME',title:'姓名',width:10},
+                    ]],
+                onSelect: function(index,row){
+                    InitOrgName(row.NO);
+                }
+            });
+    }
+
+    function InitOrgName(no){
+        InitFuncCodeRequest_({
+            data: {no: no,FunctionCode:'DM_RECEIVE_ORG_NAME'},
+            successCallBack: function(jdata){
+                if(jdata.code == RESULT_CODE.SUCCESS_CODE){
+                    if(jdata.data.ORG_ID) {
+                        $("#orgName").textbox("setValue", jdata.data.ORG_NAME);
+                        $("#orgId").textbox("setValue", jdata.data.ORG_ID);
+                    }else{
+                        MsgAlert({content: "当前联系人没有所在部门或单位,请重新选择联系人!", type: 'error'});
+                        $("#contactMan").combogrid("setValue","");
+                    }
+                }
+            }
+        });
+    }
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "DM_RECEIVE_ORG_BY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $("#contactMan").combogrid({value:jdata.data.CONTACT_MAN});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var contactMan = $("#contactMan").combogrid("getValue");
+        var orgName = $("#orgName").val();
+        if ("add" == operation) {
+            InitFuncCodeRequest_({
+                data: {contactMan: contactMan, orgName: orgName, FunctionCode: 'DM_RECEIVE_ORG_SAVE_CHECK'},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (jdata.data.GESHU == 0) {
+                            save_p();
+                        } else if (jdata.data.GESHU > 0) {
+                            MsgAlert({content: '该联系人和单位名称已存在!', type: 'error'});
+                        }
+                    }
+                }
+            });
+        } else if ("edit" == operation) {
+            save_p();
+        }
+    }
+
+    function save_p(){
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'DM_RECEIVE_ORG_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.onSearch_('dg', '#ffSearch');
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function CloseWindowIframe_(){
+        if(operation == 'view'){
+            CloseWindowIframe();
+            return;
+        }
+        if(!confirm("是否保存数据?")) {
+            if (param.OWindow.onSearch_) {
+                param.OWindow.onSearch_('dg', '#ffSearch');
+            }
+            CloseWindowIframe();
+        }else{
+            save();
+        }
+    }
+</script>
+</html>

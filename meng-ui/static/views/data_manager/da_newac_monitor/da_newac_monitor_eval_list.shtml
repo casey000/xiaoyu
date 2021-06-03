@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">新飞机引进时限监控</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <!--<div id="searchBar">-->
+        <!--<table class="table table-bordered table-info">-->
+        <!--<tr>-->
+        <!--<th data-i18n="" style="width: 70px">来源名称：</th>-->
+        <!--<td>-->
+        <!--<input class="easyui-combobox" name="dataFrom" id="dataFrom" data-options=""-->
+        <!--style="width:120px;"/>-->
+        <!--</td>-->
+        <!--<th data-i18n="" style="width: 70px">资料类型：</th>-->
+        <!--<td>-->
+        <!--<input class="easyui-combobox" name="dataType" id="dataType" data-options=""-->
+        <!--style="width:120px;"/>-->
+        <!--</td>-->
+        <!--<td>-->
+        <!--<a class="searchBtn" data-options="iconCls:'icon-search'"-->
+        <!--data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()"-->
+        <!--auth="emallocation-view">查询</a>-->
+        <!--<a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">-->
+        <!--<span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>-->
+        <!--</td>-->
+        <!--</tr>-->
+        <!--</table>-->
+        <!--</div>-->
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var companyCode;
+
+    function i18nCallBack() {
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_MONITOR_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#dataFrom').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_REC_PRIVIDOR,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#dataType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DA_MONITOR_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //资料类别
+                    PAGE_DATA['dataType'] = DomainCodeToMap_(jdata.data["DA_MONITOR_TYPE"]);
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            queryParams: {companyCode: companyCode},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'DA_NEWAC_MONITOR_EVAL_LIST'},
+                alter: {
+                    DATA_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dataType'][value];
+                        }
+                    },
+                    SB_LEVEL: {
+                        formatter: function (value) {
+                            return PAGE_DATA['sbLevel'][value];
+                        }
+                    },
+                    CREATE_TIME: {
+                        type: 'date'
+                    },
+                    MODIFY_TIME: {
+                        type: 'date'
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            toolbar: [
+                //     {
+                //     id: 'btnAdd',
+                //     text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                //     iconCls: 'icon-add',
+                //     handler: function () {
+                //         addSbLevel('add');
+                //     }
+                // }, '-',
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                }],
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "emallocation-edit",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 536, height: 312,
+                            url: "/views/data_manager/da_newac_monitor/da_newac_monitor_eval_edit.shtml"
+
+                        });
+                    }
+                },
+                // {
+                //     id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "emallocation-delete",
+                //     onclick: function () {
+                //         common_delete_({
+                //             identity: identity,
+                //             cfmI18next: "msg_tip:TIP.COMMON.DEL_CONFIRM",
+                //             param: {pkid: "PKID"},
+                //             FunctionCode: "DM_SB_LEVEL_DEL"
+                //         });
+                //     }
+                // }
+            ]
+
+        });
+    }
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function addSbLevel() {
+        ShowWindowIframe({
+            width: 536,
+            height: 312,
+            title: "评估时限维护",
+            url: "/views/data_manager/da_newac_monitor/da_newac_monitor_eval_edit.shtml"
+        });
+    }
+</script>
+</body>
+</html>

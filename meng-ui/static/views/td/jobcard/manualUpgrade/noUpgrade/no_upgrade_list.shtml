@@ -1,0 +1,273 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>未升版手册清单</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="tdl" style="width: 60px">机队：</th>
+                <td class="tdr" style="width: 100px;">
+                    <input class="easyui-combobox" name="fleet" id="fleet"
+                           data-options="editable:true"
+                           style=" width:80px;"/>
+                </td>
+                <th class="tdl" style="width: 80px">手册类型：</th>
+                <td class="tdr" style="width: 100px;">
+                    <input class="easyui-combobox" name="manualType" id="manualType"
+                           data-options="editable:true"
+                           style=" width:80px;"/>
+                </td>
+                <th class="tdl" style="width: 80px">手册编号：</th>
+                <td class="tdr" style="width: 100px;">
+                    <input class="easyui-textbox" name="sbNo" id="sbNo"
+                           data-options="editable:true"
+                           style=" width:100px;"/>
+                </td>
+                <th class="tdl" style="width: 80px">厂家版本：</th>
+                <td class="tdr" style="width: 100px;">
+                    <input class="easyui-textbox" name="revDate" id="revDate"
+                           data-options="editable:true"
+                           style=" width:80px;"/>
+                </td>
+                <th class="tdl" style="width: 80px">评估状态：</th>
+                <td class="tdr" style="width: 80px;">
+                    <input class="easyui-combobox" name="ifJcRev" id="ifJcRev"
+                           data-options="editable:false"
+                           style=" width:80px;"/>
+                </td>
+                <td align="left">
+                    <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                       onclick="searchData('dg','#ffSearch')" >
+                        <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                    <a class="clearBtn" href="javascript:void(0)" onclick="doClear_('#ffSearch')"
+                       data-options="iconCls:'icon-clear'">
+                        <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                </td>
+            </tr>
+
+        </table>
+    </form>
+    <table id="dg"></table>
+</fieldset>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var name = getLoginInfo().userName;
+    var accountId = getLoginInfo().accountId;
+    var param = '';
+    param = getParentParam_();
+    function i18nCallBack() {
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData('dg', '#ffSearch');
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,TD_MANUAL_TYPE,DM_REC_VER_TYPE,TD_JC_MANUAL_IF_REV",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#fleet').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#manualType').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.TD_MANUAL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ifJcRev').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.TD_JC_MANUAL_IF_REV,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //机队
+                    PAGE_DATA['fleet'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    //控制类别
+                    PAGE_DATA['manualType'] = DomainCodeToMap_(jdata.data["TD_MANUAL_TYPE"]);
+                    PAGE_DATA['isTr'] = DomainCodeToMap_(jdata.data["DM_REC_VER_TYPE"]);
+                    PAGE_DATA['ifJcRev'] = DomainCodeToMap_(jdata.data["TD_JC_MANUAL_IF_REV"]);
+                    InitDataGrid();
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    function searchData(grid, search) {
+        onSearch_(grid, search);
+    }
+
+
+    function InitDataGrid() {
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 130) / 25);
+        $("#dg").MyDataGrid({
+            identity: "dg",
+            sortable: true,
+            singleSelect: true,
+            pageSize: pageSize,
+            resize: function () {
+                return {
+                    height: $(document.body).height() - 50,
+                    width: $(document.body).width()
+                };
+            },
+            columns: {
+                param: {FunctionCode: 'TD_JC_MANUAL_LIST'},
+                alter: {
+                    MANUAL_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['manualType'][value];
+                        }
+                    },
+                    IS_TR: {
+                        formatter: function (value) {
+                            return PAGE_DATA['isTr'][value];
+                        }
+                    },
+                    IF_JC_REV: {
+                        formatter: function (value) {
+                            return PAGE_DATA['ifJcRev'][value];
+                        }
+                    },
+                    JC_REV_DEAL_TIME: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-manualrev",
+                    i18nText: "手册升版",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        var noCou = 0;
+                        var pgzCou = 0;
+                        //未升版手册清单-手册升版校验不能跨版本升版
+                        InitFuncCodeRequest_({
+                            data: {
+                                revDate: rowData.REV_DATE,
+                                fleet: rowData.FLEET,
+                                manualType: rowData.MANUAL_TYPE,
+                                manualNo: rowData.SB_NO,
+                                FunctionCode: "TD_MANUAL_REV_CHECK_IF_CROSS_VER"
+                            },async:false, successCallBack: function (jdata1) {
+                                if (jdata1.code == RESULT_CODE.SUCCESS_CODE) {
+                                    noCou = jdata1.data.NUM;
+                                } else {
+                                    MsgAlert({content: jdata1.msg, type: 'error'});
+                                }
+                            }
+                        })
+                        //手册改版评估存在【未评估完成的】，或者 未受影响工卡清单存在【未升版的】
+                        InitFuncCodeRequest_({
+                            data: {
+                                revDate: rowData.REV_DATE,
+                                fleet: rowData.FLEET,
+                                manualType: rowData.MANUAL_TYPE,
+                                manualNo: rowData.SB_NO,
+                                FunctionCode: "TD_MANUAL_REV_CHECK_IF_YWC"
+                            },async:false, successCallBack: function (jdata1) {
+                                if (jdata1.code == RESULT_CODE.SUCCESS_CODE) {
+                                    pgzCou = jdata1.data.NUM;
+                                } else {
+                                    MsgAlert({content: jdata1.msg, type: 'error'});
+                                }
+                            }
+                        })
+
+
+                        if (noCou > 0 || pgzCou > 0) {
+                            var msg = "";
+                            if(noCou > 0){
+                                msg = "当前手册存在旧版未升版数据，不允许操作！";
+                            }else if(pgzCou > 0){
+                                msg = "手册改版评估存在【未评估完成的】，或者 未受影响工卡清单存在【未升版的】！";
+                            }
+                            MsgAlert({content: msg, type: 'error'});
+                            return;
+                        } else {
+                            if (!confirm("是否确认升版(请谨慎操作)？")) {
+                                return;
+                            }
+                            MsgAlert({content: $.i18n.t('正在升版中，请稍后查看！')});
+                            //更新状态为处理中
+                            updateProcess("P",rowData.PKID);
+                            //升版
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: rowData.PKID,
+                                    fleet: rowData.FLEET,
+                                    manualType: rowData.MANUAL_TYPE,
+                                    manualNo: rowData.SB_NO,
+                                    revDate: rowData.REV_DATE,
+                                    FunctionCode: 'UPGRADE_MANUAL_EVAL_JC'
+                                },
+                                successCallBack: function (jdata2) {
+                                    $("#dg").datagrid("reload");
+                                    if (jdata2.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    } else {
+                                        //更新状态为处理失败
+                                        updateProcess("F",rowData.PKID);
+                                        MsgAlert({content: jdata2.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.IF_JC_REV != "N" && row.IF_JC_REV != "F") {
+                    items['手册升版'].enable = false;
+                }
+                return items;
+            }
+        });
+    }
+
+    //更新状态为处理中
+    function updateProcess(sta,pkid){
+        InitFuncCodeRequest_({
+            data: {
+                sta:sta,
+                pkid: pkid,
+                FunctionCode: 'UPGRADE_MANUAL_UP_STA'
+            },async:false,
+            successCallBack: function (jdata2) {
+                if (jdata2.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#dg").datagrid("reload");
+                } else {
+                    MsgAlert({content: jdata2.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //重置
+    function doClear_(search, grid) {
+        $(search).form('clear');
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,347 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>EO适用性列表</title>
+</head>
+
+<body>
+<form class="form-horizontal m-t" id="mform">
+    <table border="0" cellpadding="0" cellspacing="0" style="width: 100%;">
+        <tr>
+            <td id="tableTitle" style="width: 200px;">
+                适用性
+            </td>
+
+            <td style="text-align: right;">
+                <input class="btn btn-primary" type="button" onclick="openDetai('add','')" value="维护适用性"
+                       style="width: 80px;margin:5px;"/>
+            </td>
+        </tr>
+    </table>
+    <table id="dg" style="width: 980px;padding:10px;"></table>
+</form>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var iparam;
+    var operation;
+    var operationAdd;
+    var PAGE_DATA = {};
+    var nalter = {};
+    var selArray = [];
+    var detailFun;
+
+    function getUrlParam(name) {
+        var reg = new RegExp("(^|&)" + name + "=([^&]*)(&|$)");
+        var r = window.location.search.substr(1).match(reg);
+        if (r != null) {
+            return decodeURI(r[2]);
+        } else {
+            return null;
+        }
+    }
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        if (iparam.applyType == "APL") {
+            detailFun = "EM_EO_APP_GROUP_LIST";
+        } else {
+            detailFun = "EM_EO_APP_GROUP_PART_ENG_LIST";
+        }
+        operation = iparam.operation;
+        if ("view" == operation) {
+            $(".btn.btn-primary").attr("disabled", true);
+        }
+        var domainCode = new Set();
+        if (iparam.alter) {
+            for (var i = 0; i < iparam.alter.length; i++) {
+                domainCode.add(iparam.alter[i].pageData);
+                let formatter = `{
+                        formatter: function (value) {
+                            return PAGE_DATA['${iparam.alter[i].field}'][value];
+                        }
+                    }`;
+                nalter[iparam.alter[i].field] = eval('(' + formatter + ')');
+            }
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: Array.from(domainCode).join(','),
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (iparam.alter) {
+                    for (let i = 0; i < iparam.alter.length; i++) {
+                        PAGE_DATA[iparam.alter[i].field] = DomainCodeToMap_(jdata.data [iparam.alter[i].pageData]);
+                    }
+                }
+
+                if (iparam.pkid && iparam.pkid != -1) {
+                    $("#dataType").combobox({onlyview: true, editable: false});
+                    InitDataForm(iparam.pkid);
+                }
+            }
+        });
+        if (iparam.pkid && iparam.pkid != -1) {
+            InitDataGrid("dg", iparam.pkid);
+        } else {
+            InitDataGrid("dg", -1);
+        }
+    }
+
+    var $pd = {};
+
+    function InitDataGrid(id, eoPkid) {
+        $pd[id] = $("#" + id);
+        $pd[id].MyDataGrid({
+            identity: id,
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            fit: false,
+            resize: function () {
+                return {width: '100%', height: 175};
+            },
+            queryParams: {"eoPkid": iparam.pkid ? iparam.pkid : -1},
+
+            columns: {
+                param: {FunctionCode: detailFun},
+                alter: nalter
+            },
+            validAuth: function (row, items) {
+                if (operation == 'view') {
+                    items['编辑'].display = false;
+                    items['维护适用性'].display = false;
+                    items['上传附件'].display = false;
+                    items['删除'].display = false;
+                }
+                return items;
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "dmDataRecExter",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFileLocal(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+
+
+
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                var rowData = getDG('dg').datagrid('getSelected');
+                if (!rowData.PKID) {
+                    MsgAlert({content: "请选择数据！", type: 'error'});
+                    return;
+                }
+                flag = "V";
+                openDetai('view', rowData.PKID);
+
+            }
+        });
+    }
+
+
+    function setSubData(data) {
+        ParseFormField_(data, $("#mform"), Constant.CAMEL_CASE);
+
+        $(":checkbox").each(function () {
+            var radioName = $(this).attr('name').toUpperCase();
+            var num = data[radioName];
+            $(this).prop("checked", num == "Y" ? true : false);
+        });
+    }
+
+
+    /**
+     * 初始化数据
+     * @param pkid
+     * @constructor
+     */
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_EO_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $(":radio").each(function () {
+                        var radioName = $(this).attr('name').toUpperCase();
+                        var num = jdata.data[radioName];
+                        $("input[name=" + $(this).attr('name') + "]:eq(" + num + ")").attr("checked", 'checked');
+                    });
+                    $(":checkbox").each(function () {
+                        var radioName = $(this).attr('name').toUpperCase();
+                        var num = jdata.data[radioName];
+                        $(this).prop("checked", num == "Y" ? true : false);
+                    });
+                    //设置子页面数据
+                    //  setSubData(jdata.data)
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid) {
+        if (iparam.pkid == -1 || iparam.pkid == "") {
+            MsgAlert({content: '请先保存EO基本信息', type: 'error'});
+            return;
+        }
+
+        /*if(iparam.ifEvaProduce == 'Y' &&!(iparam.evalApplyType == 'APL' && iparam.applyType == 'PART')){
+            MsgAlert({content: '评估产生的EO不可修改适用性', type: 'error'});
+            return;
+        }*/
+
+        ////取消评估单产生适用性维护限制
+        /*if(iparam.ifEvaProduce == 'Y' && iparam.evalApplyType != 0){
+            MsgAlert({content: '评估产生的EO不可修改适用性', type: 'error'});
+            return;
+        }*/
+
+        if (iparam.addBidden) {
+            MsgAlert({content: iparam.addBiddenMsg, type: 'error'});
+            return;
+        }
+        for (var i = 0; i < selArray.length; i++) {
+            $('#' + selArray[i]).combobox('select', 'Y');// 赋值
+        }
+        var title_ = $.i18n.t('EO详细页');
+        ShowWindowIframe({
+            width: "800",
+            height: "400",
+            title: title_,
+            param: {
+                operation: operation, pkid: pkid, applyModel: iparam.applyModel,
+                eoPkid: iparam.pkid, applyType: iparam.applyType
+            },
+            url: iparam.addUrl
+        });
+    }
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        if (iparam.applyType == "APL") {
+            detailFun = "EM_EO_APP_GROUP_LIST";
+        } else {
+            detailFun = "EM_EO_APP_GROUP_PART_ENG_LIST";
+        }
+        var dgopt = getDgOpts('dg');
+        var $dg = $(dgopt.owner);
+        let queryParams = $.extend({}, dgopt.queryParams, dgopt._params, {
+            FunctionCode: detailFun,
+            "eoPkid": iparam.pkid ? iparam.pkid : -1
+        });
+
+        if (typeof(breforSearch) == 'function') {
+            breforSearch(queryParams);
+        }
+        if (dgopt.treeField) {
+            $dg.treegrid('reload', queryParams);
+        } else {
+            //切换适用类型之后，切换funtionCode
+            $dg.datagrid('options').url = '/api/v1/plugins/' + detailFun;
+            $dg.datagrid('reload', queryParams);
+        }
+
+        $("#dg").datagrid("reload");
+    }
+
+    function InitSaveForm_() {
+        var $form = $("#mform");
+
+        var data = $form.serializeObject();
+        var radis = {};
+        $(":radio").each(function () {
+            var radioName = $(this).attr('name');
+            radis[radioName] = $("input[name='" + radioName + "']:checked").val();
+        });
+
+        $(":checkbox").each(function () {
+            radis[$(this).attr('name')] = $(this).is(':checked') ? "Y" : "N";
+        });
+        data = $.extend(data, radis, {"pkid": iparam.pkid}, {FunctionCode: "EM_EO_ADD"});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return false;
+    }
+
+
+    //父级调用
+    function switchApplyType(ifDelAll) {
+        if (!iparam.delAll) {
+            return;
+        }
+        if (iparam.delAll == "ALL") {
+            if (!ifDelAll) {
+                return;
+            }
+            InitFuncCodeRequest_({
+                data: {FunctionCode: iparam.delAllfunctionCode, eoPkid: iparam.pkid},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                }
+            });
+        } else {
+            if (iparam.delAll == iparam.applyType) {
+                return;
+            }
+            if (iparam.dropIf) {
+                for (let i = 0; i < iparam.dropIf.length; i++) {
+                    $("#" + iparam.dropIf[i].nameEN).combobox("setValue", "N");
+                }
+            }
+            InitFuncCodeRequest_({
+                data: {FunctionCode: iparam.delAllfunctionCode, eoPkid: iparam.pkid},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                }
+            });
+            InitSaveForm_();
+        }
+
+
+    }
+</script>
+</html>

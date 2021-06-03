@@ -1,0 +1,556 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>送修计划</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" data-i18n="" style="width:80px;" align="right">计划编号：</th>
+                        <td style="width:150px" class="td5">
+                            <input class="easyui-textbox" name="planNo" id="planNo" style="width:150px"/>
+                        </td>
+                        <th class="th" align="right" data-i18n="" style="width:40px;">机型：</th>
+                        <td style="width:100px" class="td5">
+                            <input class="easyui-combobox" name="fleet" id="fleet"
+                                   style="width:100px"/>
+                        </td>
+                        <th class="th" align="right" data-i18n="" style="width:100px;">发动机型号：</th>
+                        <td style="width:130px" class="td5">
+                            <input class="easyui-combobox" name="epn" id="epn" style="width:130px"/>
+                        </td>
+                        <th class="th" align="right" data-i18n="" style="width:100px;">发动机序号：</th>
+                        <td style="width:100px" class="td5">
+                            <input class="easyui-combobox" id="esn" name="esn" style="width:100px"/>
+                        </td>
+                        <td class="td5">
+                            <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="onSearchClick();"><span>查询</span></a>
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            <a href="javascript:void(0)" class="addBtn" onclick="genPlan()" auth="ENG_RX_REPAIR_PLAN1"><span>新增计划</span></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="u_dg"></table>
+    <table id="l_dg"></table>
+</div>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var address=window.location.origin; //url
+    var port=document.location.port;//ip:端口号
+    if(!port){
+        port = ':'+port;
+    }else{
+        port = '';
+    }
+    var ctx = address+port;
+    var user = getLoginInfo();
+    function i18nCallBack() {
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiReport/getMpActypes",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#fleet').combobox({
+                        data: jdata.obj,
+                        valueField: 'value',
+                        textField: 'text',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取机型列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngTypeNew",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#epn').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                        onSelect: function (item) {
+                            InitGatewayRequest_({
+                                async: false,
+                                data: {matnr: item.VALUE},
+                                path: "/meng-engine/baseOwn/getEngByTypeNew",
+                                successCallBack: function (jdata) {
+                                    if (jdata.success == true) {
+                                        $('#esn').combobox({
+                                            data: jdata.obj,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT',
+                                            panelHeight: '150px',
+                                        });
+                                    } else {
+                                        MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            data:{matnr:''},
+            path: "/meng-engine/baseOwn/getEngByTypeNew",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#esn').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_RX_REPAIRPLAN_STATUS,ENG_REPAIE_LEVEL,ENG_REPAIR_COMPOSE_REL,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['auditStatus'] = DomainCodeToMap_(jdata.data["ENG_RX_REPAIRPLAN_STATUS"]);
+                    PAGE_DATA['repairLevel'] = DomainCodeToMap_(jdata.data["ENG_REPAIE_LEVEL"]);
+                    PAGE_DATA['composeRel'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        InitDataGrid();
+        InitDataGrid2(-1);
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#u_dg").GatewayDataGrid({
+            identity: 'u_dg',
+            idField: "PKID",
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/rxRepairPlan/listByPage",
+            fitcolumn:true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.55, 0, 70, -6);
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_RX_REPAIR_PLAN'},
+                alter: {
+                    editDate: {
+                        type: 'date'
+                    },
+                    auditDate: {
+                        type: 'date'
+                    },
+                    provDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    },
+                    auditStatus: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['auditStatus'] [value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    auth: "ENG_RX_REPAIR_PLAN2",
+                    onclick: function () {
+                        var row = $('#u_dg').datagrid('getSelected');
+                        if (!row.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        common_add_edit_({
+                            url: "/views/engine/rx/repairplan/eng_rx_repairplan_edit.shtml?pkid=" + row.pkid,
+                            identity: "u_dg",
+                            isEdit: 0,
+                            width: 600,
+                            height: 400
+                        });
+                    }
+                },{
+                    id: "m-edit",
+                    i18nText: "新增明细",
+                    auth: "ENG_RX_REPAIR_PLAN2",
+                    onclick: function () {
+                        var row = $('#u_dg').datagrid('getSelected');
+                        if (!row.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        var title_ = $.i18n.t('计划明细新增');
+                        ShowWindowIframe({
+                            width: 600,
+                            height: 400,
+                            title: title_,
+                            url: "/views/engine/rx/repairplan/eng_rx_repairplan_detail_edit.shtml?engType="+row.engType+"&refPkid="+row.pkid,
+                        });
+                    }
+                },{
+                    id: "m-rev",
+                    i18nText: "改版",
+                    auth: "ENG_RX_REPAIR_PLAN2",
+                    onclick: function () {
+                        var row = $('#u_dg').datagrid('getSelected');
+                        if (!row.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        if (!confirm("确认改版该记录？")) {
+                            return;
+                        }
+
+                        InitGatewayRequest_({
+                            async: false,
+                            data: {"pkid": row.pkid},
+                            path: "/meng-engine/rxRepairPlan/revPlan",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    reload_();
+                                    InitDataGrid2(-1);
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-revise",
+                    i18nText: "提交",
+                    auth: "ENG_RX_REPAIR_PLAN7",
+                    onclick: function () {
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var ifExit = 0;
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/rxRepairPlan/ifSubmit/" + rowData.pkid,
+                            successCallBack: function (jdata) {
+                                ifExit = jdata.obj;
+                            }
+                        });
+
+                        if (ifExit > 0) {
+                            MsgAlert({content: '还有未被处置的数据，请处置后再进行提交操作！', type: 'error'});
+                            return;
+                        }
+
+                        submitRepairPlan(rowData.pkid);
+                    }
+                }, {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.pkid, objKey: "ENG_RX_REPAIR_PLAN"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "删除",
+                    auth: "ENG_RX_REPAIR_PLAN3",
+                    onclick: function () {
+                        var row = $('#u_dg').datagrid('getSelected');
+                        if (!row.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+
+                        InitGatewayRequest_({
+                            async: false,
+                            data: {"pkid": row.pkid},
+                            path: "/meng-engine/rxRepairPlan/deletePlan",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    reload_();
+                                    InitDataGrid2(-1);
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                } else {
+                                    MsgAlert({content: '操作失败', type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.auditStatus != 1) {
+                    items['提交'].enable = false;
+                    items['删除'].enable = false;
+                }
+
+                if (row.auditStatus != 1 && row.auditStatus != 5) {
+                    items['编辑'].enable = false;
+                    items['新增明细'].enable = false;
+                }
+                if (row.auditStatus == 1) {
+                    items['办理轨迹'].enable = false;
+
+                }
+                if (row.auditStatus != 3) {
+                    items['改版'].enable = false;
+
+                }
+                if(row.modifyUser != user.accountId) {
+                    items['编辑'].enable = false;
+                    items['新增明细'].enable = false;
+                    items['提交'].enable = false;
+                    items['删除'].enable = false;
+                    items['改版'].enable = false;
+                }
+                return items;
+            },
+            onClickRow: function (rowIndex, row) {
+                if (!!row.pkid) {
+                    InitDataGrid2(row.pkid,row.auditStatus);
+                }
+            }
+        });
+    }
+
+    function InitDataGrid2(refPkid,auditStatus) {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#l_dg").GatewayDataGrid({
+            identity: 'l_dg',
+            idField: "PKID",
+            queryParams: {
+                    refPkid: refPkid
+                },
+            pagination: true,
+            path: "/meng-engine/rxRepairPlan/listDetailByPage",
+            fitcolumn:true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.38, 0, 10, -6);
+            },
+
+            columns: {
+                param: {FunctionCode: 'ENG_RX_REPAIR_PLAN_DETAIL'},
+                alter: {
+                    createDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    },
+                    planRemoveDate: {
+                        type: 'date'
+                    },
+                    repairLevel: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['repairLevel'] [value];
+                        }
+                    },
+                    curPos:{
+                        formatter: function (value) {
+                            if (value =='U' || value == 'L')
+                                return "APU";
+                            else
+                                return value;
+                        }
+                    },
+                    composeRel: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['composeRel'] [value];
+                        }
+                    },
+                    deleteFlag: {
+                        formatter: function (value, row, index) {
+                            if (value == '1') {
+                                return '推送SAP组包';
+                            } else if (value == '2') {
+                                return '待定';
+                            }else if (value == '3') {
+                                return '删除';
+                            } else {
+                                return '';
+                            }
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-delete",
+                    i18nText: "推送SAP组包",
+                    auth: "ENG_RX_REPAIR_PLAN5",
+                    onclick: function () {
+                        var row = $('#l_dg').datagrid('getSelected');
+                        if (!row.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        var title_ = $.i18n.t('SAP组包信息');
+                        ShowWindowIframe({
+                            width: 600,
+                            height: 400,
+                            title: title_,
+                            url: "/views/engine/rx/repairplan/eng_rx_repairplan_detail_sap.shtml?pkid=" + row.pkid  +"&refPkid="+row.refPkid +"&epn="+row.epn+"&auditStatus="+auditStatus,
+                        });
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "工包打印",
+                    onclick: function () {
+                        var row = $('#l_dg').datagrid('getSelected');
+                        if (!row.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/rxRepairPlan/getWsExcel/"+ row.wsNo,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    url = jdata.obj;
+                                    window.location.href = ctx + url;
+
+                                } else {
+                                    MsgAlert({content:"导出失败!", type: 'error'});
+                                }
+                            }
+                        });
+
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "处置",
+                    auth: "ENG_RX_REPAIR_PLAN6",
+                    onclick: function () {
+                        var row = $('#l_dg').datagrid('getSelected');
+                        if (!row.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        var title_ = $.i18n.t('明细处置');
+                        ShowWindowIframe({
+                            width: 600,
+                            height: 400,
+                            title: title_,
+                            url: "/views/engine/rx/repairplan/eng_rx_repairplan_detail_delete.shtml?pkid=" + row.pkid +"&refPkid="+row.refPkid,
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (auditStatus != 1 && auditStatus != 5) {
+                    items['处置'].enable = false;
+                }
+
+                if (auditStatus != 3 || row.deleteFlag != '1') {
+                    items['推送SAP组包'].enable = false;
+                }
+
+
+                return items;
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#u_dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    function onSearchClick() {
+        InitDataGrid();
+    }
+
+    function genPlan() {
+        var title_ = $.i18n.t('送修计划生成');
+        ShowWindowIframe({
+            width: "690",
+            height: "370",
+            title: title_,
+            url: "/views/engine/rx/repairplan/eng_rx_repairplan_gen.shtml"
+        });
+    }
+
+    function submitRepairPlan(pkid){
+        common_add_edit_({
+            identity: '',
+            isEdit: '',
+            width: 520,
+            height: 300,
+            title: $.i18n.t('选择审批人'),
+            param: {
+                operation: "flow",
+                roleId: '',
+                otherParam: '',
+                PKID: pkid,
+                FunctionCode_: 'ENG_RX_REPAIR_PLAN_SUBMIT',
+                successCallback: reload_
+            },
+            url: "/views/flow/work_flow_account_select.shtml"
+        });
+    }
+</script>
+</body>
+</html>
+

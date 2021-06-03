@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>系统构型适用性选择</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%; height: 100%">
+    <div class="ibox-content">
+        <fieldset class="fieldset_eui">
+            <form class="form-horizontal m-t" id="mform">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="9" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭" style="margin-left:3px;margin-right: 18px;"/>
+                            <br/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </fieldset>
+        <fieldset class="fieldset_eui">
+            <legend>适用性可选清单</legend>
+            <table id="dg"></table>
+        </fieldset>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = getParentParam_();
+    var subModel = '';
+    function i18nCallBack() {
+        subModel = param.subModel;
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_APP_TYPE",
+                sourceId: param.sourceId
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    param.appType = jdata.data.APP_TYPE;
+                    param.configId = jdata.data.CONFIG_ID;
+                    param.fleet = jdata.data.FLEET;
+                    InitDataGrid(jdata.data.APP_TYPE);
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(appType) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            resize: function () {
+                return {width: 330, height: 400};
+            },
+            queryParams: {
+                sourceId: param.sourceId,
+                configId: param.configId,
+                fleet: param.fleet,
+                subModel:subModel
+            },
+            columns: {
+                param: {
+                    FunctionCode: appType == "APL" ? "EM_SYSCONFIG_APP_AC_LIST" : "EM_SYSCONFIG_APP_ENG_LIST"
+                }
+            },
+            onLoadSuccess: function (jdata) {
+                if (jdata) {
+                    $.each(jdata.rows, function (index, row) {
+                        if (row.IS_SELECTED == "Y") {
+                            $('#dg').datagrid("checkRow", index);
+                        }
+                    })
+                }
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    function save() {
+        var rows = $('#dg').datagrid("getRows");
+        var checkRows = $('#dg').datagrid("getChecked");
+
+        var i = 0;
+        var j = 0;
+        var modifyRows = [];
+        var applic = [];
+        while (i < rows.length) {
+            if (rows[i] == checkRows[j]) {
+                rows[i].SELECTED = "Y";
+                applic.push(param.appType == "APL" ? rows[i].ACNO : (rows[i].ENG_PN + "/" + rows[i].ENG_SN));
+                j++;
+            } else {
+                rows[i].SELECTED = "N";
+            }
+
+            if (rows[i].IS_SELECTED != rows[i].SELECTED) {
+                modifyRows.push(rows[i]);
+            }
+
+            i++;
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_APP_ADD",
+                sourceId: param.sourceId,
+                configListId: param.configListId,
+                modifyRows: JSON.stringify(modifyRows)
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.InitDataForm(param.sourceId);
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    closeW();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

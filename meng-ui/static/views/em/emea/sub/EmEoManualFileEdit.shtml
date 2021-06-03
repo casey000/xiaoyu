@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="orgName" name="orgName"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+                    <input style="display:none;" name="pkid" id="pkid"/>
+                    <input style="display:none;" name="eoPkid" id="eoPkid"/>
+                    <tr>
+
+
+                        <th class="tdl">手册类型:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="manualType" id="manualType"
+                                   data-options="required:true,validType:'comboBoxEditvalid[\'manualType\']'"/>
+                        </td>
+
+
+                        <th class="tdl">手册名称:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="manualName" id="manualName"
+                                   data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+
+
+                        <th class="tdl">影响章节:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="effectAta" id="effectAta"
+                                   data-options="validType:'length[4,100]'"
+                            />
+                        </td>
+
+
+                        <th class="tdl">修订说明:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="reviseExplanation" id="reviseExplanation"
+                            />
+                        </td>
+
+                    </tr>
+
+                    <tr>
+                        <td colspan="8" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript">
+
+    var param = {};
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EO_MANUAL_FILE_TYPE,EMTB_ATA,DM_DATA_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    /*$('#manualType').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_EO_MANUAL_FILE_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });*/
+                    //资料类型
+                    $('#manualType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_DATA_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+
+                    /*$('#effectAta').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EMTB_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });*/
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitSaveForm_();
+    }
+
+    function InitSaveForm_() {
+        $('#eoPkid').val(param.eoPkid);
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {FunctionCode: "EM_EO_MANUAL_FILE_ADD"});
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            param.OWindow.reload_();
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+
+    //设置拼音码
+    function setPym() {
+        var name = $("#name").textbox('getValue');
+        var pym = window.pinyinUtil.getFirstLetter(name, false);
+        $("#pym").textbox('setValue', pym);
+    }
+
+    //下拉框校验
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    /*if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;*/
+                    var result = true;
+                    var allData = $combobox.combobox('getData');
+                    for(var i = 0; i< allData.length; i++){
+                        if(value == allData[i].TEXT){
+                            result = false;
+                            break;
+                        }
+                    }
+                    if(result){
+                        return false;
+                    }else{
+                        return true;
+                    }
+
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        },
+    });
+</script>
+</html>

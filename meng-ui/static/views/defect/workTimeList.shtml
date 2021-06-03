@@ -1,0 +1,795 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/common_query_dialog.js"></script>
+    <script src="/js/lhgdialog/lhgdialog.js"></script>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/plugins/dialog/dialog_default.css">
+    <title data-i18n="">工时报表</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        .table-bordered {
+            border: none;
+        }
+        .viewlogcolor{
+            color: #f60;;
+        }
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            /*position: absolute;*/
+            top: 0px;
+            margin-left: -30px;
+            right: 111px;
+        }
+        #pnRequest{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 110px;
+        }
+        #Pdf{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 205px;
+        }
+        #btnSyncPlan ,
+        #btnDel{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            margin-left: 5px;
+            top: 2px;
+            right: 30px;
+        }
+        #monthExport{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            margin-left: 5px;
+            top: 2px;
+            right: 120px;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+
+
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th colspan="2" align="right" class="th" >日期段：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        开始
+                        <input class="easyui-datebox" data-options="editable:false" name="startWorkDate" id="expiredTimeStart"
+                               style="width:90px;" type="text"  value="" >
+                        截止
+                        <input class="easyui-datebox" data-options="editable:false" name="endWorkDate" id="expiredTimeEnd"
+                               style="width:90px;" type="text" value="" >
+                    </td>
+                    <th colspan="2" align="right" class="th" >班次：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-combobox" id="classSequence" name="type" style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >处室：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-combobox" id="office" name="currOrgName" style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >工号：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-textbox" id="model" name="userId"  style="width:180px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th colspan="2" align="right" class="th" >职位：</th>
+                    <td colspan="2" style="padding:3px;">
+                        <input class="easyui-textbox" id="position" name="positionName" style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >姓名：</th>
+                    <td colspan="2" style=" padding:3px;">
+                        <input class="easyui-textbox" id="objectName" name="userName"  style="width:180px;"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >航站：</th>
+                    <td colspan="2" style="width: 100px;padding:3px;">
+                        <input class="easyui-combogrid" name="station" id="station" data-options=""
+                               style="width:180px"/>
+                    </td>
+                    <th colspan="2" align="right" class="th" >操作：</th>
+                    <td  style=" padding:3px;border: none;text-align: center;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="doSearch_()" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a class="searchBtn" data-options="iconCls:'icon-reload'" onclick="doReload_()" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.RELOAD">刷新</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+
+
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var loginUser;
+    var loginName;
+    var address=window.location.origin; //url
+    var port=document.location.port;//ip:端口号
+    if(!port){
+        port = ':'+port;
+    }else{
+        port = '';
+    }
+    var ctx = address+port;
+
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountNumber;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitDataGrid();
+        initSearchInput();
+        // showByAuth();
+    }
+
+    function doSearch_() {
+        reloadPage();
+        InitDataGrid();
+    }
+
+    //重置分页值.
+    function reloadPage(){
+        var _data = $('#dg').data('datagrid');
+        if(_data && _data.options){
+            _data.options.pageNumber = 1; // 修改缓存
+        }
+    }
+
+   function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        for(x in queryParams){
+            if(!queryParams[x]){
+                queryParams[x] = null;
+            }
+        };
+        //截止日期不能小于开始日期
+        if((!!queryParams.startWorkDate && !!queryParams.endWorkDate)&&(DateDiff(queryParams.startWorkDate,queryParams.endWorkDate)<0)){
+            MsgAlert({type: "error", content: "截止日期必须大于开始日期！"});
+            return false;
+        };
+        //日期选择变更
+        if((!queryParams.startWorkDate && !!queryParams.endWorkDate)||(!!queryParams.startWorkDate && !queryParams.endWorkDate)){
+            queryParams.workDate = queryParams.startWorkDate||queryParams.endWorkDate;
+            queryParams.startWorkDate = null;
+            queryParams.endWorkDate = null;
+        };
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/otws/attendanceWarning/pageList",
+            columns: {
+                param: {FunctionCode: 'WORK_TIME_LIST'},
+                alter: {
+                    //    工时报表字段转换
+                    userId:{
+                        formatter : function(value, row, index){
+                            return operation(value,row,index);
+                        }
+                    },
+                    //姓名
+                    userName:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //处室
+                    currOrgName:{
+                        formatter : function(value, row, index){
+                            return value ;
+                        }
+                    },
+                    //职位
+                    positionName:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //日期，班次的日期
+                    workDate:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value).substring(0,10);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    },
+                    //班次
+                    type:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //航站
+                    stationDesc:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //航站(三字码)
+                    station:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //上班打卡时间
+                    punchIn:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    },
+                    //工时起计时
+                    calculationStart:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    },
+                    //下班打卡时间
+                    punchOut:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    },
+                    //排班时长
+                    planHours:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //实际工作时长
+                    workHours:{
+                        formatter : changeTimeType
+                    },
+                    //剩余工作时长
+                    surplusHours:{
+                        formatter : changeTimeType
+                    },
+                    //休息时长
+                    restHours:{
+                        formatter : changeTimeType
+                    },
+                    //用户反馈信息
+                    feedBack:{
+                        formatter : function(value, row, index){
+                            var feedBackData = "";
+                            if(!!value && value == "1"){
+                                feedBackData = "已下班";
+                            }else if(!!value && value == "2"){
+                                feedBackData = "可在正常时间内下班";
+                            }else if(!!value && value == "3"){
+                                feedBackData = "忘打休息卡";
+                            }else if(!!value && value == "5"){
+                                feedBackData = "立即开始休息";
+                            }else if(!!value && value == "6"){
+                                feedBackData = "外站跟机";
+                            }else if(!!value && value == "7"){
+                                feedBackData = "可正常交接工作按时下班";
+                            }else if(!!value && value == "8"){
+                                feedBackData = "可安排休息";
+                            };
+                            //
+                            return feedBackData;
+                        }
+                    },
+                    //反馈人
+                    feedBackId:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    // 反馈时间
+                    feedBackTm:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    },
+                    //连续5天排班时长
+                    daysPlanHours:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //连续5天工作时长
+                    daysWorkHours:{
+                        formatter : changeTimeType
+                    },
+                    //连续5天休息时长
+                    daysRestHours:{
+                        formatter : changeTimeType
+                    },
+                    //连续5天剩余时长
+                    daysSurplusHours:{
+                        formatter : changeTimeType
+                    },
+                    //连续5天用户反馈信息
+                    daysFeedBack:{
+                        formatter : function(value, row, index){
+                            var feedBackData = "";
+                            if(!!value && value == "1"){
+                                feedBackData = "已下班";
+                            }else if(!!value && value == "2"){
+                                feedBackData = "可在正常时间内下班";
+                            }else if(!!value && value == "3"){
+                                feedBackData = "忘打休息卡";
+                            }else if(!!value && value == "5"){
+                                feedBackData = "立即开始休息";
+                            }else if(!!value && value == "6"){
+                                feedBackData = "外站跟机";
+                            }else if(!!value && value == "7"){
+                                feedBackData = "可正常交接工作按时下班";
+                            }else if(!!value && value == "8"){
+                                feedBackData = "可安排休息";
+                            };
+                            //
+                            return feedBackData;
+                        }
+                    },
+                    //连续5天反馈人
+                    daysFeedBackId:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    // 连续5天反馈时间
+                    daysFeedBackTm:{
+                        formatter : function(value, row, index){
+                            var operaTime = "";
+                            if(!!value){
+                                operaTime = timestampToTime(value);
+                            }else {
+                                operaTime = "";
+                            };
+                            return operaTime ;
+                        }
+                    },
+                    //每月排班时长
+                    monthPlanHours:{
+                        formatter : function(value, row, index){
+                            return value;
+                        }
+                    },
+                    //每月工作时长
+                    monthWorkHours:{
+                        formatter : changeTimeType
+                    },
+                    //每月休息时长
+                    monthRestHours:{
+                        formatter : changeTimeType
+                    },
+                    //每月剩余时长
+                    monthSurplusHours:{
+                        formatter : changeTimeType
+                    },
+                }
+            },
+            toolbar: [
+                //btnExport主要作用是撑起来
+                {
+                    id:"btnExport",
+                    text: "",
+                },
+                {
+                    id:"btnSyncPlan",
+                    text: $.i18n.t(' Export '),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        // exportFlbSummary();
+                        var startTime = $("#expiredTimeStart").datebox("getValue")||"";
+                        var endTime = $("#expiredTimeEnd").datebox("getValue")||"";
+                        if(! startTime || ! endTime){
+                            MsgAlert({type: "error", content: "时间段选择必填！"});
+                            return false;
+                        };
+                        if(DateDiff(startTime,endTime)<0){
+                            MsgAlert({type: "error", content: "截止日期必须大于开始日期！"});
+                            return false;
+                        };
+                        //导出Excel
+                        var data = $('#ffSearch').serializeObject();
+                        // console.log(data)
+                        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/otws/work_time_warning/export'></form>");
+                        form.append($("<input name='fileType' value = 'excel'/>"));
+                        $.each(data, function (key, val) {
+                            if (typeof (val) == "object") {
+                                $.each(val, function (k1, v1) {
+                                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                                });
+                            } else {
+                                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                            }
+                        });
+                        $(this).parent().append(form);
+                        form.submit();
+                        form.remove();
+                    }
+                },
+                {
+                    id:"monthExport",
+                    text: $.i18n.t(' 月度工时报表导出 '),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        var startTime = $("#expiredTimeStart").datebox("getValue")||"";
+                        var endTime = $("#expiredTimeEnd").datebox("getValue")||"";
+                        if(! startTime || ! endTime){
+                            MsgAlert({type: "error", content: "时间段选择必填(不要跨月哦)！"});
+                            return false;
+                        };
+                        if(DateDiff(startTime,endTime)<0){
+                            MsgAlert({type: "error", content: "截止日期必须大于开始日期！"});
+                            return false;
+                        };
+                        if(startTime.slice(5,7) !== endTime.slice(5,7)){
+                            MsgAlert({type: "error", content: "不能跨月导出工时报表！"});
+                            return false;
+                        };
+                        //导出Excel
+                        var data = $('#ffSearch').serializeObject();
+                        // console.log(data)
+                        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/otws/work_time_warning/exportByMonth'></form>");
+                        form.append($("<input name='fileType' value = 'excel'/>"));
+                        $.each(data, function (key, val) {
+                            if (typeof (val) == "object") {
+                                $.each(val, function (k1, v1) {
+                                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                                });
+                            } else {
+                                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                            }
+                        });
+                        $(this).parent().append(form);
+                        form.submit();
+                        form.remove();
+                    }
+                }
+            ]
+        });
+    }
+
+    //时间转化
+    function changeTimeType (value, row, index){
+        var returnTime;
+        if(!!value && Number(value)>=0){
+            var hours = JSON.stringify(Math.abs(parseInt(Number(value)/60)));
+            var minute = JSON.stringify(Math.abs(Number(value)%60));
+            if(minute.length == "1"){
+                returnTime =hours +":0"+minute ;
+            }else {
+                returnTime =hours +":"+minute ;
+            };
+        }else if(!!value && Number(value)<0){
+            var hours = JSON.stringify(Math.abs(parseInt(Number(value)/60)));
+            var minute = JSON.stringify(Math.abs(Number(value)%60));
+            if(minute.length == "1"){
+                returnTime ="-" +hours +":0"+minute ;
+            }else {
+                returnTime ="-" +hours +":"+minute ;
+            };
+        };
+        return returnTime;
+    }
+
+    //时间比较
+    function DateDiff(date1,date2){
+        var startTime=Date.parse(date1);
+        var endTime=Date.parse(date2);
+        return (endTime-startTime)/1000/3600/24
+    }
+
+    //列表模板下载参数格式化
+    function listExportExcelBack(){
+        var pageSize,pageNumber;
+        var queryParams = $("#ffSearch").serializeObject();
+        for(x in queryParams){
+            if(!queryParams[x]){
+                queryParams[x] = null;
+            }
+        };
+        var tableParams = $("#dg").datagrid("options");
+        pageSize = tableParams.pageSize||"";
+        pageNumber = tableParams.pageNumber||"";
+        var postParams = {
+            queryParam:[queryParams],
+            page:pageNumber,
+            rows:pageSize
+        };
+        return postParams;
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        reloadPage();
+        reload_();
+    }
+
+    //刷新列表
+    function reload_() {
+        InitDataGrid();
+    }
+
+    //刷新后台重新计算
+    function doReload_(){
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            path: "/otws/attendanceWarning/reSet/",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                };
+            },
+            error:function (jdata) {
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+    }
+
+    //打开操作页面
+    function openPage(id,userName,userId,workDate,planId) {
+        var id = id||"";
+        var userName = userName||"";
+        var userId = userId||"";
+        var workDate = workDate||"";
+        var planId = planId||"";
+        var title = "个人工时列表";
+        var url_ = "/views/defect/workTimePersonalList.shtml";
+        var parameters = {
+            "id": id,
+            "userName":userName,
+            "userId":userId,
+            "workDate":workDate,
+            "planId":planId
+        };
+        ShowWindowIframe({
+            title: title,
+            width: '1200',
+            height: '800',
+            param:parameters,
+            url:url_
+        })
+    }
+
+    //刷新列表函数，可以给子页面调用
+    function reload() {
+        $("#dg").datagrid("reload");
+    }
+
+    // 查询列表选项初始化
+    var PAGE_DATA = {};
+    function initSearchInput() {
+        $('#showOver').combobox({
+            panelHeight: '160px',
+            valueField: 'VALUE',
+            multiple:false,
+            textField: 'TEXT',
+            data: [
+                {
+                    VALUE:"",
+                    TEXT:"—请选择—"
+                },
+                {
+                    VALUE:"不超期",
+                    TEXT:"不超期"
+                },
+                {
+                    VALUE:"超期",
+                    TEXT:"超期"
+                },
+                {
+                    VALUE:"全部",
+                    TEXT:"全部"
+                }
+            ],
+        });
+        $('#classSequence').combobox({
+            panelHeight: '160px',
+            valueField: 'VALUE',
+            multiple:false,
+            textField: 'TEXT',
+            data: [
+                {
+                    VALUE:"",
+                    TEXT:"—请选择—"
+                },
+                {
+                    VALUE:"白班",
+                    TEXT:"白班"
+                },
+                {
+                    VALUE:"晚班",
+                    TEXT:"晚班"
+                },
+                {
+                    VALUE:"中班",
+                    TEXT:"中班"
+                },
+                {
+                    VALUE:"运营班",
+                    TEXT:"运营班"
+                },
+                {
+                    VALUE:"航后班",
+                    TEXT:"航后班"
+                },
+                {
+                    VALUE:"运营航后班",
+                    TEXT:"运营航后班"
+                }
+            ],
+        });
+        $('#office').combobox({
+            panelHeight: '160px',
+            valueField: 'VALUE',
+            multiple:false,
+            textField: 'TEXT',
+            data: [
+                {
+                    VALUE:"",
+                    TEXT:"—请选择—"
+                },
+                {
+                    VALUE:"航线维修一组",
+                    TEXT:"航线维修一组"
+                },
+                {
+                    VALUE:"航线维修二组",
+                    TEXT:"航线维修二组"
+                },
+                {
+                    VALUE:"航线维修三组",
+                    TEXT:"航线维修三组"
+                },
+                {
+                    VALUE:"航线维修四组",
+                    TEXT:"航线维修四组"
+                },
+                {
+                    VALUE:"定检维修组",
+                    TEXT:"定检维修组"
+                },
+                {
+                    VALUE:"结构修理组",
+                    TEXT:"结构修理组"
+                },
+                {
+                    VALUE:"部件维修组",
+                    TEXT:"部件维修组"
+                }
+            ],
+        });
+        var selectRow = {};
+        $("#station").MyComboGrid({
+            idField: 'STATION',  //实际选择值
+            textField: 'STATION', //文本显示值
+            panelHeight: '180px',
+            params: {FunctionCode: 'SELECT_STATION'},
+            columns: [[
+                {field: 'STATION', title: '航站三字码', width: 50},
+                {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                {field: 'FULLNAME_CN', title: '中文全称', width: 50},
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (t != null && t != '' & t != undefined) {
+                    if (selectRow == null || t != selectRow.STATION) {//没有选择或者选项不相等时清除内容
+                        alert('请选择，不要直接输入！');
+                        $(this).combogrid({value: ''});
+                    }
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+            }
+        });
+    }
+
+    //根据权限控制显示
+    function showByAuth(){
+        $("#testShowHide").show();
+        var vauth_work_time_list_show = "WORK_TIME_LIST_SHOW";
+        var result_work_time_list_show = VALID_AUTH(vauth_work_time_list_show);
+        if(!!result_work_time_list_show || loginUser == "admin"){
+            $("#leftWorkTime").remove();
+            $("#changeTitle").text("数据选择");
+        }else {
+            $("#testShowHide").remove();
+            $("#changeTitle").text("剩余工作小时");
+        };
+    }
+
+    //时间戳转换
+    function timestampToTime(timestamp) {
+        var date,Y,M,D,h,m,s,returnDate;
+        date = new Date(Number(timestamp));
+        Y = date.getFullYear() + '-';
+        M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+        D = (date.getDate() < 10 ? '0'+date.getDate() : date.getDate()) + ' ';
+        h = (date.getHours() < 10 ? '0'+date.getHours() : date.getHours()) + ':';
+        m = (date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes()) + ':';
+        s = (date.getSeconds() < 10 ? '0'+date.getSeconds() : date.getSeconds());
+        returnDate = Y+M+D+h+m+s;
+        return returnDate;
+    }
+
+    //  进入到对应的条目信息进行操作
+    function operation(value, row, index) {
+        var vauth_work_time_list_edit = "WORK_TIME_LIST_EDIT";
+        var result_work_time_list_edit = VALID_AUTH(vauth_work_time_list_edit);
+        var element = "";
+        // TODO 权限控制这里加了个管理员的超级权限便于调试，当完成后需要撤销
+        if((!!value && result_work_time_list_edit )|| (loginUser == "admin")){
+            element = `<div id=" ' + row.id + ' "   onclick="openPage('${row.id||""}','${row.userName||""}','${row.userId||""}','${row.workDate||""}','${row.planId||""}')" class="viewlogcolor">${value}</div>`;
+        }else {
+            element =  `<div id=" ' + row.id + ' "   >${value}</div>`;
+        }
+        return element;
+    }
+
+
+</script>
+</body>
+</html>

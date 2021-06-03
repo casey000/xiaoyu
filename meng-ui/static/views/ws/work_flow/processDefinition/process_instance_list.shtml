@@ -1,0 +1,183 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>流程实例管理</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th>业务KEY：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="businessKey"/>
+                    </td>
+                    <th data-i18n="RES.DATA_DOMAIN_LIST.DESCRIPTION">流程实例ID：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="procInstId"/>
+                    </td>
+
+                    <td colspan="2">
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
+                           onclick="onSearch_('instdg', '#ffSearch')"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'"
+                           onclick="onClear_('instdg', '#ffSearch')"><span
+                                data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="instdg"></table>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitInstanceDataGrid();
+    }
+
+    function InitInstanceDataGrid() {
+        var identity = 'instdg';
+        $("#instdg").MyDataGrid({
+            identity: identity,
+            title: $.i18n.t('RES.PROCESS_P_INSTANCE_LIST.TITLE'),
+            rowStyler: function (index, row) {
+                if (!row.END_TIME) {
+                    return 'color: #000;font-weight:bold;';
+                }
+            },
+            columns: {
+                param: {FunctionCode: 'PROCESS_P_INSTANCE_LIST'},
+                alter: {
+                    END_TIME: {
+                        formatter: function (value, row, index) {
+                            if (!value) {
+                                return "<span style='color: red;'>运行中</span>"
+                            }
+                            return value;
+                        }
+                    },
+                    DURATION: {
+                        formatter: function (value, row, index) {
+                            if (!value) {
+                                return "N/A"
+                            }
+                            return value;
+                        }
+                    },
+                    TASK_NAME: {
+                        formatter: function (value, row, index) {
+                            if (!row.END_TIME) {
+                                return "<span style='color: red;'>" + value + "</span>"
+                            }
+                            return value;
+                        }
+                    },
+                    TASK_CONSUMING_TIME: {
+                        formatter: function (value, row, index) {
+                            return toDateDiffStr(value);
+                        }
+                    },
+                    TRANSACTOR: {
+                        formatter: function (value, row, index) {
+                            var v = [row.ASSIGNEE_NAMES || "", row.USER_NAMES || ""]
+                            value = "";
+                            for (var i = 0; i < v.length; i++) {
+                                value += value == "" ? v[i] : "," + v[i]
+                            }
+                            value += row.GROUP_NAMES ? "[" + row.GROUP_NAMES + "]" : "";
+                            return value;
+                        }
+                    }
+                }
+            },
+            queryParams: {processId: param.processDefinitionId},
+            /* loadFilter: function(jdata){
+                 var data = jdata.data;
+                 return data;
+             },*/
+            validAuth: function (row, items) {
+                return items;
+            },
+            contextMenus: [
+                {
+                    i18nText: "RES.PROCESS_P_INSTANCE_LIST.VIEW_PROCESS_DIAGRAM", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_page_({
+                            identity: identity, checkRowData: true, width: '80%', height: '80%',
+                            param: {processId: rowData.PROC_DEF_ID, businessKey: rowData.BUSINESS_KEY},
+                            title: $.i18n.t("RES.PROCESS_P_INSTANCE_LIST.VIEW_PROCESS_DIAGRAM") + "[" + param.processName + "]",
+                            url: "/views/ws/work_flow/processDefinition/process_diagram_view.shtml"
+                        });
+                    }
+                },
+                {
+                    i18nText: "RES.PROCESS_P_INSTANCE_LIST.INSTANCE_ACT_LIST", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_page_({
+                            identity: identity, checkRowData: true, width: '80%', height: '80%',
+                            param: {processInstId: rowData.PROC_INST_ID},
+                            title: $.i18n.t("RES.PROCESS_P_INSTANCE_LIST.INSTANCE_ACT_LIST") + "[" + param.processName + "-" + rowData.PROC_INST_ID + "]",
+                            url: "/views/ws/work_flow/processDefinition/process_acttask_list.shtml"
+                        });
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    iconCls: 'icon-application_side_list', text: '开始新流程', auth: "",
+                    handler: function () {
+                        MsgPrompt({
+                            msg: "请输入新流程的业务KEY: ",
+                            yesFunc: function (r) {
+                                if ($.trim(r) == '') {
+                                    MsgAlert({content: "请输入业务KEY!", type: 'error', PWindow: window});
+                                    return false;
+                                }
+                                var load = parent.layer.msg('处理中...', {time: 0, shade: [0.3, '#393D49'], icon: 16});
+                                var d_ = {
+                                    businessKey: r, processDefinitionId: param.processDefinitionId,
+                                    FunctionCode: "PROCESS_DEFINITION_START"
+                                };
+                                InitFuncCodeRequest_({
+                                    data: d_,
+                                    successCallBack: function (jdata) {
+                                        parent.layer.close(load);
+                                        layerStandardMsg_(jdata, null, function () {
+                                            common_reload_({identity: identity});
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                        return;
+                    }
+                }, '-',
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ]
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#instdg").datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

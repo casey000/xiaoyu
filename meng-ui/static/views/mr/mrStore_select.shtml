@@ -1,0 +1,121 @@
+<!--
+  ~ Copyright 2018 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>Select Station</title>
+</head>
+
+<body class="ibody">
+<div id="stationQueryWindow"  title="Station Query">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="stationSearch">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th align="right" class="th" style="width: 120px; height: 25px;">Station:</th>
+                    <td class="td5" style="width: 150px;height: 25px;">
+                        &nbsp;<input class="easyui-textbox" id="threeCode" name="storeLoc" style="width: 140px;"/>
+                    </td>
+
+                    <th align="right" class="th" style="width: 120px;height: 25px;">Description:</th>
+                    <td class="td5" style="width: 150px;height: 25px;">
+                        &nbsp;<input class="easyui-textbox" id="fourCode" name="description" style="width: 140px;"/>
+                    </td>
+                    <td align="right">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onClick="searchStationData()"
+                           type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onClick="doStationClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="stationDg"></table>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script type="text/javascript">
+    var param;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        // $('#stationQueryWindow').window('open'); //开启弹窗
+
+        // 绑定回车查询事件
+        bindFormonSearch_('#stationSearch', function () {
+            searchStationData()
+        });
+
+        InitStationDataGrid();
+
+    }
+
+    var dataList = [{location: 'SZX', description: '深圳'}, {location: 'PEK', description: '北京'}, {
+        location: 'HGH',
+        description: '杭州'
+    }, {location: 'BATS', description: '包头'}];
+    function InitStationDataGrid() {
+        $("#stationDg").MyDataGrid({
+            identity: 'stationDg',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,     //开启分页
+            fitColumns: true,
+            // data:dataList,
+            // columns: [
+            //     {field: 'location', title: 'location', width: 200,align:'center'},
+            //     {field: 'description', title: 'description', width: 200,align:'center'},
+            // ],
+            columns: {
+                param: {FunctionCode: 'STORELOC_LIST'},
+                alter: {}
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [],
+            toolbar: [],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function () {
+                var row = $('#stationDg').datagrid('getSelected'); //获取所选行的数据
+                // 规定控件id只能为station
+                let station = row.station;
+                let storeLoc = row.storeLoc;
+                if(row.storeType == "飞机库") {
+                    station = row.ac;
+                }
+                try {
+                    param.OWindow.$("#station").textbox("setValue", station);
+                    param.OWindow.$("#storeLoc").textbox("setValue", storeLoc);
+                } catch (e) {
+                    //上面的代码执行出错才用下面的设置方式
+                    param.OWindow.$("#station").attr("value", station);
+                    param.OWindow.$("#storeLoc").attr("value", storeLoc);
+                }
+                if (typeof param.successCallback == "function") param.successCallback();
+                // $('#stationQueryWindow').window('close'); //关闭弹窗
+                window.close();
+            }
+
+        });
+    }
+
+    function searchStationData() {
+        onSearch_('stationDg', '#stationSearch');
+    }
+
+    //重置
+    function doStationClear_() {
+        $("#stationSearch").form('clear');
+        searchStationData();
+    }
+</script>
+</html>

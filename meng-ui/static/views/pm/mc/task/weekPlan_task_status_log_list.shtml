@@ -1,0 +1,53 @@
+    <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+    <html>
+    <head id="i18n_" module="tm_hrarchive">
+        <!--#include virtual="/views/items/resource_.shtml"-->
+        <title>任务操作日志</title>
+    </head>
+    <body class="ibody">
+    <table id="dg"></table>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <script type="text/javascript">
+        var param;
+        var identity = 'dg';
+        var PAGE_DATA = {};
+        var selectRow;
+        var workorderid = '';
+        function i18nCallBack() {
+            param = getParentParam_();
+            if (param.workorderid) {
+                workorderid = param.workorderid;
+            }
+            InitFuncCodeRequest_({
+                data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "WORKORDER_STATUS"},
+                successCallBack: function (jdata) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data.WORKORDER_STATUS);
+                    InitDataGrid();
+                }
+            });
+        }
+        function InitDataGrid() {
+            $("#dg").MyDataGrid({
+                identity: identity,
+                queryParams: {workorderid: workorderid},
+                columns: {
+                    param: {FunctionCode: 'PM_MC_TASK_STATUS_LOG_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, rowData, index) {
+                                return PAGE_DATA['status'][value];
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /** 刷新列表数据 */
+        function reload_() {
+            $("#dg").datagrid("reload");
+        }
+
+    </script>
+    </body>
+    </html>

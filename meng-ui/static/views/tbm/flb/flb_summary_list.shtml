@@ -1,0 +1,383 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <meta charset="UTF-8">
+    <title data-i18n="">FLB Summary</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        #btnOperationExport {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 111px;
+        }
+
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body class="ibody">
+<div class="easyui-tabs" id="tt" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="ffSearch">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th align="right" class="th" style="width:30px;">飞机号：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-combobox" id="serAcReg"
+                               name="serAcReg"
+                               data-options="editable:true,onChange:acChange"
+                               style="width:180px;"/>
+<!--                        <img class="search_btn_img" height="16" onclick="toAc()" src="/img/search.png"-->
+<!--                             style="cursor: pointer;vertical-align: -30%" title="Search" width="16">-->
+                    </td>
+                    <th align="right" class="th" style="width:70px;">开始日期：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-datebox"
+                               data-options="required:true,editable:false,onChange:dateChange"
+                               id="serStartDate"
+                               name="serStartDate" style="width:180px;"/>
+                        <div style="color: red;font-size: 10px;">新的发动机营运数据起始日期为:2020-08-01</div>
+                    </td>
+                    <th align="right" class="th" style="width:70px;">结束日期：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-datebox" data-options="editable:false,onChange:dateChange2"
+                               id="serEndDate" name="serEndDate" style="width:180px;"
+                               validType="end"/>
+                    </td>
+                    <td style="width: 120px; padding:3px;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()"
+                           type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script src="/js/date_format.js" type="text/javascript"></script>
+<script type="text/javascript">
+    // function acClick() {
+    //
+    //     var url_ac = "/api/v1/plugins/FLB_AC_LIST";
+    //     $("#serAcReg").combobox({
+    //         valueField: 'tail',
+    //         textField: 'model',
+    //         url: url_ac,
+    //         prompt: '请选择',
+    //         loadFilter: function (data) {
+    //             console.log(data);
+    //             if (data.data) {
+    //                 return data.data;
+    //             } else {
+    //                 return data;
+    //             }
+    //         },
+    //         onSelect: function (val) {
+    //             $('#serAcReg').textbox('setValue', val.acReg);
+    //
+    //         }
+    //     });
+    // }
+
+
+    var url_ac = "/api/v1/plugins/FLB_AC_LIST";
+
+    $("#serAcReg").combobox({
+        valueField: 'tail',
+        textField: 'tail',
+        url: url_ac,
+        prompt: '请选择',
+        loadFilter: function (data) {
+
+            if (data.data) {
+                return data.data;
+            } else {
+                return data;
+            }
+        },
+        onSelect: function (val) {
+            $('#serAcReg').combobox('setValue', val.acReg);
+
+        }
+    });
+
+    function acChange() {
+
+    }
+
+    function dateChange() {
+        // $("#serAcReg").combobox("setValue", '');
+        $("#serEndDate").datebox("setValue", '');
+    }
+
+    function dateChange2() {
+        // $("#serAcReg").combobox("setValue", '');
+    }
+
+    function numChange() {
+        $("#serAcReg").combobox("setValue", '');
+    }
+
+    /*初始化查询条件*/
+    function setInitialParamValue() {
+        //设置时间
+        $('#serStartDate').datebox({
+            value: getNowFormatDate(),
+            showSeconds: false
+        });
+    }
+
+    /**获取当前时间*/
+    function getNowFormatDate() {
+        var date = new Date();
+        var dateSeparator = "-";
+        var month = formatDate(date.getMonth() + 1);
+        var strDate = formatDate(date.getDate());
+        return date.getFullYear() + dateSeparator + month + dateSeparator + strDate;
+    }
+
+    function formatDate(t) {
+        var tmp;
+        if (t >= 0 && t <= 9) {
+            tmp = "0" + t;
+        } else {
+            tmp = t;
+        }
+        return tmp;
+    }
+
+    function i18nCallBack() {
+        setInitialParamValue();
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var startDate = $('#serStartDate').datebox('getValue');
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {serStartDate: startDate},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'FLB_SUMMARY'},
+                alter: {
+                    flightDate: {
+                        type: 'datetime'
+                    },
+                    timeOfOperationFlightThisMonth: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    operationFlightSelfRepairTime: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    totalOperationFlightTime: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    airFlightTimeOfThisMonth: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    airFlightSelfRepairTime: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    totalAirTime: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    airToGroundFlightTimeOfThisMonth: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    airToGroundFlightSelfRepairTime: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    totalAirToGroundFlightTime: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    startDate:{
+                        formatter:function (value) {
+                            if(value){
+                                return value.substring(0,10);
+                            }
+                        }
+                    }
+                }
+            },
+            toolbar: [
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                }, {
+                    id: 'btnOperationExport',
+                    text: $.i18n.t(' 导出营运报表 '),
+                    iconCls: 'icon-application_side_list',
+                    handler: function () {
+                        exportOperation();
+                    }
+                }, {
+                    id: 'btnExport',
+                    text: $.i18n.t(' Export '),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        exportFlbSummary();
+                    }
+                }
+            ],
+            //隐藏工具按钮
+            onLoadSuccess:function(){
+                var vauth = "FLB_SUMMARY_OPT_EXPORT";
+                var result = VALID_AUTH(vauth);
+                if(!result){
+                    $('#btnOperationExport').remove();
+                }
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function exportFlbSummary() {
+
+        var con = "<form id='_f0_rm' method='post' action='/api/v1/plugins/EXPORT_FLB_SUMMARY'></form>";
+        $("#_f0_rm").remove();
+        $("body").append(con);
+
+        var ac = $("<input type='hidden' name='serAcReg' />");
+        ac.val($("#serAcReg").textbox('getValue'));
+        $("#_f0_rm").append(ac);
+
+        var sd = $("<input type='hidden' name='serStartDate' />");
+        sd.val($("#serStartDate").textbox('getValue'));
+        $("#_f0_rm").append(sd);
+
+        var ed = $("<input type='hidden' name='serEndDate' />");
+        ed.val($("#serEndDate").textbox('getValue'));
+        $("#_f0_rm").append(ed);
+
+        $("#_f0_rm").submit();
+
+    }
+
+    //验证开始时间小于结束时间
+    $.extend($.fn.validatebox.defaults.rules, {
+        end: {
+            validator: function (value, param) {
+                var startDate = $("#serStartDate").datebox('getValue');
+                var startTmp = new Date(startDate.replace(/-/g, "/"));
+                var endTmp = new Date(value.replace(/-/g, "/"));
+                return startTmp <= endTmp;
+            },
+            message: '结束时间要大于开始时间！'
+        }
+    });
+
+    function exportOperation() {
+        var con = "<form id='_f1_rm' method='post' action='/api/v1/plugins/OPERATION_EXPORT'></form>";
+        $("#_f1_rm").remove();
+        $("body").append(con);
+
+        var ac = $("<input type='hidden' name='serAcReg' />");
+        ac.val($("#serAcReg").textbox('getValue'));
+        $("#_f1_rm").append(ac);
+
+        var sd = $("<input type='hidden' name='serStartDate' />");
+        sd.val($("#serStartDate").textbox('getValue'));
+        $("#_f1_rm").append(sd);
+
+        var ed = $("<input type='hidden' name='serEndDate' />");
+        ed.val($("#serEndDate").textbox('getValue'));
+        $("#_f1_rm").append(ed);
+
+        $("#_f1_rm").submit();
+    }
+
+    function toAc() {
+        openDetai('view', '', '/views/common/select_ac_list.html', '查询飞机')
+    }
+
+    function toFlt(i) {
+
+        openDetai('view', '', '/views/common/select_flt_list.html', '查询航班号', i)
+
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid, url, tit, i) {
+        var title_ = $.i18n.t(tit);
+        var obj = {};
+        obj.acNum = $('#serAcReg').combobox('getValue');
+        obj.startDate = $('#serStartDate').datebox('getValue');
+        obj.endDate = $('#serEndDate').datebox('getValue');
+        console.log(obj);
+        ShowWindowIframe({
+            width: "1100",
+            height: "520",
+            title: title_,
+            param: {obj: obj, from: i},
+            url: url
+        })
+    }
+</script>
+</html>

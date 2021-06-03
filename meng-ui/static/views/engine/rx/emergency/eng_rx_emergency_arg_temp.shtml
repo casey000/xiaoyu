@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">备发数量变更列表</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">发动机型号：</th>
+                    <td style="width: 150px" class="td5">
+                        <input class="easyui-combobox" id="engType" name="engType" style="width:150px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">发动机序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="createUser" name="createUser" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">日期：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="forecastDateFrom" name="forecastDateFrom"
+                               style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">至：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="forecastDateEnd" name="forecastDateEnd" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchClick()"><span>查询</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var param = {};
+    var queryData;
+    function i18nCallBack() {
+        param = getParentParam_();
+        queryData = param.queryData;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngTypeNew",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#engType').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        if (queryData) {
+            //ParseFormField_(queryData, $("#ffSearch"));
+            $("#engType").combobox("setValue",queryData.engType);
+            $("#forecastDateFrom").datebox("setValue",queryData.forecastDateFrom);
+            $("#forecastDateEnd").datebox("setValue",queryData.forecastDateEnd);
+        }
+
+        InitDataGrid();
+    }
+
+    function InitDataGrid(){
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            idField: "PKID",
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/rxEmergency/listArgTempByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_RX_EMERGENCY_FORECAST_TEMP'},
+                alter: {
+                    forecastDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [],
+        });
+    }
+
+    function reload_() {
+        $("#dg").datagrid('reload');
+    }
+
+    function onSearchClick() {
+        InitDataGrid();
+    }
+
+
+</script>
+</body>
+</html>

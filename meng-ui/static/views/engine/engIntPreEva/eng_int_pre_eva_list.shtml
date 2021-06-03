@@ -1,0 +1,418 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">发动机引进预评估</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="esn" name="esn" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">状态：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:90px;" align="right">是否引进评估：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="ifIntEva" name="ifIntEva" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a href="javascript:void(0)" auth="ENG_INT_PRE_EVA1" class="addBtn"
+                           onclick="addOrEditPreEva('add','')"><span>新增</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            doSearch_();
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_INT_STATUS,ENG_INT_MOD_LEVEL,ENG_ZZFROM,YESORNO,ENG_IF_INT_EVA",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["ENG_INT_STATUS"]);
+                    PAGE_DATA['yesorno'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA['zzfrom'] = DomainCodeToMap_(jdata.data["ENG_ZZFROM"]);
+                    PAGE_DATA['ifIntEva'] = DomainCodeToMap_(jdata.data["ENG_IF_INT_EVA"]);
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngTypeNew",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#epn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    $('#ifIntEva').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.ENG_IF_INT_EVA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_INT_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engIntPreEva/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_INT_PRE_EVA_LIST'},
+                alter: {
+                    status:{
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    ifIntEva:{
+                        formatter: function (value) {
+                            return PAGE_DATA['ifIntEva'][value];
+                        }
+                    },
+                    zzfrom:{
+                        formatter: function (value) {
+                            return PAGE_DATA['zzfrom'][value];
+                        }
+                    },
+                    presDate: {
+                        type: 'date'
+                    },
+                    calDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditPreEva('edit', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_INT_PRE_EVA3",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        delIntPreEva(rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "评估完成",
+                    auth: "ENG_INT_PRE_EVA4",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!rowData.ifIntEva) {
+                            MsgAlert({content: "是否引进评估不允许为空！", type: 'error'});
+                            return;
+                        }
+                        evaComplete(rowData.pkid);
+                    }
+                },
+            ],
+            validAuth: function (row, items) {
+                if ('1' != row.status || loginUser != row.createUser) {
+                    items['删除'].enable = false;
+                    items['评估完成'].enable = false;
+                }
+                if ('1' != row.status) {
+                    items['编辑'].enable = false;
+                }
+
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEditPreEva('view',value.pkid);
+            }
+        });
+    }
+
+    //添加或编辑--发动机引进预评估
+    function addOrEditPreEva(operation, pkid) {
+        var flag = 'key';
+        var title_ = $.i18n.t('添加或编辑--发动机引进预评估');
+        ShowWindowIframe({
+            width: "880",
+            height: "700",
+            title: title_,
+            param: {pkid: pkid, operation: operation,flag:flag},
+            url: "/views/engine/engIntPreEva/eng_int_pre_eva_add_edit.shtml"
+        });
+    }
+
+    //刷新列表
+    function reload_(){
+        $("#dg").datagrid("reload");
+    }
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    //删除
+    function delIntPreEva(pkid){
+        var cou = '';
+        var datas = {"pkid":pkid};
+        InitGatewayRequest_({
+            async: false,
+            data:datas,
+            path: "/meng-engine/engIntPreEva/delIntPreEva",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    cou = jdata.obj;
+                    if(cou > 0){
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                } else {
+                    MsgAlert({content: "删除失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    //评估完成
+    function evaComplete(pkid){
+
+        var flag=true;
+        var intpath = '/meng-engine/engIntPreEva/getSubPkid';
+        InitGatewayRequest_({
+            async: false,
+            path: intpath,
+            data: {pkid:pkid},
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if (data != null) {
+                        var tempId = '';
+                        for(var num = 1 ; num<9 ; num++){
+                            tempId = "pkid"+num;
+                            if (num ==1 || num==8){
+                                tempId = "pkid";
+                            }
+                            var subPkid = data[tempId];
+
+                            if(!subPkid){
+                                alert("引进信息未评估完成!");
+                                flag = false;
+                                return;
+                            }
+
+
+                            if(num == '1' || num == '8'){
+                                //给所有页面的外键赋值
+                                $(".preEvaId").val(pkid);
+                                intpath = "/meng-engine/engIntPreEva/selectById" + "/" + subPkid;
+                            }else if(num == '2'){
+                                intpath = "/meng-engine/engIntAd/selectById" + "/" + subPkid;
+                            }else if(num == '3'){
+                                intpath = "/meng-engine/engIntLlpLimiter/selectById" + "/" + subPkid;
+                            }else if(num == '4'){
+                                intpath = "/meng-engine/engIntRepair/selectById" + "/" + subPkid;
+                            }else if(num == '5'){
+                                intpath = "/meng-engine/engIntPer/selectById" + "/" + subPkid;
+                            }else if(num == '6'){
+                                intpath = "/meng-engine/engIntTest/selectById" + "/" + subPkid;
+                            }else if(num == '7'){
+                                intpath = "/meng-engine/engIntBsi/selectById" + "/" + subPkid;
+                            }
+
+                            InitGatewayRequest_({
+                                type: "get",
+                                async: false,
+                                path: intpath,
+                                successCallBack: function (jdata) {
+                                    if (jdata.success == true) {
+                                        var obj = jdata.obj;
+                                        if(num=='1'){
+                                            if(!obj.epn||!obj.esn||!obj.oilPartNo||!obj.zzfrom||!obj.calDate||
+                                                !obj.tsn||!obj.csn||!obj.tso||!obj.cso||!obj.tslsv||!obj.cslsv||!obj.presLimit||!obj.remark){
+                                                alert("Engine Basic info 还未评估完成!");
+                                                flag = false;
+                                            }
+                                        }
+
+                                        if(num=='2'){
+                                            if(!obj.adEva){
+                                                alert("AD Status Report 还未评估完成!");
+                                                flag = false;
+                                            }
+                                        }
+
+                                        if(num=='3'){
+                                            if(!obj.llpType1||!obj.llpValue1||!obj.llpType2||!obj.llpValue2||!obj.llpLimiter||!obj.llpEva){
+                                                alert("LLP Limiter 还未评估完成!");
+                                                flag = false;
+                                            }
+                                        }
+
+                                        if(num=='4'){
+                                            if(!obj.repairDate||!obj.mro||!obj.removalReason||!obj.hptBlade||!obj.hptNgv||!obj.llpType1||!obj.llpValue1||!obj.llpType2||
+                                                !obj.llpValue2||!obj.ctN1vib||!obj.ctN2vib||!obj.ctN3vib||!obj.startingEgt||!obj.ttmi||!obj.acceTime||!obj.cttEgtm||!obj.ctmcEgtm||!obj.oilPress||!obj.ctoc||!obj.pmaDer||
+                                                !obj.repairLevel||!obj.lptStg1Nozzle||!obj.workscope||!obj.repairEva){
+
+                                                alert("Last Performance Restoration Report 还未评估完成!");
+                                                flag = false;
+                                            }
+                                        }
+
+                                        if(num=='5'){
+                                            if(!obj.asOrDate||!obj.thrustRating||!obj.n1Vib||!obj.n2Vib||!obj.n3Vib||!obj.egtm||!obj.thrustDerate||!obj.oilCons||!obj.perEva){
+
+                                                alert("Performace Data Report for last 6 months 还未评估完成!");
+                                                flag = false;
+                                            }
+                                        }
+
+                                        if(num=='7'){
+                                            if(!obj.bsiDate||!obj.tsn||!obj.csn||!obj.tso||!obj.cso||!obj.lpt||!obj.ipc||!obj.lpc||!obj.hpc||!obj.cc||!obj.hpt||!obj.ipt||!obj.bsiEva){
+
+                                                alert("Borescope Inspection Report 还未评估完成!");
+                                                flag = false;
+                                            }
+                                        }
+
+                                        if(num=='8'){
+                                            if(!obj.llpType1||!obj.llpValue1||!obj.llpType2||!obj.llpValue2||!obj.conclution||!obj.ifIntEva){
+
+                                                alert("Conclution 还未评估完成!");
+                                                flag = false;
+                                            }
+                                        }
+                                    } else {
+                                        MsgAlert({content: '操作失败', type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } else {
+                    MsgAlert({content: "初始化子表pkid失败!", type: 'error'});
+                }
+            }
+        });
+
+        if (!flag){
+            return
+        }
+
+        var cou = '';
+        var datas = {"pkid":pkid};
+        InitGatewayRequest_({
+            async: false,
+            data:datas,
+            path: "/meng-engine/engIntPreEva/evaComplete",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    cou = jdata.obj;
+                    if(cou > 0){
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                } else {
+                    MsgAlert({content: "操作评估完成失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+
+</script>
+</body>
+</html>

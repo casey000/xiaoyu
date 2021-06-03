@@ -1,0 +1,198 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册修改建议单失效申请</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="mform" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td colspan="6" align="right">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="save()"
+                        >保存</a>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="submit()"
+                        >提交</a>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="CloseWindowIframe();"
+                        >关闭</a>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 100px">建议单编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="revsugNo" id="revsugNo" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 100px">版本：</th>
+                    <td colspan="3">
+                        <input class="easyui-textbox" name="ver" id="ver" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 100px">失效原因：</th>
+                    <td colspan="5">
+                        <input class="easyui-textbox" name="stopReason" id="stopReason"
+                               data-options="required:true,multiline:true,validType:'length[0,200]'"
+                               style="width:700px;height: 50px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 100px">申请人：</th>
+                    <td>
+                        <input class="easyui-textbox" name="applyMan" id="applyMan" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 100px">申请日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="applyDate" id="applyDate" data-options=""
+                               style="width:150px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 100px">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="status" id="status" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var revsugPkid;
+    var pkid;
+    var revsugNo;
+    var revsugVer;
+    var userName;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        userName = getLoginInfo().userName;
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                domainCode: "MANUAL_REVSUG_STOP_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["MANUAL_REVSUG_STOP_STATUS"]);
+                    // 状态status
+                    $('#status').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.MANUAL_REVSUG_STOP_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    initForm(pkid);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function initForm(pkid) {
+        if (pkid) { //从查询页面进入
+            InitFuncCodeRequest_({
+                async: false,
+                data: {pkid: pkid, FunctionCode: 'MANUAL_REVSUG_STOP_PKID'},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        } else {//从手册修改建议单页面进入
+            revsugPkid = param.revsugPkid;
+            revsugNo = param.revsugNo;
+            revsugVer = param.revsugVer;
+            $('#revsugNo').textbox('setValue', revsugNo);
+            $('#ver').textbox('setValue', revsugVer);
+            $('#status').combobox('setValue', 'SQZ');
+            $('#applyDate').datebox('setValue', formatterDate(new Date()));
+        }
+        $("#applyMan").textbox('setValue', userName);
+
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var data = $("#mform").serializeObject();
+        if (pkid) {
+            data.pkid = pkid;
+        }
+        data.revsugPkid = revsugPkid;
+        data.status = $('#status').combobox('getValue');
+        data = $.extend({}, data, {FunctionCode: 'MANUAL_REVSUG_STOP_ADD'});
+        MaskUtil.mask("正在处理...");
+        InitFuncCodeRequest_({
+            async: false,
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MaskUtil.unmask();
+                    pkid = jdata.data;
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                }
+                else {
+                    MaskUtil.unmask();
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //提交
+    function submit() {
+        if (!pkid) {
+            MsgAlert({content: '请先保存数据', type: 'error'});
+            return;
+        }
+
+        var status = $('#status').combobox('getValue');
+        if (status != 'SQZ') {
+            MsgAlert({content: '申请状态才可提交', type: 'error'});
+            return;
+        }
+
+        common_add_edit_({
+            identity: '', isEdit: '', width: 520, height: 300, title: $.i18n.t('选择审批人'),
+            param: {roleId: '', otherParam: pkid, FunctionCode_: 'MANUAL_REVSUG_STOP_SUBMIT', successCallback: reload_},
+            url: "/views/em/workflow/work_flow_account_select.shtml"
+        });
+
+    }
+
+    function formatterDate(date) {
+        var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+        var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+            + (date.getMonth() + 1);
+        return date.getFullYear() + '-' + month + '-' + day;
+    }
+    function reload_() {
+        CloseWindowIframe();
+        param.OWindow.reload_();
+    }
+</script>
+</body>
+</html>

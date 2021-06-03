@@ -1,0 +1,566 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">维修方案</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th data-i18n="" style="width:126px;" align="right" class="td5">MP号：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="itemNo" name="itemNo" style="width:150px"/>
+                    </td>
+                    <th data-i18n="" style="width:126px;" align="right" class="td5">改版标识：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="revCode" name="revCode"
+                               style="width:150px"/>
+                    </td>
+                    <!--<th data-i18n="" style="width:126px;" align="right" class="td5">检验等级：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="chkLevel" name="chkLevel"
+                               style="width:150px"/>
+                    </td>-->
+                    <th class="td5" align="right">控制类型：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="ctlType" name="ctlType" data-options=""
+                               style="width: 150px"/>
+                    </td>
+                </tr>
+                <tr class="sh_class" hidden>
+                    <th class="td5" align="right">区域：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="zone" name="zone" data-options=""
+                               style="width: 150px;"/>
+                    </td>
+                    <th class="td5" align="right">来源类型 ：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="docType" name="docType"
+                               data-options=""
+                               style="width: 150px"/>
+                    </td>
+                </tr>
+                <tr class="sh_class" hidden>
+                    <th class="td5" align="right">描述(中文描述)：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="chnDesc" name="chnDesc" style="width: 150px;"/>
+                    </td>
+                    <th class="td5" align="right">ATA：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="ata" name="ata" style="width: 150px;"/>
+                    </td>
+                    <th class="td5" align="right">适用类别：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="applType" name="applType" style="width: 150px"/>
+                    </td>
+                </tr>
+                <tr class="sh_class" hidden>
+                    <th class="td5" align="right">机号：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="acno" name="acno" style="width: 150px"/>
+                    </td>
+                    <th class="td5" align="right">首检：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="tFc" name="tFc" style="width: 150px"/>
+                    </td>
+                    <!--<th class="td5" align="right">首检单位：</th>-->
+                    <!--<td class="tdr">-->
+                    <!--<input class="easyui-combobox" id="tCalUnit" name="tCalUnit" style="width: 150px"/>-->
+                    <!--</td>-->
+                    <th class="td5" align="right">重检：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="ivFh" name="ivFh" style="width: 150px"/>
+                    </td>
+                </tr>
+                <tr class="sh_class" hidden>
+                    <!--<th class="td5" align="right">重检单位：</th>-->
+                    <!--<td class="tdr">-->
+                    <!--<input class="easyui-combobox" id="ivCalUnit" name="ivCalUnit" data-options=""-->
+                    <!--style="width: 150px;"/>-->
+                    <!--</td>-->
+                </tr>
+
+                <tr>
+                    <td colspan="6" align="right">
+                        <a class="clearBtn" data-options="iconCls:'icon-search'" id="more" onclick="yinCang()"><span
+                                data-i18n="">更多</span></a>&nbsp;&nbsp;
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="doSearch_()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a class="ridoBtn" data-options="iconCls:'icon-filter'"
+                           onclick="helpQuery('dg', 'ffSearch', function(){onSearch_(); });"> <span
+                                data-i18n="">高级查询</span></a>&nbsp;&nbsp;
+                        <!--<a class="addBtn" data-options="iconCls:'icon-add'" id="div1" auth="EM_CMP_ZDY_ZJ"-->
+                        <!--onclick="add_()"><span data-i18n="">增加</span></a>&nbsp;&nbsp;-->
+                        <a class="excelBtn" data-options="iconCls:'icon-page_excel'"
+                           onclick="excelExport('dg','项目清单','EM_CMP_XMQD_LIST')"><span>导出</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="">查询结果</legend>-->
+    <div style="width: 100%;height: 415px">
+        <table id="dg"></table>
+    </div>
+
+</fieldset>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var identity = 'dg';
+    var thisURL = document.URL;
+    var array = thisURL.split("=");
+
+    var type = array[1];
+    var cmpPkid = array[4];
+    var data;
+    var stype = "";
+    if (type == 'SYS') {
+        stype = "1";
+    } else if (type == 'STR') {
+        stype = "2";
+    } else if (type == 'PART') {
+        stype = "5";
+    } else if (type == 'ZONE') {
+        stype = "3";
+    } else if (type == 'CPCP') {
+        stype = "4";
+    }
+    data = {itemType: stype, cmpPkid: cmpPkid};
+
+    var fleet;
+    //草稿
+    var cmpStatus_cg = 'DRAFT';
+    var cmpStatus;
+
+    var ctlTypes = {};
+    var attachOptions = {};
+
+    var chkLevels = {};
+    var itemType = {};
+    var applType = {};
+    var flowStatus = {};
+
+    //系统项目清单
+    /*MON 非定期维护项目
+     UDF 自定义项目清单
+     CDCCL CDCCL项目清单
+     CPCP CPCP项目清单
+     PSE PSE项目清单
+     ALI ALI项目清单
+     CMR CMR项目清单
+     LEP 有效页清单
+     LRR 修订记录清单
+     APL 飞机适用范围清单
+     PART 部件维修控制项目
+     FILE 文件
+     DIR 目录
+     SKJ 时控件项目清单
+     LINE 航线维护项目
+     CHK 定期维护项目*/
+
+    $(document).ready(function (e) {
+        $(this).keydown(function (e) {
+            if (e.which == "13") {
+                doSearch_();//触发该事件
+            }
+        })
+    });
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                //EM_MP_TICHK_UNIT
+                domainCode: "EM_MPD_DOC_TYPE,EM_APPL_TYPE,EM_REV_CODE,EM_CMP_STATE,EM_MPD_CTL_TYPE,EM_MP_CHK_LEVEL,EM_MP_ATTACH_INFO,EM_MP_CHK_LEVEL,EM_MPD_ITEM_TYPE,EM_APPL_TYPE,EM_MPD_CTL_TYPE,EM_MPEC_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    revCode = DomainCodeToMap_(jdata.data["EM_REV_CODE"]);
+                    ctlTypes = DomainCodeToMap_(jdata.data["EM_MPD_CTL_TYPE"]);
+                    chkLevels = DomainCodeToMap_(jdata.data["EM_MP_CHK_LEVEL"]);
+                    attachOptions = DomainCodeToMap_(jdata.data["EM_MP_ATTACH_INFO"]);
+                    itemType = DomainCodeToMap_(jdata.data["EM_MPD_ITEM_TYPE"]);
+                    applType = DomainCodeToMap_(jdata.data["EM_APPL_TYPE"]);
+                    flowStatus = DomainCodeToMap_(jdata.data["EM_MPEC_STATUS"]);
+                    /*$('#chkLevel').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MP_CHK_LEVEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });*/
+                    //来源类型
+                    $('#docType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MPD_DOC_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //项目分类
+                    $('#itemType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MPD_ITEM_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //适用类别
+                    $('#applType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_APPL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //首检单位
+                    // $('#tCalUnit').combobox({
+                    //     panelHeight: '150px',
+                    //     data: jdata.data.EM_MP_TICHK_UNIT,
+                    //     valueField: 'VALUE',
+                    //     textField: 'TEXT'
+                    // });
+
+                    //重检单位
+                    // $('#ivCalUnit').combobox({
+                    //     panelHeight: '150px',
+                    //     data: jdata.data.EM_MP_TICHK_UNIT,
+                    //     valueField: 'VALUE',
+                    //     textField: 'TEXT'
+                    // });
+                    //控制类型
+                    $('#ctlType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MPD_CTL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#revCode').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_REV_CODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    /*$('#chkLevel').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MP_CHK_LEVEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });*/
+                    getCmpOne();
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            fit: true,
+            sortable: true,
+            title: $.i18n.t(''),
+            queryParams: data,
+            columns: {
+                param: {FunctionCode: 'EM_CMP_XMQD_LIST'},
+                alter: {
+                    REV_CODE: {
+                        formatter: function (value, row, index) {
+                            return revCode[value];
+                        }
+                    },
+                    ITEM_TYPE: {
+                        formatter: function (value, row, index) {
+                            return itemType[value];
+                        }
+                    },
+                    APPL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return applType[value];
+                        }
+                    },
+                    REV_DATE: {
+                        type: 'date'
+                    },
+                    CTL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return ctlTypes[value];
+                        }
+                    },
+                    /*CHK_LEVEL: {
+                        formatter: function (value, row, index) {
+                            return chkLevels[value];
+                        }
+                    }
+                    ,*/
+                    FLOW_STATUS: {
+                        formatter: function (value, row, index) {
+                            return flowStatus[value];
+                        }
+                    },
+                    IF_UDF: {
+                        formatter: function (value, row, index) {
+                            return value == "Y" ? "是" : "否";
+                        }
+                    }
+                }
+            },
+            /* validAuth: function (row, items) {
+                 //自定义项目才可以执行右键编辑跟删除   改版标识为N的并且为自定义的项目的可以编辑
+                 if (cmpStatus != cmpStatus_cg || row.FLOW_STATUS == 'DSP' || row.FLOW_STATUS == 'DSH' || row.FLOW_STATUS == 'YPZ') {
+                     items['common:COMMON_OPERATION.EDIT'].enable = false;
+                     items['改版R'].enable = false;
+                     items['改版D'].enable = false;
+                 }
+                 if (row.IF_UDF != 'Y' || row.REV_CODE != 'N' || cmpStatus != cmpStatus_cg || row.FLOW_STATUS == 'DSP' || row.FLOW_STATUS == 'DSH' || row.FLOW_STATUS == 'YPZ') {
+                     items['删除'].enable = false;
+                 }
+                 return items;
+             },*/
+            contextMenus: [
+                /*{
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "EM_CMP_ITEM_EDIT",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+
+                        /!*  if (cmpStatus != cmpStatus_cg) {
+                         MsgAlert({content: '必须为草稿状态', type: 'error'});
+                         return false;
+                         }*!/
+                        ShowWindowIframe({
+                            width: "90%",
+                            height: "80%",
+                            title: "增加项目",
+                            param: {cmpPkid: cmpPkid, fleet: fleet, itemPkid: rowdata.ITEM_PKID},
+                            url: "/views/em/emcmp/em_cmp_zidingyiItem.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "浏览", auth: "EM_CMP_ITEM_LL",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        ShowWindowIframe({
+                            width: "90%",
+                            height: "80%",
+                            param: {cmpPkid: cmpPkid, fleet: fleet, itemPkid: rowdata.ITEM_PKID},
+                            url: "/views/em/emcmp/em_cmp_zidingyiItem_brower.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-approvalProcess", i18nText: "common:RES.COMMON.APPROVAL_TRACK", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        console.log(rowdata);
+                        ShowWindowIframe({
+                            width: 815,
+                            height: 300,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {pkid: rowdata.ITEM_PKID},
+                            url: '/views/em/emcmp/em_cmp_liucheng.shtml'
+                        });
+                    }
+                },*/
+                /*{
+                    id: "m-edit", i18nText: "改版R", auth: "EM_CMP_ITEM_GBR",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        var type = 'GBR';
+                        //判断改版标识 是否为空
+                        ShowWindowIframe({
+                            width: "90%",
+                            height: "80%",
+                            title: "增加项目",
+                            param: {cmpPkid: cmpPkid, fleet: fleet, GB: type, itemPkid: rowdata.ITEM_PKID},
+                            url: "/views/em/emcmp/em_cmp_zidingyiItem.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "改版D", auth: "EM_CMP_ITEM_GBD",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+
+                        var type = 'GBD';
+                        //判断改版标识 是否为空
+                        ShowWindowIframe({
+                            width: "90%",
+                            height: "80%",
+                            title: "增加项目",
+                            param: {cmpPkid: cmpPkid, fleet: fleet, GB: type, itemPkid: rowdata.ITEM_PKID},
+                            url: "/views/em/emcmp/em_cmp_zidingyiItem.shtml"
+                        });
+                    }
+                },*/
+                /*{
+                    id: "m-edit", i18nText: "删除", auth: "EM_CMP_ITEM_SC",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        if (cmpStatus != cmpStatus_cg) {
+                            MsgAlert({content: '必须为草稿状态', type: 'error'});
+                            return false;
+                        }
+
+                        $.messager.confirm('', '是否删除', function (r) {
+                            if (r) {
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        pkid: rowdata.PKID,
+                                        FunctionCode: "EM_CMP_ITEM_DEL"
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                            reload_();
+                                        }
+                                        else {
+                                            MsgAlert({content: jdata.msg, type: 'error'});
+                                        }
+                                    }
+                                });
+                            }else{
+
+                            }
+                        });
+
+
+                    }
+                }*/
+            ]
+        });
+    }
+
+    /*doSearch_查询*/
+    function doSearch_() {
+        var tfc = $("#tFc").textbox("getValue");
+        var ivfh = $("#ivFh").textbox("getValue");
+        if (tfc != "") {
+            var tc = $("#tCalUnit").combobox("getValue");
+            if (tc == null || tc == "") {
+                MsgAlert({content: '请输入首检单位', type: 'error'});
+                return false;
+            }
+        }
+        if (ivfh != "") {
+            var ic = $("#ivCalUnit").combobox("getValue");
+            if (ic == null || ic == "") {
+                MsgAlert({content: '请输入重检单位', type: 'error'});
+                return false;
+            }
+        }
+
+        var $form = $("#ffSearch");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, data);
+        var dgopt = getDgOpts('dg');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: datas
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+    /**隐藏搜索项**/
+    var flag = 1;
+
+    function yinCang() {
+        if (flag == 1) {
+            $(".sh_class").show();
+            flag = 2;
+        } else {
+            $(".sh_class").hide();
+            $("#zone").textbox("setValue", "");
+            $("#xxx").textbox("setValue", "");
+            $("#accesses").textbox("setValue", "");
+            $("#chnDesc").textbox("setValue", "");
+            $("#ata").textbox("setValue", "");
+            $("#applType").combobox("setValue", "");
+            $("#operatorCode").textbox("setValue", "");
+            $("#acno").textbox("setValue", "");
+            $("#tFc").textbox("setValue", "");
+            $("#tCalUnit").combobox("setValue", "");
+            $("#ivFh").textbox("setValue", "");
+            $("#ivCalUnit").combobox("setValue", "");
+            $("#ctlType").combobox("setValue", "");
+            $("#attachOption").textbox("setValue", "");
+            flag = 1;
+        }
+    }
+
+    function moreSelect() {
+        common_add_edit_({
+            width: 800,
+            height: 500,
+            title: 'MP查询',
+            url: "/views/em/emcmp/em_cmp_xmqd_more.shtml"
+        });
+    }
+
+    function getCmpOne() {
+        InitFuncCodeRequest_({
+            data: {
+                pkid: cmpPkid,
+                FunctionCode: "EM_CMP_GETONE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    cmpStatus = jdata.data.STATUS;
+                    fleet = jdata.data.FLEET;
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function add_() {
+        if (cmpStatus != cmpStatus_cg) {
+            MsgAlert({content: '必须为草稿状态', type: 'error'});
+            return false;
+        }
+        ShowWindowIframe({
+            width: "90%",
+            height: "80%",
+            title: "增加项目",
+            param: {cmpPkid: cmpPkid, fleet: fleet, type: type},
+            url: "/views/em/emcmp/em_cmp_zidingyiItem.shtml"
+        });
+    }
+
+    function pdf() {
+        InitFuncCodeRequest_({
+            data: {
+                cmpPkid: "CMP0000000043",
+                FunctionCode: "EM_CMP_PNTL_PDF"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+</script>
+</body>
+</html>

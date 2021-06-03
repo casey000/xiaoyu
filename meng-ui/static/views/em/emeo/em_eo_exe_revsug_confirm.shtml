@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">EO/EA数据变更影响手册</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="mform" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr id = 'comBtn'>
+                    <td colspan="6" align="right">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="confirm()"
+                        >确认</a>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 40px;" align="right">编号：</td>
+                    <td style="width:150px;" align="left">
+                        <input class="easyui-textbox" name="dataNo" id="dataNo" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <td style="width: 60px;" align="right">EO编号：</td>
+                    <td style="width:150px;" align="left">
+                        <input class="easyui-textbox" name="eoNo" id="eoNo" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <td style="width: 60px;" align="right">EO版次：</td>
+                    <td style="width:60px;" align="left">
+                        <input class="easyui-textbox" name="eoVer" id="eoVer" data-options="editable:false,onlyview:true"
+                               style="width:60px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="width: 60px;" align="right">飞机注册号：</td>
+                    <td style="width:150px;" align="left">
+                        <input class="easyui-textbox" name="acno" id="acno" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <td style="width: 60px;" align="right">执行操作：</td>
+                    <td style="width:150px;" align="left">
+                        <input class="easyui-combobox" name="op" id="op" data-options="required:true"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+            </table>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var eoPkid;
+    var type;
+    var acId;
+    var dataNo;
+    var acno;
+    var operation;
+    var msgpkid;
+    function i18nCallBack() {
+        param = getParentParam_();
+        recordId = param.recordId;
+        operation = param.operation;
+        if(recordId){
+            eoPkid = recordId.split(',')[0];
+            type = recordId.split(',')[1];
+            acId = recordId.split(',')[2];
+            dataNo = recordId.split(',')[3];
+        }
+        acno = param.acno;
+        msgpkid = param.msgpkid;
+        if(operation == 'view'){
+            $('#comBtn').hide();
+        }
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_EO_EXE_SBI_MP_OP"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['EM_EO_EXE_SBI_MP_OP'] = DomainCodeToMap_(jdata.data["EM_EO_EXE_SBI_MP_OP"]);
+                    $('#op').combobox({
+                        data: jdata.data.EM_EO_EXE_SBI_MP_OP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: 'auto'
+                    });
+                    InitForm(eoPkid);
+
+                }
+            }
+        });
+
+    }
+
+
+    function InitForm(eoPkid) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {pkid: eoPkid, FunctionCode: "EM_EO_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $("#dataNo").textbox('setValue', dataNo);
+                    $('#acno').textbox('setValue', acno);
+                }
+            }
+        });
+    }
+
+
+    // 确定
+    function confirm() {
+        var op = $('#op').combobox('getValue');
+        if(!op){
+            MsgAlert({content: '请选择执行操作', type: 'error'});
+            return;
+        }
+        var data = $("#mform").serializeObject();
+        data.eoNo = $('#eoNo').textbox('getValue');
+        data.acid = acId;
+        data.eoVer = $('#eoVer').textbox('getValue');
+        data.op =  op;
+        data.recordId = recordId;
+        data.msgpkid = msgpkid;
+        data.dataNo = dataNo;
+        data.revsugNo = dataNo;
+        data = $.extend({}, data, {FunctionCode: 'TD_REVSUG_EO_REVISION'});
+        MaskUtil.mask("正在处理...");
+        // 【op】1、 操作为GB直接改版 2、操作为WXCL,执行关闭任务
+        if (op == 'WXCL') {
+            revision(data);
+            return;
+        }
+        //校验是否已经做过改版
+        InitFuncCodeRequest_({
+            data: {revsugNo: dataNo, FunctionCode: 'TD_REVSUG_REVISION_CHECK'}, async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.COU != 0) {
+                        MaskUtil.unmask();
+                        MsgAlert({content: "该记录已经改版，请不要重复操作!", type: 'error'});
+                    } else {
+                        revision(data);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     *  功能描述:  手册修改建议单改版
+     *  01379392(王大桥)
+     *  2021/1/5
+     */
+    function revision(data){
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MaskUtil.unmask();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                }
+                else {
+                    MaskUtil.unmask();
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

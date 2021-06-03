@@ -1,0 +1,298 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <!-- 禁止浏览器从本地缓存中调阅页面。网页不保存在缓存中，每次访问都刷新页面。  -->
+    <meta http-equiv="pragram" content="no-cache"/>
+    <!-- 同上面意思差不多，必须重新加载页面  -->
+    <meta http-equiv="cache-control" content="no-cache, must-revalidate"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>故障保留续保</title>
+    <!-- load css -->
+    <link rel="stylesheet" type="text/css" href="/css/dwm/source.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/jquery-ui-1.8.2.custom.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/dialog_default.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/easyui.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/icon.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/common.css"/>
+    <link rel="stylesheet" type="text/css" href="/js/jquery/ztree/zTreeStyle.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/easyui/gray/easyui.css"/>
+
+    <style type="text/css">
+        .errorMessage {
+            color: red
+        }
+
+        .td-font-red {
+            color: red
+        }
+
+        a {
+            color: #6e6e6e;
+            text-decoration: none;
+        }
+    </style>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!-- load js -->
+    <script type="text/javascript" src="/js/jquery/easyui/jquery-1.8.0.min.js"></script>
+    <script src="/js/workflow/json2.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/js/jquery/ztree/jquery.ztree.core-3.4.js"></script>
+    <script type="text/javascript" src="/js/jquery/ztree/jquery.ztree.excheck-3.4.js"></script>
+    <script type="text/javascript" src="/js/jquery/easyui/jquery.easyui.min.js" charset="utf-8"></script>
+    <script type="text/javascript" src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js"></script>
+    <script type="text/javascript" src="/js/jquery/lhgdialog/lhgdialog.js"></script>
+    <script type="text/javascript" src="/js/date_utils.js"></script>
+    <script type="text/javascript" src="/js/jquery.form.js"></script>
+    <script type="text/javascript" src="/js/global_var.js"></script>
+    <script type="text/javascript" src="/js/jquery.validate.js"></script>
+    <script type="text/javascript" src="/js/tlb/flow.js"></script>
+    <script type="text/javascript" src="/views/nrc/upload_component.js"></script>
+    <script type="text/javascript" src="/js/upload_file.js"></script>
+    <script>
+        $(function () {
+            let postData = {
+                "id": s_params.businessKey.split("_")[0]
+            };
+
+            let categoryStr, category, extensionDate;
+            if(!s_params.isnew) {
+                sub_win.button({
+                    name: 'End',
+                    callback: function () {
+                        approve(basePath + '/tlb/tlb_ddi_flow_cancelExtention.action', postData, false);
+                        return false;
+                    }
+                });
+                //获取DD延期的历史数据
+                $.ajax({
+                    url: basePath + '/tlb/defect_pend_getDDExtensionData.action',
+                    dataType: "json",
+                    type: 'POST',
+                    cache: false,
+                    async: false,
+                    data: {
+                        "taskId": s_params.taskId
+                    },
+                    success: function (data, textStatus) {
+                        var data = JSON.parse(data);
+                        if(data.ajaxResult == 'success') {
+                            var dp = data.dp;
+                            categoryStr = dp.ddDueDataStr;
+                            category = dp.ddDueData.category;
+
+                            var flowvars = data.flowvars;
+                            $("#extentionFh input").val(flowvars.extentionFh);
+                            $("#extentionFc input").val(flowvars.extentionFc);
+                            $("#extentionCalendarDay input").val(flowvars.extentionCalendarDay);
+                            $("#extentionFlightDay input").val(flowvars.extentionFlightDay);
+                            extensionDate = flowvars.extensionDate;
+                        } else {
+                            P.$.dialog.alert('Failure! ' + data.msg);
+                        }
+                    }
+                });
+            } else {
+                categoryStr = s_params.categoryStr;
+                category = s_params.category;
+                extensionDate = s_params.extensionDate;
+            }
+
+            sub_win.button({
+                name: 'Submit',
+                callback: function () {
+                    //验证other类和A类
+                    if(category == 'other' || category == 'a') {
+                        $("#expiredDate").attr("name", "");
+                        if(!$("#approval_form").valid()) {
+                            return false;
+                        }
+                    }
+                    //验证日期
+                    if(!$("#expiredDate").is(":hidden")) {
+                        var date = $("#expiredDate").datebox("getValue");
+                        $("#expiredDate").nextAll("div").html("");
+                        if($.trim(date) == '') {
+                            $("#expiredDate").nextAll("div").html("This field is required.");
+                            $("#approval_form").valid();
+                            return false;
+                        }
+                    }
+                    postData.attachmentIds=$("#upload").UPLOAD("saveData")[0].uploadAttaIds;
+
+                    if(postData.attachmentIds[0]==""){
+                        alert("必须上传附件!");
+                        return false;
+                    }
+                    approve(basePath + '/api/v1/defect/defect/dfrl/submitExtension', postData);
+                    return false;
+                }
+            });
+
+            sub_win.button({
+                name: 'Cancel'
+            });
+
+            $('#view_detail').click(function () {
+                //alert(s_params.businessKey.split("_")[1]);
+                viewDeferred(s_params.businessKey.split("_")[1], null, "DFRL");
+            });
+
+
+            $("#categorySpan").text(categoryStr);
+            if(category == 'b' || category == 'c' || category == 'd') {
+                $("#expiredDateTr").show();
+                $("#extentionDate").show();
+
+                $("#extensionDateSpan").text(extensionDate);
+                extensionDate = new Date(extensionDate.replace(/-/g, '/'));
+
+                if(hasCategory(categoryStr, "B")) {
+                    extensionDate.setTime(extensionDate.getTime() + 3 * 24 * 60 * 60 * 1000 - 1000);
+                } else if(hasCategory(categoryStr, "C")) {
+                    extensionDate.setTime(extensionDate.getTime() + 10 * 24 * 60 * 60 * 1000 - 1000);
+                } else if(hasCategory(categoryStr, "D")) {
+                    extensionDate.setTime(extensionDate.getTime() + 120 * 24 * 60 * 60 * 1000 - 1000);
+                }
+                $("#expiredDateSpan").show();
+                $("#expiredDateSpan").text(formatterDate(extensionDate));
+                $("#extentionDate").show();
+                $("#expiredDate").val(formatterDate(extensionDate));
+                $("#expiredDate").hide();
+            } else {
+                $("#extentionData").show();
+                if(!hasCategory(categoryStr, 'FH')) {
+                    $("#extentionFh").hide();
+                }
+                if(!hasCategory(categoryStr, 'FC')) {
+                    $("#extentionFc").hide();
+                }
+                if(!hasCategory(categoryStr, '日历日')) {
+                    $("#extentionCalendarDay").hide();
+                }
+                if(!hasCategory(categoryStr, '飞行日')) {
+                    $("#extentionFlightDay").hide();
+                }
+            }
+
+            $.validator.addMethod("otherCat", function (value, element) {
+                var reg = /^[1-9]\d*$/;
+
+                var hasIllegaData = false;
+                var joinVal = $("input:visible").map(function () {
+                    var val = $(this).val();
+                    if($.trim(val) != "" && !reg.test(val) && val != '上传') {
+                        hasIllegaData = true;
+                    }
+                    return $(this).val();
+                }).get().join("");
+
+                //判断全部是否都为空
+                if(joinVal == "") {
+                    $("#errorInfo").text("请至少填写一项数据");
+                    return false;
+                }
+
+                if(hasIllegaData) {
+                    $("#errorInfo").text("只允许填写正整数");
+                    return false;
+                }
+
+                $("#errorInfo").text("");
+                return true;
+            });
+            $("#upload").UPLOAD("create");
+        });
+
+        /**
+         * 是否包含计算DD到期的某个维度的信息
+         */
+        function hasCategory(category, cat) {
+            return category.indexOf(cat) != -1 ? true : false;
+        }
+
+        function formatterDate(date) {
+            var year = date.getFullYear();
+            var month = date.getMonth() + 1;
+            month = month < 10 ? ("0" + month) : month;
+            var day = date.getDate();
+            day = day < 10 ? ("0" + day) : day;
+            return year + "-" + month + "-" + day + " " + date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds();
+        }
+
+        function viewDeferred(rowObj, event, category) {
+            var url = basePath + '/tlb/defect_pend_view_viewPend.action?id=' + rowObj + '&category=' + category;
+            var titleName = "View Deferred Information";
+            P.$.dialog({
+                title: titleName,
+                width: '1024px',
+                height: '570px',
+                esc: true,
+                max: false,
+                min: false,
+                lock: true,
+                content: 'url:' + url,
+                close: function () {
+                    $(document).sfaQuery().reloadQueryGrid();
+                }
+            });
+        }
+
+    </script>
+</head>
+
+<body>
+<form action="" method="post" id="approval_form">
+    <table width="100%" border="1" cellpadding="0" cellspacing="0" bordercolor="#B2C9E0" class="post_table"
+           style="padding-top:10px">
+        <!--<tr>
+            <td colspan="3" style="text-align: right;">
+                <a href="#" id="view_detail">View Detail</a>
+            </td>
+        </tr>-->
+        <tr style="display: none;">
+            <td width="20%" style="white-space: nowrap;" class="tab_title_bg ">Reject Reason:</td>
+            <td width="80%" style="white-space: nowrap;" id="reason"></td>
+        </tr>
+        <tr class="group1">
+            <td class="tab_title_bg ">Category:</td>
+            <td><span id="categorySpan"></span></td>
+        </tr>
+        <tr class="group1" id="extentionDate" style="display: none">
+            <td class="tab_title_bg ">Extention Date:<span class="td-font-red">*</span></td>
+            <td><span id="extensionDateSpan"></span></td>
+        </tr>
+        <tr class="group1" id="expiredDateTr" style="display: none">
+            <td class="tab_title_bg ">Expired Date:<span class="td-font-red">*</span></td>
+            <td>
+                <input style="display: none" class="required" id="expiredDate" name="expiredDate"/>
+                <span id="expiredDateSpan" style="display : none"></span>
+                <div class="errorMessage"></div>
+            </td>
+        </tr>
+        <tr class="group1" id="extentionData" style="display: none">
+            <td class="tab_title_bg ">Extention Data:<span class="td-font-red">*</span></td>
+            <td>
+                <span id="extentionFh">FH:<input name="extentionFh" style="width: 80px" class="otherCat"/></span>
+                <span id="extentionFc">FC:<input name="extentionFc" style="width: 80px" class="otherCat"/></span>
+                <span id="extentionCalendarDay">日历日：<input name="extentionCalendarDay" style="width: 80px"
+                                                           class="otherCat"/></span>
+                <span id="extentionFlightDay">飞行日：<input name="extentionFlightDay" style="width: 80px"
+                                                         class="otherCat"/></span>
+                <div id="errorInfo" class="errorMessage"></div>
+            </td>
+        </tr>
+        <tr class="group1">
+            <td class="tab_title_bg ">Extention Reason:<span class="td-font-red">*</span></td>
+            <td>
+                <textarea id="reason_val" class="required" maxlength="500" rows="4" name="extentionReason"></textarea>
+                <div class="errorMessage"></div>
+            </td>
+        </tr>
+        <tr>
+            <th >ATTACH PATH</th>
+            <td id="upload">ATTACH PATH</td>
+        </tr>
+    </table>
+</form>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>校核-缺陷/位置/特征尺寸维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="校核-缺陷/位置/特征尺寸维护" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="createUser" name="createUser"/>
+                <input type="hidden" id="createName" name="createName"/>
+                <input type="hidden" id="createDate" name="createDate"/>
+                <input type="hidden" id="proofUser" name="proofUser"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <input type="hidden" id="modifyName" name="modifyName"/>
+                <input type="hidden" id="modifyDate" name="modifyDate"/>
+                <input type="hidden" id="deleteFlag" name="deleteFlag"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="proofBtn" onclick="proof()"
+                                   value="校核"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>缺陷/位置/特征尺寸：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-combobox" id="posCd" name="posCd" data-options="required: true,onlyview:true,editable:false"
+                                   style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>描述/定义：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="descInfo" name="descInfo"
+                                   data-options="required: true,onlyview:true,editable:false" style="width: 164px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th>单位：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-combobox" id="unit" name="unit" data-options="required: true,onlyview:true,editable:false"
+                                   style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>校核人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="proofName" name="proofName" style="width: 164px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>校核日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="proofDate" name="proofDate" style="width: 164px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var operation;
+    var pkid;
+    var status;
+
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        $("#proofName").textbox('setValue', userLogin.userName);
+        $("#proofUser").val(userLogin.accountId);
+        var currentDate = new Date();
+        var year = currentDate.getFullYear().toString();
+        var month = (currentDate.getMonth() + 1).toString();
+        var day = currentDate.getDate().toString();
+        $("#proofDate").datebox('setValue', year + "-" + month + "-" + day);
+        param = getParentParam_();
+        pkid = param.pkid;
+        status = param.status;
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_BSI_POS_OR_CD,ENG_BSI_UNIT",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机型或组别
+                    $('#posCd').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_BSI_POS_OR_CD,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#unit').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.ENG_BSI_UNIT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if (pkid) {
+                        InitDataForm(pkid);
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        // if (status == "1") { //状态为"编辑/修订中"
+        //     $("#agreeBtn").hide();
+        // } else if (status == "4") { //状态为"删除中"
+        //     $("#proofBtn").hide();
+        // }
+    }
+    //回显
+    function InitDataForm(pkid) {
+        $('#pkid').val(pkid);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engBsiPosCd/selectById" + "/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $("#posCd").combobox('setValue', jdata.obj.posCd);
+                    $("#descInfo").textbox('setValue', jdata.obj.descInfo);
+                    $("#unit").combobox('setValue', jdata.obj.unit);
+                    var createDate = changeDateFormat(jdata.obj.createDate);
+                    $("#createDate").val(createDate);
+                    $("#createUser").val(jdata.obj.createUser);
+                    $("#createName").val(jdata.obj.createName);
+                    $("#modifyUser").val(jdata.obj.modifyUser);
+                    $("#modifyName").val(jdata.obj.modifyName);
+                    var modifyDate = changeDateFormat(jdata.obj.modifyDate);
+                    $("#modifyDate").val(modifyDate);
+                    $("#deleteFlag").val(jdata.obj.deleteFlag);
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+    //校核
+    function proof() {
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        var pkid = $("#pkid").val();
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            path: "/meng-engine/engBsiPosCd/proof",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+
+</script>
+</body>
+</html>

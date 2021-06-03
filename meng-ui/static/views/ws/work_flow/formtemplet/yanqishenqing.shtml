@@ -1,0 +1,360 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script src="/js/workflow/activiti_workflow.js" type="text/javascript"></script>
+    <title></title>
+    <script type="text/javascript">
+        var param = {};
+
+        function i18nCallBack() {
+            param = getParentParam_();
+            $("#workflow").DiagramWorkFlow({
+                imageUrl: "/api/activiti/diagram/image?processId=" + param.PROC_DEF_ID + "&processInstanceId=" + param.PROC_INST_ID,   //流程图url
+                traceUrl: '',//"/api/activiti/diagram/data?processId="+param.processId+"&businessKey="+param.businessKey,  //流程节点数据url
+                isRevert: true,//是否还原展示流程图，{还原Activiti裁剪后的流程图，即将偏移量x=x+minX,y=y+minY}
+                offsetX: 0,  //偏移量X
+                offsetY: 0   //偏移量Y
+            });
+            InitResources();
+        }
+
+        var TypeMap_ = {};
+
+        function InitResources() {
+            InitFuncCodeRequest_({
+                data: {
+                    FunctionCode: 'PROCESS_FORM_RESOURCE',
+                    taskId: param.TASK_ID, flowDefId: param.FLOW_DEF_ID
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                        return;
+                    }
+                    var resource = jdata.data.data;
+                    var form = jdata.data.form;
+                    var execution = jdata.data.execution;
+                    var node = jdata.data.node;
+                    TypeMap_ = jdata.data.typeMap;
+                    var variables = eval(node.variables);
+                    var options = arrangeVariables(variables);
+                    $.each(options, function (k, it) {
+                        var vdata = {titleName: it[0].varName, fieldName: it[0].varKey, options: []};
+                        $.each(it, function (k1, it1) {
+                            vdata.options.push({text: it1.varValue, value: it1.varValue});
+                            if (typeof(TypeMap_[it1.varKey]) == 'undefined') {
+                                TypeMap_[it1.varKey] = it1.varDataType || '';
+                            }
+                        });
+                        laytpl($('#temp').html()).render(vdata, function (html) {
+                            $('#custom_options').html(html);
+                        });
+                    });
+                    $.parser.parse($('#custom_options'));
+                    //[{"varName":"请假审批","varKey":"auditing","varValue":"同意","varOption":"Y"},{"varName":"请假审批","varKey":"auditing","varOption":"Y","varValue":"拒绝"},{"varName":"申请人","varKey":"proposer","varOption":"N","varValue":"-"}]
+                    var data = ParseFormField_(resource, null, Constant.CAMEL_CASE);
+                    ParseFormField_(execution, $("#processInfo"), null);
+                    ParseFormField_(node, $("#processInfo"), null);
+                    $('#proposer').val(resource.NAME);
+                    if (node.canReturn == 'Y') {
+                        $("input:checkbox[name='canReturn']").attr("checked", "checked");
+                        $("#canReturn").removeAttr("disabled").addClass('btn-primary');
+                    }
+                    if (node.canTrunTo == 'Y') {
+                        $("input:checkbox[name='canTrunTo']").attr("checked", "checked");
+                        $("#canTrunTo").removeAttr("disabled").addClass('btn-primary');
+                    }
+                    if (node.canTerminate == 'Y') {
+                        $("input:checkbox[name='canTerminate']").attr("checked", "checked");
+                        $("#canTerminate").removeAttr("disabled").addClass('btn-primary');
+                    }
+                    if (node.canHangUp == 'Y') {
+                        $("input:checkbox[name='canHangUp']").attr("checked", "checked");
+                        $("#canHangUp").removeAttr("disabled").addClass('btn-primary');
+                    }
+                    $("#canSubmit").removeAttr("disabled").addClass('btn-primary');
+                    setWinTitle(parseExpression(form.formTitle, data));
+                }
+            });
+            InitHistoryDG();
+            InitTab();
+        }
+
+        function InitTab() {
+            $('#tabs').tabs({
+                onSelect: function (title, index) {
+                }
+            });
+        }
+
+        function doSubmit() {
+            $.messager.confirm('提示', '您确定要提交吗?', function (r) {
+                if (r) {
+                    var $form = $("#mform");
+                    var isValidate = $form.form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: 'PROCESS_TASK_SUBMIT', //PROCESS_TERMINATE_TASK
+                        taskId: param.TASK_ID, flowDefId: param.FLOW_DEF_ID,
+                        typeMap: JSON.stringify(TypeMap_)
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function doReturn() {
+            $.messager.confirm('提示', '您确定要退回吗?', function (r) {
+                if (r) {
+                    var $form = $("#mform");
+                    var isValidate = $form.form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: 'PROCESS_TASK_SUBMIT', //PROCESS_TERMINATE_TASK
+                        taskId: param.TASK_ID, flowDefId: param.FLOW_DEF_ID,
+                        typeMap: JSON.stringify(TypeMap_)
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        function InitHistoryDG() {
+            var identity = 'historyDg';
+            $("#historyDg").MyDataGrid({
+                identity: identity,
+                title: '历史任务信息',
+                columns: {
+                    param: {FunctionCode: 'WS_FLOW_HIS_TASK_LIST'},
+                    alter: {
+                        DURATION: {
+                            formatter: function (value, row, index) {
+                                return toMsTimeString(row.DURATION || row.DURATION_0);
+                            }
+                        }
+                    }
+                },
+                queryParams: {procInstId: param.PROC_INST_ID},
+                onLoadSuccess: function (data) {
+                },
+                contextMenus: [],
+                toolbar: [
+                    {
+                        key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                        handler: function () {
+                            common_reload_({identity: identity});
+                        }
+                    }
+                ],
+                resize: function () {
+                    return {width: '100%', height: '100%'}
+                }
+            });
+        }
+
+        /**
+         * 组装选项数据
+         * @param vars
+         * @returns {{}}
+         */
+        function arrangeVariables(vars) {
+            var m = {};
+            $.each(vars, function (k, v) {
+                if (v.varOption == 'Y') {
+                    var lst = m[v['varKey']] || [];
+                    lst.push(v);
+                    m[v['varKey']] = lst;
+                }
+            });
+            return m;
+        }
+    </script>
+    <script id="temp" type="text/html">
+        <tr>
+            <th class="tdl">{{d.titleName }} ：</th>
+            <td class="tdr">
+                <select name="{{d.fieldName}}" class="easyui-combobox"
+                        data-options="required:true, editable: false" panelHeight="120" style="width:180px">
+                    {{#
+                    for(var i = 0; i < d.options.length; i++){
+                    }}
+                    <option value="{{d.options[i]['value']}}">{{d.options[i]['text']}}</option>
+                    {{# } }}
+                </select>
+            </td>
+        </tr>
+    </script>
+</head>
+<body class="ibody">
+<div id="tabs" style="width: 100%; height: 100%;">
+    <div id="tab01" title="业务表单数据" style="">
+        <div class="ibox float-e-margins">
+            <div class="ibox-content">
+                <form class="form-horizontal m-t" id="mform" style="margin-top: 0px;">
+                    <input type="hidden" name="proposer" id="proposer"/>
+                    <h5 style="margin-bottom: 4px;">任务数据详情：</h5>
+                    <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                        <tr>
+                            <th class="tdl" style="width: 145px;">ID ：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox easyui-validatebox" name="id" id="id"
+                                       data-options="multiline:true, onlyview: true, validType:['maxLength[50]'] "
+                                       style="height:25px; width: 60%;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">请假人 ：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox easyui-validatebox" name="name"
+                                       data-options="multiline:true, onlyview: true, validType:['maxLength[50]'] "
+                                       style="height:25px; width: 60%;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">开始时间 ：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox easyui-validatebox" name="startTime"
+                                       data-options="multiline:true, onlyview: true, validType:['maxLength[50]'] "
+                                       style="height:25px; width: 60%;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">结束时间 ：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox easyui-validatebox" name="endTime"
+                                       data-options="multiline:true, onlyview: true, validType:['maxLength[50]'] "
+                                       style="height:25px; width: 60%;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">请假理由 ：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox easyui-validatebox" name="leaveReason"
+                                       data-options="multiline:true, onlyview: true, validType:['maxLength[50]'] "
+                                       style="height:25px; width: 60%;"/>
+                            </td>
+                        </tr>
+
+                    </table>
+
+                    <h5 style="margin-bottom: 4px;">流程处理：</h5>
+
+                    <input name="taskId" type="hidden"/>
+                    <table class="table table-bordered table-info">
+                        <tbody id="custom_options"></tbody>
+                    </table>
+                    <table class="table table-bordered table-info" id="mtable">
+                        <tr>
+                            <th class="tdl"> 处理意见：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox easyui-validatebox" name="notes"
+                                       data-options="multiline:true, validType:['maxLength[200]'] "
+                                       style="height:65px; width: 90%;"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td colspan="6" align="center">
+                                <input id="canSubmit" class="btn" disabled="disabled" type="button"
+                                       onclick="javascript: doSubmit();" value="提交"/>
+                                <input id="canTrunTo" class="btn" disabled="disabled" type="button"
+                                       onclick="javascript: ;" value="转办"/>
+                                <input id="canReturn" class="btn" disabled="disabled" type="button"
+                                       onclick="javascript: doReturn();" value="退回"/>
+                                <input id="canTerminate" class="btn" disabled="disabled" type="button"
+                                       onclick="javascript: ;" value="终止"/>
+                                <input id="canHangUp" class="btn" disabled="disabled" type="button"
+                                       onclick="javascript: ;" value="挂起"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div title="流程信息" style="">
+        <table class="table table-bordered table-info" id="processInfo">
+            <tr>
+                <th class="tdl" style="width: 145px;">流程业务Key ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="businessKey"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程业务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="executionName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程创建时间 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="createTime"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程创建人 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="userName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="nodeName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">是否会签任务 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="isJoint"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务-配置 ：</th>
+                <td class="tdr" colspan="3" style="vertical-align: middle;">
+                    <input type="checkbox" name="canReturn" value="" disabled/> 可退回
+                    <input type="checkbox" name="canTrunTo" value="" disabled/> 可转办
+                    <input type="checkbox" name="canTerminate" value="" disabled/> 可终止
+                    <input type="checkbox" name="canHangUp" value="" disabled/> 可挂起
+                </td>
+            </tr>
+        </table>
+        <div id="workflow" style="overflow-x: scroll;"></div>
+    </div>
+    <div id="tab02" title="历史处理信息" style="">
+        <table id="historyDg"></table>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</body>
+</html>

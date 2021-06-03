@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <script type="text/javascript" src="/js/hr/common_hr.js"></script>
+    <title></title>
+</head>
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="td5" style="width: 130px;" align="right">退回原因：</th>
+                        <td class="tdr" colspan="2">
+                            <input class="easyui-textbox " name="cancelReason" id="cancelReason"
+                                   data-options="validType:['maxLength[300]']" multiline="true"
+                                   style="height:100px; width:460px;"/>
+                        </td>
+                    </tr>
+                    <!--<tr>
+                        <th class="td5" style="width: 130px;" align="right">MCC工作安排建议：</th>
+                        <td class="tdr" colspan="2">
+                            <input class="easyui-textbox " name="mccWorkSuggestion" id="mccWorkSuggestion"
+                                   data-options="validType:['maxLength[300]']" multiline="true"
+                                   style="height:100px; width:460px;"/>
+                        </td>
+                    </tr>-->
+                    <tr>
+                        <th class="td5" style="width:30px;" align="right"> 退回类型：</th>
+                        <td class="tdr" style="width: 100px;text-align: left" colspan="2">
+                            <input class="easyui-combobox" id="cancelType" name="cancelType"
+                                   data-options="required:true,editable: false"
+                                   style="width:150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="tdr" style="width: 100px;text-align: right" colspan="3">
+                            <a class="addBtn" onclick="save();">提交</a>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+</body>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var selectRow;
+    var param = {};
+    var pkid;
+    var flag;
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param && param.pkid;
+        if (param && param.flag) {
+            flag = param.flag;
+        }
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "WORKORDER_CANCEL_TYPE"},
+            successCallBack: function (jdata) {
+                // 初始化查询条件
+                $('#cancelType').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.WORKORDER_CANCEL_TYPE
+                });
+            }
+        });
+    }
+
+    /** 保存 */
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        $.messager.confirm('', '确认提交该记录？', function (r) {
+            if (r) {
+                var cancelReason = $("#cancelReason").textbox('getValue');
+                var cancelType = $("#cancelType").combobox('getValue');
+                //var mccWorkSuggestion = $("#mccWorkSuggestion").textbox('getValue');
+                MaskUtil.mask("正在处理中...");
+                InitFuncCodeRequest_({
+                    data: {
+                        pkid: pkid,
+                        flag: flag,
+                        cancelReason: cancelReason,
+                        cancelType: cancelType,
+                        //mccWorkSuggestion: mccWorkSuggestion,
+                        FunctionCode: "UPDATE_WORKORDER_STATUS"
+                    },
+                    successCallBack: function (jdata) {
+                        MaskUtil.unmask();
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if(jdata.msgData && jdata.msgData.length > 0){
+                                MsgAlert({content: jdata.msgData[0], type: 'error'});
+                            }else{
+                                CloseWindowIframe();
+                                param.OWindow.InitDataCount();
+                                param.OWindow.searchData1();
+                                param.OWindow.reloadDjh();
+                                param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            }
+                        } else {
+                            MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
+</html>

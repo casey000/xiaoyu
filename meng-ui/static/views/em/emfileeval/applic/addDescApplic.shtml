@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="evalNo" name="evalNo"/>
+                <table class="table table-bordered table-info">
+                    <tr id="view">
+                        <td colspan="2" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin-right:20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">范围类型：</th>
+                        <td class="tdr" style="width: 150px">
+                            <input class="easyui-combobox" id="rangeType" name="rangeType" data-options="required:true"
+                                   style="width: 150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th id="id_range_value" class="th" align="right" style="width: 80px;">特征描述：</th>
+                        <td class="tdr">
+                            <textarea id="rangeValue" name="rangeValue" data-options=""
+                                      style="width: 425px;height:60px;"></textarea>
+                        </td>
+
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var evalNo;
+    var applType;
+    var pkid;
+    var groupid;
+    var evapkid;
+    var rangeType;
+    var fleet;
+    var applyModel;
+
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        evalNo = param.evalNo;
+        groupid = param.groupid;
+        evapkid = param.evapkid;
+        applType = param.applType;
+        fleet = param.fleet;
+        rangeType = param.rangeType;
+        applyModel = param.applyModel;
+        pkid = param.ranPkid;
+        if (pkid == "undefined") {
+            pkid = "-1";
+        } else {
+            $("#pkid").val(pkid);
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_FILE_APL_RANGE_TYPE,EM_FILE_APL_RANGE_TYPE_S,EM_FILE_PART_RANGE_TYPE,EM_FILE_ENG_RANGE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    var data = jdata.data.EM_FILE_APL_RANGE_TYPE;
+                    if (applType == "APL") {
+                        if (fleet == "B737" || fleet == "B757") {
+                            data = jdata.data.EM_FILE_APL_RANGE_TYPE;
+                        } else if (fleet == "B747" || fleet == "B767") {
+                            data = jdata.data.EM_FILE_APL_RANGE_TYPE_S;
+                        } else {
+                            data = jdata.data.EM_FILE_APL_RANGE_TYPE;
+                        }
+                    } else if (applType == "ENG") {
+                        data = jdata.data.EM_FILE_ENG_RANGE_TYPE;
+                    } else if (applType == "PART") {
+                        data = jdata.data.EM_FILE_PART_RANGE_TYPE;
+                    }
+                    $("#rangeType").combobox({
+                        panelHeight: '135px',
+                        data: data,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (data) {
+                            var type = $("#rangeType").combobox('getValue');
+                            setPages(type);
+                        }
+                    });
+                    if (pkid) {
+                        InitDataForm();
+                    }
+                }
+                //给范围类型设置值
+                $('#rangeType').combobox('setValue', rangeType);
+
+            }
+        });
+    }
+
+    function InitDataForm() {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_FILE_DESC_BY_PKID"},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+
+        });
+    }
+
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var curCou = 0;
+        InitFuncCodeRequest_({
+            data: {groupid: groupid, rangeType: rangeType, pkid: pkid, FunctionCode: 'EM_FILE_CHECK_RANGE_TYPE'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        curCou = jdata.data.COU;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+        if (curCou != 0) {
+            MsgAlert({content: "范围类型重复，请重新选择！", type: 'error'});
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({
+            groupid: groupid,
+            rangeType: rangeType,
+            mpkid: pkid,
+        }, datas, {FunctionCode: 'EM_FILE_EVAL_APPLIC_DESC_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    pkid = jdata.data.pkid;
+                    $("#pkid").val(pkid);
+                    param.OWindow.reload_();
+                    param.OWindow.parReload("#dg4");
+                    param.OWindow.parReload("#dg5");
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //页面重新加载
+    function setPages(rangeType) {
+        if (rangeType == "") {
+            window.location.href = '/views/em/emfileeval/applic/addAllApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                + '&groupid=' + groupid;
+            window.resizeTo("550", "300");
+        }
+        if (applType == "APL") {
+            if (rangeType == 'JXXL' || rangeType == 'ENG' || rangeType == 'GZCS' || rangeType == 'FJZCH') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'FJXH' || rangeType == 'PTF' || rangeType == 'FJKBH') {
+                window.location.href = '/views/em/emfileeval/applic/addLineNoApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid;
+                window.resizeTo("580", "600");
+            }
+        } else if (applType == "ENG") {
+            if (rangeType == 'ENG' || rangeType == 'ENGSUB') {
+                window.location.href = '/views/em/emfileeval/applic/addFleetApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid + '&applyModel=' + applyModel;
+                window.resizeTo("580", "600");
+            } else if (rangeType == 'ENGSERI') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid;
+                window.resizeTo("900", "700");
+            }
+        } else if (applType == "PART") {
+            if (rangeType == 'DESC') {
+                window.location.href = '/views/em/emfileeval/applic/addDescApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid;
+                window.resizeTo("550", "250");
+            } else if (rangeType == 'PN' || rangeType == 'SN') {
+                window.location.href = '/views/em/emfileeval/applic/addEngSeriApplic.shtml?rangeType=' + rangeType + '&evapkid=' + evapkid + '&applType=' + applType
+                    + '&groupid=' + groupid;
+                window.resizeTo("900", "700");
+            }
+        }
+    }
+
+</script>
+</html>

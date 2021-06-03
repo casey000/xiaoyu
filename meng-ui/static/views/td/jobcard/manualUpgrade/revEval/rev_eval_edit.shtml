@@ -1,0 +1,310 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>手册改版评估</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width: 100%;height: 100%">
+
+    <form id="ffSearch" method="post">
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="tdl" style="width: 40px">机队：</th>
+                <td class="tdr" style="width: 100px;">
+                    <input class="easyui-combobox" name="manualUpJcEvalFleet" id="manualUpJcEvalFleet"
+                           data-options="required:false,editable:true"
+                           style=" width:80px;"/>
+                </td>
+                <th class="tdl" style="width: 70px">关联手册：</th>
+                <td class="tdr" style="width: 100px;">
+                    <input class="easyui-textbox" name="manualUpJcEvalRelManual" id="manualUpJcEvalRelManual"
+                           data-options="required:false,editable:true"
+                           style=" width:150px;"/>
+                </td>
+                <th class="tdl" style="width: 70px">手册版本：</th>
+                <td class="tdr" style="width: 100px;">
+                    <input class="easyui-textbox" name="manualUpJcEvalManualVer" id="manualUpJcEvalManualVer"
+                           data-options="required:false,editable:true"
+                           style=" width:90px;"/>
+                </td>
+                <th class="tdl" style="width: 80px">章节：</th>
+                <td class="tdr" style="width: 100px;">
+                    <input class="easyui-combobox" name="manualUpJcEvalAta" id="manualUpJcEvalAta"
+                           data-options="required:false,editable:true"
+                           style=" width:80px;"/>
+                </td>
+                <th class="tdl" style="width: 80px">状态：</th>
+                <td class="tdr" style="width: 100px;">
+                    <input class="easyui-combobox" name="manualUpJcEvalStatus" id="manualUpJcEvalStatus"
+                           data-options="required:false,editable:true"
+                           style=" width:80px;"/>
+                </td>
+                <td align="left">
+                    <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                       onclick="searchData('dg','#ffSearch')">
+                        <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                    <a class="clearBtn" href="javascript:void(0)" onclick="doClear_('#ffSearch')"
+                       data-options="iconCls:'icon-clear'">
+                        <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                </td>
+            </tr>
+        </table>
+    </form>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/common.js"></script>
+<script type="text/javascript">
+    var param = '';
+    var PAGE_DATA = {};
+    var user;
+    var oemChangeType = '';
+    var operation = '';
+    var refPkid = '';
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        var name = param.name;
+        var accountId = param.accountId;
+        operation = param.operation;
+        refPkid = param.refPkid;
+        oemChangeType = param.oemChangeType;
+        if(!refPkid){
+            refPkid = -1;
+        }
+        bindFormonSearch_('#ffSearch', function () {
+            searchData('dg', '#ffSearch');//切换tab初始化查询
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "MANUAL_UP_JC_EVAL_STATUS,DA_FLEET,TD_ATA",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    //机队
+                    $('#manualUpJcEvalFleet').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    $("#manualUpJcEvalAta").combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.TD_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //状态
+                    $('#manualUpJcEvalStatus').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.MANUAL_UP_JC_EVAL_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["MANUAL_UP_JC_EVAL_STATUS"]);
+                    InitDataGridManualUpJcEval();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //手册改版评估
+    function InitDataGridManualUpJcEval() {
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 185) / 50);
+        $("#dg").MyDataGrid({
+            identity: "dg",
+            sortable: true,
+            singleSelect: true,
+            queryParams: {refPkid: refPkid},
+            pageSize: pageSize, pageList: [pageSize],
+            resize: function () {
+                return {
+                    height: $(document.body).height() - 50,
+                    width: $(document.body).width()
+                };
+            },
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_UP_JC_EVAL_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    EVAL_DATE: {
+                        type: 'date'
+                    },
+                    CHECK_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "评估",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.EVAL_NO) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var ata = rowData.ATA;
+                        var evalNo = rowData.EVAL_NO;
+                        var jcType = rowData.JC_TYPE;
+                        openManualUpgradeEval('edit', rowData.EVAL_NO, rowData.FLEET, rowData.STATUS, jcType,ata);
+                    }
+                },
+                {
+                    id: "m-turnback",
+                    i18nText: "退回",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.EVAL_NO) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var userLogin = getLoginInfo();
+                        if (userLogin.accountId == rowData.EVAL_BY) {
+                            turnManualUpJcEvalAct(rowData);
+                        } else {
+                            MsgAlert({content: "只有评估人才可以发起退回操作！", type: 'error'});
+
+                        }
+                    }
+                },
+                {
+                    id: "m-processTrack",
+                    i18nText: "办理轨迹",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.EVAL_NO) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.EVAL_NO, objKey: "TD_JC_MANUAL_UPGRADE"},//TODO 待补充
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+                    }
+                }
+            ],
+            onDblClickRow: function (index, field, value) {
+                var ata = value.ATA;
+                var evalNo = value.EVAL_NO;
+                var jcType = value.JC_TYPE;
+                openManualUpgradeEval('view', value.EVAL_NO, value.FLEET, value.STATUS, jcType,ata);
+            },
+            validAuth: function (row, items) {
+                if (row.STATUS == "EVALING") {
+                    items['退回'].enable = false;
+                    items['办理轨迹'].enable = false;
+                }
+                if (row.STATUS == "CHECKING") {
+                    items['评估'].enable = false;
+                    items['退回'].enable = true;
+                    items['办理轨迹'].enable = true;
+                }
+                if (row.STATUS == "FINISHED") {
+                    items['评估'].enable = false;
+                    items['退回'].enable = false;
+                    items['办理轨迹'].enable = true;
+                }
+                if (row.STATUS == "TURNBACK") {
+                    items['退回'].enable = false;
+                }
+                return items;
+            }
+        });
+    }
+
+
+    function openManualUpgradeEval(operation, evalNo, fleet, status, jcType,ata) {
+        ShowWindowIframe({
+            width: "1188",
+            height: "636",
+            title: "手册改版评估明细页面",
+            param: {evalNo: evalNo, operation: operation, fleet: fleet, status: status, jcType: jcType,refPkid:refPkid,ata:ata
+            ,refPkid:refPkid},
+            url: "/views/td/jobcard/smjc/smjcedit/tdSmjcManualUpgradeEvalDetail.shtml"
+        });
+    }
+
+
+    //手册改版评估退回
+    function turnManualUpJcEvalAct(rowData) {
+        var evalNo = rowData.EVAL_NO;
+        var objNo = evalNo;
+        var objKey = "TD_JC_MANUAL_UPGRADE";
+        var taskId = "";
+        var procInstId = "";
+        $.messager.confirm('提示?', "是否确认退回?", function (r) {
+            if (r) {
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: {
+                        FunctionCode: 'WS_FLOW_EXECUTION_QUERY',
+                        objNo: objNo,
+                        objKey: objKey
+                    },
+                    async: false,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            taskId = jdata.data["TASK_ID"];
+                            procInstId = jdata.data["PROC_INST_ID_"];
+                            InitFuncCodeRequest_({
+                                data: {
+                                    evalNo: evalNo,
+                                    procInstId: procInstId,
+                                    FunctionCode: 'TD_JC_MANUAL_UPGRADE_TURN_ACT'
+                                },
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MaskUtil.unmask();
+                                        reload_manual_upgrade();
+                                        MsgAlert({content: '操作成功!'});
+                                    } else {
+                                        MaskUtil.unmask();
+                                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+
+    //重置
+    function doClear_(ffSearch) {
+        $(ffSearch).form('clear');
+    }
+
+
+    //查询
+    function searchData(grid, search) {
+        onSearch_(grid, search);
+    }
+
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

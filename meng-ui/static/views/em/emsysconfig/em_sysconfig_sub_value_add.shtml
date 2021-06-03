@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>系统子构型选项值维护</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <input type="hidden" id="configId" name="configId"/>
+            <input type="hidden" id="subConfigId" name="subConfigId"/>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td colspan="9" align="right">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                        <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                               style="margin-left:3px;margin-right: 18px;"/>
+                        <br/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 80px;">子构型编号：</th>
+                    <td class="tdr" style="width: 120px;  padding: 3px">
+                        <input class="easyui-textbox" style="width: 150px;" id="subConfigNo" name="subConfigNo" data-options="required:true" readonly/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 80px;">子构型选项值：</th>
+                    <td class="tdr" style="width: 120px;  padding: 3px">
+                        <input class="easyui-textbox" style="width: 150px;" id="subConfigValue" name="subConfigValue" data-options="required:true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 80px;">子构型选项值（英）：</th>
+                    <td class="tdr" style="width: 120px;  padding: 3px">
+                        <input class="easyui-textbox" style="width: 150px;" id="subConfigValueEn" name="subConfigValueEn" data-options="required:true"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param; // operation[add,edit,view],...
+    var pkid = null;//主表PKID
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        pkid = param.pkid;
+        if (pkid) {
+            InitDataForm(pkid);
+        } else {
+            ParseFormField_(param, $('#mform'));
+        }
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_SUB_VALUE_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var subConfigValueEn = $('#subConfigValueEn').textbox('getValue');
+        for (var i = 0; i < subConfigValueEn.length; i++) {
+            var unicode_code = subConfigValueEn.charCodeAt(i);
+            if (unicode_code > 127) {
+                MsgAlert({
+                    content: "子构型选项值（英）必须全部录入英文及英文字符！",
+                    type: "warn"
+                });
+                return;
+            }
+        }
+
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_SUB_VALUE_ADD",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    closeW();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

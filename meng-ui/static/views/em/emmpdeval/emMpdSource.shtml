@@ -1,0 +1,304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+    <style>
+        /*#dgdiv {*/
+        /*margin: 0 auto;*/
+        /*width: 300px;*/
+        /*height: 170px;*/
+        /*}*/
+
+    </style>
+</head>
+
+<body class="ibody">
+<div style="" id="tt">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <form class="form-horizontal m-t" id="ffSearch">
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <input type="hidden" id="evalNo" name="evalNo"/>
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <th class="th" align="right" style="width: 80px;">文件类型：</th>
+                            <td class="tdr" style="width: 150px">
+                                <input class="easyui-combobox" id="fileType" name="fileType"
+                                       data-options="editable:false" style="width: 150px;"/>
+                            </td>
+                            <th class="th" align="right" style="width: 80px;">文件编号：</th>
+                            <td class="tdr" style="width: 150px">
+                                <input class="easyui-textbox" id="docNo" name="docNo"
+                                       data-options="editable:true" style="width: 150px;"/>
+                                <!--<a href="javascript:" id="openSBList" onclick="openPnList();" class="easyui-linkbutton"-->
+                                <!--iconCls="icon-search"></a>-->
+                            </td>
+                            <td colspan="2">
+                                &nbsp;
+                                <a class="searchBtn" type="button" onclick="searchData()"
+                                   data-options="iconCls:'icon-search'">
+                                    <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                                </a>
+                                &nbsp;&nbsp;
+                                <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                    <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                                </a>
+                                <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                       style="width: 50px;margin:5px;"/>
+                                <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                       style="width: 50px;margin:5px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th" align="left" style="width: 80px;text-align:left">未选择：</th>
+                            <td colspan="2"></td>
+                            <th class="th" align="left" style="width: 80px;text-align:left">已选择：</th>
+                            <td colspan="3"></td>
+                        </tr>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+    <div id="mlayout" class="easyui-layout" style="height: 500px;">
+        <div id="lay_left" data-options="region:'west',split:false" style="width: 50%;">
+            <table id="dg"></table>
+        </div>
+        <div id="lay_right" data-options="region:'center'" style="width: 50%;">
+            <div>
+                <table id="dg2"></table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var evalNo;
+    var fleet;
+    var func;
+    var fileType;
+    var docNo;
+    var sources;
+    function i18nCallBack() {
+        param = getParentParam_();
+        sources = param.sources;
+        operation = param.operation;
+        evalNo = param.evalNo;
+        pkid = param.pkid;
+        fleet = param.fleet;
+        if (pkid == undefined) {
+            pkid = "";
+        }
+        $("#evalNo").val(evalNo);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EXP_OP,EM_RANGE_TYPE,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#fileType").MyComboGrid({
+                        panelHeight: '300px',
+                        panelWidth: '150px',
+                        idField: 'VALUE',  //实际选择值
+                        textField: 'TEXT', //文本显示值
+                        editable: true,
+                        required: false,
+                        pagination: false,
+                        tipPosition: 'top',
+                        mode: 'remote',
+                        params: {evalNo: evalNo, FunctionCode: 'EM_MPD_FILE_TYPE'},
+                        columns: [[
+                            {field: 'VALUE', title: '文件类型', width: '148px', sortable: true},
+                            // {field: 'TEXT', title: '文件类型', width: 50, sortable: true},
+                            // {field: 'TYPE', title: '类型', width: 50, sortable: true, hideColumn :true},
+                        ]],
+
+                        onSelect: function (index, row) {
+                            selectRow = row;
+                            //判断类型的type,为1则从dm中选取
+                            if (row.TYPE == "1") {
+                                func = "EM_MPD_DM_REC_LIST";
+                            } else {
+                                func = "EM_MPD_SOURCE_FIELS_LIST";
+                            }
+                            //2则从mpd中选取
+
+                        }
+                    });
+                }
+                func = "EM_MPD_DM_REC_LIST";
+                InitDataGrid();
+                InitDataGrid2();
+            }
+        });
+    }
+
+    function openPnList() {
+        InitDataGrid();
+    }
+
+    //查询
+    function searchData() {
+        fileType = $("#fileType").combobox("getValue");
+        docNo = $("#docNo").textbox("getValue");
+        InitDataGrid();
+        // onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            // singleSelect: true,
+            // pageSize: 15,
+            fitcolumn: true,
+            enableLineEdit: true,
+            queryParams: {evalNo: evalNo, fleet: fleet, fileType: fileType, docNo: docNo},
+            enableCellEdit: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 80, 0.58, 0, -10);
+            },
+            columns: {
+                param: {FunctionCode: func},
+                alter: {}
+            },
+            onLoadSuccess: function (index, row) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+                // editDate(index, row, changes);
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    // 适用性
+    function reload2() {
+        $("#dg2").datagrid("reload");
+    }
+
+    function reload() {
+        $("#dg").datagrid("reload");
+    }
+
+    function InitDataGrid2() {
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            sortable: true,
+            // singleSelect: true,
+            // pageSize: 15,
+            fitcolumn: true,
+            enableLineEdit: true,
+            queryParams: {evalNo: evalNo},
+            enableCellEdit: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 80, 0.6, 0, -10);
+            },
+            columns: {
+                param: {FunctionCode: "EM_MPD_SOURCE_LIST"},
+                alter: {}
+            },
+            onLoadSuccess: function (index, row) {
+                //刷新评估页sources数据
+                var sources = [];
+                //序列化列表数据
+                var rows = $('#dg2').datagrid('getRows');
+                for (i = 0; i < rows.length; i++) {
+                    sources.push(rows[i].TYPE + ":" + rows[i].SOURCE_NO);
+                }
+                var source = sources.join(",");
+                param.OWindow.refreshSources(source);
+                //刷新mark信息
+                param.OWindow.refreshMark(source);
+            },
+            onBeforeLoad: function (data) {
+            },
+            contextMenus: [
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var row = $('#dg2').datagrid('getSelected');
+                        var rowIndex = $('#dg2').datagrid('getRowIndex', row);
+                        if (!row.PKID) {
+                            //如果没有保存，直接在datagrid移除该行
+                            $('#dg2').datagrid('deleteRow', rowIndex);
+                        } else {
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: row.PKID,
+                                    FunctionCode: 'EM_MPD_EVAL_SOURCE_DEL'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        $('#dg2').datagrid('deleteRow', rowIndex);
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload2();
+                                        reload();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            ],
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+                // editDate(index, row, changes);
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        //序列化列表数据
+        var rows = $('#dg').datagrid('getChecked');
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+        }
+        var detailData = JSON.stringify(rows);
+        InitFuncCodeRequest_({
+            data: {
+                detailData: detailData,
+                evalNo: evalNo,
+                FunctionCode: "EM_MPD_EVAL_SOURCE_SAVE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    pkid = jdata.data.pkid;
+                    InitDataGrid();
+                    InitDataGrid2();
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+
+                    // CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+</script>
+</html>

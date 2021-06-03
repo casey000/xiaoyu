@@ -1,0 +1,262 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">SR管理</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="appType" id="appType" style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">型号：</th>
+                    <td>
+                        <input class="easyui-combobox" name="model" id="model" style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">厂家：</th>
+                    <td>
+                        <input class="easyui-combobox" name="mfrName" id="mfrName" style="width:120px;"/>
+                    </td>
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()" >查询</a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_RESPOND_APP_TYPE,EM_SR_STATUS,EM_SR_MODEL,EM_SR_MFR_NAME,USER_NAME"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['appType'] = DomainCodeToMap_(jdata.data["EM_RESPOND_APP_TYPE"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_SR_STATUS"]);
+                    PAGE_DATA['userName'] = DomainCodeToMap_(jdata.data["USER_NAME"]);
+
+                    $('#appType').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_RESPOND_APP_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#model').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_SR_MODEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#mfrName').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_SR_MFR_NAME,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+                InitDataGrid();
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_SR_LIST'},
+                alter: {
+                    APP_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['appType'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    CREATE_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['userName'][value];
+                        }
+                    },
+                    FINISH_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['userName'][value];
+                        }
+                    }
+                }
+            },
+            toolbar: [
+                {
+                    id: 'btnAdd',
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    auth: "EM_SR_ADD",
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        ShowWindowIframe({
+                            url: "/views/em/emsr/em_sr_add.shtml?operation=add",
+                            title: "增加SR",
+                            width: 800,
+                            height: 600
+                        });
+                    }
+                },
+                '-',
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-view",
+                    i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/emsr/em_sr_add.shtml?operation=view&pkid=" + rowdata.PKID,
+                            identity: identity,
+                            isEdit: 0,
+                            width: 800,
+                            height: 600
+                        });
+                    }
+                },
+                {
+                    id: "m-close",
+                    i18nText: "关闭",
+                    auth: "EM_SR_CLOSE",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认关闭该记录？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_SR_CLOSE',
+                                pkid: rowData.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-edit",
+                    i18nText: "common:COMMON_OPERATION.EDIT",
+                    auth: "EM_SR_EDIT",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/emsr/em_sr_add.shtml?operation=edit&pkid=" + rowdata.PKID,
+                            identity: identity,
+                            isEdit: 1,
+                            width: 960,
+                            height: 600
+                        });
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "common:COMMON_OPERATION.DEL",
+                    auth: "EM_SR_DELETE",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_SR_DEL',
+                                pkid: rowData.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                var status = row.STATUS; // WRITING, COMMUNICATION, CLOSED
+                items['关闭'].enable = status == "COMMUNICATION";
+                items['common:COMMON_OPERATION.EDIT'].enable = status == "WRITING" || status == "COMMUNICATION";
+                items['common:COMMON_OPERATION.DEL'].enable = status == "WRITING";
+            }
+
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</body>
+</html>

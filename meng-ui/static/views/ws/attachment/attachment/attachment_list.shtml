@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="page:RES.WS_ATTACH_LIST.TITLE">附件管理</title>
+</head>
+<body style="padding:5px;" class="ibody">
+<fieldset class="fieldset_eui">
+
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="RES.WS_ATTACH_LIST.DG.ORG_NAME">文件原名</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="orgName"/>
+                    </td>
+                    <th data-i18n="RES.WS_ATTACH_LIST.DG.ERNAM">创建人</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="ernam"/>
+                    </td>
+                    <th data-i18n="RES.WS_ATTACH_LIST.DG.FILE_CATEGORY">文件分类</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="fileCategory"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="searchBtn" onclick="onSearch_()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="clearBtn" onclick="onClear_()"><span
+                                data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    function i18nCallBack() {
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            //    title: $.i18n.t('page:PAGE.ATTACHMENT.LIST_TITLE'),
+            columns: {param: {FunctionCode: 'WS_ATTACH_LIST'}},
+            contextMenus: [
+                {
+                    id: "m-upload", i18nText: "common:COMMON_OPERATION.UPLOAD", auth: "",
+                    onclick: function () {
+                        common_upload_({
+                            identity: identity,
+                            param: {
+                                successCallBack: function (jdata) {
+                                    /** 上传后刷新页面*/
+                                    reload_();
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-download", i18nText: "common:COMMON_OPERATION.DOWNLOAD", auth: "",
+                    onclick: function () {
+                        /*common_download_({
+                            identity: identity,
+                            param: {pkid:"PKID", data: { jsonPath : JSON_PATH } },
+                            FunctionCode: ""
+                        });*/
+                        var data = $("#dg").datagrid("getSelected")
+                        downFile(data.PKID);
+                    }
+                }
+            ],
+
+            toolbar: [
+                {
+                    key: "COMMON_UPLOAD", text: $.i18n.t('common:COMMON_OPERATION.UPLOAD'),
+                    handler: function () {
+                        common_upload_({
+                            param: {
+                                successCallBack: function (jdata) {
+                                    /** 上传后刷新页面*/
+                                    reload_();
+                                },
+                            }
+                        });
+                    }
+                },
+                {
+                    key: "COMMON_DOWNLOAD", text: $.i18n.t('common:COMMON_OPERATION.DOWNLOAD'),
+                    handler: function () {
+                        /*common_download_({
+                            identity: identity,
+                            param: {FILE_KEY:"FILE_KEY" },
+                            url:"/api/v1/attachment/download"
+                        });*/
+                        var data = $("#dg").datagrid("getSelected")
+                        if (data == null) {
+                            layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.NO_SELECT_ROW_ERROR'), {icon: 5});
+                        }
+                        downFile(data.PKID);
+                    }
+                }
+            ]
+        });
+    }
+
+    function successCallBack(data) {
+    }
+
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+</script>
+</body>
+</html>

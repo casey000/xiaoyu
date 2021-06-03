@@ -1,0 +1,501 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">工程反馈</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">文件类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fileType" id="fileType" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">文件编号：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fileNo" id="fileNo" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">适用类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="appType" id="appType" data-options=""
+                               style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">预计解决日期：</th>
+                    <td class="td5">
+                        <input class="easyui-datebox" id="expectDateS" name="expectDateS"
+                               style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">至：</th>
+                    <td class="td5">
+                        <input class="easyui-datebox" id="expectDateE" name="expectDateE"
+                               style="width:100px;"/>
+                    </td>
+
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 70px">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="status" id="status" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">工程师：</th>
+                    <td>
+                        <input class="easyui-combobox" name="dutyEngineer" id="dutyEngineer" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">反馈人：</th>
+                    <td>
+                        <input class="easyui-combobox" name="respondBy" id="respondBy" data-options=""
+                               style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">提交时间：</th>
+                    <td class="td5">
+                        <input class="easyui-datebox" id="createDateS" name="createDateS"
+                               style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">至：</th>
+                    <td class="td5">
+                        <input class="easyui-datebox" id="createDateE" name="createDateE"
+                               style="width:100px;"/>
+                    </td>
+
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 70px">机型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="model" id="model" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">是否采纳：</th>
+                    <td>
+                        <input class="easyui-combobox" name="isAccpet" id="isAccpet" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">是否实质性问题：</th>
+                    <td>
+                        <input class="easyui-combobox" name="ifSubstan" id="ifSubstan" data-options=""
+                               style="width:100px;"/>
+                    </td>
+                    <td colspan="2">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()" >查询</a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a class="excelBtn" data-options="iconCls:'icon-page_excel'"
+                           onclick="excelExport('dg','工程反馈清单','EM_RESPOND_LIST')"><span>导出</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var userInfo = getLoginInfo();
+    var userId = userInfo.accountId;
+    var accountId;
+    function i18nCallBack() {
+        accountId = getLoginInfo().accountId;
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_FLEET,YESORNO,EM_RESPOND_FILE_TYPE,EM_RESPOND_FILE_NO,EM_RESPOND_APP_TYPE,EM_RESPOND_STATUS,EM_RESPOND_DUTY_ENGINEER,EM_RESPOND_RESPOND_BY"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['fileType'] = DomainCodeToMap_(jdata.data["EM_RESPOND_FILE_TYPE"]);
+                    PAGE_DATA['appType'] = DomainCodeToMap_(jdata.data["EM_RESPOND_APP_TYPE"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_RESPOND_STATUS"]);
+                    PAGE_DATA['dutyEngineer'] = DomainCodeToMap_(jdata.data["EM_RESPOND_DUTY_ENGINEER"]);
+                    PAGE_DATA['respondBy'] = DomainCodeToMap_(jdata.data["EM_RESPOND_RESPOND_BY"]);
+                    PAGE_DATA['yesorno'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    $('#ifSubstan').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#isAccpet').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#model').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#fileType').combobox({
+                        panelHeight: '300px',
+                        data: jdata.data.EM_RESPOND_FILE_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#fileNo').combobox({
+                        panelHeight: '200px',
+                        data: jdata.data.EM_RESPOND_FILE_NO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#appType').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_RESPOND_APP_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_RESPOND_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#dutyEngineer').combobox({
+                        panelHeight: '200px',
+                        data: jdata.data.EM_RESPOND_DUTY_ENGINEER,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#respondBy').combobox({
+                        panelHeight: '200px',
+                        data: jdata.data.EM_RESPOND_RESPOND_BY,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_RESPOND_LIST'},
+                alter: {
+                    IS_ACCEPT: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesorno'][value];
+                        }
+                    },
+                    IF_SUBSTAN: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesorno'][value];
+                        }
+                    },
+                    FILE_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['fileType'][value];
+                        }
+                    },
+                    APP_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['appType'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    DUTY_ENGINEER: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dutyEngineer'][value];
+                        }
+                    },
+                    RESPOND_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['respondBy'][value];
+                        }
+                    }
+                }
+            },
+            toolbar: [
+                {
+                    id: 'btnAdd',
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    auth: "EM_RESPOND_ADD",
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        ShowWindowIframe({
+                            url: "/views/em/emrespond/em_respond_add.shtml?operation=add",
+                            title: "增加工程反馈信息",
+                            width: 800,
+                            height: 600
+                        });
+                    }
+                },
+                '-',
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-view",
+                    i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/emrespond/em_respond_add.shtml?operation=view&pkid=" + rowdata.PKID,
+                            identity: identity,
+                            isEdit: 0,
+                            width: 800,
+                            height: 600
+                        });
+                    }
+                },
+                {
+                    id: "m-sub",
+                    i18nText: "提交",
+                    auth: "EM_RESPOND_SUBMIT_FLOW",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        $.messager.confirm("", "是否确认提交？", function (r) {
+                            if (r) {
+                                common_add_edit_({
+                                    url: "/views/em/emrespond/workflow/work_flow_account_select.shtml",
+                                    param: {
+                                        FunctionCode_: "EM_RESPOND_SUBMIT",
+                                        otherParam: rowdata.PKID,
+                                        successCallBack: reload_()
+                                    },
+                                    title: $.i18n.t("选择审批人"),
+                                    width: 610,
+                                    height: 300
+                                });
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-flowReturn",
+                    i18nText: "流程退回", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var crearter = rowData.RESPOND_BY;
+                        if (accountId != crearter) {
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        wfDoReturn(rowData.PKID, "EM_RESPOND", "#dg");
+
+                    }
+                },
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    auth: "EM_RESPOND_EDIT",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/emrespond/em_respond_add.shtml?operation=edit&pkid=" + rowdata.PKID,
+                            identity: identity,
+                            isEdit: 1,
+                            width: 800,
+                            height: 600
+                        });
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "删除",
+                    auth: "EM_RESPOND_DEL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录，将同时删除全部附件？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_RESPOND_DEL',
+                                pkid: rowData.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-flowTjt",
+                    i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "EM_RESPOND"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                items['查看'].enable = true;
+                if (row.STATUS == "WRITING") {
+                    items['办理轨迹'].enable = false;
+                } else {
+                    items['办理轨迹'].enable = true;
+                }
+                //非创建人仅能查看
+                if (row.STATUS == "WRITING") {
+                    if (userId == row.RESPOND_BY) {
+                        items['提交'].enable = true;
+                        items['编辑'].enable = true;
+                        items['删除'].enable = true;
+                    } else {
+                        items['提交'].enable = false;
+                        items['编辑'].enable = false;
+                        items['删除'].enable = false;
+                    }
+
+                }
+                //所有用户仅能查看
+                if (row.STATUS == "AUDIT") {
+                    items['提交'].enable = false;
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                }
+                // 非创建人只能查看
+                if (row.STATUS == "RETURNED") {
+
+                    if (userId == row.RESPOND_BY) {
+                        items['提交'].enable = true;
+                        items['编辑'].enable = true;
+                        items['删除'].enable = true;//删除？
+                    } else {
+                        items['提交'].enable = false;
+                        items['编辑'].enable = false;
+                        items['删除'].enable = false;
+                    }
+                }
+                //除了责任工程师，其他只能查看，责任工程师可以编辑
+                //编辑（仅能编辑‘处理结果’字段）、转发
+                if (row.STATUS == "DFK") {
+                    items['提交'].enable = false;
+                    items['删除'].enable = false;
+                    if (userId == row.DUTY_ENGINEER) {
+                        items['编辑'].enable = true;
+                    } else {
+                        items['编辑'].enable = false;
+                    }
+
+                }
+                //所有用户仅能查看
+                if (row.STATUS == "CLOSED") {
+                    items['提交'].enable = false;
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                }
+                if (row.STATUS == "AUDIT" || row.STATUS == "DFK") {
+                    items['流程退回'].enable = true;
+                } else {
+                    items['流程退回'].enable = false;
+                }
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            },
+            rowStyler: function (index, row) {
+                //状态为待反馈
+                if (row.STATUS == "DFK") {
+                    var evalDate = row.RESPOND_DATE;
+                    var oDate1 = new Date(evalDate);
+                    var oDate2 = new Date();
+                    if (oDate2.getTime() > oDate1.getTime()) {
+                        // return 'color:red;';//红色
+                        return 'background-color:#FF0000;';//红色
+                    }
+                }
+
+            }
+
+        });
+    }
+
+    function openDetai(oprea, pkid) {
+        // var rowdata = getDG(identity).datagrid('getSelected');
+        // if (!rowdata.PKID) {
+        //     MsgAlert({content: '请选择记录！', type: 'error'});
+        //     return;
+        // }
+        common_add_edit_({
+            url: "/views/em/emrespond/em_respond_add.shtml?operation=view&pkid=" + pkid,
+            // identity: identity,
+            isEdit: 0,
+            width: 800,
+            height: 600
+        });
+    }
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</body>
+</html>

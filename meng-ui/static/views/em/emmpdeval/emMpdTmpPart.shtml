@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <!--<legend data-i18n="" id="id1">飞机适用性</legend>-->
+
+                <fieldset class="fieldset_eui" style="margin-right:5px">
+                    <table cellspacing="0" cellpadding="2" width="100%">
+                        <tr id="view">
+                            <td colspan="2" align="right">
+                                <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                       style="width: 50px;margin:5px;"/>
+                                <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                       style="width: 50px;margin:5px;"/>
+                            </td>
+                        </tr>
+                    </table>
+                    <legend data-i18n="" id="id2">适用部件</legend>
+
+                    <table id="dg"></table>
+                </fieldset>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var fleet;
+    var appltype;
+    var evalNo;
+    var tmpFleets;
+    param = getParentParam_();
+    evalNo = param.evalNo;//评估单号
+    appltype = param.appltype;
+    fleet = param.fleet;
+    tmpFleets = param.tmpFleets;
+
+    function i18nCallBack() {
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            pagination: true,
+            queryParams: {evalNo: param.evalNo},
+            columns: {
+                param: {FunctionCode: 'EM_MPD_TMP_PART'},
+            },
+            resize: function () {
+                return {width: 520, height: 370};
+            },
+            onLoadSuccess: function (data) {
+                if (data) {
+                    $.each(data.rows, function (index, item) {
+                        if (tmpFleets.indexOf(item.ACID) > -1) {
+                            $('#dg').datagrid('checkRow', index);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    // 保存
+    function save() {
+        var acnos = [];
+        //序列化列表数据
+        var rows = $('#dg').datagrid('getChecked');
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+            acnos.push(rows[i].acid);
+        }
+        var detailData = JSON.stringify(rows);
+
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var mainData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+
+                detailData: detailData,
+                evalNo: evalNo,
+                FunctionCode: "EM_MPD_EVAL_TRANSITON_ACNO_SAVE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.refreshAcnos(acnos.join(","));
+                    // param.OWindow.reloadg3();
+                    // param.OWindow.reloadFrom();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</html>

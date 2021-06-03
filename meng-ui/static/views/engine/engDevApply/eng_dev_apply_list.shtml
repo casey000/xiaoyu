@@ -1,0 +1,568 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">超持续适航文件评估</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">机号：</th>
+                    <td style="width: 140px">
+                        <input class="easyui-combobox" id="acno" name="acno" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                    <td style="width: 140px">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">发动机序号：</th>
+                    <td style="width: 140px">
+                        <input class="easyui-combobox" id="esn" name="esn" style="width:140px;"/>
+                    </td>
+
+                    <th class="th" style="width:60px;" align="right">申请结果：</th>
+                    <td style="width: 140px">
+                        <input class="easyui-combobox" id="applyResult" name="applyResult" style="width:140px;"/>
+                    </td>
+                    <td>
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchClick();"><span>查询</span></a>
+                        <a href="javascript:void(0)" class="addBtn"
+                           onclick="addOrEditEngDevApply('add')" auth="ENG_DEV_APPLY_ADD"><span>新增</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a href="javascript:void(0)" class="addBtn" auth="ENG_DEV_APPLY_EXPORT"
+                           onclick="exportEngDevApply()"><span>导出</span></a>&nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:60px;" align="right">章节号：</th>
+                    <td style="width: 140px">
+                        <input class="easyui-combobox" id="ata" name="ata" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">申请日期从：</th>
+                    <td style="width: 140px" class="td5">
+                        <input class="easyui-datebox" id="applyDateS" name="applyDateS" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">至：</th>
+                    <td style="width: 140px" class="td5">
+                        <input class="easyui-datebox" id="applyDateE" name="applyDateE" style="width:140px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">状态：</th>
+                    <td style="width: 140px" class="td5">
+                        <input class="easyui-combobox" id="status" name="status" style="width:140px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    //存放字典数据
+    let PAGE_DATA = {};
+    let loginUser;
+    const address = window.location.origin; //url
+    let port = document.location.port;//ip:端口号
+    if (!port) {
+        port = ':' + port;
+    } else {
+        port = '';
+    }
+    const ctx = address + port;
+
+    function i18nCallBack() {
+        const userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_DEV_APPLY_RESULT,YESORNO,DM_ATA,ENG_DEV_TYPE,ENG_DEV_STATUS,ENG_DA_ACNO,DA_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jData) {
+                if (jData.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngType",
+                        successCallBack: function (jData) {
+                            if (jData.success == true) {
+                                $('#epn').combobox({
+                                    data: jData.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                    onSelect: function (item) {
+                                        InitGatewayRequest_({
+                                            async: false,
+                                            data: {matnr: item.VALUE},
+                                            path: "/meng-engine/baseOwn/getEngByType",
+                                            successCallBack: function (jData) {
+                                                if (jData.success == true) {
+                                                    $('#esn').combobox({
+                                                        data: jData.obj,
+                                                        valueField: 'VALUE',
+                                                        textField: 'TEXT',
+                                                        panelHeight: '150px',
+                                                    });
+                                                } else {
+                                                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {matnr: ""},
+                        path: "/meng-engine/baseOwn/getEngByType",
+                        successCallBack: function (jData) {
+                            if (jData.success == true) {
+                                $('#esn').combobox({
+                                    data: jData.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+
+                    $("#applyResult").combobox({
+                        panelHeight: '100px',
+                        data: jData.data.ENG_DEV_APPLY_RESULT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+
+                    $("#status").combobox({
+                        panelHeight: '100px',
+                        data: jData.data.ENG_DEV_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    //章节号
+                    $("#ata").combobox({
+                        panelHeight: '135px',
+                        data: jData.data.DM_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#acno').combobox({
+                        panelHeight: '100px',
+                        data: jData.data.ENG_DA_ACNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    PAGE_DATA['ifDefect'] = DomainCodeToMap_(jData.data["YESORNO"]);
+                    PAGE_DATA['ata'] = DomainCodeToMap_(jData.data["DM_ATA"]);
+                    PAGE_DATA['devType'] = DomainCodeToMap_(jData.data["ENG_DEV_TYPE"]);
+                    PAGE_DATA['applyResult'] = DomainCodeToMap_(jData.data["ENG_DEV_APPLY_RESULT"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jData.data["ENG_DEV_STATUS"]);
+                    PAGE_DATA['actype'] = DomainCodeToMap_(jData.data["DA_FLEET"]);
+                    PAGE_DATA['acno'] = DomainCodeToMap_(jData.data["ENG_DA_ACNO"]);
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jData.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //初始化表格数据
+    function InitDataGrid() {
+        //获取查询参数，根据参数初始化页面数据
+        const queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engDevApply/listByPage",
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0, 0, 40, 0);
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_DEV_APPLY_LIST'},
+                alter: {
+                    fileUpload: {
+                        formatter: function (value, row, index) {
+                            if (row.fileUpload) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach attach4">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    status: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    ata: {
+                        formatter: function (value) {
+                            return PAGE_DATA['ata'][value];
+                        }
+                    },
+                    ifDefect: {
+                        formatter: function (value) {
+                            return PAGE_DATA['ifDefect'][value];
+                        }
+                    },
+                    devType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['devType'][value];
+                        }
+                    },
+                    applyResult: {
+                        formatter: function (value) {
+                            return PAGE_DATA['applyResult'][value];
+                        }
+                    },
+                    acno: {
+                        formatter: function (value) {
+                            var acno = '';
+                            var temp = '';
+                            if(value){
+                                var msgArr = value.split(',');
+                                for(var i = 0; i< msgArr.length;i++){
+                                    var acid = msgArr[i];
+                                    if(acid == 'N/A'){
+                                        acid = 0;
+                                    }
+                                    InitGatewayRequest_({
+                                        async: false,
+                                        data: {"acid":acid},
+                                        path: "/meng-engine/engDevApply/getAcno",
+                                        successCallBack: function (jData) {
+                                            if (jData.success == true) {
+                                                if(acid == 0){
+                                                    temp = 'N/A';
+                                                }else{
+                                                    temp = jData.obj;
+                                                }
+                                                if(temp){
+                                                    acno = acno + ","+temp;
+                                                }
+                                            } else {
+                                                MsgAlert({content: '转换机号失败', type: 'error'});
+                                            }
+                                        }
+                                    })
+                                }
+                                acno = acno.substring(1);
+                            }
+                            return acno;
+                        }
+                    },
+                    applyDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            //右键事件
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_DEV_APPLY_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngDevApply('edit', rowData);
+                    }
+                },
+                {
+                    id: "m-submit", i18nText: "提交",
+                    auth: "ENG_DEV_APPLY_SUBMIT",
+                    onclick: function () {
+                        const rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+
+                        common_add_edit_({
+                            identity: '',
+                            isEdit: '',
+                            width: 520,
+                            height: 300,
+                            title: $.i18n.t('选择审批人'),
+                            param: {
+                                operation: "flow",
+                                taskId: "ENG_DEV_APPLY_EM_TASK",
+                                otherParam: '',
+                                PKID: rowData.pkid,
+                                FunctionCode_: 'ENG_DEV_APPLY_SUBMIT',
+                                successCallback: reload_
+                            },
+                            url: "/views/flow/work_flow_account_select.shtml"
+                        });
+
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_DEV_APPLY_DELETE",
+                    onclick: function () {
+                        const rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        deleteEngDevApply(rowData);
+                    }
+                },
+                {
+                    id: "m-uploadFile", i18nText: "上传附件",
+                    auth: "ENG_DEV_APPLY_UPLOAD",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        common_upload_({
+                            identity: 'dg',
+                            resize: {},
+                            param: {
+                                cat: 'ENGDEVAPPLY',
+                                sourceId: rowData.pkid,
+                                successCallBack: reload_,
+                                failCallBack: ""
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-revise", i18nText: "生成PDF",
+                    auth: "ENG_DEV_APPLY_PRINT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        printEngDevApply(rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        const rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        const datas = {"objNo": rowData.pkid, "objKey": "ENG_DEV_APPLY"};
+                        InitGatewayRequest_({
+                            async: false,
+                            data: datas,
+                            path: "/meng-engine/engCommonService/checkFlow",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    cou = jdata.obj;
+                                    if (cou == 0) {
+                                        MsgAlert({content: "该数据没有办理轨迹!", type: 'error'});
+                                        return;
+                                    } else {
+                                        ShowWindowIframe({
+                                            width: 1100,
+                                            height: 400,
+                                            title: $.i18n.t('审批轨迹'),
+                                            param: {objNo: rowData.pkid, objKey: "ENG_DEV_APPLY"},
+                                            url: '/views/flow/work_flow_history_task_list.shtml'
+                                        });
+                                    }
+                                } else {
+                                    MsgAlert({content: "校验办理轨迹失败!", type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            //数据加载成功后处理附件事件
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        const index = $(thiz).attr("rowindex");
+                        const row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.pkid,
+                                CATEGORY: "ENGDEVAPPLY",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jData) {
+                                if (jData.code == 200) {
+                                    var html = "";
+                                    for (var i = 0; i < jData.data.length; i++) {
+                                        if (loginUser == row.createUser && (row.status == "1" || row.status == "6")) {
+                                            html += '<li><a target="_blank" onclick="downFile(' + jData.data[i].PKID + ')">' + jData.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jData.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                        } else {
+                                            html += '<li><a target="_blank" onclick="downFile(' + jData.data[i].PKID + ')">' + jData.data[i].ORG_NAME + '</a></li>';
+                                        }
+                                    }
+                                    callback(html);
+                                }
+                            }
+                        });
+                    }
+                })
+            },
+            //右键权限控制，当前创建人可操作
+            validAuth: function (row, items) {
+                if (loginUser == row.createUser) {
+                    items['编辑'].enable = true;
+                    items['提交'].enable = true;
+                    items['删除'].enable = true;
+                    items['上传附件'].enable = true;
+                } else {
+                    items['编辑'].enable = false;
+                    items['提交'].enable = false;
+                    items['删除'].enable = false;
+                    items['上传附件'].enable = false;
+                }
+                if (row.status != "1") {
+                    items['删除'].enable = false;
+                    items['提交'].enable = false;
+                    items['办理轨迹'].enable = true;
+                    //评估中*也可以编辑
+                    if (row.status != "6") {
+                        items['编辑'].enable = false;
+                        items['上传附件'].enable = false;
+                    }
+                }
+
+                return items;
+            },
+            //鼠标点击事件
+            onDblClickRow: function (index, field, value) {
+                addOrEditEngDevApply("view", value);
+            }
+
+        });
+    }
+
+    //打印偏离申请
+    function printEngDevApply(pkid) {
+        const title_ = $.i18n.t('超持续适航文件评估');
+        ShowWindowIframe({
+            width: "850",
+            height: "650",
+            title: title_,
+            param: {pkid: pkid},
+            url: "/views/engine/engDevApply/eng_dev_apply_preview_pdf.shtml"
+        });
+
+    }
+
+    //查询刷新数据
+    function onSearchClick() {
+        InitDataGrid();
+    }
+
+    //重置，清空查询框数据并重新加载
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        i18nCallBack();
+    }
+
+    //新增或修改偏离文件申请数据
+    function addOrEditEngDevApply(operation, rowData) {
+        const title_ = $.i18n.t('添加/编辑-超持续适航文件评估');
+        ShowWindowIframe({
+            width: "810",
+            height: "650",
+            title: title_,
+            param: {rowData: rowData, operation: operation},
+            url: "/views/engine/engDevApply/eng_dev_apply_add_edit.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        InitDataGrid();
+    }
+
+    //删除偏离文件申请数据
+    function deleteEngDevApply(rowData) {
+        const data = {"pkid": rowData.pkid};
+        InitGatewayRequest_({
+            async: false,
+            data: data,
+            path: "/meng-engine/engDevApply/deleteEngDevApply",
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    const cou = jData.obj;
+                    if (cou > 0) {
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                } else {
+                    MsgAlert({content: "删除失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    //导出Excel
+    function exportEngDevApply() {
+        const queryParams = $("#ffSearch").serializeObject();
+
+        InitGatewayRequest_({
+            async: false,
+            data: queryParams,
+            path: "/meng-engine/engDevApply/exportByEngDevApply",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    const url = jdata.obj;
+                    window.location.href = ctx + url;
+
+                } else {
+                    MsgAlert({content: "导出失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

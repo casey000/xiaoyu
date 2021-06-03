@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>MCC交接班列表</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<fieldset class="fieldset_eui">
+    <legend>搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th style="width: 60px;" align="right"> 日期：</th>
+                    <td class="tdr">
+                        <input class="easyui-datebox" id="hoDateB" name="hoDateB" style="width:120px;"
+                               data-options="editable:false"/>
+                    </td>
+                    <th style="width: 40px;" > 至：</th>
+                    <td class="tdr">
+                        <input class="easyui-datebox" id="hoDateE" name="hoDateE" style="width:120px;"
+                               data-options="editable:false"/>
+                    </td>
+                    <th style="width: 60px;">班次：</th>
+                    <td>
+                        <input class="easyui-combobox" id="type" name="type" data-options=""
+                               style="width:120px"/>
+                    </td>
+                    <td style="width:40%;text-align:left; padding-right:5px">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="onSearch_()" auth="PM_MC_HO_QUERY"><span>查询</span></a>
+                    </td>
+                </tr>
+
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "PM_MC_HO_TYPE"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['type'] = DomainCodeToMap_(jdata.data.PM_MC_HO_TYPE);
+                $('#type').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.PM_MC_HO_TYPE
+                });
+                InitDataGrid();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'PM_MC_HO_LIST'},
+                alter: {
+                    HO_DATE: {
+                        type: 'date'
+                    },
+                    TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['type'][value];
+                        }
+                    },
+                    ONDUTY_STATUS: {
+                        formatter: function (value, row, index) {
+                            if (row.ONDUTY_STATUS == 'edit') {
+                                return "<a class='ridoBtn' onclick=\"reloadByStatus('" + row.PKID + "','" + row.HO_DATE + "','" + row.TYPE + "','" + row.ONDUTY_STATUS + "','ONDUTY');\">&nbsp;&nbsp;&nbsp;" + row.ONDUTY_STATUS + "&nbsp;&nbsp;<a/>";
+                            } else {
+                                return "<a class='addBtn' onclick=\"reloadByStatus('" + row.PKID + "','" + row.HO_DATE + "','" + row.TYPE + "','" + row.ONDUTY_STATUS + "','ONDUTY');\">" + row.ONDUTY_STATUS + "<a/>";
+                            }
+                        }
+                    },
+                    SUPPORT_STATUS: {
+                        formatter: function (value, row, index) {
+                            if (row.SUPPORT_STATUS == 'edit') {
+                                return "<a class='ridoBtn' onclick=\"reloadByStatus('" + row.PKID + "','" + row.HO_DATE + "','" + row.TYPE + "','" + row.SUPPORT_STATUS + "','SUPPORT');\">&nbsp;&nbsp;&nbsp;" + row.SUPPORT_STATUS + "&nbsp;&nbsp;<a/>";
+                            } else {
+                                return "<a class='addBtn' onclick=\"reloadByStatus('" + row.PKID + "','" + row.HO_DATE + "','" + row.TYPE + "','" + row.SUPPORT_STATUS + "','SUPPORT');\">" + row.SUPPORT_STATUS + "<a/>";
+                            }
+                        }
+                    },
+                    CONTROL_STATUS: {
+                        formatter: function (value, row, index) {
+                            if (row.CONTROL_STATUS == 'edit') {
+                                return "<a class='ridoBtn' onclick=\"reloadByStatus('" + row.PKID + "','" + row.HO_DATE + "','" + row.TYPE + "','" + row.CONTROL_STATUS + "','CONTROL');\">&nbsp;&nbsp;" + row.CONTROL_STATUS + "&nbsp;&nbsp;<a/>";
+                            } else {
+                                return "<a class='addBtn' onclick=\"reloadByStatus('" + row.PKID + "','" + row.HO_DATE + "','" + row.TYPE + "','" + row.CONTROL_STATUS + "','CONTROL');\">" + row.CONTROL_STATUS + "<a/>";
+                            }
+                        }
+                    },
+                }
+            },
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 15)
+            }
+        });
+    }
+    //业务操作
+    function reloadByStatus(pkid, date, type, status, byWho) {
+        if (status == 'edit') {
+            if(("SUPPORT" == byWho && !VALID_AUTH("PM_MC_HO_SUPPORT")) || ("CONTROL" == byWho && !VALID_AUTH("PM_MC_HO_CONTROL")) || ("ONDUTY" == byWho && !VALID_AUTH("PM_MC_HO_ONDUTY"))){
+                MsgAlert({content:"无维护权限",type:'error'});
+                return;
+            }
+            ShowWindowIframe({
+                width: "1080",
+                height: "650",
+                param: {hoPkid: pkid, hoDate: date, type: type, byWho: byWho},
+                url: "/views/pm/mc/handover/mcc_ho_edit.shtml"
+            });
+        }
+        if (status == 'handover(Y)') {
+            //接班
+            if(("SUPPORT" == byWho && !VALID_AUTH("PM_MC_HO_SUPPORT")) || ("CONTROL" == byWho && !VALID_AUTH("PM_MC_HO_CONTROL")) || ("ONDUTY" == byWho && !VALID_AUTH("PM_MC_HO_ONDUTY"))){
+                MsgAlert({content:"无维护权限",type:'error'});
+                return;
+            }
+            ShowWindowIframe({
+                width: "450",
+                height: "300",
+                param: {hoPkid: pkid, hoDate: date, type: type, byWho: byWho},
+                url: "/views/pm/mc/handover/mcc_ho.shtml"
+            });
+        }
+        if (status == 'handover(N)') {
+            MsgAlert({content: '上一个班次未交班', type: 'error'});
+            return;
+        }
+        if (status == 'view(N)' || status == 'view(Y)') {
+            ShowWindowIframe({
+                width: "1050",
+                height: "550",
+                param: {hoPkid: pkid, hoDate: date, type: type, byWho: byWho, viewFlag: status},
+                url: "/views/pm/mc/handover/mcc_ho_edit.shtml"
+            });
+        }
+    }
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+</script>
+</body>
+</html>

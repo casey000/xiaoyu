@@ -1,0 +1,266 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">AD/CAD状态报表</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:40px;" align="right">机号：</th>
+                    <td style="width: 80px">
+                        <input class="easyui-combobox" id="acReg" name="acReg" style="width:80px;"/>
+                    </td>
+
+                    <th class="th" style="width:80px;" align="right">发动机序号：</th>
+                    <td style="width: 100px">
+                        <input class="easyui-combobox" id="esn" name="esn" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">AD/CAD编号：</th>
+                    <td style="width: 100px">
+                        <input class="easyui-textbox" id="docno" name="docno" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">文件类型：</th>
+                    <td style="width: 100px">
+                        <input class="easyui-textbox" id="docType" name="docType" style="width:100px;"/>
+                    </td>
+                    <td>
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchClick();"><span>查询</span></a>
+                        <a href="javascript:void(0)" class="addBtn" onclick="reproduceData();"><span>重新生成数据</span></a>
+                        <a class="excelBtn" data-options="iconCls:'icon-page_excel'" id="exportExcelBtn"
+                           onclick="excelData()"><span>导出</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var address = window.location.origin; //url
+    var port = document.location.port;//ip:端口号
+    if (!port) {
+        port = ':' + port;
+    } else {
+        port = '';
+    }
+    var ctx = address + port;
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+
+        //机号
+        $('#acReg').combobox({
+            panelHeight: '100px',
+            url: Constant.API_URL + 'DA_ACTYPE_GET_ACNOS',
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            loadFilter: function (jdata) {
+                return jdata.data;
+            }
+        });
+        //获取发动机序号
+        InitGatewayRequest_({
+            async: false,
+            data: {matnr: ''},
+            path: "/meng-engine/baseOwn/getEngByType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#esn').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px'
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                }
+            }
+        });
+        //发动机型号
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        //文件类型
+        $('#docType').combobox({
+            valueField: 'key',
+            textField: 'value',
+            panelHeight: '50px',
+            data: [{key: "AD", value: "AD"}, {key: "CAD", value: "CAD"}],
+        });
+
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var data_ = [];
+        //验证网关查询接口
+        var queryParams = $("#ffSearch").serializeObject();
+        $('#dg').GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engRepAd/selectEngRepAdListByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_REP_AD_LIST'},
+                alter: {
+                    effectiveDate: {
+                        type: 'date'
+                    },
+                    lastComplianceDate: {
+                        type: 'date'
+                    },
+                    nextDueDate: {
+                        type: 'date'
+                    },
+                    planDate: {
+                        type: 'date'
+                    },
+                    limitDate: {
+                        type: 'date'
+                    }
+                }
+            }
+        });
+    }
+
+    function onSearchClick() {
+        InitDataGrid();
+    }
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        i18nCallBack();
+    }
+
+    function reload_() {
+        InitDataGrid();
+    }
+
+    //获取重置后的机号
+    function getAcnosForReset() {
+        //机号
+        $('#acno').combobox({
+            panelHeight: '100px',
+            url: Constant.API_URL + 'DA_GET_ACNOS',
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            loadFilter: function (jdata) {
+                return jdata.data;
+            }
+        });
+    }
+
+    //获取重置后的机型系列
+    function getModelSeriesForReset() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_MODEL_SERIES",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata3) {
+                if (jdata2.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#modelSeries').combobox({ //机型系列
+                        panelHeight: '120px',
+                        data: jdata3.data.DA_ACREG_MODEL_SERIES,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata3.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //重新生成数据
+    function reproduceData() {
+        ajaxLoading();
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engRepAd/reproduceAdStatusData",
+            data: {},
+            successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.success == true) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.errorMsg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //导出(待JSON文件编写的时候调试)
+    function excelData() {
+        var acReg = $("#acReg").combobox('getValue');//机号
+        var esn = $("#esn").combobox('getValue');//发动机序号
+        var printType;
+        if (acReg == "" && esn != "") {
+            printType = "eng";
+        } else if (acReg != "" && esn == "") {
+            printType = "ac";
+        } else if (acReg != "" && esn != "") {
+            printType = "eng";
+        } else {
+            MsgAlert({content: "机号和发动机序号必须输入其中一个!", type: 'error'});
+            return;
+        }
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams["printType"] = printType;
+        InitGatewayRequest_({
+            async: false,
+            data: queryParams,
+            path: "/meng-engine/engRepAd/exportAdStatusData",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    url = jdata.obj;
+                    window.location.href = ctx + url;
+
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

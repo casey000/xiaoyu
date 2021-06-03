@@ -1,0 +1,200 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title></title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td id="baocun" align="right" style="width:20%">
+                            <input class="btn btn-primary" type="button" id="submit" onclick="save()" value="确认"/>
+                        </td>
+                    </tr>
+                </table>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">原因：</th>
+                        <td class="tdr" colspan="10">
+                            <input style="height:60px; width:890px;" class="easyui-textbox" id="desc" name="desc"
+                                   data-options="required:false,editable:true,onlyview: false"/>
+                        </td>
+                    </tr>
+                </table>
+                <fieldset class="fieldset_eui" style="float:left;width:98%;height:450px; margin-right:5px">
+                    <legend>受影响的MP条目</legend>
+                    <table cellspacing="0" cellpadding="2">
+                    </table>
+                    <table id="dg"></table>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var PAGE_DATA = {};
+    var mainType = null;
+    var func = "";
+    var saveFunc = "";
+    var recordId;
+    var type;
+    var sourceNo;
+    var msgpkid;
+    var fleet;
+    var desc;
+    var acno;
+    var engineerId = getLoginInfo().accountId;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        console.info(param);
+        //B737#SYSCHANGE#SYS-B737-23-11-001
+        recordId = param.recordId;
+        msgpkid = param.msgpkid;
+        var array = recordId.split("#");
+        fleet = array[0];
+        type = array[1];
+        sourceNo = array[2];
+        //alert(recordId);
+        if (type == "SYSCHANGE") {
+            func = "EM_MPD_EVAL_FOR_SYS";
+            desc = "系统构型 【" + sourceNo + "】发生变更，请确认。"
+        } else if (type == "SBCHANGE") {
+            func = "EM_MPD_EVAL_FOR_SB";
+            desc = "SB/STC 【" + sourceNo + "】发生变更，请确认。"
+        } else if (type == "EOCHANGE") {
+            acno = array[3];
+            func = "EM_MPD_EVAL_FOR_EO";
+            desc = "飞机【" + acno + "】 完成EO【" + sourceNo + "】发生变更，请确认。"
+        }
+        saveFunc = "EM_MPD_EVAL_CHANGE_SAVE";
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO,DA_FLEET,EM_MPD_CTL_TYPE,EM_APPL_TYPE,EM_IF_REV_CMP,EM_IF_APPL,EM_MPD_DOC_TYPE,EM_REV_CODE,EM_ATA,EM_EVAL_BY,DA_FLEET,EM_MPD_EVAL_STATE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA ["ifRevCmp"] = DomainCodeToMap_(jdata.data["EM_IF_REV_CMP"]);
+                    PAGE_DATA ["ifAppl"] = DomainCodeToMap_(jdata.data["EM_IF_APPL"]);
+                    PAGE_DATA ["applType"] = DomainCodeToMap_(jdata.data["EM_APPL_TYPE"]);
+                    PAGE_DATA ["yesorno"] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA ["ctlType"] = DomainCodeToMap_(jdata.data["EM_MPD_CTL_TYPE"]);
+                    PAGE_DATA ["evalState"] = DomainCodeToMap_(jdata.data["EM_MPD_EVAL_STATE"]);
+                    PAGE_DATA ["revCode"] = DomainCodeToMap_(jdata.data["EM_REV_CODE"]);
+
+                    // $("#desc").combobox("setValue",desc);
+                    $('#desc').textbox('setValue', desc);
+                    InitDgGrid();
+
+                }
+            }
+        })
+    }
+
+    function InitDgGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            resize: function () {
+                return {width: 970, height: 450};
+            },
+            queryParams: {sourceNo: sourceNo, fleet: fleet, engineerId: engineerId},
+            pageSize: 13,
+            columns: {
+                param: {FunctionCode: func},
+                alter: {
+                    EVAL_NO: {
+                        formatter: function (value, row, index) {
+                            return '<a href="javascript:void(0);" onclick="viewPointImgrTab(\'' + value + '\');">' + value + '</a>';
+                        }
+                    },
+                    IF_REV_CMP: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['ifRevCmp'][value];
+                        }
+                    },
+                    IF_APPL: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['ifAppl'][value];
+                        }
+                    },
+                    APPL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['applType'][value];
+                        }
+                    },
+                    EVAL_STATE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['evalState'][value];
+                        }
+                    },
+                    CTL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['ctlType'][value];
+                        }
+                    },
+                    REV_CODE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['revCode'][value];
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function (data) {
+            },
+            validAuth: function (row, items) {
+            },
+        });
+    }
+
+    // 保存
+    function save() {
+        //没有条目则不允许点击确认
+        var rowData = getDG('dg').datagrid('getData');
+        if (rowData.data.length == 0) {
+            MsgAlert({content: '没有条目不允许确认，请联系管理员', type: 'error'});
+            return;
+        }
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: saveFunc,
+                sourceNo: sourceNo,
+                fleet: fleet,
+                type: type,
+                msgpkid: msgpkid,
+                engineerId: engineerId
+            }, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reloadTodo();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function viewPointImgrTab(evalNo) {
+        ShowWindowIframe({
+            width: 1350,
+            height: 850,
+            param: {evalNo: evalNo},
+            title: "查看",
+            url: "/views/em/emmpdeval/workflow/evalNoteView.shtml"
+        });
+    }
+
+</script>
+
+</html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册标准列表</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td class="td5">
+                        <a style="margin-left: 515px" href="javascript:void(0)" class="searchBtn"  data-options="iconCls:'icon-search'" onclick="save();"><span>确定</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var rangValues = [];
+    var rangValues1 = [];
+    var param = {};
+    var nos;
+    var posDamageId;
+    function i18nCallBack() {
+        param = getParentParam_();
+        nos = param.nos;
+        posDamageId = param.posDamageId;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    checked();
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checked() {
+        var strs = [];
+        if (nos != null && nos != "") {
+            if (nos.indexOf(",") != -1) {
+                strs = nos.split(",");
+                for (var i = 0; i < strs.length; i++) {
+                    rangValues[i] = strs[i];
+                }
+            } else {
+                rangValues[0] = nos;
+            }
+        }
+    }
+
+    function InitDataGrid() {
+        InitGatewayRequest_({
+            data:{posDamageId:posDamageId},
+            path: "/meng-engine/engBsiDamage/getManualList",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $("#dg").MyDataGrid({
+                        identity: "dg",
+                        pagination: false,
+                        data: jdata.obj,
+                        columns: {
+                            param: {FunctionCode: 'ENG_BSI_DAMAGE_MANUAL_LIST'}
+                        },
+                        contextMenus: [
+                        ],
+                        validAuth: function (row, items) {
+                        },
+                        onDblClickRow: function (index, field, value) {
+                        },
+                        onLoadSuccess: function (data) {
+                            rangValues1 = rangValues;
+                            $('#dg').datagrid('uncheckAll');
+                            if (data) {
+                                $.each(data.rows, function (index, item) {
+                                    var len = rangValues1.length;
+                                    for (var j = 0; j < len; j++) {
+                                        if (rangValues1[j] == item.manualDesc) {
+                                            $('#dg').datagrid('checkRow', index);
+                                        }
+                                    }
+                                });
+                            }
+                            rangValues = rangValues1;
+                        },
+                        onCheck: function (rowIndex, rowData) {
+                            rangValues = unique(rangValues);//去重
+                            rangValues.push(rowData.manualDesc.toString());
+                        },
+                        onUncheck: function (rowIndex, rowData) {
+                            rangValues = unique(rangValues);//去重
+                            rangValues.remove(rowData.manualDesc.toString());
+                        },
+                        onCheckAll: function (rowIndex, rowData) {
+                            rangValues = unique(rangValues);//去重
+                            var rows = $('#dg').datagrid('getRows');
+                            for (i = 0; i < rows.length; i++) {
+                                rangValues.push(rows[i].manualDesc.toString());
+                            }
+                        },
+                        onUncheckAll: function (rowIndex, rowData) {
+                            rangValues = unique(rangValues);//去重
+                            var rows = $('#dg').datagrid('getRows');
+                            for (i = 0; i < rows.length; i++) {
+                                rangValues.remove(rows[i].manualDesc.toString());
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: "获取手册标准信息失败！", type: 'error'});
+                }
+            }
+        });
+    }
+
+
+
+    Array.prototype.indexOf = function(val) {
+        for (var i = 0; i < this.length; i++) {
+            if (this[i] == val) return i;
+        }
+        return -1;
+    };
+
+    Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+        }
+    };
+
+    function unique(arr){
+        return Array.from(new Set(arr));
+    }
+
+    //刷新列表
+    function reload_(){
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    function save(){
+        var dataNos = "";
+        rangValues = unique(rangValues);//去重
+        for (i = 0; i < rangValues.length; i++) {
+            var no = rangValues[i];
+            if(no){
+                dataNos = dataNos+ ","+ no;
+            }
+        }
+        dataNos = dataNos.substring(1, dataNos.length);
+        param.OWindow.$("#resultBase").textbox('setValue', dataNos);
+        param.OWindow.MsgAlert({content:$.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+        CloseWindowIframe();
+    }
+
+</script>
+</body>
+</html>

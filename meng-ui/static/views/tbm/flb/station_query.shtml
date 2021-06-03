@@ -1,0 +1,114 @@
+<!--
+  ~ Copyright 2018 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>航站查询</title>
+</head>
+
+<body class="ibody">
+<div id="stationQueryWindow"  title="Station Query">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="stationSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" align="right" style="width: 120px; height: 25px;">Three Code:</th>
+                    <td class="td5" style="width: 110px;height: 25px;">
+                        &nbsp;<input class="easyui-textbox" id="threeCode" name="threeCode" style="width: 100px;"/>
+                    </td>
+
+                    <th class="th" align="right" style="width: 120px;height: 25px;">Four Code:</th>
+                    <td class="td5" style="width: 110px;height: 25px;">
+                        &nbsp;<input class="easyui-textbox" id="fourCode" name="fourCode" style="width: 100px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 120px;height: 25px;">Name(CN):</th>
+                    <td class="td5" style="width: 110px;height: 25px;">
+                        &nbsp;<input class="easyui-textbox" id="nameCn" name="nameCn" style="width: 100px;"/>
+                    </td>
+
+                    <th class="th" align="right" style="width: 120px;height: 25px;">Short Name(CN):</th>
+                    <td class="td5" style="width: 110px;height: 25px;">
+                        &nbsp;<input class="easyui-textbox" id="shortNameCn" name="shortNameCn" style="width: 100px;"/>
+                    </td>
+                    <td>
+                        <a class="searchBtn" onClick="searchStationData()" type="button"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onClick="doStationClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="stationDg"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        // $('#stationQueryWindow').window('open'); //开启弹窗
+
+        // 绑定回车查询事件
+        bindFormonSearch_('#stationSearch', function () {
+            searchStationData()
+        });
+
+        InitStationDataGrid();
+
+    }
+
+    function InitStationDataGrid() {
+        $("#stationDg").MyDataGrid({
+            identity: 'stationDg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,     //开启分页
+            fitColumns: true,
+            columns: {
+                param: {FunctionCode: 'FLB_STATION_LIST'},
+                alter: {}
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [],
+            toolbar: [],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function () {
+                var row = $('#stationDg').datagrid('getSelected'); //获取所选行的数据
+                // 规定控件id只能为station
+                var stationId = 'station';
+                if(param.stationId){
+                    stationId =  param.stationId;
+                }
+                try {
+                    param.OWindow.$("#" + stationId).textbox("setValue", row.station);
+                } catch (e) {
+                    //上面的代码执行出错才用下面的设置方式
+                    param.OWindow.$("#" + stationId).attr("value", row.station);
+                }
+                if (typeof param.successCallback == "function") param.successCallback();
+                // $('#stationQueryWindow').window('close'); //关闭弹窗
+                window.close();
+            }
+
+        });
+    }
+
+    function searchStationData() {
+        onSearch_('stationDg', '#stationSearch');
+    }
+</script>
+</html>

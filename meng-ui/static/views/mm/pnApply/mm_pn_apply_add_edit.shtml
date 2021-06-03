@@ -1,0 +1,496 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+        }
+        .combobox-item {
+            height: 16px;
+        }
+
+    </style>
+</head>
+<body>
+<div id="tabs" style="width: 95%; margin:0 auto;">
+    <form class="form-horizontal m-t" id="mform">
+        <div id="p0" class="easyui-panel" title="件号申请">
+            <input type="hidden" id="pkid" name="pkid">
+            <input type="hidden" id="upload" name="upload">
+            <input type="hidden" id="zzpma1" name="zzpma1">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td align="right" style="padding: 6px;">
+                        <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                        <input class="btn btn-primary" id="submitFlowId" type="button" onclick="submitFlow();" value="提交"/>&nbsp;&nbsp;
+                        <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                               value="关闭"/>
+                    </td>
+                </tr>
+            </table>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="td5" style="width:150px;" align="right"> 申请编号：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="zno" name="zno" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <th class="td5" style="width:150px;" align="right"> 申请件号：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="matnr" name="matnr" data-options="required:true,validType:['maxLength[40]']"
+                               style="width:150px;"/>
+                    </td>
+                    <th class="td5" style="width:150px;" align="right"> 件号来源：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="zzpnly" name="zzpnly" data-options="required:true,editable:false"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5" style="width:150px;" align="right"> 件号中文名：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="nameZh" name="nameZh" data-options="required:true,validType:['maxLength[120]']"
+                               style="width:150px;"/>
+                    </td>
+                    <th class="td5" style="width:150px;" align="right"> 件号英文名：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="nameEn" name="nameEn"
+                               data-options="required:true,validType:['maxLength[120]']"
+                               style="width:150px;"/>
+                    </td>
+                    <th class="td5" style="width:150px;" align="right"> 来源机型：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox" id="stort" name="stort"
+                               data-options="required:true,editable:false"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5" style="width:150px;" align="right"> 章节号：</th>
+                    <td class="tdr" colspan="3">
+                        <input class="easyui-combobox" id="zzata1" name="zzata1" data-options="editable:false"
+                               style="width:140px;"/>-
+                        <input class="easyui-textbox" id="zzata2" name="zzata2" data-options=""
+                               style="width:40px;"/>-
+                        <input class="easyui-textbox" id="zzata3" name="zzata3" data-options=""
+                               style="width:40px;"/>-
+                        <input class="easyui-textbox" id="zzata4" name="zzata4" data-options=""
+                               style="width:40px;"/>
+                        <a class="clearBtn" href="javascript:void(0)" onclick="clearAta();"
+                           data-options="iconCls:'icon-clear'">
+                            <span data-i18n="清空章节">清空章节</span></a>
+                    </td>
+                    <th class="td5" style="width:150px;" align="right"> 是否PMA件：</th>
+                    <td class="tdr">
+                        &nbsp;&nbsp;<input type="checkbox" name="zzpma" value="Y"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5" style="width:150px;" align="right"> 库存基本单位：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox" id="meins" name="meins" style="width:150px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5" style="width: 150px;" align="right">备注：</th>
+                    <td class="tdr" colspan="5">
+                        <input class="easyui-textbox " name="memo" id="memo"
+                               data-options="validType:['maxLength[1000]']" multiline="true"
+                               style="height:100px; width:500px;"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</div>
+<script type="application/javascript">
+    var param;
+    var identity = 'dg';
+    var identity1 = 'dg1';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_MP_ACTYPE,MM_VPN_KCDW,MM_DIC_PART_SOURCE,ATA_2_SORT"
+            },
+            successCallBack: function (jdata) {
+                PAGE_DATA['actype'] = DomainCodeToMap_(jdata.data.DA_ACREG_MP_ACTYPE);
+                // 初始化查询条件
+                //来源机型
+                $('#stort').combobox({
+                    panelHeight: '140px',
+                    valueField: 'VALUE',
+                    multiple: true, //是否可多选
+                    textField: 'VALUE',
+                    data: jdata.data.DA_ACREG_MP_ACTYPE
+                });
+                $('#zzata1').combobox({
+                    panelHeight: '140px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.ATA_2_SORT
+                });
+                //库存基本单位
+                $('#meins').combobox({
+                    panelHeight: '140px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MM_VPN_KCDW,
+                    onHidePanel: function () {
+                        var val = $('#meins').combobox("getValue");//当前combobox的值
+                        var allData = $('#meins').combobox("getData");//获取combobox所有数据
+                        var result = true;
+                        for (var i = 0; i < allData.length; i++) {
+                            if (val == allData[i].VALUE) {
+                                result = false;
+                            }
+                        }
+                        if (result) {
+                            alert('您输入的值在下拉框不存在,请重新输入或选择！');
+                            $('#meins').combobox("clear");
+                        }
+                    }
+                });
+                //件号来源
+                $('#zzpnly').combobox({
+                    panelHeight: '140px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MM_DIC_PART_SOURCE,
+                    onSelect:function (item) {
+                        //如果选择OTHERS，则需维护备注
+                        if(item.VALUE == 17){
+                            $("#memo").textbox({required: true});
+                        }else{
+                            $("#memo").textbox({required: false});
+                        }
+                        //如果选择IPC，则需维护章节号
+                        var ata1 = $("#zzata1").combobox('getValue');
+                        if (item.VALUE == "01") {
+                            $("#zzata1").combobox({value: ata1,required: true});
+                            $("#zzata2").textbox({required: true});
+                            $("#zzata3").textbox({required: true});
+                            $("#zzata4").textbox({required: true});
+                        } else if (item.VALUE == "15" || item.VALUE == "16") {
+                            //件号来源为化工品或标准件时，章节号不必填
+                            $("#zzata1").combobox({value: ata1,required: false});
+                            $("#zzata2").textbox({required: false});
+                            $("#zzata3").textbox({required: false});
+                            $("#zzata4").textbox({required: false});
+                        } else if (item.VALUE == "02" || item.VALUE == "03" || item.VALUE == "04" || item.VALUE == "05" || item.VALUE == "08" || item.VALUE == "14") {
+                            //件号来源为PC、CMM、EIPC、PEMCO、STA、AMM
+                            $("#zzata1").combobox({value: ata1, required: true});
+                            $("#zzata2").textbox({required: true});
+                            $("#zzata3").textbox({required: true});
+                            $("#zzata4").textbox({required: false});
+                        }else{
+                            //件号来源不为以上四种时，章节号必填一段
+                            $("#zzata1").combobox({value: ata1,required: true});
+                            $("#zzata2").textbox({required: false});
+                            $("#zzata3").textbox({required: false});
+                            $("#zzata4").textbox({required: false});
+                        }
+                        checkAta();
+                    }
+                });
+                checkPn();
+                checkAta();
+                if (param.PKID) {
+                    $("#upload").val(param.UPLOAD);
+                    $("#pkid").val(param.PKID);
+                    InitDataForm(param.PKID);
+                }
+                //退回节点编辑，隐藏提交按钮
+                if(param.isFlow){
+                    $("#submitFlowId").hide();
+                }
+            }
+        });
+    }
+    /*
+     * 件号输入规范：
+     1.   支持的字符包括：①大写英文字母(半角) A-Z；②阿拉伯数字(半角) 0-9；③英文小数点(半角) .；④英文井号(半角) #；⑤英文圆括号(半角) (  )；⑥英文正斜杠(半角) /；⑦英文反斜杠(半角) \；⑧英文逗号(半角) ,；⑨英文和符号(半角)&；⑩英文中横线(半角)- ⑪英文空格（半角）；
+     2.   除了以上11类符号外，中文、*、？、%等其它的符号一律不允许；
+     3.   -.,()/\#&等特殊字符只能出现在字母或数字之间，不能出现在件号开头，也不能连续，例如：23-%5678（特殊字符连续）和.56（特殊字符出现在开头）都是不符规范的件号。
+     4.   只有化工品件号允许空格，但空格不能在开头和结尾，且不能连续多个空格；（审批页面判断）
+     */
+    function checkPn() {
+        $("input",$("#matnr").next("span")).blur(function () {
+            var pn = ($("#matnr").textbox('getValue')).toUpperCase();
+            $("#matnr").textbox('setValue', pn);
+            var pat = /^[A-Z0-9.\s#()/\\,&-]+$/;
+            //错误1：不能以特殊字符开头
+            var patE1 = /^[.\s#()/\\,&-]/;
+            //错误2：不能以空格结尾
+            var patE2 = /[\s]$/;
+            //错误3：特殊字符不能连续
+            var patE3 = /[.\s#()/\\,&-]{2,}/;
+            var errorMsg = "件号输入规范：</br>";
+            errorMsg +="1.   支持的字符包括：</br>①大写英文字母(半角) A-Z；②阿拉伯数字(半角) 0-9；③英文小数点(半角) .；④英文井号(半角)#；";
+            errorMsg +="⑤英文圆括号(半角) (  )；⑥英文正斜杠(半角) /；⑦英文反斜杠(半角) \；⑧英文逗号(半角) ,；⑨英文和符号(半角)&；⑩英文中横线(半角)-⑪英文空格（半角）；</br>";
+            errorMsg +="2.   除了以上11类符号外，中文、*、？、%等其它的符号一律不允许；</br>";
+            errorMsg +="3.   -.,()/\#&等特殊字符只能出现在字母或数字之间，不能出现在件号开头，也不能连续，例如：23-%5678（特殊字符连续）和.56（特殊字符出现在开头）都是不符规范的件号。</br>";
+            errorMsg +="4.   只有化工品件号允许空格，但空格不能在开头和结尾，且不能连续多个空格；";
+
+            if(pn.match(patE1)){
+                $("#matnr").textbox('setValue', '');
+                MsgAlert({content: errorMsg, type: 'warn'});
+
+            }else if(pn.match(patE2)){
+                $("#matnr").textbox('setValue', '');
+                MsgAlert({content: errorMsg, type: 'warn'});
+
+            }else if(pn.match(patE3)){
+                $("#matnr").textbox('setValue', '');
+                MsgAlert({content: errorMsg, type: 'warn'});
+
+            }else{
+                if (pn != "" && !pn.match(pat)) {
+                    //$("#matnr").textbox('setValue', '');
+                    MsgAlert({content: errorMsg, type: 'warn'});
+                }
+            }
+            InitFuncCodeRequest_({
+                data: {pn: pn, pkid: $("#pkid").val(), FunctionCode: "MM_VPN_APPLY_GETBYPN"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (jdata.data != null) {
+                            alert("申请件号在件号库已经存在，或者已经申请！");
+                            $("#matnr").textbox('setValue', '');
+                        }
+                    }
+                }
+            });
+        });
+    }
+    function checkPn2() {
+        var pn = ($("#matnr").textbox('getValue')).toUpperCase();
+        $("#matnr").textbox('setValue', pn);
+        var pat = /^[A-Z0-9.\s#()/\\,&-]+$/;
+        //错误1：不能以特殊字符开头
+        var patE1 = /^[.\s#()/\\,&-]/;
+        //错误2：不能以空格结尾
+        var patE2 = /[\s]$/;
+        //错误3：特殊字符不能连续
+        var patE3 = /[.\s#()/\\,&-]{2,}/;
+        var errorMsg = "件号输入规范：</br>";
+        errorMsg += "1.   支持的字符包括：</br>①大写英文字母(半角) A-Z；②阿拉伯数字(半角) 0-9；③英文小数点(半角) .；④英文井号(半角)#；";
+        errorMsg += "⑤英文圆括号(半角) (  )；⑥英文正斜杠(半角) /；⑦英文反斜杠(半角) \；⑧英文逗号(半角) ,；⑨英文和符号(半角)&；⑩英文中横线(半角)-⑪英文空格（半角）；</br>";
+        errorMsg += "2.   除了以上11类符号外，中文、*、？、%等其它的符号一律不允许；</br>";
+        errorMsg += "3.   -.,()/\#&等特殊字符只能出现在字母或数字之间，不能出现在件号开头，也不能连续，例如：23-%5678（特殊字符连续）和.56（特殊字符出现在开头）都是不符规范的件号。</br>";
+        errorMsg += "4.   只有化工品件号允许空格，但空格不能在开头和结尾，且不能连续多个空格；";
+
+        if (pn.match(patE1)) {
+            $("#matnr").textbox('setValue', '');
+            MsgAlert({content: errorMsg, type: 'warn'});
+
+        } else if (pn.match(patE2)) {
+            $("#matnr").textbox('setValue', '');
+            MsgAlert({content: errorMsg, type: 'warn'});
+
+        } else if (pn.match(patE3)) {
+            $("#matnr").textbox('setValue', '');
+            MsgAlert({content: errorMsg, type: 'warn'});
+
+        } else {
+            if (pn != "" && !pn.match(pat)) {
+                MsgAlert({content: errorMsg, type: 'warn'});
+                return false;
+            }
+        }
+        return true;
+    }
+    function clearAta() {
+        $("#zzata1").combobox('setValue','');
+        $("#zzata2").textbox('setValue','');
+        $("#zzata3").textbox('setValue','');
+        $("#zzata4").textbox('setValue','');
+    }
+
+    function checkAta() {
+        $("input",$("#zzata2").next("span")).blur(function () {
+            var ata = $("#zzata2").textbox('getValue');
+            var pat = /^\d{2}$/;
+            if (ata != "" && !ata.match(pat)) {
+                $("#zzata2").textbox('setValue', '');
+                MsgAlert({content: '章节为两位数字', type: 'warn'});
+            }
+        });
+        $("input",$("#zzata3").next("span")).blur(function () {
+            var ata = $("#zzata3").textbox('getValue');
+            var pat = /^\d{2}$/;
+            if (ata != "" && !ata.match(pat)) {
+                $("#zzata3").textbox('setValue', '');
+                MsgAlert({content: '章节为两位数字', type: 'warn'});
+            }
+        });
+        $("input",$("#zzata4").next("span")).blur(function () {
+            var ata = $("#zzata4").textbox('getValue');
+            var pat = /^\d{2}$/;
+            if (ata != "" && !ata.match(pat)) {
+                $("#zzata4").textbox('setValue', '');
+                MsgAlert({content: '章节为两位数字', type: 'warn'});
+            }
+        });
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "MM_VPN_APPLY_GET"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                    if(jdata.data.STORT){
+                        $('#stort').combobox({value: jdata.data.STORT.split(',')});
+                    }
+                    if(jdata.data.ZZPNLY == 01){
+                        $("#zzata1").combobox({value: jdata.data.ZZATA1,required: true});
+                        $("#zzata2").textbox({required: true});
+                        $("#zzata3").textbox({required: true});
+                        $("#zzata4").textbox({required: true});
+                        checkAta();
+                    }
+                    if (jdata.data.ZZPMA == 'Y') {
+                        $("input[name='zzpma']").prop('checked', true);
+                        $("#zzpma1").val("Y");
+                    } else {
+                        $("input[name='zzpma']").prop('checked', false);
+                        $("#zzpma1").val("N");
+                    }
+                }
+            }
+        });
+    }
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        if (!checkPn2()) {
+            return false;
+        }
+        //件号校验：只有化工品件号允许空格
+        var jhly = $("#zzpnly").textbox('getValue');
+        var mr = $('#matnr').textbox('getValue');
+
+        if (jhly != "15" && mr.indexOf(" ") > -1) {
+            MsgAlert({content: '除化工品，件号不能有空格', type: 'error'});
+            return false;
+        }
+        var data = $("#mform").serializeObject();
+        var stort = $("#stort").combobox("getValues");
+        data['stort'] = stort.join(",");
+        var zzpma = $("input[name='zzpma']").is(':checked');
+        if (zzpma) {
+            data['zzpma'] = "Y";
+            $("#zzpma1").val("Y");
+        } else {
+            data['zzpma'] = "N";
+            $("#zzpma1").val("N");
+        }
+
+        data = $.extend({}, data, {FunctionCode: 'MM_VPN_APPLY_ADD_EDIT'});
+        MaskUtil.mask("正在处理...");
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                MaskUtil.unmask();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if(param.isFlow){
+                        param.OWindow.InitDataForm(param.PKID);
+                        CloseWindowIframe();
+                    }else{
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        var pkid = jdata.data.pkid;
+                        $("#pkid").val(pkid);
+                        var zno =jdata.data.zno;
+                        $("#zno").textbox('setValue',zno);
+                        param.OWindow.onSearch_();
+                        //CloseWindowIframe();
+                    }
+                } else {
+                    if (jdata.msgData[0].indexOf("UNI_MM_VPN_APPLY") != -1 || jdata.msg.indexOf("UNI_MM_VPN_APPLY") != -1) {
+                        MsgAlert({content: "件号重复！", type: 'error'});
+                    } else {
+                        MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                    }
+                }
+            }
+        });
+    }
+
+    //提交工作流
+    function submitFlow(){
+        var pkid = $("#pkid").val();
+        if (!pkid){
+            MsgAlert({content:"请先保存基础数据！", type: 'error'});
+            return;
+        }
+        var jhly = $("#zzpnly").textbox('getValue');
+        if ((jhly == "03" || jhly == "07" || jhly == "09" || jhly == "15" || jhly == "16" || jhly == "17")) {
+            if ($("#upload").val() == "" || $("#upload").val() == null) {
+                MsgAlert({
+                    content: '件号来源为“CMM、SRM、STC、化工品、标准件、Others”时必须上传附件！请保存信息后，在主页面数据列表右键上传附件后，右键再提交。',
+                    type: 'error'
+                });
+                return;
+            }
+        }
+        //选择人
+        /*common_add_edit_({
+         url: "/views/em/workflow/work_flow_account_select.shtml",
+         param: {
+         FunctionCode_: "MM_VPN_APPLY_WORKFLOW_DEAL",
+         otherParam: pkid,
+         successCallback: function (data) {
+         param.OWindow.reload_();
+         CloseWindowIframe();
+         }
+         },
+         title: $.i18n.t("选择审批人"),
+         width: 520,
+         height: 300
+         });*/
+        //角色签领
+        if(confirm("确认提交吗？")){
+            MaskUtil.mask("正在处理...");
+            InitFuncCodeRequest_({
+                data: {pkid:pkid, FunctionCode: 'MM_VPN_APPLY_WORKFLOW_DEAL'},
+                successCallBack: function (jdata) {
+                    MaskUtil.unmask();
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        //MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        alert($.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS'));
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#mform").form('clear');
+            }
+        });
+    }
+</script>
+</body>
+</html>

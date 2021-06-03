@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">投票流程测试</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">发起投票</legend>
+        <form id="mform" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="td5" align="right" style="width: 50px">选择投票人员：</th>
+                    <td class="tdr" style="width: 140px">
+
+                        <select  id="voters" name="voters">
+                        </select>
+<!--                        <input class="easyui-combobox" id="voters-id"-->
+<!--                               data-options="required:true" style="width:200px;"/>-->
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2">
+                        <input class="btn btn-primary" type="button" onclick="actions.apply();" value="提交投票申请"/>&nbsp;&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+<style>
+    .test sapn{
+        font-weight: bold;
+    }
+</style>
+<link href="/js/select2/4.0.13/css/select2.min.css" rel="stylesheet" >
+<script src="/js/select2/4.0.13/js/select2.min.js"></script>
+<script src="/js/select2/4.0.13/js/i18n/zh-CN.js"></script>
+<script>
+
+    var i18nCallBack = function () {
+        $('#voters').select2({
+            language: 'zh-CN',
+            multiple:true,
+            width: 300,
+            templateResult: function(item){
+                var $row = $('<div class="test"><sapn>账号:</sapn>' + item.ACCOUNT_NUMBER+
+                    ' <span>用户名:</span>'+item.USER_NAME+'</div>')
+                return $row;
+            },
+            ajax: {
+                url: '/api/v1/plugins/FLOW_WORK_ACCOUNT',
+                data: function (params) {
+                    params.page = params.page || 1;
+                    var query = {
+                        page:  params.page,
+                        rows: 10,
+                        q: params.term
+                    }
+                    return query;
+                },
+                processResults: function (data, params) {
+                    if(!data.page){
+                        return
+                    }
+                    params.page = data.page +1;
+
+                    for(var i in data.data){
+                       var result = data.data[i];
+                        !result.id&&(result.id=result['ACCOUNT_ID']);
+                        result.text=result['USER_NAME']
+                    }
+                    return {
+                        results: data.data,
+                        pagination: {
+                            more: (data.page* 10) < data.total
+                        }
+                    };
+                }
+            }
+        });
+    }
+
+    var actions = {
+        apply: function() {
+
+            var $form = $("#mform");
+            var datas = $form.serializeObject();
+
+            if(datas.voters){
+                if(datas.voters['join']){
+                    datas.voters = datas.voters.join()
+                }
+            }
+
+            var params = $.extend({},datas,{  FunctionCode: "JOIN_SGIN_APPLY"});
+
+            InitFuncCodeRequest_({
+                data: params,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: '流程启动成功'});
+                    } else {
+                        var errmsg = '';
+                        jdata.msgData&&(errmsg=jdata.msgData.join());
+                        MsgAlert({content: '流程启动失败:'+errmsg, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+
+</script>
+
+</body>

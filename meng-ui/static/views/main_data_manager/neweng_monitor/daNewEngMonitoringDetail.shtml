@@ -1,0 +1,614 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>发动机引进工作整体监控</title>
+    <style>
+        .datagrid-toolbar table {
+            float: right;
+        }
+    </style>
+</head>
+
+<body class="ibody">
+<div id="tt" style="width:100%; height: 100%">
+    <!--<table id="dg"></table>-->
+    <!--<div id="div4">-->
+    <legend data-i18n="">发动机信息</legend>
+    <fieldset class="fieldset_eui" style="float:left;width:80%;height:230px; margin-right:5px">
+        <!--<table cellspacing="0" cellpadding="2">-->
+        <!--</table>-->
+        <table id="dg"></table>
+    </fieldset>
+    <!--</div>-->
+    <fieldset class="fieldset_eui" style="float:left;width:100%;height:30px;">
+        <!--<table cellspacing="0" cellpadding="2">-->
+        <!--</table>-->
+
+    </fieldset>
+    <fieldset class="fieldset_eui" style="float:left;width:100%;height:430px; margin-right:5px">
+        <legend data-i18n="">重评工作整体进度</legend>
+        <input type="hidden" id="pkid" name="pkid"/>
+        <table id="dg2"></table>
+    </fieldset>
+
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var PAGE_DATA = {};
+    var pkid = null;//主表PKID
+    var acids;
+    var mpActype;
+    var status;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+        mpActype = param.mpActype;
+
+        $("#pkid").val(pkid);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_DATA,DA_ACREG_STATUS,DA_NEWAC_MONITOR_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //型号
+                    PAGE_DATA['acengModel'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    // PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["DA_ACREG_STATUS"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["DA_NEWAC_MONITOR_STATUS"]);
+                    if (operation == 'view') {
+                        $("#saveBtn").hide();
+                        $("#copyTr").hide();
+                    }
+                    // pkid = $("#pkid").val();
+                    // if (pkid) {
+                    //     InitDataForm(pkid);
+                    // }
+                    InitDataForm(pkid);
+                    InitDataGrid();
+                    InitDataGrid2();
+                }
+            }
+        })
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "DA_NEWENG_MONITORING_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    // ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    // acids = jdata.data.AC_ID;
+                    status = jdata.data.STATUS;
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            enableLineEdit: true,
+            enableCellEdit: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.55, 0.01, 100, -6);
+            },
+            queryParams: {pkid: pkid},
+            columns: {
+                // param: {FunctionCode: 'DA_NEWAC_MONITORING_DETAIL'},
+                param: {FunctionCode: 'DA_NEWENG_MONITORING_DETAIL'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (index, row) {
+
+            },
+            onBeforeLoad: function (data) {
+
+            },
+            contextMenus: [],
+            validAuth: function (row, items) {
+                // if (operation == 'view') {
+                //     items['删除'].enable = false;
+                // }
+                return items;
+            },
+            toolbar: [
+
+                {
+                    id: 'btnAdd',
+                    key: "COMMON_ADD",
+                    text: $.i18n.t('多发动机合并处理'),
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        mergeDeal();
+                    }
+                },
+                {
+                    id: 'btnClose',
+                    // key: "COMMON_EDIT",
+                    iconCls: 'icon-ok',
+                    text: $.i18n.t('任务关闭'),
+                    handler: function () {
+                        closeTask();
+                    }
+                }
+            ],
+            onBeforeLoad: function (data) {
+                if (operation == "view") {
+                    $("div.datagrid-toolbar [id ='btnAdd']").eq(0).hide();
+                    $("div.datagrid-toolbar [id ='btnClose']").eq(0).hide();
+                }
+            },
+            onEndEdit: function (index, row, changes) {
+                // editDate(index, row, changes);
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    function InitDataGrid2() {
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            enableLineEdit: true,
+            enableCellEdit: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.35, 0.01, 0, 0);
+            },
+            queryParams: {pkid: pkid},
+            columns: {
+                // param: {FunctionCode: 'DA_NEWAC_TODO_LIST'},
+                param: {FunctionCode: 'DA_NEWENG_TODO_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            if (value == "0") {
+                                //工程文件评估单重评   自定义EO重评  自定义EA重评  TB重评
+                                if (row.TASK_NAME == "工程文件评估单重评") {
+                                    return '<a href="javascript:void(0);" onclick="startTaskPgd(\'' + row.PKID + '\');">' + PAGE_DATA['status'][value] + '</a>';
+                                }
+                                if (row.TASK_NAME == "自定义EO重评" || row.TASK_NAME == "自定义EA重评" || row.TASK_NAME == "TB重评") {
+                                    return '<a href="javascript:void(0);" onclick="startTask(\'' + row.PKID + '\');">' + PAGE_DATA['status'][value] + '</a>';
+                                }
+                                if (row.TASK_NAME == "NSJC重评" || row.TASK_NAME == "MPJC重评") {
+                                    return '<a href="javascript:void(0);" onclick="startTask2(\'' + row.TASK_NAME + '\',\'' + row.PKID + '\');">' + PAGE_DATA['status'][value] + '</a>';
+                                }
+                                if (row.TASK_NAME == "前营运人方案重评") {
+                                    return '<a href="javascript:void(0);" onclick="startTask3(\'' + row.TASK_NAME + '\',\'' + row.PKID + '\');">' + PAGE_DATA['status'][value] + '</a>';
+                                }
+                                if (row.TASK_NAME == "系统构型重评") {
+                                    return '<a href="javascript:void(0);" onclick="startTask4(\'' + row.PKID + '\');">' + PAGE_DATA['status'][value] + '</a>';
+                                }
+                                if (row.TASK_NAME == "软件构型重评") {
+                                    return '<a href="javascript:void(0);" onclick="startTask5(\'' + row.PKID + '\');">' + PAGE_DATA['status'][value] + '</a>';
+                                }
+                                if (row.TASK_NAME == "顺丰维修方案重评") {
+                                    return '<a href="javascript:void(0);" onclick="startTask6(\'' + row.PKID + '\');">' + PAGE_DATA['status'][value] + '</a>';
+                                }
+                            } else {
+                                if (value == "1") {
+                                    var countStr = row.COUNT;
+                                    var strs = []; //定义一数组
+                                    if (countStr) {
+                                        strs = countStr.split("/"); //字符分割
+                                        //任务状态为非待发起，并且总数不等于 已执行数
+                                        if (strs[0] == strs[1]) {
+                                            return PAGE_DATA['status'][3];
+                                        } else {
+                                            return PAGE_DATA['status'][value];
+                                        }
+                                    } else {
+                                        return PAGE_DATA['status'][value];
+                                    }
+
+
+                                } else {
+                                    return PAGE_DATA['status'][value];
+                                }
+
+                            }
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (index, row) {
+
+
+            },
+            onBeforeLoad: function (data) {
+
+            },
+            contextMenus: [],
+            validAuth: function (row, items) {
+                return items;
+            },
+            toolbar: [],
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+                // editDate(index, row, changes);
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    function mergeDeal() {
+        //多飞机合并：选择飞机时，只能选择状态为“待引进”，且与当前飞机属于相同上营运人、相同方案机型的飞机
+        var rows = $('#dg').datagrid('getRows');
+        var companyCode = rows[0].OLD_ACNO;
+        if (status != "0") {
+            MsgAlert({content: '引进状态不允许合并！', type: 'error'});
+            return;
+        }
+        // var fleet = mpActype.split(",")[0];
+        ShowWindowIframe({
+            width: 700,
+            height: 600,
+            param: {pkid: pkid},
+            title: "监控信息",
+            url: "/views/main_data_manager/neweng_monitor/daTodoList.shtml"
+        });
+    }
+
+    //发起任务
+    function startTask(pkid) {
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, acids: acids, FunctionCode: "DA_NEWENG_MONITORING_START_TASK"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ajaxLoadEnd();
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                    reload2();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //发起评估单重评
+    function startTaskPgd(pkid) {
+        //校验
+        InitFuncCodeRequest_({
+            data: {pkid: param.pkid, type: "ENG", FunctionCode: "DA_NEWENG_MONITORING_CHECKPGD"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ajaxLoading();
+                    InitFuncCodeRequest_({
+                        data: {pkid: pkid, acids: acids, FunctionCode: "DA_NEWENG_MONITORING_START_TASK"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                ajaxLoadEnd();
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                reload_();
+                                reload2();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+    function startTask2(taskName, pkid) {
+        var jcType;
+        if (taskName == "NSJC重评") {
+            jcType = "NSJC";
+        }
+        if (taskName == "MPJC重评") {
+            jcType = "SMJC";
+        }
+        var rows = $('#dg').datagrid('getRows');
+
+        var engModel = rows[0].ENG_MODEL.split(",")[0];
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {
+                model: engModel,
+                pnSn: rows[0].PART_NO,
+                // sn: rows[0].ITEM_NUM,
+                jcType: jcType,
+                FunctionCode: "TD_JC_NEWENG_REV_ADD"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //更新状态 row.PKID
+                    InitFuncCodeRequest_({
+                        data: {pkid: pkid, acids: acids, FunctionCode: "DA_NEWENG_TODO_UPDATE_STATUS"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                ajaxLoadEnd();
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                reload_();
+                                reload2();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    function startTask3(taskName, pkid) {
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {acids: acids, FunctionCode: "EM_AC_IN_CHECK_ADD"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //更新状态 row.PKID
+                    InitFuncCodeRequest_({
+                        data: {pkid: pkid, acids: acids, FunctionCode: "DA_NEWAC_TODO_UPDATE_STATUS"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                ajaxLoadEnd();
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                reload_();
+                                reload2();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //系统构型重评 SYS_EVALUATE_NEWAC
+    function startTask4(pkid) {
+        // var fleet;
+        // fleet = mpActype.split(",")[0];
+        var rows = $('#dg').datagrid('getRows');
+        var engModel = rows[0].ENG_MODEL.split(",")[0];
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {model: engModel, pnAndSn: rows[0].PART_NO, FunctionCode: "SYS_EVALUATE_NEWENG"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //更新状态 row.PKID
+                    InitFuncCodeRequest_({
+                        data: {pkid: pkid, acids: acids, FunctionCode: "DA_NEWENG_TODO_UPDATE_STATUS"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                ajaxLoadEnd();
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                reload_();
+                                reload2();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //软件构型重评
+    function startTask5(pkid) {
+        var fleet;
+        fleet = mpActype.split(",")[0];
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {fleet: fleet, acids: acids, FunctionCode: "SW_EVALUATE_NEWAC"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //更新状态 row.PKID
+                    InitFuncCodeRequest_({
+                        data: {pkid: pkid, acids: acids, FunctionCode: "DA_NEWAC_TODO_UPDATE_STATUS"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                ajaxLoadEnd();
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                reload_();
+                                reload2();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //顺丰维修方案重评
+    function startTask6(pkid) {
+        // var fleet;
+        // fleet = mpActype.split(",")[0];
+        var rows = $('#dg').datagrid('getRows');
+        var engModel = rows[0].ENG_MODEL.split(",")[0];
+        var engModelSub = rows[0].ENG_MODEL_SUB.split(",")[0];
+        var pnsns = rows[0].PART_NO;
+        //根据发动机型号和发动机子型号查找机型，没有则提示配置
+        InitFuncCodeRequest_({
+            data: {engModel: engModel, engModelSub: engModelSub, FunctionCode: "DA_TASK6_CHECK"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data && jdata.data.FLEETS) {
+                        ajaxLoading();
+                        InitFuncCodeRequest_({
+                            data: {
+                                engModel: engModel,
+                                engModelSub: engModelSub,
+                                pnsns: pnsns,
+                                fleet: jdata.data.FLEETS,
+                                FunctionCode: "EM_EVALUATE_SF_ENG"
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    //更新状态 row.PKID
+                                    InitFuncCodeRequest_({
+                                        data: {pkid: pkid, acids: acids, FunctionCode: "DA_NEWENG_TODO_UPDATE_STATUS"},
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                ajaxLoadEnd();
+                                                param.OWindow.reload_();
+                                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                                reload_();
+                                                reload2();
+                                            } else {
+                                                MsgAlert({content: jdata.msg, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    } else {
+                        MsgAlert({content: '请先维护该发动机型号！', type: 'error'});
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+
+    // 保存
+    function save() {
+        //序列化列表数据
+        var rows = $('#dg').datagrid('getRows');
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+        }
+        var detailData = JSON.stringify(rows);
+
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var mainData = JSON.stringify($('#mform').serializeObject());
+        // datas = $.extend(datas, {FunctionCode: 'DA_ACREG_ADD', type: operation});
+        InitFuncCodeRequest_({
+            data: {detailData: detailData, mainData: mainData, FunctionCode: "DA_ACREG_ADD"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    // reload_();
+                    // CloseWindowIframe();
+                } else {
+                    // alert("已经进入错误1")
+                    // MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:error')});
+                    if (jdata.msg.indexOf("ACNO") != -1) {
+                        MsgAlert({content: "请检查飞机注册号是否重复.", type: 'error'});
+                    }
+
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+
+    function reload_() {
+        $("#dg").datagrid("reload");
+        //刷新ACID
+        InitDataForm(pkid);
+    }
+
+    function reload2() {
+        $("#dg2").datagrid("reload");
+    }
+
+    function closeW() {
+        //刷新父页面
+        param.OWindow.reload_();
+        CloseWindowIframe();
+    }
+
+    function closeTask() {
+        //校验是否完成
+        var rows = $('#dg2').datagrid('getRows');
+        for (i = 0; i < rows.length; i++) {
+            var countStr = rows[i].COUNT;
+            var status = rows[i].STATUS;
+            var strs = []; //定义一数组
+            strs = countStr.split("/"); //字符分割
+            //任务状态为非待发起，并且总数不等于 已执行数
+            if (status == 0 || strs[0] != strs[1]) {
+                MsgAlert({content: '任务未结束，不能关闭', type: 'error'});
+                return;
+            }
+            // rows[i] = toCamelCase(rows[i]);
+        }
+        //更新状态 row.PKID
+        var type = 'close';
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, type: type, acids: acids, FunctionCode: "DA_NEWAC_TODO_CLOSE_TASK"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                    reload2();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+
+</html>

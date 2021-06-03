@@ -1,0 +1,240 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="evalNo" name="evalNo"/>
+                <input type="hidden" id="spkid" name="spkid"/>
+                <table class="table table-bordered table-info">
+                    <tr id="view">
+                        <td colspan="2" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="th" align="right">范围类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="rangeType" name="rangeType"
+                                   data-options="required:true,validType:'comboBoxEditvalid[\'rangeType\']'"/>
+                        </td>
+                        <!--<th class="th" align="right">范围值：</th>
+                        <td class="tdr">
+                            <textarea id="rangeValue" name="rangeValue" data-options=""
+                                      style="height:60px;"></textarea>
+                        </td>-->
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="comto.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var rangeTypeArray;
+    function i18nCallBack() {
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        operation = param.operation;
+        rangeTypeArray = param.rangeTypeArray;
+        setParamA();
+
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EO_ENG_RANGE_TYPE,EM_EO_APL_RANGE_TYPE," +
+                    "EM_EO_APL_RANGE_TYPE_S,EM_EO_PART_RANGE_TYPE,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    if (applyType == "APL") {
+                        if (fleet == "B737" || fleet == "B757" || fleet=='B777') {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_EO_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    if(type != 'FJXH'){//飞机线号可新增多个
+                                        if(rangeTypeArray != null && rangeTypeArray.length > 0){
+                                            if(rangeTypeArray.indexOf(type) > -1){
+                                                MsgAlert({content: '该范围类型已添加，请选择其他类型', type: 'error'});
+                                                $("#rangeType").combobox('setValue', '');
+                                                return;
+                                            }
+                                        }
+                                    }
+                                    setPages(type);
+                                }
+                            });
+                        }else if (fleet == "B747" || fleet == "B767") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_EO_APL_RANGE_TYPE_S,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        }
+                    } else if (applyType == "PART") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_EO_PART_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                if(rangeTypeArray != null && rangeTypeArray.length > 0){
+                                    if(rangeTypeArray.indexOf(type) > -1){
+                                        MsgAlert({content: '该范围类型已添加，请选择其他类型', type: 'error'});
+                                        $("#rangeType").combobox('setValue', '');
+                                        return;
+                                    }
+                                }
+                                setPages(type);
+                            }
+                        });
+                    } else if (applyType == "ENG") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_EO_ENG_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                if(rangeTypeArray != null && rangeTypeArray.length > 0){
+                                    if(rangeTypeArray.indexOf(type) > -1){
+                                        MsgAlert({content: '该范围类型已添加，请选择其他类型', type: 'error'});
+                                        $("#rangeType").combobox('setValue', '');
+                                        return;
+                                    }
+                                }
+                                setPages(type);
+                            }
+                        });
+                    }
+
+
+                }
+                if (rangeType) {
+                    setPages(rangeType);
+                }
+
+            }
+        });
+    }
+
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_MPD_EVAL_APPLICABILITY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#rangeType').combobox({value: jdata.data.RANGE_TYPE, editable: false, onlyview: true});
+                    if (jdata.data.RANGE_TYPE == "ALL") {
+                        $("#rangeValue").attr("disabled", true);
+                        return;
+                    }
+                    //初始化范围值
+                    InitFuncCodeRequest_({
+                        data: {pkid: pkid, FunctionCode: "EM_MPD_EVAL_RANGE_VALUE_PKID"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                $("#spkid").val(jdata.data.PKID);
+                                $("#rangeValue").textbox({value: jdata.data.VALUE});
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'EM_MPD_EVAL_APPLIC_ALL_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+//                    param.OWindow.reloadg3();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+
+    //paraName 等找参数的名称
+    function getUrlParam(paraName) {
+        var url = document.location.toString();
+        var arrObj = url.split("?");
+        if (arrObj.length > 1) {
+            var arrPara = arrObj[1].split("&");
+            var arr;
+            for (var i = 0; i < arrPara.length; i++) {
+                arr = arrPara[i].split("=");
+                if (arr != null && arr[0] == paraName) {
+                    return arr[1];
+                }
+            }
+            return "";
+        }
+        else {
+            return "";
+        }
+    }
+
+
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;
+                    return true;
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        },
+
+    });
+</script>
+</html>

@@ -1,0 +1,116 @@
+<table class="table table-bordered table-info" width="100%" style="padding-top:10px" id="pdList">
+    <tr>
+        <th class="table-cell cell-normal">Pend No</th>
+        <th class="table-cell cell-normal">Deferral No</th>
+        <th class="table-cell cell-normal">Apply Date</th>
+        <th class="table-cell cell-normal">Category</th>
+        <th class="table-cell cell-normal">Creator</th>
+    </tr>
+    
+</table>
+    
+<script type="text/javascript">
+    
+
+    $(function(){
+        function pendClick(pendNo){
+            if(!pendNo){
+                return
+            }
+            let defectId = parent.get_defectId();
+            let title = `【故障推迟查看----${pendNo}】`;
+            let param = {
+                defectId: defectId,
+                operation: "PEND"    
+            }
+            ShowWindowIframe({
+                width: "1100",
+                height: "700",
+                title: title,
+                param: param,
+                url: "/views/defect/viewPending.shtml"
+            });
+        }
+
+        function deferralClick(){
+            let defectId = parent.get_defectId();
+            let title = `【故障保留查看】`;
+            let param = {
+                defectId: defectId,
+                operation: "DEFERRAL"    
+            }
+            ShowWindowIframe({
+                width: "1100",
+                height: "700",
+                title: title,
+                param: param,
+                url: "/views/defect/viewPending.shtml"
+            });
+        }
+        
+        /** 获取列表数据 **/
+        function get_list_data(){
+            let defectId = parent.get_defectId()
+            let url = "/api/v1/defect/defect/pend/load_page?id=" + defectId;
+            axios.get(url).then(response=>{
+                if(response.data.msg.toUpperCase().indexOf("SUCCESS") != -1){
+                    console.log("response.data.data")
+                    console.log(response.data.data)
+                    console.log(response.data.data.pendList)
+                    load_list_data(response.data.data.pendList)
+                }else if(response.data.msg.toUpperCase().indexOf("ERROR") != -1){
+                    throw new Error("pending/deferral基本信息失败")
+                }
+            }).catch(err=>{
+                load_list_data()
+                MsgAlert({type: "error", content: err.message})
+            })
+        }
+
+        function load_list_data(data){
+            if(!data || !Array.isArray(data) || data.length < 1){
+                $("#pdList").append(' <tr>\r\n \
+                                    <td class="table-cell cell-normal" colspan="5">N/A</td>\r\n \
+                                </tr>\r\n')
+            }else{
+                for(let i = 0, len = data.length; i < len; i++){
+                    append_table_row(i, data[i])
+                }
+            }
+        }
+
+        function append_table_row(index, row_data){
+            if(!row_data){
+                return
+            }
+            let html = "";
+            let pendNo = row_data.pendNo? row_data.pendNo: "";
+            let deferredNo = row_data.deferredNo? row_data.deferredNo: "";
+            let applyDate = row_data.applyDate? row_data.applyDate: "";
+            let category = row_data.category? row_data.category: "";
+            let creatorInfo = row_data.creator? row_data.creator: "";
+            if(category === "DFRL" && !deferredNo){
+                deferredNo = "view"
+            }
+            // if(!!creator && !!creator.name && !! creator.number){
+            //     creatorInfo = `${creator.name}(${creator.number})`
+            // }
+            html += '<tr id="pdRow'+ index +'">\r\n'
+                 +'<td class="table-cell cell-normal"><span id="pendNo'+index+'" >\r\n'
+                 +'<a style="color: #f60" >'+ pendNo +'</a><span></td>\r\n'
+                 +'<td class="table-cell cell-normal"><span id="deferralNo'+index+'" >\r\n'
+                 +'<a style="color: #f60">'+ deferredNo +'</a></span></td>\r\n'
+                 +'<td class="table-cell cell-normal"><span id="applyDate'+index+'" >'+ applyDate +'</span></td>\r\n'
+                 +'<td class="table-cell cell-normal"><span id="category'+index+'" >'+ category +'</span></td>\r\n'
+                 +'<td class="table-cell cell-normal"><span id="creator'+index+'" >'+ creatorInfo +'</span></td>\r\n'
+                 +'</tr>\r\n';
+            $("#pdList").append(html)
+            $("#pendNo" + index).click(()=>pendClick(pendNo))
+            $("#deferralNo" + index).click(()=>deferralClick())
+            // return html;
+        }
+
+        get_list_data();
+    })
+	
+</script>

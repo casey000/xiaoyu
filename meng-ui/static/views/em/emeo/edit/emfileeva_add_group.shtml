@@ -1,0 +1,330 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>增加适用性分组</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" class="easyui-textbox" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="4" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin-right:70px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right">适用型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="actype" name="actype" data-options="" disabled="disabled"
+                            />
+                        </td>
+                        <th class="th" align="right">group：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="groupName" name="groupName" data-options="required:true"
+                                   data-options="editable:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" align="right">
+                            <input class="btn btn-primary" type="button" onclick="add()" value="增加"
+                                   style="width: 50px;margin-right:70px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4">
+                            <fieldset class="fieldset_eui" id="fcbg" style=" height:280px">
+                                <table id='dg'>
+                                </table>
+                            </fieldset>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param = {};
+    var operation;
+    var obj = {};
+    var eoPkid;
+    var applyType;
+    var applyModel;
+    var detailFun;
+    var groupid;
+    var acids;
+    var sflag;
+    function i18nCallBack() {
+        window.moveTo(400, 200);
+        window.resizeTo("600", "500");
+        param = getParentParam_();
+        operation = param.operation;
+        //evapkid = param.evapkid;
+        applyType = param.applyType;
+        groupid = param.groupid;
+        applyModel = param.applyModel;
+        eoPkid = param.eoPkid;
+        sflag = param.sflag;
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "REVSUG_FLEET,EM_EO_APL_RANGE_TYPE,EM_EO_PART_RANGE_TYPE,EM_EO_ENG_RANGE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#actype").combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.EO_APPLY_MODEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    if (param.applyType == "APL") {
+                        detailFun = "EM_EO_APP_RANGE_APL_LIST";
+                    }else if(param.applyType == 'ENG'){
+                        detailFun = "EM_EO_APP_RANGE_ENG_LIST";
+                    }else{
+                        detailFun = "EM_EO_APP_RANGE_PART_ENG_LIST";
+                    }
+                    $("#actype").combobox("setValue", param.applyModel);
+                    var apply = [];
+                    apply.push.apply(apply, jdata.data["EM_EO_APL_RANGE_TYPE"]);
+                    apply.push.apply(apply, jdata.data["EM_EO_PART_RANGE_TYPE"]);
+                    apply.push.apply(apply, jdata.data["EM_EO_ENG_RANGE_TYPE"]);
+
+                    PAGE_DATA['rangeType'] = DomainCodeToMap_(apply);
+
+                }
+                if (groupid) {
+                    $('#groupName').textbox({editable: false, onlyview:true});
+                    InitDataForm(groupid);
+                }
+            }
+        })
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {pkid: pkid, FunctionCode: "EM_EO_GROUP_BY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    pkid = pkid;
+                    //初始化范围值
+
+                    obj = jdata.data;
+                    InitDataGrid(pkid);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(mpkid) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            pagination: false,
+            singleSelect: true,
+            pageSize: 10,
+            resize: function () {
+                return tabs_standard_resize($("#fcbg"), -30, -0.01, -0.01, -0.01);
+            },
+            queryParams: {groupPkid: mpkid},
+            columns: {
+                param: {FunctionCode: 'EM_EO_EVAL_APP_GROUP_LIST'},
+                alter: {
+                    RANGE_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['rangeType'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+
+            onBeginEdit: function (index, row) {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.RANGEPKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        var ranPkid = rowData.RANGEPKID? rowData.RANGEPKID : "";
+                        var ranVal = rowData.RANGE_VALUE;
+                        var ranType = rowData.RANGE_TYPE;
+                        acids = rowData.ACIDS;
+                        rvalues = rowData.RVALUES;
+                        if(param.applyType == 'PART'){//部件序号
+                            if(!rvalues && ranVal){
+                                rvalues = ranVal.replace(/,/g, ';');
+                            }
+                        }
+                        var fleet = $("#actype").combobox('getValue');
+
+                        ShowWindowIframe({
+                            width: "550",
+                            height: "400",
+                            param: {
+                                appGroupPkid: groupid,
+                                applyType: applyType,
+                                eoPkid: eoPkid,
+                                fleet: fleet,
+                                applyModel: applyModel,
+                                rangeType: ranType,
+                                rvalues: rvalues,
+                                acids: acids,
+                                ranPkid: ranPkid
+                            },
+                            url: "/views/em/emeo/applic/addEoAllApplic.shtml"
+                        });
+
+                    }
+                },
+
+                {
+                    id: "m-edit", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.RANGEPKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+
+                        if(!confirm("所有被引用适用性明细的地方可能同步删除？")){
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            async : false,
+                            data: {pkid: rowData.RANGEPKID, FunctionCode: "EM_EO_APP_RANGE_DEL"},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+                ],
+
+
+            validAuth: function (row, items) {
+                if (operation == "view") {
+                    items['删除'].enable = false;
+                }
+
+                return items;
+            }
+
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var groupName = $('#groupName').textbox('getValue');
+        var reg = /^[1-9]\d*$/;
+        if(!reg.test(groupName) || groupName > 999){
+            MsgAlert({content: '分组名称为1~999的正整数', type: 'error'});
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        var actype = $('#actype').combobox('getValue');
+        datas.actype = actype;
+        //datas.groupName = 'G'+ groupName;
+        datas = $.extend({
+            eoPkid: param.eoPkid,
+            groupType: param.applyType
+        }, datas, {FunctionCode: 'EM_EO_APP_GROUP_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#pkid").textbox('setValue', jdata.data.pkid);
+                    pkid = jdata.data.pkid;
+                    groupid = jdata.data.pkid;
+                    obj.GROUP_TYPE = jdata.data.groupType;
+                    obj.EO_PKID = jdata.data.eoPkid;
+                    obj.ACTYPE = jdata.data.actype;
+                    obj.PKID = jdata.data.pkid;
+                    InitDataGrid(pkid);
+                    param.OWindow.reload_("#dg4");
+                    param.OWindow.reload_("#dg5");
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg.replace("msg_err:", "") : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function add() {
+        if (!obj.PKID) {
+            MsgAlert({content: "请先保存适用性分组主表数据！", type: "error"});
+            return false;
+        }
+        var fleet = $("#actype").textbox('getValue');
+
+        var allRows = $('#dg').datagrid('getRows');
+        var rangeTypeArray = [];
+        if(allRows.length > 0){
+            for(var i=0; i<allRows.length; i++){
+                rangeTypeArray.push(allRows[i].RANGE_TYPE);
+            }
+        }
+
+        ShowWindowIframe({
+            width: "550",
+            height: "400",
+            param: {
+                appGroupPkid: obj.PKID,
+                applyType: obj.GROUP_TYPE,
+                eoPkid: obj.EO_PKID,
+                fleet: fleet,
+                sflag: sflag,
+                rangeTypeArray: rangeTypeArray
+            },
+            url: "/views/em/emeo/applic/addEoAllApplic.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+        param.OWindow.reload_("#dg4");
+        param.OWindow.reload_("#dg5");
+        //时限
+        param.OWindow.param.OWindow.parent.frames["emEoApp2Div"].reload_();
+    }
+
+
+    //驼峰转下划线
+    function toLine(name) {
+        return name.replace(/([A-Z])/g, "_$1").toLowerCase();
+    }
+</script>
+</html>

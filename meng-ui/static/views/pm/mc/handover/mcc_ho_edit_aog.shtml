@@ -1,0 +1,293 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+            width: 94.8% !important;
+        }
+
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <div id="p0" class="easyui-panel" title="停场不适航项目维护" style="width: 100%"></div>
+        <input type="hidden" id="pkid" name="pkid">
+        <input type="hidden" id="refPkid" name="refPkid">
+        <table class="table table-bordered table-info">
+            <tr>
+                <td align="right" style="padding-right:10px;height:35px">
+                    <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                           value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5" style="width:90px;" align="right" nowrap> 机号：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="acno" name="acno" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:130px;" align="right"> 工作类型：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="type" name="type" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 现场负责人：</th>
+                <td class="tdr">
+                    <input type="hidden" id="personId" name="personId">
+                    <input class="easyui-combogrid" id="person" name="person" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:90px;" align="right"> 开始时间：</th>
+                <td class="tdr">
+                    <input class="easyui-datetimebox" id="beginDate" name="beginDate"
+                           data-options="required:true,editable:false,showSeconds:false"
+                           style="width:150px;"/>
+                </td>
+                </td>
+                <th class="td5" style="width:130px;" align="right" nowrap> 预计结束日期/时间：</th>
+                <td class="tdr">
+                    <input class="easyui-datetimebox" id="preRelieveDate" name="preRelieveDate"
+                           data-options="editable:false,showSeconds:false"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"></th>
+                <td class="tdr">
+            </tr>
+            <tr>
+                <th class="td5" style="width: 90px;" align="right">标题：</th>
+                <td class="tdr" colspan="5">
+                    <input class="easyui-textbox " name="title" id="title" data-options="validType:['maxLength[200]']"
+                           multiline="true" style="height:50px; width:750px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width: 90px;" align="right">详情：</th>
+                <td class="tdr" colspan="5">
+                    <input class="easyui-textbox " name="des" id="des" data-options="validType:['maxLength[2000]']"
+                           multiline="true" style="height:100px; width:750px;"/>
+                </td>
+            </tr>
+            <tr>
+                <td class="tdr" colspan="6">
+                    <a class="searchBtn" type="button" onclick="addDetail();"><span>增加过程项</span></a>
+                </td>
+            </tr>
+        </table>
+        <table id="dg" style="width:100%;height:70px"></table>
+    </form>
+</div>
+</div>
+<script type="application/javascript">
+    var param;
+    var identity = 'dg';
+    var identity1 = 'dg1';
+    var PAGE_DATA = {};
+    var selectRow;
+    var hoPkid;
+    function i18nCallBack() {
+        param = getParentParam_();
+        if (param.hoPkid && param.isAdd) {
+            hoPkid = param.hoPkid;
+            $("#refPkid").val(hoPkid);
+        }
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "YESORNO_NUMBER,MSGRP,PM_MC_HOAOG_TYPE"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['position'] = DomainCodeToMap_(jdata.data.PM_MC_POSITION);
+                // 初始化查询条件
+                $("#person").MyComboGrid({
+                    idField: 'USER_NAME',  //实际选择值
+                    textField: 'USER_NAME', //文本显示值
+                    panelHeight: '220px',
+                    width: 150,
+                    params: {FunctionCode: 'FLOW_WORK_ACCOUNT'},
+                    columns: [[
+                        {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                        {field: 'USER_NAME', title: '工程师', width: 50}
+                    ]],
+                    onHidePanel: function () {
+                        var t = $("#personId").val();
+                        if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                            alert('请选择，不要直接输入！');
+                            $(this).combogrid({value: ''});
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        selectRow = row;
+                        $("#personId").val(row.ACCOUNT_ID);
+                    }
+                });
+                $('#type').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.PM_MC_HOAOG_TYPE
+                });
+                $('#acno').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                $('#ifRelieve').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.YESORNO_NUMBER
+                });
+                $('#ifGoon').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.YESORNO_NUMBER
+                });
+                if (param.PKID) {
+                    $("#pkid").val(param.PKID);
+                    InitDataForm(param.PKID);
+                    InitDataGridDetail();
+                }
+            }
+        });
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "PM_MC_HO_AOG_GET"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                }
+            }
+        });
+    }
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var data = $("#mform").serializeObject();
+        data = $.extend({}, data, {FunctionCode: 'PM_MC_HO_AOG_ADD_EDIT'});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    var pkid = jdata.data;
+                    $("#pkid").val(pkid);
+                    param.OWindow.InitDataGridAog();
+                    //CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function addDetail() {
+        var pkid = $("#pkid").val();
+        if (pkid == "") {
+            MsgAlert({content: '请先保存主体信息', type: 'error'});
+            return;
+        }
+        ShowWindowIframe({
+            width: 650,
+            height: 500,
+            title: '过程事项',
+            param: {refPkid: pkid},
+            url: "/views/pm/mc/handover/mcc_ho_edit_aog_detail_add_edit.shtml"
+        });
+    }
+
+    function InitDataGridDetail() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            queryParams: {refPkid: $("#pkid").val()},
+            columns: {
+                param: {FunctionCode: 'PM_MC_HOAOG_DETAIL_LIST'},
+                alter: {
+                    ACT_BEGIN: {
+                        formatter: function (value, row, index) {
+                            return value == undefined ? "" : value.substring(0, 16);
+                        }
+                    },
+                    PLAN_END: {
+                        formatter: function (value, row, index) {
+                            return value == undefined ? "" : value.substring(0, 16);
+                        }
+                    },
+                    ACT_END: {
+                        formatter: function (value, row, index) {
+                            return value == undefined ? "" : value.substring(0, 16);
+                        }
+                    },
+                    MODIFY_DATE: {
+                        type: 'date',
+                    },
+                }
+            },
+            /*validAuth: function (row, items) {
+             if (flag == 'view') {
+             items['编辑'].enable = false;
+             items['删除'].enable = false;
+             }
+             return items;
+             },*/
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 650, height: 500,
+                            url: "/views/pm/mc/handover/mcc_ho_edit_aog_detail_add_edit.shtml"
+                        })
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "删除",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "确认删除吗",
+                            param: {data: {pkid: rowData.PKID}},
+                            FunctionCode: "PM_MC_HOAOG_DETAIL_DEL"
+                        })
+                    }
+                }
+            ]
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.InitDataGridAog();
+                $("#mform").form('clear');
+            }
+        });
+    }
+</script>
+</body>
+</html>

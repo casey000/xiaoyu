@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">章节主数据维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">机号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="acno" id="acno" data-options=""
+                               style="width:120px;"/>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()"
+                           >查询</a>
+                    </td>
+                    <td align="right">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="wbReport()"
+                           >维护称重报告</a>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="alarmSet()"
+                           >预警设置</a>
+                        <!--<a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="test()"
+                           >测试</a>-->
+
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var acno;
+    var level;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_MAN_ACNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data["DA_ACREG_MAN_ACNO"]);
+
+                    $('#acno').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DA_ACREG_MAN_ACNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_WB_LIST'},
+                alter: {
+
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [
+                {
+                    id: "m-view", i18nText: "查看改变量", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: '', width: 1000, height: 500, title: $.i18n.t('查看改变量'),
+                            param: {
+                                reportPkid : rowdata.PKID
+                            },
+                            url: "/views/em/emwb/em_wb_change_list.shtml"
+                        });
+                    }
+                },
+            ],
+            rowStyler:function(index,row){
+                 computeAlertLevel(row.PKID, row.ACNO);
+                if(level == 'red'){
+                    return 'background-color:red';
+                }else if(level == 'orange'){
+                    return 'background-color:orange';
+                }else if(level == 'yellow'){
+                    return 'background-color:yellow';
+                }
+            }
+
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function wbReport() {
+        acno = $('#acno').combobox('getValue');
+        ShowWindowIframe({
+            width: 1200,
+            height: 500,
+            title: "称重报告维护",
+            param : {
+               acno : acno
+            },
+            url: "/views/em/emwb/em_wb_report_list.shtml"
+        });
+    }
+
+    function alarmSet() {
+        ShowWindowIframe({
+            width: 550,
+            height: 400,
+            title: "载重平衡预警设置",
+            url: "/views/em/emwb/em_wb_alert_set.shtml"
+        });
+    }
+    
+    //计算预警颜色
+    function computeAlertLevel(pkid, acno) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {pkid: pkid, acno:acno, FunctionCode: 'EM_WB_REPORT_COMPUTE_ALERT_LEVEL'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    level = jdata.data;
+                }
+                else {
+                    return "wu";
+                }
+            }
+        });
+    }
+
+    //测试
+    function test() {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {FunctionCode: 'EM_WB_TEST'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: '测试成功'});
+                }
+                else {
+                    MsgAlert({content: '测试失败', type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

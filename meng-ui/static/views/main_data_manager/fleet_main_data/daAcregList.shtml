@@ -1,0 +1,353 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">飞机主数据维护</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">方案机型：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" style="width: 100px;" id="mpActype"
+                               name="mpActype"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">飞机类别：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="airCategory" name="airCategory" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:85px;" align="right">流程状态：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-textbox" id="wfStatus" name="wfStatus" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:85px;" align="right">飞机状态：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-textbox" id="status" name="status" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:85px;" align="right">飞机注册号：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-textbox" id="acno" name="acno" style="width:100px;"/>
+                    </td>
+
+                    <td colspan="2">
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="excelBtn" data-options="iconCls:'icon-page_excel'"
+                           onclick="excelExport('dg','飞机主数据清单','DA_ACREG_LIST')"><span>导出</span></a>
+                    </td>
+
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    //运营人
+    var companyCode;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_WFSTATUS,DA_ACREG_STATUS,DA_FLEET,DA_ACREG_AIR_CATEGORY,DA_ACREG_STATUS,DA_ACREG_MP_ACTYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //型号
+                    PAGE_DATA['acengModel'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["DA_ACREG_STATUS"]);
+                    PAGE_DATA['daAcregAirCategory'] = DomainCodeToMap_(jdata.data["DA_ACREG_AIR_CATEGORY"]);
+                    PAGE_DATA['wfStatus'] = DomainCodeToMap_(jdata.data["DA_ACREG_WFSTATUS"]);
+                    $('#airCategory').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_ACREG_AIR_CATEGORY,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_ACREG_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#wfStatus').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_ACREG_WFSTATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //维修方案机型
+                    $('#mpActype').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_ACREG_MP_ACTYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {companyCode: companyCode},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'DA_ACREG_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    WF_STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['wfStatus'][value];
+                        }
+                    },
+                    AIR_CATEGORY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['daAcregAirCategory'][value];
+                        }
+                    },
+                    FACTORY_DATE: {
+                        type: 'date'
+                    },
+                    DELIVER_DATE: {
+                        type: 'date'
+                    },
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                    APPLY_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['applyType'][value];
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+
+            },
+            validAuth: function (row, items) {
+                // items['编辑'].enable = true;
+                // if (row.STATUS == "0" && row.WF_STATUS == "YCJ") {
+                //只有流程状态是审批中时不可编辑；
+                if (row.WF_STATUS == "PZZ") {
+                    items['删除'].enable = false;
+                    items['编辑'].enable = false;
+                    items['补充飞机产权信息'].enable = false;
+                    items['补充飞机PTF信息'].enable = false;
+                } else {
+                    items['删除'].enable = true;
+                    items['编辑'].enable = true;
+                    items['补充飞机产权信息'].enable = true;
+                    items['补充飞机PTF信息'].enable = true;
+                }
+                if (row.WF_STATUS == "YCJ") {
+                    items['办理轨迹'].enable = false;
+                } else {
+                    items['办理轨迹'].enable = true;
+                }
+                if (row.WF_STATUS == "YPZ") {
+                    items['删除'].enable = false;
+                }
+                return items;
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    auth: "DA_ACREG_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.ACID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.ACID);
+                    }
+                },{
+                    id: "m-supplement",
+                    i18nText: "补充飞机产权信息",
+                    auth: "DA_ACREG_BC",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.ACID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('supplement', rowData.ACID, '');
+                    }
+                },
+                {
+                    id: "m-supplement-ptf",
+                    i18nText: "补充飞机PTF信息",
+                    auth: "DA_ACREG_BC_PTF",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.ACID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('supplementPtf', rowData.ACID, rowData.AIR_CATEGORY);
+                    }
+                },
+                {
+                    id: "",
+                    i18nText: "删除",
+                    auth: "DA_ACREG_DEL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.ACID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        //校验是否提交过工作流
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'DA_ACREG_DEL_CHECK',
+                                objNo: rowData.ACID,
+                                objKey: "DA_ACREG"
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    if (jdata.data.length == 0) {
+                                        if (confirm("是否确认删除？")) {
+                                            InitFuncCodeRequest_({
+                                                data: {FunctionCode: 'DA_ACREG_DEL', pkid: rowData.ACID},
+                                                successCallBack: function (jdata) {
+                                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                                        reload_();
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    } else {
+                                        MsgAlert({content: "该记录已提交过工作流，不可删除！", type: "error"})
+                                    }
+                                }
+                            }
+                        });
+
+                    }
+                }, {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.ACID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.ACID, objKey: "DA_ACREG"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+
+
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD",
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    auth: "DA_ACREG_ADD",
+                    handler: function () {
+                        openDetai("add", "");//打开新增页面
+                    }
+                },
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.ACID);
+            }
+        });
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid, airCategory) {
+        var title_ = $.i18n.t('飞机主数据详情');
+        ShowWindowIframe({
+            width: "1300",
+            height: "750",
+            title: title_,
+            param: {operation: operation, pkid: pkid, airCategory: airCategory},
+            url: "/views/main_data_manager/fleet_main_data/daAcregDetail.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>停场不适航项目明细列表</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend>搜索</legend>
+    <form id="ffSearch" method="post">
+        <input type="hidden" id="refPkid" name="refPkid">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th style="width: 80px;" align="right">工作项：</th>
+                    <td>
+                        <input class="easyui-combobox" id="task" name="task" data-options="" style="width:320px"/>
+                    </td>
+                    <td width="800px">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="onSearch_()"><span>查询</span></a>
+                        <a class="addBtn" data-options="" onclick="add()"><span>新增</span></a>
+                    </td>
+                </tr>
+
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    var refPkid;
+    var flag;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        if (param.refPkid) {
+            refPkid = param.refPkid;
+            $("#refPkid").val(refPkid);
+        }
+        if (param.flag && param.flag == 'view') {
+            flag = param.flag;
+            $(".addBtn").hide();
+        }
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "PM_MC_HOAOG_DETAIL_TASK"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['position'] = DomainCodeToMap_(jdata.data.PM_MC_POSITION);
+                $('#task').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.PM_MC_HOAOG_DETAIL_TASK
+                });
+                InitDataGrid();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            queryParams: {refPkid: refPkid},
+            columns: {
+                param: {FunctionCode: 'PM_MC_HOAOG_DETAIL_LIST'},
+                alter: {
+                    ACT_BEGIN: {
+                        formatter: function (value, row, index) {
+                            return value == undefined ? "" : value.substring(0, 16);
+                        }
+                    },
+                    PLAN_END: {
+                        formatter: function (value, row, index) {
+                            return value == undefined ? "" : value.substring(0, 16);
+                        }
+                    },
+                    ACT_END: {
+                        formatter: function (value, row, index) {
+                            return value == undefined ? "" : value.substring(0, 16);
+                        }
+                    },
+                    MODIFY_DATE: {
+                        type: 'date',
+                    },
+                }
+            },
+            validAuth: function (row, items) {
+                if (flag == 'view') {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                }
+                return items;
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 650, height: 500,
+                            url: "/views/pm/mc/handover/mcc_ho_edit_aog_detail_add_edit.shtml"
+                        })
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "删除",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "确认删除吗",
+                            param: {data: {pkid: rowData.PKID}},
+                            FunctionCode: "PM_MC_HOAOG_DETAIL_DEL"
+                        })
+                    }
+                }
+            ]
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    function add() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 650, height: 500,
+            param: {refPkid: refPkid},
+            url: "/views/pm/mc/handover/mcc_ho_edit_aog_detail_add_edit.shtml"
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,254 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.WS_FUNCTION_LIST.TITLE">功能列表</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="RES.WS_FUNCTION_LIST.PKID" style="width: 80px;" align="right">功能编码：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="funcCode"/>
+                    </td>
+                    <th data-i18n="RES.WS_FUNCTION_LIST.FUNC_NAME" style="width: 80px;" align="right">功能名称：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="funcName"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="searchBtn" onclick="onSearch_('l_dg')"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="searchBtn"
+                           onclick="onRefresh_()"><span>刷新Function</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="clearBtn" data-options="iconCls:'icon-clear'"
+                           onclick="ClearAll()"><span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:true" style="width: 50%;">
+        <div>
+            <table id="l_dg"></table>
+        </div>
+    </div>
+    <div id="lay_right" data-options="region:'center'">
+        <div>
+            <table id="r_dg"></table>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitLeftDataGrid();
+        InitRightDataGrid();
+    }
+
+    $(function () {
+
+    });
+
+    function InitLeftDataGrid() {
+        var identity = 'l_dg';
+        $("#l_dg").MyDataGrid({
+            identity: identity,
+            title: $.i18n.t('page:PAGE.WS_FUNCTION_LIST.TITLE'),
+            columns: {param: {FunctionCode: 'WS_FUNCTION_LIST'}},
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 600, height: 360,
+                            url: "/views/ws/infra_struct/function/ws_function_add_edit.shtml"
+                        });
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                    onclick: function () {
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {pkid: "PKID"},
+                            FunctionCode: "WS_FUNCTION_DEL"
+                        });
+                    }
+                }
+
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth: "",
+                    handler: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 600, height: 360,
+                            url: "/views/ws/infra_struct/function/ws_function_add_edit.shtml"
+                        });
+                    }
+                }, '-',
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ],
+            onClickRow: function (index, row) {
+                if (!row) {
+                    return;
+                }
+                $('#r_dg').datagrid('load', {
+                    funcId: row.PKID
+                });
+            },
+            resize: function () {
+                return {
+                    height: $(document.body).height() - $("fieldset").height() - 30,
+                    width: $("#lay_left").width()
+                };
+            }
+        });
+    }
+
+    function reloadLdg_() {
+        $("#l_dg").datagrid("reload");
+
+    }
+
+    function InitRightDataGrid() {
+        var identity = 'r_dg';
+        $("#r_dg").MyDataGrid({
+            identity: identity,
+            title: $.i18n.t('page:PAGE.WS_SERVICE_LIST.TITLE'),
+            columns: {param: {FunctionCode: 'WS_SERVICE_LIST'}},
+            queryParams: {funcId: ''},
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "",
+                    onclick: function () {
+                        var lrow = getDG('l_dg').datagrid('getSelected');
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 850, height: 700,
+                            param: {FUNCTION_ID: lrow.PKID},
+                            url: "/views/ws/infra_struct/function/ws_service_add_edit.shtml"
+                        });
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                    onclick: function () {
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {pkid: "PKID", fsPkid: "FS_PKID"},
+                            FunctionCode: "WS_SERVICE_DEL"
+                        });
+                    }
+                },
+                {
+                    id: "justDelRel", i18nText: "common:COMMON_OPERATION.DELRELFUNCSERV", auth: "",
+                    onclick: function () {
+                        var rowDataL = $("#l_dg").datagrid('getSelected');
+                        var rowDataR = $("#r_dg").datagrid('getSelected');
+
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {data: {funcId: rowDataL.PKID, servId: rowDataR.PKID}},
+
+                            FunctionCode: "REL_FUNC_SERV_DEL"
+                        });
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth: "",
+                    handler: function () {
+                        var rowDataL = $("#l_dg").datagrid('getSelected');
+                        if (!rowDataL) {
+                            layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.FUNC_NOT_SELECT'), {icon: 5});
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 800, height: 700,
+                            param: {FUNC_ID: rowDataL.PKID},
+                            url: "/views/ws/infra_struct/function/ws_service_add_edit.shtml"
+                        });
+                    }
+                },
+                {
+                    iconCls: 'icon-add', text: $.i18n.t('common:COMMON_OPERATION.ADDRELFUNCSERV'),
+                    handler: function () {
+                        var rowDataL = $("#l_dg").datagrid('getSelected');
+                        if (!rowDataL) {
+                            layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.FUNC_NOT_SELECT'), {icon: 5});
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 600, height: 700,
+                            param: {FUNC_ID: rowDataL.PKID},
+                            url: '/views/ws/infra_struct/function/rel_func_serv_add_edit.shtml'
+                        });
+                    }
+                }, '-',
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ],
+            resize: function () {
+                return {
+                    height: $(document.body).height() - $("fieldset").height() - 30,
+                    width: $("#lay_right").width()
+                };
+            }
+        });
+    }
+
+    function reloadRdg_() {
+        $("#r_dg").datagrid("reload");
+
+    }
+
+    function ClearAll() {
+        onClear_('l_dg');
+        onClear_('r_dg');
+    }
+
+    function onRefresh_() {
+        InitFuncCodeRequest_({
+            url: "/api/v1/system/fdict",
+            data: {},
+            successCallBack: function (jdata) {
+                alert(jdata.code);
+            }
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('l_dg', '#ffSearch');
+    }
+</script>
+</body>
+</html>

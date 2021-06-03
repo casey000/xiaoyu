@@ -1,0 +1,142 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<style>
+    .ctbox {
+        margin: 0 auto;
+        width: 990px;
+    }
+</style>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>未添加构型清单</title>
+</head>
+
+<body class="ibody">
+<div class="ctbox">
+    <div id="tt" class="ibox  float-e-margins" style="width:100%; height: 380px">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+
+                <table class="table table-bordered table-info">
+                    <tr id='btn'>
+                        <td colspan="2" align="left">
+                            <input id="saveBtn" style="margin-left: 90px" class="btn btn-primary" type="button" value="保存" onclick="save()"/>&nbsp;&nbsp;
+                            <input class="btn btn-primary" style="margin-right: 32px" type="button" onclick="closeW()"
+                                   value="关闭"/>
+                        </td>
+                    </tr>
+                </table>
+                <fieldset class="fieldset_eui">
+                    <legend>涉及构型清单</legend>
+                    <table id="dg"></table>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var pkid = "";
+    var fleet = "";
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        fleet = param.fleet;
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ENG_MODEL,EM_SYSCONFIG_APP_TYPE,EM_SYSCONFIG_STATUS,YESORNO,WS_USER,WS_ORG"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['appType'] = DomainCodeToMap_(jdata.data["EM_SYSCONFIG_APP_TYPE"]);
+                    PAGE_DATA['validFlag'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_SYSCONFIG_STATUS"]);
+                    PAGE_DATA['userName'] = DomainCodeToMap_(jdata.data["WS_USER"]);
+                    InitDataGrid();
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,
+            queryParams: {fleet:fleet,newAcId: pkid},
+            columns: {
+                param: {FunctionCode: 'EM_SYSCONFIG_NEW_AC_CHECK'},
+                alter: {
+                    VALID_FLAG: {
+                        formatter: function (value) {
+                            return PAGE_DATA['validFlag'][value];
+                        }
+                    },
+                    APP_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['appType'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    CREATE_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['userName'][value];
+                        }
+                    },
+                }
+            },
+            contextMenus: [
+                {
+
+                },
+            ],
+            onBeginEdit: function (rowIndex, rowData) {
+            },
+            onEndEdit: function (index, row, changes) {
+            }
+        });
+    }
+
+    function save() {
+        var rowData = $('#dg').datagrid('getChecked');
+        if (!rowData || rowData.length == 0) {
+            MsgAlert({content: '请至少选择一条数据', type: 'error'});
+            return;
+        }
+        ajaxLoading();
+        var nos = [];
+        for (var i = 0; i < rowData.length; i++) {
+            nos.push(rowData[i].CONFIG_NO);
+        }
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_NEW_AC_ADD",
+                nos: nos.toString(),
+                newAcId: pkid
+            },
+            successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: '操作成功'});
+                    param.OWindow.reload_1();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+
+</html>

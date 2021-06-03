@@ -1,0 +1,211 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+        }
+
+    </style>
+</head>
+<body>
+
+<div style="width:630px;margin:0 auto;">
+    <form class="form-horizontal m-t" id="mform">
+        <div id="p0" class="easyui-panel" title="常用工卡维护">
+        <input type="hidden" id="pkid" name="pkid">
+        <table class="table table-bordered table-info">
+             <tr>
+                <td align="right" style="padding: 6px;">
+                    <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();" value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5" style="width: 80px;" align="right">工卡编号：</th>
+                <td class="tdr" colspan="3">
+                    <input class="easyui-combogrid" name="jobcardNo" id="jobcardNo" data-options="required:true"
+                           style="width:250px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:80px;" align="right"> 机型：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="actype" name="actype" data-options="editable:false,onlyview:true"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:80px;" align="right"> 工卡类型：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="jobcardType" name="jobcardType"
+                           data-options="required:true,editable: false"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width: 130px;" align="right">工卡标题：</th>
+                <td class="tdr" colspan="5">
+                    <input class="easyui-textbox " name="jobcardTitle" id="jobcardTitle"
+                           data-options="required:true,editable:false,onlyview:true,validType:['maxLength[500]']"
+                           multiline="true"
+                           style="height:50px; width:450px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width: 130px;" align="right">说明：</th>
+                <td class="tdr" colspan="5">
+                    <input class="easyui-textbox " name="jobcardDesc" id="jobcardDesc"
+                           data-options="required:true,validType:['maxLength[500]']" multiline="true"
+                           style="height:100px; width:450px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 维护人：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="modifyName" name="modifyName" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 维护日期：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="modifyDate" name="modifyDate" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+        </table>
+        </div>
+    </form>
+</div>
+<script type="application/javascript">
+    var param;
+    var identity = 'dg';
+    var identity1 = 'dg1';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "DA_ACREG_MP_ACTYPE,PM_JOBCARD_TYPE"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['actype'] = DomainCodeToMap_(jdata.data.DA_ACREG_MP_ACTYPE);
+                // 初始化查询条件
+                //工卡信息
+                $("#jobcardNo").MyComboGrid({
+                    idField: 'JC_NO',  //实际选择值
+                    textField: 'JC_NO', //文本显示值
+                    panelHeight: '180px',
+                    width: 250,
+                    params: {FunctionCode: 'SELECT_TD_JC_ALL'},
+                    columns: [[
+                        {field: 'JC_NO', title: '工卡编号', width: 150},
+                        {field: 'FLEET', title: '机型', width: 50},
+                        {field: 'SUBJECT_CN', title: '工卡中文标题', width: 50},
+                        {field: 'SUBJECT_EN', title: '工卡英文标题', width: 50}
+                    ]],
+                    onHidePanel: function () {
+                        var t = $(this).combogrid('getValue');
+                        if (t != null && t != '' & t != undefined) {
+                            if (selectRow == null || t != selectRow.JC_NO) {//没有选择或者选项不相等时清除内容
+                                alert('请选择，不要直接输入！');
+                                $(this).combogrid({value: ''});
+                            }
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        selectRow = row;
+                        $("#actype").combobox({value: row.FLEET});
+                        if (row.SUBJECT_CN == undefined && row.SUBJECT_EN == undefined) {
+                            $("#jobcardTitle").textbox({value: ""});
+                        }
+                        if (row.SUBJECT_CN == undefined && row.SUBJECT_EN != undefined) {
+                            $("#jobcardTitle").textbox({value: row.SUBJECT_EN});
+                        }
+                        if (row.SUBJECT_CN != undefined && row.SUBJECT_EN == undefined) {
+                            $("#jobcardTitle").textbox({value: row.SUBJECT_CN});
+                        }
+                        if (row.SUBJECT_CN != undefined && row.SUBJECT_EN != undefined) {
+                            $("#jobcardTitle").textbox({value: row.SUBJECT_CN + "(" + row.SUBJECT_EN + ")"});
+                        }
+                    }
+                });
+                //机型
+                $('#actype').combobox({
+                    panelHeight: '120px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data['DA_ACREG_MP_ACTYPE'],
+                });
+                //类型
+                $('#jobcardType').combobox({
+                    panelHeight: '120px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data['PM_JOBCARD_TYPE'],
+                });
+                if (param.PKID) {
+                    $("#pkid").val(param.PKID);
+                    InitDataForm(param.PKID);
+                }
+                $('#modifyName').textbox({editable: false, onlyview: true});
+                $('#modifyDate').datebox({editable: false, onlyview: true});
+                $("#modifyName").textbox({value: getLoginInfo().userName});
+                $("#modifyDate").datebox({value: formatterDate(new Date())});
+            }
+        });
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "PM_MC_JOBCARD_GET"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                    $("#actype").combobox({value: jdata.data.ACTYPE, editable: false, onlyview: true});
+                    $("#jobcardNo").combogrid({value: jdata.data.JOBCARD_NO, editable: false, onlyview: true});
+                }
+            }
+        });
+    }
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var data = $("#mform").serializeObject();
+        data = $.extend({}, data, {FunctionCode: 'PM_MC_JOBCARD_ADD_EDIT'});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    var pkid = jdata.data;
+                    $("#pkid").val(pkid);
+                    param.OWindow.onSearch_();
+                    //CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#mform").form('clear');
+            }
+        });
+    }
+</script>
+</body>
+</html>

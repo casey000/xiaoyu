@@ -1,0 +1,182 @@
+<table class="table table-bordered table-info" width="100%" style="padding-top:10px" id="actionList">
+    
+    
+</table>
+    
+<script type="text/javascript">
+    
+
+    $(function(){
+        /** 获取列表数据 **/
+        function get_list_data(){
+            let defectId = parent.get_defectId();
+            let url = "/api/v1/defect/defect/action/load_page?id=" + defectId;
+            $("#actionList").empty();
+            axios.get(url).then(response=>{
+                if(response.data.msg.toUpperCase().indexOf("SUCCESS") != -1){
+                    load_list_data(response.data.data)
+                }else if(response.data.msg.toUpperCase().indexOf("ERROR") != -1){
+                    throw new Error("action信息获取失败")
+                }
+            }).catch(err=>{
+                load_list_data();
+                MsgAlert({type: "error", content: err.message})
+            })
+        }
+
+        function load_list_data(data){
+            let header = `<tr>
+                            <th class="table-cell cell-normal">Operation</th>
+                            <th class="table-cell cell-normal">type</th>
+                            <th class="table-cell cell-normal">TLB No.</th>
+                            <th class="table-cell cell-normal">TakenActionChn</th>
+                            <th class="table-cell cell-normal">TakenActionEng</th>
+                            <th class="table-cell cell-normal">StaAction</th>
+                            <th class="table-cell cell-normal">DateAction</th>
+                            <th class="table-cell cell-normal">Technician</th>
+                        </tr>`;
+            $("#actionList").append(header);
+            if(!data || !Array.isArray(data.actionList) || data.actionList.length < 1){
+                $("#actionList").append(' <tr>\r\n \
+                                    <td class="table-cell cell-normal" colspan="7">N/A</td>\r\n \
+                                </tr>\r\n')
+            }else{
+                for(let i = 0, len = data.actionList.length; i < len; i++){
+                    each_table_row(i, data.actionList[i], data.status)
+                }
+            }
+        }
+
+        function each_table_row(index, row_data, status){
+            if(!row_data){
+                return
+            }
+            let html = "";
+            let id = row_data.id;
+            let type = row_data.type=="review"? row_data.type: "普通";
+            let takenActionChn = row_data.takenActionChn? row_data.takenActionChn: "";
+            let takenActionEng = row_data.takenActionEng? row_data.takenActionEng: "";
+            let staAction = row_data.staAction? row_data.staAction: "";
+            let dateAction = row_data.dateAction? row_data.dateAction: "";
+            let operation = status === "C" ? "view" : "edit";
+            let tlbId = row_data.tlbId;
+            let workorderId = row_data.workorderId;
+            let tlbNo = "";
+            if(!isEmpty(row_data.tlbNo))
+            {
+                tlbNo= row_data.tlbNo;
+            }
+            let technician = "";
+            if(row_data.technicianActSign && row_data.technicianActNo){
+                technician = `${row_data.technicianActSign}(${row_data.technicianActNo})`
+            }
+            if(status == 'O' && !tlbNo){
+                html += '<tr id="pdRow'+ index +'">\r\n'
+                    +'<td class="table-cell cell-normal"><span id="operation'+index+'" >\r\n'
+                    +'<a style="color: #f60" >' + operation + '</a></span>' +
+                    '<span style="margin-left: 5px" id="delete'+index+'" >\r\n'
+                    +'<a style="color: #f60" >' + 'delete' + '</a></span>' +
+                    '</td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="type'+index+'" >'+ type +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="tlb'+index+'" >\r\n'
+                    +'<a style="color: #f60" >' + tlbNo + '</a><span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="takenActionChn'+index+'" >'+ takenActionChn +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="takenActionEng'+index+'" >'+ takenActionEng +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="staAction'+index+'" >'+ staAction +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="dateAction'+index+'" >'+ dateAction +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="technician'+index+'" >'+ technician +'</span></td>\r\n'
+                    +'</tr>\r\n';
+            }else{
+                html += '<tr id="pdRow'+ index +'">\r\n'
+                    +'<td class="table-cell cell-normal"><span id="operation'+index+'" >\r\n'
+                    +'<a style="color: #f60" >' + operation + '</a></span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="type'+index+'" >'+ type +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="tlb'+index+'" >\r\n'
+                    +'<a style="color: #f60" >' + tlbNo + '</a><span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="takenActionChn'+index+'" >'+ takenActionChn +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="takenActionEng'+index+'" >'+ takenActionEng +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="staAction'+index+'" >'+ staAction +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="dateAction'+index+'" >'+ dateAction +'</span></td>\r\n'
+                    +'<td class="table-cell cell-normal"><span id="technician'+index+'" >'+ technician +'</span></td>\r\n'
+                    +'</tr>\r\n';
+            }
+
+            $("#actionList").append(html);
+            $("#delete" + index).click(() => action_delete(operation, id));
+            $("#operation" + index).click(() => action_view(operation, id,workorderId));
+            $("#tlb" + index).click(() => tlb_view(tlbId, tlbNo));
+            return html;
+        }
+        function action_delete(operation, id) {
+            if (!confirm("确认删除该排故措施？")) {
+                return;
+            }
+            let url = "/api/v1/defect/defect/action/delete_process_by_id?id=" + id;
+            $("#actionList").empty();
+            axios.get(url).then(response=>{
+                if(response.data.msg.toUpperCase().indexOf("SUCCESS") != -1){
+                    MsgAlert({type: "success", content: '删除成功'});
+                    get_list_data();
+                }else if(response.data.msg.toUpperCase().indexOf("ERROR") != -1){
+                    throw new Error("删除失败")
+                }
+            }).catch(err=>{
+                load_list_data();
+                MsgAlert({type: "error", content: err.message})
+            })
+        }
+
+        function action_view(operation, id,workorderId){
+            let title = "排故措施查看";
+            let param = {
+                defectId: parent.get_defectId(),
+                operation: operation,
+                id: id,
+                workorderId:workorderId,
+                successCallback: function(){
+                    get_list_data();
+                }
+            };
+            let url = "/views/defect/processDefectView.shtml";
+            if(operation === "edit"){
+                title = "排故措施编辑";
+                url = "/views/defect/processDefect.shtml"
+            }
+
+            ShowWindowIframe({
+                width: "1100",
+                height: "700",
+                title: title,
+                param: param,
+                url: url,
+            });
+        }
+
+        //判断字符是否为空的方法
+        function isEmpty(obj){
+            if(typeof obj == "undefined" || obj == null || obj == ""){
+                return true;
+            }else{
+                return false;
+            }
+        }
+        function tlb_view(tlbId, tlbNo){
+            var params = {
+                operation: "edit",
+                tlbId: tlbId
+            };
+            // let title = `【Defect No:${rowObj.defectNo}】Edit Defect Base Info`;
+            let title = `【查看TLB信息:${tlbNo}】`;
+            ShowWindowIframe({
+                width: "1000",
+                height: "700",
+                title: title,
+                param: params,
+                url: "/views/defect/tlb/viewTlb.shtml"
+            });
+        }
+
+        get_list_data();
+    })
+    
+</script>

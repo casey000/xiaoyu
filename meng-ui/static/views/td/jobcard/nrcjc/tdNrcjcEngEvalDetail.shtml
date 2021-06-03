@@ -1,0 +1,346 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>新发动机引进--标准非例行工卡重评详情</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%; height: 100%">
+    <div class="ibox-content">
+        <table class="table table-bordered table-info">
+            <tr>
+                <td colspan="9" align="right">
+                    <input id="btnComplete" class="btn btn-primary" type="button" onclick="submitFlow()" value="提交审核"
+                           style="margin-left:3px;"/>
+                    <input id="btnClose" class="btn btn-primary" type="button" onclick=" CloseWindowIframe()" value="关闭"
+                           style="margin-left:3px;margin-right: 18px;"/>
+                    <br/>
+                </td>
+            </tr>
+        </table>
+        <fieldset class="fieldset_eui">
+            <legend>评估单信息</legend>
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">评估单号：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 160px;"
+                                   id="evalNo" name="evalNo"
+                                   data-options="onlyview:true" readonly/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">发动机件号(序号)：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 260px;"
+                                   id="pnSn" name="pnSn"
+                                   data-options="onlyview:true" readonly/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">章节：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 80px;"
+                                   id="ata" name="ata"
+                                   data-options="onlyview:true" readonly/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </fieldset>
+        <fieldset class="fieldset_eui">
+            <legend>涉及重评工卡清单</legend>
+            <form id="ffSearch" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:100px;" align="right">工卡号：</th>
+                        <td style="padding: 3px;width: 106px">
+                            <input class="easyui-textbox" id="jcNo" name="jcNo" data-options=""
+                                   style="width: 170px"/>
+                        </td>
+                        <th class="th" style="width:100px;" align="right">评估结论：</th>
+                        <td style="padding: 3px;width: 106px">
+                            <input class="easyui-combobox" id="ifRevision" name="ifRevision" data-options=""
+                                   style="width: 170px"/>
+                        </td>
+                        <th class="th" style="width:100px;" align="right">状态：</th>
+                        <td style="padding: 3px;width: 106px">
+                            <input class="easyui-combobox" id="status" name="status" data-options=""
+                                   style="width: 110px"/>
+                        </td>
+                        <td align="left" style="padding: 3px;">
+                            &nbsp; &nbsp;
+                            <a class="searchBtn" type="button" onclick="onSearch_('dg','#ffSearch')"
+                               data-options="iconCls:'icon-search'">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" onclick="doClear_('#ffSearch','dg')"
+                               data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            <a class="excelBtn" data-options="iconCls:'icon-page_excel'" id="exportExcelBtn"
+                               onclick="excelExport('dg','新发动机引进-标准非例行重评工卡');"><span>导出</span></a>
+                            <a class="addBtn ifDjClass" onclick="importExcel()" id="importExcelBtn"><span>导入</span></a>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+            <table id="dg"></table>
+        </fieldset>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBO_DATA = {};
+    var param; // operation[add,edit,view]
+    var evalNo;//评估单号
+    var operation;//操作
+    var jcType;//工卡类型
+    var model;//发动机型号
+    var taskId;//流程ID
+    var status;//评估单状态
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        evalNo = param.evalNo;
+        operation = param.operation;
+        jcType = param.jcType;
+        model = param.model;
+        taskId = param.taskId;
+        status = param.status;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_NSJC_STATUS,NEWAC_EVAL_RESULT",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#status").combobox({
+                        panelHeight: '136px',
+                        data: jdata.data.TD_NSJC_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $("#ifRevision").combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.NEWAC_EVAL_RESULT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //工卡流程状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_NSJC_STATUS"]);
+                    //是否改版
+                    PAGE_DATA['ifVersion'] = DomainCodeToMap_(jdata.data["NEWAC_EVAL_RESULT"]);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+                if (operation == "view") {
+                    $('#btnComplete').hide();
+                    $("#exportExcelBtn").hide();
+                    $("#importExcelBtn").hide();
+                    $(".searchBtn").hide();
+                    $(".clearBtn").hide();
+                }
+                if ("task1593500976663" == taskId) { //退回节点
+                    $('#btnComplete').hide();
+                    $('#btnClose').hide();
+                }
+                if ("TURNBACK" == status) {
+                    $('#btnComplete').hide();
+                }
+                InitDataForm(evalNo);
+            }
+        })
+    }
+
+    //回填
+    function InitDataForm(evalNo) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "TD_NSJC_ENG_EAVL_DETAIL_PKID",
+                evalNo: evalNo
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+                InitDataGrid(evalNo);
+            }
+        });
+    }
+
+    function InitDataGrid(evalNo) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            resize: function () {
+                return {width: 1169, height: 440};
+            },
+            queryParams: {evalNo: evalNo, engModel: model},
+            columns: {
+                param: {FunctionCode: 'TD_NSJC_ENG_EVAL_DETAIL_LIST'},
+                alter: {
+                    IF_REVISION: {
+                        formatter: function (value) {
+                            return PAGE_DATA['ifVersion'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-review",
+                    i18nText: "评估",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        var msgArr = [];
+                        if (!rowData.REV_DETAIL_ID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (msgArr.length > 0) {
+                            hints(msgArr);
+                        } else {
+                            openReview(rowData.PKID, rowData.REV_DETAIL_ID, rowData.IF_REVISION, rowData.EVAL_MEMO);
+                        }
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if ("CHECKING" == status) {
+                    items['评估'].display = false;
+                }
+                if ("task1592961241185" == taskId) { //校对节点
+                    items['评估'].display = false;
+                }
+                return items;
+            },
+        });
+    }
+
+    //打开评估页面
+    function openReview(jcId, evalDetailId, ifRevision, evalMemo) {
+        var title_ = $.i18n.t('新飞机引进-标准非例行工卡评估');
+        ShowWindowIframe({
+            width: "830",
+            height: "680",
+            title: title_,
+            param: {
+                jcId: jcId,
+                evalDetailId: evalDetailId,
+                ifRevision: ifRevision,
+                evalMemo: evalMemo
+            },
+            url: "/views/td/jobcard/nrcjc/tdNrcjcEngEval.shtml"
+        });
+    }
+
+    function reloadJcDetail() {
+        $("#dg").datagrid("reload");
+    }
+
+    //提交校对
+    function submitFlow() {
+        //提交校对前校验评估结论是否都已填
+        var rowDatas = $("#dg").datagrid('getData');//获取所有行数据
+        var revsionDatas = [];
+        for (var i = 0; i < rowDatas.data.length; i++) {
+            if (rowDatas.data[i].IF_REVISION == null || rowDatas.data[i].IF_REVISION == undefined || rowDatas.data[i].IF_REVISION == '') {
+                MsgAlert({content: "重评工卡清单中存在评估结论为空的数据，请评估后再提交！", type: 'error'});
+                return;
+            }
+            if (rowDatas.data[i].IF_REVISION == "Y") {
+                revsionDatas.push(rowDatas.data[i]);
+            }
+        }
+        if (!isEmpty(revsionDatas)) {
+            InitFuncCodeRequest_({
+                data: {
+                    evalNo: evalNo,
+                    jcType: jcType,
+                    model: model,
+                    FunctionCode: 'TD_NEWENG_RELATE_JC_CHECK_BEFORE_SUBMIT'
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        //查看是否有存在的工作流程
+                        var datas = $.extend({}, {}, {
+                            FunctionCode: 'TD_JC_NEWENG_CHECK_SUBMIT_BEFORE',
+                            evalNo: evalNo
+                        });
+                        InitFuncCodeRequest_({
+                            data: datas, successCallBack: function (jdata) {
+                                if (jdata.data == null) {
+                                    common_add_edit_({
+                                        identity: '',
+                                        isEdit: '',
+                                        width: 520,
+                                        height: 300,
+                                        title: $.i18n.t('选择审批人'),
+                                        param: {
+                                            roleId: '',
+                                            otherParam: evalNo,
+                                            FunctionCode_: 'TD_JC_NEWENG_EVAL_SUMBIT',
+                                            successCallback: '',
+                                            flowKey: "tdNewengJcReEval"
+                                        },
+                                        url: "/views/em/workflow/work_flow_account_select.shtml"
+                                    });
+                                } else {
+                                    MsgAlert({content: "该数据已被提交过了。", type: 'error'});
+                                }
+                            }
+                        });
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+    function reload_() {
+        CloseWindowIframe();
+        param.OWindow.reload_();
+    }
+
+    function doClear_(search, grid) {
+        $(search).form('clear');
+        searchData(grid, search);
+    }
+
+    function searchData(grid, search) {
+        onSearch_(grid, search);
+    }
+
+    //批量导入
+    function importExcel() {
+        var sourceId = new Date().getTime();
+        common_uploadFile2({
+            identity: '',
+            param: {
+                cat: "TD_NSJC_NEWENG_DETAIL",
+                sourceId: sourceId,
+                operation: "TD_JC_NEWENG_DETAIL_IMPORT",
+                upload: "N",
+                successCellBack: function () {
+                    reloadJcDetail();
+                },
+                fialCellBack: ''
+            }
+        })
+    }
+
+</script>
+
+</html>

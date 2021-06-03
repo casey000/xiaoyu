@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_SYSCONFIG_NEW_AC.TITLE">新发动机引进-系统构型</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">发动机型号：</th>
+                    <td style="width: 150px">
+                        <input class="easyui-combobox" name="fleet" id="fleet" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">件号(序号)：</th>
+                    <td style="width: 150px">
+                        <input class="easyui-textbox" name="pnSn" id="pnSn" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">状态：</th>
+                    <td style="width: 150px">
+                        <input class="easyui-combobox" name="status" id="status" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()">查询</a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <!--                        <a class="clearBtn" onclick="addTest()"><span>增加一条测试数据</span></a>-->
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+    function addTest() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_NEW_AC_EVALUATE",
+                fleet: "B757",
+                acids: "1000639"
+            },
+            successCallBack: function (jdata) {
+                InitDataGrid();
+            }
+        });
+    }
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_ENG_MODEL,EM_SYSCONFIG_NEW_AC_STATUS"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_SYSCONFIG_NEW_AC_STATUS"]);
+
+                    $('#fleet').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DA_ACREG_ENG_MODEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_SYSCONFIG_NEW_AC_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_SYSCONFIG_NEW_ENG_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view",
+                    i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/emsysconfig/em_sysconfig_new_eng_add.shtml?operation=view&pkid=" + rowdata.PKID,
+                            identity: identity,
+                            isEdit: 0,
+                            width: 1000,
+                            height: 600
+                        });
+                    }
+                },
+                {
+                    id: "m-eva",
+                    i18nText: "评估",
+//                    auth: "EM_SYSCONFIG_NEW_AC_EVA",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/emsysconfig/em_sysconfig_new_eng_add.shtml?operation=evaluate&pkid=" + rowdata.PKID,
+                            identity: identity,
+                            isEdit: 0,
+                            width: 1000,
+                            height: 600
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                var status = row.STATUS; // EVALUATING, AUDIT, PASSED, RETURNED
+                if (status == "EVALUATING") {
+                    items['评估'].enable = true;
+                } else {
+                    items['评估'].enable = false;
+                }
+                items['查看'].enable = true;
+
+            }
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</body>
+</html>

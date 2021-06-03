@@ -1,0 +1,238 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+        }
+
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <div id="p0" class="easyui-panel" title="大项工作维护" style="width: 100%"></div>
+        <input type="hidden" id="pkid" name="pkid">
+        <input type="hidden" id="refPkid" name="refPkid">
+        <table class="table table-bordered table-info">
+            <tr>
+                <td align="right" style="padding-right:10px;height:35px">
+                    <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                           value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 机号：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="acno" name="acno" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 机型：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="actype" name="actype" data-options="onlyview:true,editable:false"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 开始时间：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="beginDate" name="beginDate" data-options="editable:false"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 结束时间：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="endDate" name="endDate" data-options="editable:false"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 航站：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="station" name="station" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right">需求源：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="source" name="source" data-options=""
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width: 130px;" align="right">工作内容：</th>
+                <td class="tdr" colspan="5">
+                    <input class="easyui-textbox " name="des" id="des" data-options="validType:['maxLength[1000]']"
+                           multiline="true" style="height:100px; width:465px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width: 130px;" align="right">工作进展：</th>
+                <td class="tdr" colspan="5">
+                    <input class="easyui-textbox " name="completion" id="completion"
+                           data-options="validType:['maxLength[1000]']"
+                           multiline="true" style="height:100px; width:465px;"/>
+                </td>
+            </tr>
+            <tr align="right">
+                <th colspan="3" class="td5" style="width: 130px;">状态：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="status" name="status" data-options="editable:false"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+</div>
+<script type="application/javascript">
+    var param;
+    var identity = 'dg';
+    var identity1 = 'dg1';
+    var PAGE_DATA = {};
+    var selectRow;
+    var hoPkid;
+    function i18nCallBack() {
+        param = getParentParam_();
+        if (param.hoPkid && param.isAdd) {
+            hoPkid = param.hoPkid;
+            $("#refPkid").val(hoPkid);
+        }
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_MP_ACTYPE,MSGRP,PM_MC_BIG_SOURCE,PM_MC_BIG_STATUS"
+            },
+            successCallBack: function (jdata) {
+                PAGE_DATA['position'] = DomainCodeToMap_(jdata.data.PM_MC_POSITION);
+                // 初始化查询条件
+                //机号
+                $('#acno').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP,
+                    onChange: function (item) {
+                        InitFuncCodeRequest_({
+                            data: {acno: item, FunctionCode: "SELECT_ACTYPE_BY_ACNO"},
+                            successCallBack: function (jdata) {
+                                $('#actype').combobox({value: jdata.data.VALUE});
+                            }
+                        })
+                    }
+                });
+                //需求源
+                $('#source').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.PM_MC_BIG_SOURCE
+                });
+                //状态
+                $('#status').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.PM_MC_BIG_STATUS
+                });
+                //航站
+                $("#station").MyComboGrid({
+                    idField: 'STATION',  //实际选择值
+                    textField: 'STATION', //文本显示值
+                    panelHeight: '180px',
+                    width: 150,
+                    params: {FunctionCode: 'SELECT_STATION'},
+                    columns: [[
+                        {field: 'STATION', title: '航站三字码', width: 50},
+                        {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                        {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                        {field: 'FULLNAME_CN', title: '中文全称', width: 100},
+                    ]],
+                    onHidePanel: function () {
+                        var t = $(this).combogrid('getValue');
+                        if (t != null && t != '' & t != undefined) {
+                            if (selectRow == null || t != selectRow.STATION) {//没有选择或者选项不相等时清除内容
+                                alert('请选择，不要直接输入！');
+                                $(this).combogrid({value: ''});
+                            }
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        selectRow = row;
+                    }
+                });
+                if (param.PKID) {
+                    $("#pkid").val(param.PKID);
+                    InitDataForm(param.PKID);
+                } else {
+                    $("#station").combogrid({value: 'SZX'});
+                    $("#status").combobox({value: '3DJX'});
+                }
+            }
+        });
+        window.resizeTo(700, 550);
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "PM_MC_HO_BIG_GET"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                }
+            }
+        });
+    }
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var beginDate = $("#beginDate").datebox('getValue');
+        var endDate = $("#endDate").datebox('getValue');
+        if (beginDate != "" && endDate != "") {
+            if (endDate < beginDate) {
+                MsgAlert({content: '结束时间需大于等于开始时间', type: 'error'});
+                return;
+            }
+        }
+        var data = $("#mform").serializeObject();
+        data = $.extend({}, data, {FunctionCode: 'PM_MC_HO_BIG_ADD_EDIT'});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    var pkid = jdata.data;
+                    $("#pkid").val(pkid);
+                    param.OWindow.InitDataGridBig();
+                    //CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.InitDataGridBig();
+                $("#mform").form('clear');
+            }
+        });
+    }
+</script>
+</body>
+</html>

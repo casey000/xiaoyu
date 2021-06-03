@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>任务维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+
+        }
+
+        th {
+            width: 120px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+    </style>
+</head>
+<body onunload="closeByOnunloadMeetingTask()">
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <div id="p0" class="easyui-panel" title="任务维护" style="width: 100%"></div>
+            <table class="table table-bordered table-info" style="width: 100%">
+                <tr>
+                    <td colspan="4" align="right" style="padding: 0;">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="saveEngFsdMeetingTask()"
+                               value="保存"/>
+                        <input class="btn btn-primary" type="button" id="closeBtn" onclick="closeOrReloadMeetingTask()"
+                               value="关闭"
+                               style="margin-left:3px;margin-right: 20px;"/>
+                    </td>
+                </tr>
+            </table>
+
+            <div id='tt' class="ibox-content">
+                <form class="form-horizontal m-t" id="engFsdMeetingTaskForm">
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <input type="hidden" id="refId" name="refId"/>
+                    <input type="hidden" id="followUser" name="followUser"/>
+                    <input type="hidden" id="feedbackProv" name="feedbackProv"/>
+                    <input type="hidden" id="feedbackDate" name="feedbackDate"/>
+                    <input type="hidden" id="feedbackStatus" name="feedbackStatus"/>
+                    <input type="hidden" id="taskStatus" name="taskStatus"/>
+                    <input type="hidden" id="meetingId" name="meetingId"/>
+                    <input type="hidden" id="delayDate" name="delayDate"/>
+                    <input type="hidden" id="delayReason" name="delayReason"/>
+                    <input type="hidden" id="createUser" name="createUser"/>
+                    <table class="table table-bordered table-info" style="width: 100%">
+                        <tr>
+                            <th>跟进人：</th>
+                            <td class="tdr">
+                                <input class="easyui-combobox" name="followPerson" id="followPerson"
+                                       data-options="required:true,validType:['maxLength[20]']" style="width:200px;"/>
+                            </td>
+                            <th>反馈日期</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox" id="limitDate" name="limitDate"
+                                       data-options="required:true,editable:true"
+                                       style="width: 200px;"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>任务标题：</th>
+                            <td class="tdr" colspan="3">
+                                <input class="easyui-textbox" id="taskTitle" name="taskTitle"
+                                       data-options="required:true,editable:true"
+                                       style="width: 585px;"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>任务说明：</th>
+                            <td class="tdr" colspan="3">
+                                <input class="easyui-textbox" id="taskDesc" name="taskDesc"
+                                       data-options="required:false,editable:true,multiline:true"
+                                       style="width: 585px;height: 150px;"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>创建人：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" id="createName" name="createName" style="width: 200px;"
+                                       data-options="onlyview:true,editable:false"/>
+                            </td>
+                            <th>创建日期：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox" id="createDate" name="createDate" style="width: 200px;"
+                                       data-options="onlyview:true,editable:false"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script>
+    let param = getParentParam_();
+    let operation = param.operation;
+    let rowData = param.rowData;
+    let userId;
+    let userName;
+    let selectRow;
+    let PAGE_DATA = {};
+    let nowDate = new Date();
+    let nowFormatDate = nowDate.Format("yyyy-MM-dd");
+
+    function i18nCallBack() {
+        userId = param.userId;
+        userName = param.userName;
+        $('#refId').val(param.refId);
+
+        if (!userId) {
+            const userInfo = getLoginInfo();
+            userId = userInfo.accountId;
+            userName = userInfo.userName;
+        }
+        initBasicData();
+
+
+        $("#followPerson").MyComboGrid({
+            idField: 'USER_NAME',  //实际选择值
+            textField: 'USER_NAME', //文本显示值
+            panelHeight: '220px',
+            width: 200,
+            params: {FunctionCode: 'FLOW_WORK_ACCOUNT'},
+            columns: [[
+                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                {field: 'USER_NAME', title: '工程师', width: 50}
+            ]],
+            onHidePanel: function () {
+                const t = $("#followPerson").textbox('getValue');
+                if (selectRow == null || t != selectRow.USER_NAME) {//没有选择或者选项不相等时清除内容
+                    alert('请选择，不要直接输入！');
+                    $(this).combogrid({value: ''});
+                    $("#followPerson").textbox({value: ''});
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+                $("#followUser").val(row.ACCOUNT_ID);
+            }
+        });
+
+        if (rowData) {
+            ParseFormField_(rowData, $("#engFsdMeetingTaskForm"));
+        }
+
+        initUserInfo();
+    }
+
+    //初始化维护人信息
+    function initUserInfo() {
+        if (operation == 'add') {
+            $("#createUser").val(userId);
+            $("#createName").textbox('setValue', userName);
+            $("#createDate").textbox('setValue', nowFormatDate);
+        }
+    }
+
+    function initBasicData() {
+        if (operation != 'add' && !rowData && pkid) {
+            const url = "/meng-engine/engFsdMeetingTask/engFsdMeetingTaskInfoById/" + pkid;
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: url,
+                successCallBack: function (jData) {
+                    if (jData.success == true) {
+                        rowData = jData.obj;
+                    } else {
+                        MsgAlert({content: jData.errorMessage, type: 'error'});
+                    }
+                }
+            })
+        }
+
+    }
+
+
+    //根据不同操作执行不同后处理
+    function postProcessingByOperation() {
+        if (operation == "view") {
+            $(".easyui-textbox").textbox({required: false, editable: false, onlyview: true});
+            $(".easyui-combobox").combobox({required: false, editable: false, onlyview: true});
+            $(".easyui-combogrid").combobox({required: false, editable: false, onlyview: true});
+            $(".easyui-datebox").datebox({required: false, editable: false, onlyview: true});
+            $("#saveBtn").hide();
+        }
+    }
+
+    //检查表单值是否合规
+    function checkFromIsValidate() {
+        const isValidate = $("#engFsdMeetingTaskForm").form('validate');
+        return isValidate;
+    }
+
+    //保存数据，修改或增加
+    function saveEngFsdMeetingTask() {
+        const isValidate = checkFromIsValidate();
+        if (!isValidate) {
+            MsgAlert({content: "输入数据不符合规则", type: 'error'});
+            return false;
+        }
+        const saveEngFsdMeetingTaskParam = $("#engFsdMeetingTaskForm").serializeObject();
+
+        //第一次编写保存需要将状态设置为反馈中
+        if (saveEngFsdMeetingTaskParam.feedbackStatus == null || saveEngFsdMeetingTaskParam.feedbackStatus == '') {
+            saveEngFsdMeetingTaskParam.feedbackStatus = '1';
+            $('#feedbackStatus').val('1');
+        }
+        if (saveEngFsdMeetingTaskParam.taskStatus == null || saveEngFsdMeetingTaskParam.taskStatus == '') {
+            saveEngFsdMeetingTaskParam.taskStatus = '1';
+            $('#taskStatus').val('1');
+        }
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFsdMeetingTask/saveEngFsdMeetingTask",
+            data: saveEngFsdMeetingTaskParam,
+            error: function (jData) {
+                MsgAlert({content: jData.errorMessage ? jData.errorMessage : "更新会议任务失败", type: 'error'});
+                return false;
+            },
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    MsgAlert({content: jData.msg ? jData.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    closeOrReloadMeetingTask()
+                } else {
+                    MsgAlert({content: jData.errorMessage ? jData.errorMessage : "更新会议任务失败", type: 'error'});
+                }
+            }
+        });
+    }
+
+    //关闭当前窗口并且刷新进入界面
+    function closeOrReloadMeetingTask() {
+        CloseWindowIframe();
+        closeByOnunloadMeetingTask();
+    }
+
+    function closeByOnunloadMeetingTask() {
+        if (param.OWindow && param.OWindow.reload_) {
+            param.OWindow.reload_();
+        }
+    }
+
+    //优先执行
+    postProcessingByOperation();
+
+</script>
+</body>
+</html>

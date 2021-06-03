@@ -1,0 +1,300 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="PAGE.ENG_UNITS_MANAGE_LIST.TITLE">孔探报告后续业务单号信息</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+        <div id="searchBar">
+            <form class="form-horizontal m-t" id="mform">
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr style="height: 10px">
+                        <td colspan="5">
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>类别：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="worknoType" name="worknoType"
+                                   data-options="required: true,editable:false" style="width: 150px;"/>
+                        </td>
+                        <th id="noTitle">业务单号：</th>
+                        <td class="tdr" colspan="2">
+                            <input class="easyui-textbox" id="workno" name="workno"
+                                   data-options="required: true" style="width: 150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th><br/>备注：</th>
+                        <td colspan="4">
+                                    <textarea class="easyui-textbox " id="memo" name="memo" multiline="true"
+                                              style="height:80px;width: 98%;border: 1px solid #ddd;border-radius: 5px;"
+                                              data-options=""></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+            <fieldset class="fieldset_eui">
+                <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+                <form class="form-horizontal m-t" id="ffSearch">
+                    <table>
+                        <tr>
+                            <th class="th" style="width:60px;" align="right">编号：</th>
+                            <td style="width: 100px" class="td5">
+                                <input class="easyui-textbox" id="orderno" name="orderno" style="width:150px;"/>
+                            </td>
+                            <th class="th" style="width:60px;" align="right">标题：</th>
+                            <td style="width: 100px" class="td5">
+                                <input class="easyui-textbox" id="title" name="title" style="width:150px;"/>
+                            </td>
+                            <td class="td5">&nbsp;
+                                <input class="btn btn-primary" type="button" id="searBtn" onclick="reload_()" value="查询"/>
+                                <input class="btn btn-primary" type="button" onclick="doClear_();" value="重置"
+                                       style="margin-left:3px;"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    <table id="dg"></table>
+</fieldset>
+
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var rangValues = [];
+    var rangValues1 = [];
+    var param = {};
+    var PAGE_DATA = {};
+    var reportId;
+    var busType;
+    var loginUser;
+    var loginName;
+    var esn;
+    var nos;
+    function i18nCallBack() {
+        param = getParentParam_();
+        loginUser = param.userId;
+        loginName = param.userName;
+        esn = param.esn;
+        reportId = param.pkid;
+        busType = param.busType;
+        nos = param.nos;
+        document.getElementById("noTitle").innerHTML = '<p>业务单号：</p>';
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_BUS_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#worknoType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.ENG_BUS_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            var temp = item.VALUE;
+                            $('#workno').textbox('setValue','');
+                            if(temp == 'EA' || temp == 'CH'){
+                                $("#workno").textbox({required:false,editable:false,onlyview:true});
+                                checked();
+                            }else{
+                                rangValues.length = 0;
+                                $("#workno").textbox({required:true,editable:true, onlyview: false});
+                                if(temp == 'NO'){
+                                    $('#workno').textbox('setValue','N/A');
+                                }
+                            }
+
+                            InitDataGrid(temp);
+                        }
+                    });
+
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function checked() {
+        var strs = [];
+        if (nos != null && nos != "") {
+            if (nos.indexOf(",") != -1) {
+                strs = nos.split(",");
+                for (var i = 0; i < strs.length; i++) {
+                    rangValues[i] = strs[i];
+                }
+            } else {
+                rangValues[0] = nos;
+            }
+        }
+    }
+
+    function save(){
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var rows = $('#dg').datagrid('getChecked');
+        var ordernos = '';
+        rangValues = unique(rangValues);//去重
+        for (i = 0; i < rangValues.length; i++) {
+            var no = rangValues[i];
+            if(no){
+                ordernos = ordernos+ ","+ no;
+            }
+        }
+        ordernos = ordernos.substring(1, ordernos.length);
+        if(ordernos){
+            $('#workno').textbox('setValue',ordernos);
+        }
+        var tempno = $('#workno').textbox('getValue');
+        var worknoType = $('#worknoType').combobox('getValue');
+        if(!tempno && (worknoType == 'EA' || worknoType == 'CH')){
+            MsgAlert({content: "业务单号不予许为空！", type: 'error'});
+            return;
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas.busId = reportId;
+        datas.busType = busType;
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiWorkno/addWorkno",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var entity = jdata.obj;
+                    if(entity != null){
+                        param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        if ("MCD" == busType) {
+                            param.OWindow.reload_1(reportId);
+                        } else {
+                            param.OWindow.reload_1();
+                        }
+                        CloseWindowIframe();
+                    }
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid(type) {
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams.dealType = type;
+        queryParams.esn = esn;
+        $('#dg').GatewayDataGrid({
+            path: "/meng-engine/engBsiReport/getWorknoList",
+            async: false,
+            queryParams: queryParams,
+            identity: 'dg',
+            idField: "pkid",
+            pagination: true,
+            title: $.i18n.t('业务单号列表'),
+            fitcolumn:true,
+            fit:false,
+            resize: function () {
+                return {width: 638, height: 380};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_WORKNO_LIST'},
+                alter: {
+                    writeDate: {
+                        type: 'datetime'
+                    },
+                }
+            },
+            onLoadSuccess: function (data) {
+                rangValues1 = rangValues;
+                $('#dg').datagrid('uncheckAll');
+                if (data) {
+                    $.each(data.rows, function (index, item) {
+                        var len = rangValues1.length;
+                        for (var j = 0; j < len; j++) {
+                            if (rangValues1[j] == item.orderno) {
+                                $('#dg').datagrid('checkRow', index);
+                            }
+                        }
+                    });
+                }
+                rangValues = rangValues1;
+            },
+            onCheck: function (rowIndex, rowData) {
+                rangValues = unique(rangValues);//去重
+                rangValues.push(rowData.orderno.toString());
+            },
+            onUncheck: function (rowIndex, rowData) {
+                rangValues = unique(rangValues);//去重
+                rangValues.remove(rowData.orderno.toString());
+            },
+            onCheckAll: function (rowIndex, rowData) {
+                rangValues = unique(rangValues);//去重
+                var rows = $('#dg').datagrid('getRows');
+                for (i = 0; i < rows.length; i++) {
+                    rangValues.push(rows[i].orderno.toString());
+                }
+            },
+            onUncheckAll: function (rowIndex, rowData) {
+                rangValues = unique(rangValues);//去重
+                var rows = $('#dg').datagrid('getRows');
+                for (i = 0; i < rows.length; i++) {
+                    rangValues.remove(rows[i].orderno.toString());
+                }
+            }
+        });
+    }
+
+
+
+    Array.prototype.indexOf = function(val) {
+        for (var i = 0; i < this.length; i++) {
+            if (this[i] == val) return i;
+        }
+        return -1;
+    };
+
+    Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+        }
+    };
+
+    function unique(arr){
+        return Array.from(new Set(arr));
+    }
+
+    //刷新列表
+    function reload_(){
+        var type = $('#worknoType').combobox('getValue');
+        InitDataGrid(type);
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+
+</script>
+</body>
+</html>

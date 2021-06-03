@@ -1,0 +1,679 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">补充手册任务分配</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="mform" class="form-horizontal">
+            <input type="hidden" id="dmPkid" name="dmPkid"/>
+            <input type="hidden" id="status" name="status"/>
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr id="view">
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" onclick="viewAttach()"
+                                   value="附件查看"
+                                   style="width: 70px;margin:5px;"/>
+                            <!--<input class="btn btn-primary" type="button" onclick="save()" value="保存"-->
+                            <!--style="width: 50px;margin:5px;"/>-->
+                            <input class="btn btn-primary" type="button" onclick="tdDistribute();"
+                                   value="分配"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();"
+                                   value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr id="view2">
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" onclick="viewAttach()"
+                                   value="附件查看"
+                                   style="width: 70px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();"
+                                   value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">手册来源：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataFrom" name="dataFrom"
+                                   data-options="editable:false,onlyview:true" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">手册类型：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataType"
+                                   data-options="editable:false,onlyview:true"
+                                   name="dataType"
+                                   style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">手册版本：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataVer"
+                                   data-options="editable:false,onlyview:true"
+                                   name="dataVer"
+                                   style="width:100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">机型：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="fleet"
+                                   data-options="editable:false,onlyview:true"
+                                   name="fleet"
+                                   style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">手册描述：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataMemo"
+                                   data-options="editable:false,onlyview:true"
+                                   name="dataMemo"
+                                   style="width:100px;"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</body>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var param;
+    var operation;
+    var func = "TD_SUPPLEMENT_DISTRIBUTE_DETAL";
+    function i18nCallBack() {
+        //绑定回车查询事件
+        param = getParentParam_();
+        operation = param.operation;
+        if (operation == "view") {
+            $("#view").hide();
+            $("#view2").show();
+        } else {
+            $("#view2").hide();
+            $("#view").show();
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode:
+                    "DM_DATA_TYPE,DM_REC_PRIVIDOR,TD_EVAL_DETAIL_STA,WS_USER_F,SUPPLEMENT_DEAL_OPTION,BM_ATACPT_CHAPTER,BM_ATACPT_SUBJECT,BM_ATACPT_SECTION",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //资料来源
+                    $('#dataFrom').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DM_REC_PRIVIDOR,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //手册处理状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_EVAL_DETAIL_STA"]);
+                    PAGE_DATA['dealOption'] = DomainCodeToMap_(jdata.data["SUPPLEMENT_DEAL_OPTION"]);
+                    PAGE_DATA['editor'] = DomainCodeToMap_(jdata.data["WS_USER_F"]);
+                    $('#dataFrom').combobox().combobox('setValue', param.DATA_FROM);
+
+                    InitDataForm(param.pkid)
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        // InitFuncCodeRequest_({
+        //     data: {pkid: pkid, FunctionCode: "TD_SUPPLEMENT_EVAL_BY_PKID"},
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/online-manual/tdSupplementDistribute/selectById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                    //当类型为SIPC时，显示列名切换
+                    var dataType = $("#dataType").textbox("getValue");
+                    if (dataType == "SIPC") {
+                        func = "TD_SUPPLEMENT_DISTRIBUTE_DETAL_SIPC";
+                    }
+                    InitDataGrid(param.pkid, jdata);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(pkid, jdata) {
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,
+            enableLineEdit: true,
+            // enableCellEdit: true,
+            queryParams: {pkid: pkid},
+            path: "/online-manual/tdSupplementEvalDetail/selectTdSupplementEvalDetailVOByPage",
+            columns: {
+                param: {FunctionCode: func},
+                alter: {
+                    CHAPTER: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                data: jdata.obj["BM_ATACPT_CHAPTER"],
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                singleSelect: true,
+                            }
+                        },
+                        formatter: function (value) {
+                            return value;
+                        }
+                    },
+
+                    SECTION: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                data: jdata.obj["BM_ATACPT_SECTION"],
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                singleSelect: true,
+                            }
+                        },
+                        formatter: function (value) {
+                            return value;
+                        }
+                    },
+                    SUBJECT: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                data: jdata.obj["BM_ATACPT_SUBJECT"],
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                singleSelect: true,
+                            }
+                        },
+                        formatter: function (value) {
+                            return value;
+                        }
+                    },
+                    EDITOR: {
+                        editor: {
+                            type: 'combogrid',
+                            options: {
+                                idField: 'ACCOUNTID',
+                                textField: 'NAME', //文本显示值
+                                editable: true,
+                                pagination: true,
+                                panelWidth: '250px',
+                                width: 250,
+                                tipPosition: 'top',
+                                mode: 'remote',
+                                params: {FunctionCode: 'WS_USER'},
+                                url: Constant.API_URL + 'WS_USER',
+                                // multiple: true,
+                                columns: [[
+                                    {field: 'ACCOUNTID', title: '员工编号', width: 100, sortable: true},
+                                    {field: 'NAME', title: '名称', width: 150, sortable: true}
+                                ]],
+                                // onLoadSuccess:function(){
+                                // this.combogrid('grid').datagrid('selectRecord',value);
+                                //
+                                // }
+                            }
+                        },
+                        formatter: function (value) {
+                            return PAGE_DATA['editor'][value];
+                        }
+                    },
+                    DEAL_DAYS: {
+                        editor: {
+                            type: 'textbox',
+                            // options:{
+                            //     validType:['(/^[0-9]*[1-9][0-9]*$/).test(value)'],
+                            // }
+                        },
+                        formatter: function (value) {
+                            var t = /^[0-9]*[1-9][0-9]*$/;
+                            if (value != undefined && value != '' && !t.test(value)) {
+                                return '请输入正整数';
+                            } else {
+                                return value;
+                            }
+
+                        }
+                    },
+
+                    DEAL_OPTION: {
+                        formatter: function (value) {
+
+                            return PAGE_DATA['dealOption'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    TD_PKID: {
+                        formatter: function (value) {
+                            return pkid;
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function (row) {
+                formatterUpperDataGrid(row,"dg");
+            },
+            onBeforeLoad: function (data) {
+                if (operation == "view") {
+                    $("div.datagrid-toolbar [id ='btnAdd']").eq(0).hide();
+                    $("div.datagrid-toolbar [id ='btnSetDate']").eq(0).hide();
+                } else {
+                    $('#dg').datagrid('hideColumn', 'STATUS');//隐藏评估单状态列
+                    $('#dg').datagrid('hideColumn', 'DEAL_OPTION');
+                    $('#dg').datagrid('hideColumn', 'DEAL_RESULT');
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        var row = $('#dg').datagrid('getSelected');
+                        var rowIndex = $('#dg').datagrid('getRowIndex', row);
+                        if (!row.PKID) {
+                            //如果没有保存，直接在datagrid移除该行
+                            $('#dg').datagrid('deleteRow', rowIndex);
+                        } else {
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: row.PKID,
+                                    FunctionCode: 'TD_SUPPLEMENT_DISTRIBUTE_DEL'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        $('#dg').datagrid('deleteRow', rowIndex);
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        // reload_();
+                                        // i18nCallBack();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
+                {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "TD_SUPPLEMENT_EVAL_DETAIL"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+
+                    }
+                }
+                , {
+                    id: "m-flowChart", i18nText: "流程图", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        var userInfo = getLoginInfo();
+
+                        if (rowData.STATUS == "BXZ" || rowData.STATUS == "SHZ") {
+                            //获取当前在流程中的流程图，需要使用 pkid进行关联
+                            InitFuncCodeRequest_({
+                                data: {
+                                    FunctionCode: 'TD_FLOW_PROCESS',
+                                    objNo: rowData.PKID,
+                                    objKey: "TD_SUPPLEMENT_EVAL_DETAIL"
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        ShowWindowIframe({
+                                            width: "850",
+                                            height: "650",
+                                            title: "查看流程图",
+                                            param: {
+                                                PROC_DEF_ID: jdata.data.PROC_DEF_ID,
+                                                PROC_INST_ID: jdata.data.PROC_INST_ID,
+                                                BUSINESS_KEY: jdata.data.BUSINESS_KEY
+                                            },
+                                            url: "/views/ws/work_flow/flow_definition/flow_diagram_view.shtml"
+                                        });
+                                    }
+                                }
+                            });
+                        } else if (rowData.STATUS == "YWC") {
+                            //获取整个流程最新的流程图有多个流程实例，使用最新的流程
+                            InitFuncCodeRequest_({
+                                data: {
+                                    FunctionCode: 'TD_FLOW_GET_PROC_DEF_ID',
+                                    flow_key: "tdSupplementEvalFlow2",//流程定义Key/流程Key
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        ShowWindowIframe({
+                                            width: "850",
+                                            height: "650",
+                                            title: "查看流程图",
+                                            param: {PROC_DEF_ID: jdata.data.PROC_DEF_ID},
+                                            url: "/views/ws/work_flow/flow_definition/flow_definition_diagram_view.shtml"
+                                        });
+                                    }
+                                }
+                            });
+                        }
+
+                    }
+                }
+            ],
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('增加行'),
+                iconCls: 'icon-add',
+                handler: function () {
+                    addDatagridRow('add');
+                }
+            },
+                {
+                    id: 'btnSetDate',
+                    text: $.i18n.t('一键设置期限'),
+                    iconCls: 'icon-edit',
+                    handler: function () {
+                        setDealWithDate('add');
+                    }
+                }],
+            validAuth: function (row, items) {
+                if (operation == 'view') {
+                    items['删除'].enable = false;
+                }
+                return items;
+            },
+            onEndEdit: function (index, row, changes) {
+                if (operation != 'view') {
+                editDate(index, row, changes);
+                }
+            },
+            onBeginEdit: function (index, row) {
+                // console.log(index+"row"+row);
+                // var index=$('#dg').datagrid('getRowIndex',row);
+                // var ed = $('#dg').datagrid('getEditor', {index:index,field:'EDITOR'});
+                // $(ed.target).combogrid('reload', {'EDITOR':row.EDITOR});
+                // $(ed.target).combogrid('grid').datagrid('selectRecord',row.EDITOR);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        InitDataForm(param.pkid);
+        $("#dg").datagrid("reload");
+    }
+
+    //打开一键设置日期
+    function setDealWithDate(operation) {
+        setDealWithDate(operation, '');
+    }
+
+    //一键设置期限
+    function reloadDays(days) {
+        InitFuncCodeRequest_({
+            data: {days: days, tdPkid: param.pkid, FunctionCode: "TD_SUPPLEMENT_SET_DEAL_DAYS"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        // var rows = $('#dg').datagrid('getRows');//获取当前页的数据行
+        // for (var i = 0; i < rows.length; i++) {
+        //     $('#dg').datagrid('updateRow', {
+        //         index: i,
+        //         row: {
+        //             DEAL_DAYS: days,
+        //         }
+        //     });
+        // }
+    }
+
+    //分配任务
+    function tdDistribute() {
+        //判断是否已分配
+        var status = $("#status").val();
+        if (status != "WFP") {
+            MsgAlert({content: "任务已分配，不可重复分配！", type: 'error'});
+            return;
+        }
+        //先保存数据
+        var rows = $('#dg').datagrid('getRows');
+        if (rows.length == 0) {
+            MsgAlert({content: "请先添加任务数据！", type: 'error'});
+            return;
+        }
+        // for (i = 0; i < rows.length; i++) {
+        //     rows[i] = toCamelCase(rows[i]);
+        //     if (!checkATA(rows[i])) {
+        //         MsgAlert({content: "章节请填写完整！", type: 'error'});
+        //         return;
+        //     }
+        // }
+        // var data = JSON.stringify(rows);
+        // InitFuncCodeRequest_({
+        //     data: {data: data, FunctionCode: "TD_SUPPLEMENT_DETAIL_ADD"},
+        //     successCallBack: function (jdata) {
+        //         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    var datas = {tdPkid: param.pkid};
+                    var data = $.extend({}, datas, {FunctionCode: 'TD_SUPPLEMENT_DISTRIBUTE'});
+                      ajaxLoading();
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                ajaxLoadEnd();
+                                param.OWindow.reload_();
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({
+                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                    type: 'error'
+                                })
+                            }
+                        }
+                    });
+        // } else {
+        //     MsgAlert({content: jdata.msg, type: 'error'});
+        // }
+        //     }
+        // });
+
+    }
+
+    function setDealWithDate(operation, pkid) {
+        var title_ = $.i18n.t('设置编写期限');
+        ShowWindowIframe({
+            width: "400",
+            height: "150",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/td/rev/setDealWithDate.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+//        dateFormatter_();
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //新增
+    function addDatagridRow() {
+        $('#dg').datagrid('appendRow', {TD_PKID: param.pkid,});
+    }
+
+    //行编辑事件
+    function editDate(index, row, changes) {
+        row = toCamelCase(row);
+        // if (changes.CHAPTER) {
+        //     var acengModel = $("#fleet").textbox('getValue');
+        //     var dataType = $("#dataType").textbox('getValue');
+        //     var datas = {ata: changes.CHAPTER, acengModel: acengModel};
+        //     //当章节号变动时，根据章节号、机型、手册类型去查询对应的责任工程师
+        //     var url = $.extend({}, datas, {FunctionCode: 'ATA_ENGINEER'});
+        //     InitFuncCodeRequest_({
+        //         data: url,
+        //         successCallBack: function (jdata) {
+        //             if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+        //                 if (jdata.data == null) {
+        //                     return;
+        //                 }
+        //                 $('#dg').datagrid('updateRow', {
+        //                     index: index,
+        //                     row: {
+        //                         EDITOR: jdata.data.ENGINEER,
+        //                         formatter: function () {
+        //                             return PAGE_DATA['editor'][jdata.data.ENGINEER];
+        //                         }
+        //                     }
+        //                 });
+        //             } else {
+        //                 // MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'})
+        //             }
+        //         }
+        //     });
+        // }
+        var regex = /^[0-9]*[1-9][0-9]*$/;
+        if (!checkATA(row)) {
+            MsgAlert({content: "章节请填写完整！", type: 'error'});
+            return;
+        }
+        //校验处理期限是否为正整数，否则清空
+        if (row.dealDays != undefined && row.dealDays != '' && !regex.test(row.dealDays)) {
+            row.dealDays = "";
+        }
+        var data = JSON.stringify(row);
+        InitFuncCodeRequest_({
+            data: {data: data, FunctionCode: "TD_SUPPLEMENT_DETAIL_ADD"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var rows = $('#dg').datagrid('getRows');
+        if (rows.length == 0) {
+            MsgAlert({content: "请先添加任务数据！", type: 'error'});
+            return;
+        }
+        var regex = /^[0-9]*[1-9][0-9]*$/;
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+            if (!checkATA(rows[i])) {
+                MsgAlert({content: "章节请填写完整！", type: 'error'});
+                return;
+            }
+            //校验处理期限是否为正整数，否则清空
+            if (rows[i].dealDays != undefined && rows[i].dealDays != '' && !regex.test(rows[i].dealDays)) {
+                rows[i].dealDays = "";
+            }
+        }
+        var data = JSON.stringify(rows);
+        InitFuncCodeRequest_({
+            data: {data: data, FunctionCode: "TD_SUPPLEMENT_DETAIL_ADD"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //附件查看
+    function viewAttach() {
+        var pkid = param.tdPkid;
+        InitFuncCodeRequest_({
+            data: {
+                SOURCE_ID: pkid,
+                CATEGORY: "dmDataRecAc",
+                FunctionCode: 'ATTACHMENT_RSPL_GET'
+            },
+            successCallBack: function (jdata) {
+                //为0时提示没有上传附件，无法查看
+                if (jdata.data.length == 0) {
+                    MsgAlert({content: "请先上传附件", type: 'error'});
+
+                } else {
+                    //打开一个列表页面
+                    ShowWindowIframe({
+                        width: "515",
+                        height: "285",
+                        param: {pkid: pkid, category: "dmDataRecAc"},
+                        url: "/views/data_manager/dm/upload/viewAttach.shtml"
+                    });
+                }
+            }
+        });
+    }
+
+    function checkATA(row) {
+        if (row.chapter == undefined || row.chapter == "") {
+            return false;
+        }
+        if (row.section == undefined || row.section == "") {
+            return false;
+        }
+        if (row.subject == undefined || row.subject == "") {
+            return false;
+        }
+        return true;
+    }
+</script>
+</html>

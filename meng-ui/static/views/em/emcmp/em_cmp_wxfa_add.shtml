@@ -1,0 +1,276 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+    <style>
+        #mform table tr th {
+            width: 80px;
+        }
+    </style>
+    <script type="text/javascript">
+
+        var isEdit_;
+        var param = {};
+        var userName = {};
+        var gbType;
+        var gbType_ls = 'T';
+        var gbType_zs = 'F';
+        var ycl;
+        $(function () {
+            param = getParentParam_();
+            isEdit_ = param.pkid;
+            gbType = param.type;
+            ycl = param.type;
+        });
+
+        function i18nCallBack() {
+            InitFuncCodeRequest_({
+                data: {
+                    domainCode: "EM_ACREG_MP_ACTYPE,EM_CMP_VER_TYPE,EM_CMP_STATE,USER_NAME",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                        userName = DomainCodeToMap_(jdata.data["USER_NAME"]);
+                        //机队
+                        $('#fleet').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_ACREG_MP_ACTYPE,
+                            valueField: 'VALUE',
+                            textField: 'VALUE'
+                        });
+                        //版本类型
+                        $('#verType').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_CMP_VER_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+
+                        //状态
+                        $('#status').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_CMP_STATE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+
+                        if (isEdit_) {
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: param.pkid,
+                                    FunctionCode: "EM_CMP_GETONE"
+                                },
+                                successCallBack: function (jdata1) {
+                                    if (jdata1.code == RESULT_CODE.SUCCESS_CODE) {
+
+                                        //$("#createByName").textbox({value: userName[jdata1.data.CREATE_BY_NAME]});
+                                        ParseFormField_(jdata1.data, null, Constant.CAMEL_CASE);
+                                        $('#createByName').textbox('setValue', getLoginInfo().userName);
+                                        $("#createBy").val(getLoginInfo().accountId);
+                                        $('#status').combobox('setValue', 'DRAFT');
+                                        if (gbType == gbType_ls) {
+                                            $('#verType').combobox('setValue', 'T');
+                                            $('#minorVer').val(jdata1.data.MINOR_VER + 1);
+                                            $('#majorVer').val(jdata1.data.MAJOR_VER);
+                                            $('#majorVerShow').textbox('setValue', PrefixInteger(jdata1.data.MAJOR_VER, 2));
+                                            $('#minorVerShow').textbox('setValue', PrefixInteger(jdata1.data.MINOR_VER + 1, 2));
+                                            $('#revCode').combobox('setValue', 'R');
+                                        }
+                                        if (gbType == gbType_zs) {
+                                            //正式版次号
+                                            $('#verType').combobox('setValue', 'F');
+                                            $('#majorVer').val(jdata1.data.MAJOR_VER + 1);
+                                            $('#minorVer').val(0);
+                                            $('#majorVerShow').textbox('setValue', PrefixInteger(jdata1.data.MAJOR_VER + 1, 2));
+                                            $('#minorVerShow').textbox('setValue', '00');
+                                            $('#revCode').combobox('setValue', 'R');
+                                        }
+                                    }
+                                    else {
+                                        MsgAlert({content: jdata1.msg, type: 'error'});
+                                    }
+                                }
+                            });
+
+                        } else {
+                            value = "N";
+                            $('#status').combobox('setValue', 'DRAFT');
+                            $('#createByName').textbox('setValue', getLoginInfo().userName);
+                            $('#createBy').val(getLoginInfo().accountId);
+                            $('#createDate').datebox({value: formatDates(new Date())});
+                            $('#verType').combobox('setValue', 'F');
+                            //正式版次号
+                            $('#majorVer').val('1');
+                            $('#minorVer').val('0');
+                            $('#majorVerShow').textbox('setValue', '01');
+                            $('#minorVerShow').textbox('setValue', '00');
+                            $('#revCode').combobox('setValue', 'N');
+                        }
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+
+        function PrefixInteger(num, n) {
+            return (Array(n).join(0) + num).slice(-n);
+        }
+
+        function DomainCodeToMap_(list) {
+            var d = {};
+            $.each(list, function (k, it) {
+                d[it.VALUE] = it.TEXT;
+            });
+            return d;
+        }
+
+        //获取当前时间
+        function formatDates(date) {
+            var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+            var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+                + (date.getMonth() + 1);
+            var hor = date.getHours();
+            var min = date.getMinutes();
+            var sec = date.getSeconds();
+            return date.getFullYear() + '-' + month + '-' + day + " " + hor + ":" + min + ":" + sec;
+        }
+
+        function saveFunction() {
+            var isValidate = $("#mform").form('validate');
+            if (!isValidate)
+                return;
+            var $form = $("#mform");
+            var datas = {};
+            //更新操作人，操作时间
+            $("#createByName").textbox({value: getLoginInfo().userName});
+            $("#createBy").val(getLoginInfo().accountId);
+            $('#createDate').datetimebox({value: formatDates(new Date())});
+            var datas = $form.serializeObject();
+            datas = $.extend({}, datas, {FunctionCode: (isEdit_ ? 'EM_CMP_GB' : 'EM_CMP_ADD')});
+            if (gbType != null) {
+                datas = $.extend({}, datas, {gbType: gbType});
+            }
+            MaskUtil.mask("正在改版中...");
+            InitFuncCodeRequest_({
+                data: datas,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (!isEdit_) {
+                            param.OWindow.reload_();
+                        }
+                        if (ycl == 1 || ycl == 2 || ycl == 3) {
+                            //往前一页面返回参数(ycl)
+                            param.OWindow.getPkid(jdata.data);
+                        }
+                        MsgAlert({content: '操作成功'});
+                        if (!(ycl == 1 || ycl == 2 || ycl == 3)) {
+                            param.OWindow.reloadFym_();
+                        }
+                        MaskUtil.unmask();
+                        CloseWindowIframe();
+                    } else {
+                        MaskUtil.unmask();
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+
+                }
+            });
+        }
+        function closeAdd() {
+            CloseWindowIframe();
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+
+                            <input class="btn btn-primary" onclick="saveFunction()" type="button" value="保存"
+                                   style="margin:5px;"/>
+                            <input class="btn btn-primary" onclick="closeAdd();" type="button" value="关闭"
+                                   style="margin: 5px;">
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="tdl">机队：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="fleet" id="fleet"
+                                   data-options="required:true"
+                                   style="height:25px; width: 200px;"/>
+                        </td>
+                        <th class="tdl">版本类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="verType" id="verType"
+                                   data-options="required:true,editable:false,onlyview:true"
+                                   style="height:25px; width:75px;"/>
+                            &nbsp;&nbsp;版本：
+                            <input class="easyui-textbox" name="majorVerShow" id="majorVerShow"
+                                   data-options="required:true,editable:false,onlyview:true"
+                                   style="height:25px; width: 30px;"/>
+                            <input type="hidden" name="majorVer" id="majorVer"/>/
+                            <input class="easyui-textbox" name="minorVerShow" id="minorVerShow"
+                                   data-options="required:true,editable:false,onlyview:true"
+                                   style="height:25px; width: 30px;"/>
+                            <input type="hidden" name="minorVer" id="minorVer"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="tdl">改版标识 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="revCode" id="revCode"
+                                   data-options="required:true"
+                                   style="height:25px; width: 200px;"/>
+                        </td>
+                        <th class="tdl">状态 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="status" id="status"
+                                   data-options="required:true,editable:false,onlyview:true"
+                                   style="height:25px; width:200px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">编写人 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="createByName" id="createByName"
+                                   data-options=""
+                                   style="height:25px; width: 200px;"/>
+                            <input type="hidden" id="createBy" name="createBy"/>
+                        </td>
+                        <th class="tdl">编写日期 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" name="createDate" id="createDate"
+                                   data-options="required:true"
+                                   style="height:25px; width:200px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">备注 ：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" name="memo" id="memo"
+                                   data-options="required:true"
+                                   style="height:25px; width:520px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

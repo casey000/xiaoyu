@@ -1,0 +1,417 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+  <!--#include virtual="/views/items/resource_.shtml"-->
+  <title>不正常事件管理</title>
+  <style type="text/css">
+table th{
+  text-align: center
+}
+.textBottom{
+  border-top-style: none;
+  border-left-style: none;
+  border-right-style: none;
+  /*border-bottom-style: solid;*/
+  margin-left:3px;
+  width:80px
+}
+.datagrid-wrap{
+  height: 130px!important;
+  width: 1080px!important;
+}
+
+.itemDiv{
+  background-color:#80808054;
+  height: 22px;
+  font-size: 11px;
+  padding-top: 5px;
+  padding-left: 5px;
+  margin-bottom:2px;
+}
+
+span.oprTypeSpan{
+  margin-right: 30px;
+  margin-bottom: 10px;
+}
+
+.datagrid-header-rownumber, .datagrid-cell-rownumber {
+    width: 60px;
+}
+
+
+  </style>
+    <link rel="stylesheet" href="/css/plugins/dialog/dialog_default.css">
+    <script type="text/javascript" src="/views/defect/chooseFlight.js"></script>
+    <script src="/js/lhgdialog/lhgdialog.js"></script>
+    <script type="text/javascript" src="/js/common_query_dialog.js"></script>
+    <script type="text/javascript" src="js/incident_detail.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body style="padding-left:3px;padding-right:3px">
+<div style="width:95%;margin:0 auto;">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="不正常事件报告" style="width: 100%"></div>
+              <input type="hidden" name="pkid" id="pkid"/>
+              <input type="hidden" name="inputerId">
+              <input type="hidden" name="inputerName">
+              <input type="hidden" name="inputerDate">
+              <input type="hidden" name="rev" value="0">
+              <input type="hidden" name="status">
+                <input type="hidden" id="actype" name="actype">
+              <table class="table table-bordered table-info">
+                  <!-- 第一行 显示关联Defect 编号 版本号-->
+                  <tr>
+                    <td style="width:10%">
+                      <img src="/img/sf_log.png" alt="">
+                    </td>
+                    <td align="center" style="width:55%">
+                      <h3>维修系统不正常事件报告</h3>
+                    </td>
+                    <td class="td5" align="right">
+                        <table class="table table-bordered" style="height:60px">
+                        <tr>
+                            <th style="width:250px">关联Defect</th>
+                            <th style="width:180px">编号</th>
+                            <th style="width:100px">版本号</th>
+                        </tr>
+                        <tr>
+                            <td style="height:40px;width:250px">
+                            <img src="/images/ico_search_16.png" style="display:none;" id="defectSearchImg" onclick="searchDefects()">
+                            关联<input type="radio" id="isChkDefect" name="defect"/>
+                            N/A<input type="radio" id="isNotChkDefect" name="defect"/>
+                            <input type="hidden" name="defectId" id="defectId"/>
+                            <input type="hidden" name="defectNo" id="defectNo"/>
+                            <span id="defectIdShow"></span>
+                          </td>
+                            <td id="td_ciNo" align="center" style="width:180px"></td>
+                          <td align="center">R0</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <!-- 按钮行 -->
+                  <tr>
+                    <td class="td5" align="right" style="padding-right:10px;height:35px" colspan="3">
+                      <a class="searchBtn" type="button" onclick="saveOrUpdate()" id="saveButton"
+                         data-options="iconCls:'icon-save'">
+                        <span>保存</span></a>&nbsp;&nbsp;
+                      <a class="searchBtn" type="button" onclick="submitFlow()" id="submitFlowButton"
+                         data-options="iconCls:'icon-save'">
+                        <span>提交</span></a>&nbsp;&nbsp;
+                      <a class="searchBtn" type="button" onclick="CloseWindowIframe();"
+                         data-options="iconCls:'icon-close'">
+                        <span>关闭</span></a>&nbsp;&nbsp;
+                    </td>
+                  </tr>
+              </table>
+
+              <!-- 一、事件类别-->
+              <table  class="table table-bordered table-info" id="oprTypeTable">
+                <input type="hidden" name="criticalType" id="criticalType"/>
+                <input type="hidden" name="operationType" id="operationType"/>
+                <input type="hidden" name="operationTypeText" id="operationTypeText"/>
+                <div class="itemDiv" style="font-weight: bold">一、事件类别</div>
+                <tr>
+                  <th class="th">航班运行类</th>
+                  <td class="tdr hs">
+                    <span class="oprTypeSpan"><input type="checkbox" id="isDelayChk" flag="criticalType" value="1"/>延误
+                      <input class="easyui-numberbox textBottom"
+                             name="delayTime" id="delayTime"
+                             data-options="validType:['maxLength[10]'],readonly: true"/>分钟</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="2"/>取消</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="3"/>滑回</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="4"/>返航</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="5"/>改航</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="6"/>复飞</span>
+                    <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="7"
+                                                     style="margin-bottom:15px"/>中断起飞</span>
+                    <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="29"
+                                                     style="margin-bottom:15px"/>空中停车</span><br/>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="8"/>紧急下降</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="9"/>中断近进</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="10"/>非计划换机</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="11"/>AOG</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="12"/>备降</span>
+                    <span class="oprTypeSpan"><input type="checkbox" id="isOtherOprChk" flag="criticalType" value="13"/>其它：
+                    <input class="easyui-textbox textBottom"
+                           name="otherOperation"
+                           id="otherOperation"
+                           data-options="validType:['maxLength[100]'],readonly: true"/></span>
+                  </td>
+                </tr>
+                <tr>
+                  <th class="th">外界影响类</th>
+                  <td class="tdr hs">
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="14"/>雷击</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="15"/>冰击</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="16"/>风切变</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="17"/>严重颠簸</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="18"/>重着陆</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="19"/>外来物(FOD)</span>
+                    <span class="oprTypeSpan"><input type="checkbox" id="isOtherExternalChk" flag="criticalType"
+                                                     value="20"/>其它：
+                    <input class="easyui-textbox"
+                           name="otherExternal"
+                           id="otherExternal"
+                           data-options="validType:['maxLength[100]'],readonly: true"/></span>
+                  </td>
+                </tr>
+                <tr>
+                  <th>维修操作类</th>
+                  <td class="tdr hs">
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="21"/>违章作业</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="22"/>人员受伤</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="23"/>手册程序</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="24"/>航材物料</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="25"/>工具设备</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="26"/>人为因素</span>
+                      <span class="oprTypeSpan"><input type="checkbox" flag="criticalType" value="27"/>工时管理</span>
+                    <span class="oprTypeSpan"><input type="checkbox" id="isOtherMaintChk" flag="criticalType"
+                                                     value="28"/>其它：
+                    <input class="easyui-textbox textBottom"
+                           name="otherMaintain"
+                           id="otherMaintain"
+                           data-options="validType:['maxLength[100]'],readonly: true"/></span>
+                  </td>
+                </tr>
+              </table>
+
+              <!--二/三/四 页面-->
+              <div style="width:100%" id="viewShowDiv">
+                <div class="itemDiv" style="font-weight: bold">二、使用困难报告（SDR）</div>
+                <div style="height: 25px;padding-top: 5px;">
+                  <input type="radio" name="isSdr" value="1" style="margin-left:20px" disabled/>Y
+                  <input type="radio" name="isSdr" value="0" style="margin-left:15px" disabled/>N
+
+                  <input type="radio" name="sdrType" value="O" style="margin-left:100px" disabled/>运行
+                  <input type="radio" name="sdrType" value="S" style="margin-left:15px" disabled/>结构
+                </div>
+
+                <div class="itemDiv" style="font-weight: bold">三、涉及MEL/CDL</div>
+                <div style="height: 25px;padding-top: 5px;">
+                  <input type="radio" name="isMel" value="1" style="margin-left:20px" disabled/>Y
+                  <input type="radio" name="isMel" style="margin-left:15px" value="0" disabled/>N
+
+                  <label style="margin-left:20px">内容：</label>
+                  <input class="easyui-textbox" name="melcdlDesc" id="melcdlDesc"
+                         data-options="editable:false" style="width:85%"/>
+                </div>
+
+                <div class="itemDiv" style="font-weight: bold">四、涉及故障部件</div>
+                <div style="padding-top: 5px;">
+                  <!--<input class="easyui-textbox" id="relPart" data-options="editable:false" style="width:99%"/>-->
+                  <table id="relPartTable" style="width:100%;"></table>
+                </div>
+              </div>
+
+              <!-- 基本信息-->
+              <div class="itemDiv" style="font-weight: bold">五、基本信息</div>
+              <div id="searchBar">
+                <table class="table table-bordered table-info">
+                  <tr>
+                    <th class="th" style="width:90px">日期:</th>
+                    <td class="td5" style="width:180px"><input class="easyui-datebox" name="incidentDate"
+                                                               data-options="required:true,editable:false,width:140">
+                    </td>
+                    <th class="th" style="width:100px">机型/飞机号:</th>
+                    <td class="td5" style="width:150px"><input class="easyui-combobox" name="acno" id="acno"
+                                                               data-options="required:true,width:120"/></td>
+                    <th class="th">ATA章节:</th>
+                    <td class="td5" style="width:130px">
+                      <input class="easyui-textbox" name="ata" id="ata"
+                             data-options="required:true,width:120,validType:['maxLength[100]']"/>
+                    </td>
+                    <th class="th">航班号:</th>
+                    <td class="td5" style="width:150px">
+                      <input class="easyui-textbox" name="flightNo" id="flightNo"
+                             data-options="required:true, readonly:true, width:120"/>
+                      <input type="hidden" name="flightId" id="flightId"/>
+                      <a class="easyui-linkbutton" href="javascript:" style="height: 20px"
+                         iconCls="icon-search" id="openSBList"
+                         onclick="getFlightId();"></a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <th class="th">航站:</th>
+                    <td class="td5">
+                      <input class="easyui-textbox" name="station" id="station"
+                             data-options="editable:false,onlyview:true,width:120"/>
+                      <input type="hidden" name="checkType" id="checkType"/>
+                      <input class="easyui-textbox" name="checkTypeTitle" id="checkTypeTitle"
+                             style="width:40px" data-options="editable:false,onlyview:true,width:50"/>
+                    </td>
+                    <th class="th">飞行区间:</th>
+                    <td class="td5"><input class="easyui-textbox" name="flightRange" id="flightRange"
+                                           data-options="editable:false,onlyview:true,width:120"/></td>
+                    <th class="th">放行人员:</th>
+                    <td class="td5"><input class="easyui-textbox" name="dischargedName" data-options="validType:['maxLength[60]'],width:120"/></td>
+                    <th class="th">计划起飞时间:</th>
+                    <td class="td5"><input class="easyui-textbox" name="prepareTakeoff" id="prepareTakeoff"
+                                           data-options="editable:false,onlyview:true, width:130"/></td>
+                  </tr>
+                  <tr>
+                    <th class="th">恢复适航时间:</th>
+                    <td class="td5"><input class="easyui-datetimebox" name="recoverTime" id="recoverTime"
+                                           data-options="required:true,editable:false, showSeconds:false, width:140"/>
+                    </td>
+                    <th class="th">非计划停场天数:</th>
+                    <td class="td5"><input class="easyui-textbox" name="onground" id="onground"
+                                           data-options="editable:false,onlyview:true,required:true, width:120"/>
+                      <span style="font-family: 微软雅黑;font-size: 10px;color: #32404b;font-weight: bold;">天</span>
+                    </td>
+                    <th class="th">责任单位:</th>
+                    <td class="td5"><input class="easyui-textbox" name="dept"
+                                           data-options="width:120,editable:false"/>
+                    </td>
+                    <th class="th">扣除分值:</th>
+                    <td class="td5" colspan="2"><input class="easyui-numberbox" name="point"
+                                                       data-options="width:120,editable:false,precision:1"/>
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- 六、详细描述 -->
+              <div class="itemDiv" style="font-weight: bold">六、详细描述(如过程、原因、结果、处理方式等，以及存在隐患)</div>
+                <table class="table table-bordered table-info">
+                <tr>
+                  <td>
+                      <label style="margin-right:3px">&nbsp;&nbsp;故障简述: </label>
+                      <input class="easyui-textbox" name="incidentDes" data-options="validType:['maxLength[20]']"
+                             style="width:1000px;height: 100px"
+                             multiline="true"/>
+                  </td>
+                </tr>
+                  <tr>
+                      <td>
+                          <label style="margin-right:3px">&nbsp;&nbsp;事件过程: </label>
+                          <a class="easyui-linkbutton" href="javascript:" style="height: 20px"
+                             iconCls="icon-add" alt="添加详细描述" id="addIncidentDesc"></a>
+                      </td>
+                  </tr>
+              </table>
+                <table id="detailDescTable" style="width:100%;height:70px"></table>
+
+                      <div align="right" style="padding-right:2px;margin-top:5px;margin-bottom:2px">
+                      <input type="hidden" name="reportId" id="reportId"/>
+                        <label>报告日期: </label><input class="easyui-datebox" name="reportDate"
+                                                    data-options="editable:false,onlyview:true" id="reportDate"/>&nbsp;&nbsp;
+                      <label>报告人: </label><input class="easyui-textbox" name="reportName" id="reportName"
+                                                 data-options="editable:false,onlyview:true,required:true"/>
+                    </div>
+              <div class="itemDiv" style="font-weight: bold">七、MCC意见</div>
+              <div>
+                <input class="easyui-textbox" name="mccDes"
+                       data-options="validType:['maxLength[1000]'],multiline:true,editable:false,width:1082,height:80"/>
+              </div>
+              <div align="right" style="padding-right:2px;margin-top:5px;margin-bottom:2px">
+                <label>MCC审批人:</label>
+                <input class="easyui-textbox" name="mccName" data-options="editable:false"/>
+              </div>
+
+              <div class="itemDiv" style="font-weight: bold">八、值班经理建议与要求</div>
+              <div>
+                <input class="easyui-textbox" name="manageDes"
+                       data-options="validType:['maxLength[1000]'],multiline:true,editable:false,width:1082,height:80"/>
+              </div>
+              <div id="isDutySuggestDiv"
+                   style="border:1px solid #80808054;margin-bottom:2px;height:20px;margin-top:2px;display:none">
+                <label>建议：</label>
+                <input type="checkbox" name="dutySuggestType" value="isMcc" style="margin-left:15px"/>MCC监控
+                <input type="checkbox" name="dutySuggestType" value="isTmc" style="margin-left:15px"/>技术支援处监控
+                <input type="checkbox" name="dutySuggestType" value="isPPC" style="margin-left:15px"/>PPC跟进
+                <input type="checkbox" name="dutySuggestType" value="isProj" style="margin-left:15px"/>工程评估
+                <input type="checkbox" name="dutySuggestType" value="isTrain" style="margin-left:15px"/>培训开展
+                <input type="checkbox" name="dutySuggestType" value="isLine" style="margin-left:15px"/>航线关注
+                <input type="checkbox" name="dutySuggestType" value="isDj" style="margin-left:15px"/>定检跟进
+                <input type="checkbox" name="dutySuggestType" value="isQa" style="margin-left:15px"/>质量调查
+                <input type="checkbox" name="dutySuggestType" value="isMateria" style="margin-left:15px"/>航材保障
+              </div>
+              <div align="right" style="padding-right:2px;margin-top:5px">
+                <label>值班经理:</label>
+                <input class="easyui-textbox" name="manageName" data-options="editable:false"/>
+              </div>
+
+              <!--当有反馈时显示-->
+              <div id="dutySuggestDiv" style="display:none">
+                <div>
+                  <div class="itemDiv">MCC监控反馈信息</div>
+                  <div class="feedBackDes"
+                       style="margin-top:2px;margin-bottom:2px;border:1px solid #80808054;height:70px;padding-left:15px;"></div>
+                  <div align="right" style="padding-right:2px;margin-top:5px">
+                    <label>反馈人:</label>
+                    <input type="text" id="feedBackUser" style="border-radius:4px;" readonly/>
+                  </div>
+                </div>
+              </div>
+              <div style="height:10px"></div>
+              <div id="attachesUl1" hidden class="itemDiv" style="font-weight: bold">相关附件</div>
+                <div id="attachesUl2" hidden>
+                    <form class="form-horizontal m-t" style="margin-top: 0px;">
+                        <div>
+                            <table class="table table-bordered table-info">
+                                <tr>
+                                    <th class="tdl">MCC监控：</th>
+                                    <td>
+                                        <ul id="attachesUl_isMcc"></ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="tdl" style="width: 100px">技术支援处监控：</th>
+                                    <td>
+                                        <ul id="attachesUl_isTmc"></ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="tdl">PPC跟进：</th>
+                                    <td>
+                                        <ul id="attachesUl_isPPC"></ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="tdl">工程评估：</th>
+                                    <td>
+                                        <ul id="attachesUl_isProj"></ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="tdl">培训开展：</th>
+                                    <td>
+                                        <ul id="attachesUl_isTrain"></ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="tdl">航线关注：</th>
+                                    <td>
+                                        <ul id="attachesUl_isLine"></ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="tdl">定检跟进：</th>
+                                    <td>
+                                        <ul id="attachesUl_isDj"></ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="tdl">质量调查：</th>
+                                    <td>
+                                        <ul id="attachesUl_isQa"></ul>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th class="tdl">航材保障：</th>
+                                    <td>
+                                        <ul id="attachesUl_isMateria"></ul>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </form>
+                </div>
+            </form>
+        </div>
+</div>
+
+</body>
+</html>

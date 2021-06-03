@@ -1,0 +1,173 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>增加顺丰执行文件--MP</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="revCode" name="revCode"/>
+                <input type="hidden" id="evalState" name="evalState"/>
+                <input type="hidden" id="createDate" name="createDate"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td class="tdr" colspan="4">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin-left:300px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td" style="width: 100px" align="right">MPD项目编号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="itemNumber" name="itemNumber" style="width: 100px"
+                                   data-options="editable:false,onlyview:true"/>
+
+                        </td>
+                        <th class="td" align="right">机队：</th>
+                        <td class="tdr">
+                            <input class="easyui-combogrid" id="fleet" name="fleet" style="width: 100px"
+                                   data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th align="right">文件版次：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="docVer" name="docVer" style="width: 100px"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                        <th class="td" align="right">章节：</th>
+                        <td class="tdr">
+                            <input class="easyui-combogrid" id="ata" style="width: 100px"
+                                   name="ata"
+                                   data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr style="display: none">
+                        <th class="td" align="right">文件类型：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="docType" name="docType"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var dealOpinion;
+    var dealMeasure;
+    var taskId;
+    var evapkid;
+    var exeFlag;
+    var appType;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        dealOpinion = param.dealOpinion;
+        dealMeasure = param.dealMeasure;
+        taskId = param.taskId;
+        evapkid = param.evapkid;
+        exeFlag = param.exeFlag;
+        appType = param.applyType;
+
+        $("#revCode").val("N");
+        $("#evalState").val("YCJ");
+        $("#docType").textbox('setValue', "EMR");
+        $("#docVer").textbox('setValue', "00");
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EMTB_ATA,REVSUG_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    initApplyModel();
+                    initAta();
+                }
+            }
+        })
+    }
+
+    function initApplyModel() {
+        var datas2 = $.extend({evaId: evapkid}, {FunctionCode: 'EM_FILE_APPLY_MODEL_EO'});
+        InitFuncCodeRequest_({
+            data: datas2, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#fleet').combobox({
+                        panelHeight: '60px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function initAta() {
+        var datas2 = $.extend({evaId: evapkid}, {FunctionCode: 'EM_FILE_APPLY_ATA_EO'});
+        InitFuncCodeRequest_({
+            data: datas2, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#ata').combobox({
+                        panelHeight: '60px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({
+            dealOpinion: dealOpinion,
+            dealMeasure: dealMeasure,
+            taskId: taskId,
+            appType: appType,
+            evapkid: evapkid
+        }, datas, {FunctionCode: 'EM_FILE_EVAL_MP_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#pkid").val(jdata.data.pkid);
+                    if (exeFlag == "OTHER") {
+                        param.OWindow.reload_("#dg7");
+                    } else {
+                        param.OWindow.reload_("#dg2");
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</html>

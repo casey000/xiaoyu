@@ -1,0 +1,308 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script src="/js/workflow/activiti_workflow.js" type="text/javascript"></script>
+    <script src="/js/workflow/formtemplet.js" type="text/javascript"></script>
+    <script src="/js/datagrid_utils.js" type="text/javascript"></script>
+    <title></title>
+    <script type="text/javascript">
+        /**
+         *
+         * @param resource  业务数据
+         * @param execution 流程实例数据
+         * @param node 节点配置数据
+         * @constructor
+         */
+        var url;
+        var oaUrl;
+        var param = {};
+        var taskPropId;
+        var selectRow;
+        var userInfo = getLoginInfo();
+        var userId = userInfo.accountId;
+        function InitLoadResource(resource, execution, node) {
+            param = getParentParam_();
+            taskPropId = node.taskPropId;
+            url = resource.fileKey;
+            console.log(resource);
+            if (url == '/') {
+                url = "";
+                MsgAlert({content: "业务信息PDF文件请求路径为空", type: 'error'});
+            }
+            if (url != '') {
+                $('#iframe0').attr('src', '/views/YWorkFlow/EmCmpPdf.shtml');
+            }
+            //oaUrl = "/views/YWorkFlow/EmCmpOa.shtml?BUSINESS_KEY_=" + execution.businessKey;
+            //$("#formUrl").val(oaUrl);
+            $("#pkid").val(resource.pkid);
+            var roleId = queryNodeRole(execution.objNo,"EM_CMP_APPROVE").ROLE_ID;
+            $("#authId").MyComboGrid({
+                idField: 'ACCOUNT_ID',  //实际选择值
+                textField: 'USER_NAME', //文本显示值
+                panelHeight: '220px',
+                width: 200,
+                params: {userId: userId,roleId:roleId, FunctionCode: 'FLOW_WORK_ACCOUNT'},
+                columns: [[
+                    {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                    {field: 'USER_NAME', title: '审核人', width: 50}
+                ]],
+                onHidePanel: function () {
+                    var t = $(this).combogrid('getValue');
+                    if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                        alert('请选择，不要直接输入！');
+                        $(this).combogrid({value: ''});
+                    }
+                },
+                onSelect: function (index, row) {
+                    selectRow = row;
+                    if ('task1540797458091' == taskPropId) {//校对中
+                        $("#approver").val(row.ACCOUNT_ID); //未下级赋值，当前节点不用赋值，且最后节点无需为下一级赋值
+                    } else if ('task1540797712055' == taskPropId) {//审核
+                        $("#ratifyBy").val(row.ACCOUNT_ID);
+                    } else if ('task1546507096791' == taskPropId) {//任务退回
+                        $("#proofBy").val(row.ACCOUNT_ID);
+                    }
+                }
+            });
+            if ('task1540797750695' == taskPropId || 'task1540802778147' == taskPropId || 'task1540802829111' == taskPropId) {
+                document.getElementById("div_tdl").style.display = "none";
+                document.getElementById("div_tdr").style.display = "none";
+            } else if ('task1546507096791' == taskPropId) {
+                $("#adopt").combobox({value: 'Y', onlyview: true, editable: false})
+            }
+
+            $("#adopt").combobox({
+                onChange: function (value) {
+                    if (value == 'N') {
+                        document.getElementById("div_tdl").style.display = "none";
+                        document.getElementById("div_tdr").style.display = "none";
+                        $("#authId").textbox("setValue", "");
+                    } else {
+                        document.getElementById("div_tdl").style.display = "";
+                        document.getElementById("div_tdr").style.display = "";
+                    }
+                }
+            });
+
+            initDataGrid(resource.pkid, execution.objNo);
+        }
+
+        function initDataGrid(pkid, objNo) {
+            var pageSize = Math.floor(($("#mlayout").height() - 40) / 30);
+            $("#r_dg").MyDataGrid({
+                identity: "dg3",
+                sortable: true,
+                singleSelect: true,
+                queryParams: {objNo: objNo},
+                pagination: false,
+                pageSize: pageSize, pageList: [pageSize],
+                resize: function () {
+                    return tabs_standard_resize($('#lay_right'), 0, 0, -45);
+                },
+                columns: {
+                    param: {FunctionCode: 'EM_CMP_PDF'}
+                },
+                contextMenus: [
+                    {
+                        id: "m-approvalProcess", i18nText: "查看附件", auth: "",
+                        onclick: function () {
+                            var row = $('#r_dg').datagrid('getSelected');
+                            if (!row) {
+                                return;
+                            }
+                            if (!row.URL || row.URL == '/') {
+                                MsgAlert({content: "文件请求路径为空", type: 'error'});
+                                return;
+                            }
+                            downFile(row.PKID);
+                        }
+                    }
+                ]
+            })
+
+        }
+
+        //同意的时候，默认意见为“同意”，不同意的时候，意见必填
+        function getAdvice() {
+            var adopt = $("#adopt").textbox("getValue");
+            var notes = $("#notes").textbox("getValue").trim();
+            var authId = $("#authId").combobox("getValue");
+            console.info(param);
+            if (adopt == "Y") {
+                if (!notes) {
+                    $("#notes").textbox({value: "同意"});
+                }
+                if (!authId && ('task1540797458091' == taskPropId || 'task1540797712055' == taskPropId)) {
+                    MsgAlert({content: "请选择审批人！", type: 'error'});
+                    return;
+                }
+                doSubmit()
+            } else {
+                if (!notes) {
+                    MsgAlert({content: "请填写处理意见", type: 'error'});
+                    return;
+                }
+                if ('task1540797458091' == param.TASK_DEF_KEY_) {
+                    $("#isFirstNode").val('Y');
+                } else {
+                    $("#isFirstNode").val('N');
+                }
+                doReturn();
+            }
+        }
+
+        function doReturn_() {
+            $.messager.confirm('提示', '您确定要退回吗?', function (r) {
+                if (r) {
+                    var notes = $("#notes").textbox('getValue');
+                    if ($.trim(notes) == '') {
+                        MsgAlert({content: '请输入您的退回意见', type: 'error'});
+                        return;
+                    }
+                    var data = {
+                        FunctionCode: 'WS_FLOW_TURNBACK', reSelect: 'top',
+                        taskId: param.TASK_ID, procDefId: param.PROC_DEF_ID, notes: notes
+                    };
+                    return;
+                    if (!PAGE_EVENTS.beforeTurnBack(data)) {
+                        return;
+                    }
+                    MaskUtil.mask("请求处理中...");
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            MaskUtil.unmask();
+                            PAGE_EVENTS.afterTurnBack(jdata);
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                if (typeof(param.OWindow.reload_ == 'function')) {
+                                    param.OWindow.reload_();
+                                }
+                                param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+    </script>
+    <script id="tempCombobox" type="text/html">
+        <tr>
+            <th class="tdl">{{d.titleName }} ：</th>
+            <td class="tdr">
+                <select name="{{d.fieldName}}" class="easyui-combobox"
+                        data-options="required:true, editable: false" panelHeight="120" style="width:180px">
+                    {{#
+                    for(var i = 0; i < d.options.length; i++){
+                    }}
+                    <option value="{{d.options[i]['value']}}">{{d.options[i]['text']}}</option>
+                    {{# } }}
+                </select>
+            </td>
+        </tr>
+    </script>
+    <script id="tempTextbox" type="text/html">
+        <tr>
+            <th class="tdl">{{d.titleName }} ：</th>
+            <td class="tdr">
+                <input name="{{d.fieldName}}" class="easyui-textbox"
+                       data-options="required:true, editable: true" style="width:180px"/>
+            </td>
+        </tr>
+    </script>
+</head>
+<body class="ibody">
+
+<div id="tabs" style="width: 100%; height: 100%;">
+    <div id="tab01" title="正文信息" style="">
+        <div class="ibox float-e-margins">
+            <div class="ibox-content">
+                <form class="form-horizontal m-t" id="mform" style="margin-top: 0px;">
+                    <!-- 业务数据展示 start-->
+                    <!--<input type="hidden" name="pkid" id="pkid"/>-->
+                    <input type="hidden" name="proofBy" id="proofBy"/>
+                    <input type="hidden" name="approver" id="approver"/>
+                    <input type="hidden" name="ratifyBy" id="ratifyBy"/>
+                    <!--<input type="hidden" name="zApprover" id="zApprover"/>-->
+                    <!--<input type="hidden" name="fzApprover" id="fzApprover"/>-->
+                    <!--<input type="hidden" name="dbApprover" id="dbApprover"/>-->
+                    <!--<input type="hidden" name="formUrl" id="formUrl"/>-->
+                    <!--<input name=""id="taskId" type="hidden" />-->
+                    <!--<input type="hidden" id="isFirstNode" name="isFirstNode">-->
+                    <table class="table table-bordered table-info">
+                        <tbody id="custom_options"></tbody>
+                    </table>
+                    <div style="width: 100%; height: 500px;">
+                        <iframe class="J_iframe" id="iframe0" name="iframe0" width="100%" height="580px" src="#"
+                                frameborder="0"></iframe>
+                    </div>
+                    <div style="width: 100%; height: 500px;display: none">
+                        <iframe class="J_iframe" id="iframe1" name="iframe1" width="0%" height="0px" src="#"
+                                frameborder="0"></iframe>
+                    </div>
+                    <div id="mlayout" class="easyui-layout" style="height: 22%;">
+                        <div id="lay_left" data-options="region:'west',split:false" style="width: 60%;">
+                            <div>
+                                <tr>
+                                    <td>
+                                        <table class="table table-bordered table-info" id="mtable" style="width: 100%">
+                                            <tr>
+                                                <th class="tdl"> 是否通过：</th>
+                                                <td class="tdr">
+                                                    <select id="adopt" class="easyui-combobox easyui-validatebox"
+                                                            name="adopt" editable="false"
+                                                            data-options=" " style="width:80px;">
+                                                        <option value="Y">通过</option>
+                                                        <option value="N">不通过</option>
+                                                    </select>
+                                                </td>
+                                                <th class="tdl" id="div_tdl"> 下一级办理人：</th>
+                                                <td class="tdr" id="div_tdr">
+                                                    <input class="easyui-combobox" id="authId" name="authId"
+                                                           data-options="" style=""/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th class="tdl"> 处理意见：</th>
+                                                <td class="tdr" colspan="3">
+                                                    <input id="notes" class="easyui-textbox easyui-validatebox"
+                                                           name="notes"
+                                                           data-options="multiline:true, validType:['maxLength[200]'] "
+                                                           style="height:45px; width: 100%;"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="6" align="center">
+                                                    <input id="canSubmit" class="btn" disabled="disabled" type="button"
+                                                           onclick="getAdvice();" value="提交"/>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </div>
+                        </div>
+                        <div id="lay_right" data-options="region:'center'" style="width: 40%;">
+                            <td>
+                                <table id="r_dg"></table>
+                            </td>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div title="流程节点" style="">
+        <div id="workflow" style="overflow-x: scroll;"></div>
+    </div>
+    <div id="tab02" title="批办过程" style="">
+        <table id="historyDg"></table>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,451 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>电气负载控制列表</title>
+    <style>
+        .datagrid-wrap {
+            height: 300px !important;
+        }
+
+    </style>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend>搜索</legend>
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                    <tr>
+                        <th style="width: 80px;" align="right">机&nbsp;&nbsp;&nbsp;&nbsp;号：</th>
+                        <td>
+                            <input class="easyui-combobox" id="acno" name="acno" data-options=""
+                                   style="width:120px"/>
+                        </td>
+                        <th style="width: 100px;">初始化日期从：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="initialDateB" name="initialDateB" style="width:100px;"
+                                   data-options="editable:false"/>
+                        </td>
+                        <th style="width: 40px;"> 至：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="initialDateE" name="initialDateE" style="width:100px;"
+                                   data-options="editable:false"/>
+                        </td>
+                        <td style="text-align:left; padding-right:5px">
+                            <a class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="onSearch_('dg','#ffSearch')"><span>查询</span></a>
+                            <a class="addBtn" data-options="iconCls:'icon-search'"
+                               onclick="addInitial()"><span>增加</span></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+    <table class="table table-bordered table-info">
+        <tr>
+            <th style="text-align: left;padding-top: 6px;padding-bottom: 6px;" colspan="4">电气负载初始化数据：</th>
+            <td style="text-align:right; padding-right:5px">
+                <a class="addBtn" data-options="iconCls:'icon-search'"
+                   onclick="addInitialData()"><span>增加</span></a>
+            </td>
+        </tr>
+    </table>
+    <table id="dg1"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var selectRow;
+    var initialPkid;
+    var initialStatus;
+    var isFlow;
+    var userId;
+    var userName;
+    var taskId;
+    var disFlag = false;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        isFlow = param.isFlow;
+        taskId = param.taskId;
+        if (isFlow) {
+            userId = param.userId;
+            userName = param.userName;
+        } else {
+            userId = getLoginInfo().accountId;
+            userName = getLoginInfo().userName;
+        }
+        if(isFlow && taskId != 'task1605246300229'){
+            $('.addBtn').hide();
+            disFlag = true;
+        }
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "MSGRP,EM_EO_EL_DATA_SOURCE,EM_ELA_STATUS"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data.MSGRP);
+                PAGE_DATA['source'] = DomainCodeToMap_(jdata.data.EM_EO_EL_DATA_SOURCE);
+                PAGE_DATA['status'] = DomainCodeToMap_(jdata.data.EM_ELA_STATUS);
+                COMBOBOX_DATA['acno'] = jdata.data.MSGRP;
+                COMBOBOX_DATA['source'] = jdata.data.EM_EO_EL_DATA_SOURCE;
+                $('#acno').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                InitDataGrid();
+                InitDataGrid1();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            enableLineEdit:!disFlag,
+            queryParams: {},
+            columns: {
+                param: {FunctionCode: 'EM_ELA_INITIAL_LIST'},
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a  href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    ACNO: {
+                        formatter: function (value, row, index) {
+                            return value;
+                        },
+                        editor: {type: 'combobox', options: {required: true, editable: false,
+                            data: COMBOBOX_DATA['acno'],
+                            valueField: "VALUE",
+                            textField: "TEXT",
+                            width:120,
+                        }}
+                    },
+                    INITIAL_DATE: {
+                        type:'date',
+                        editor: {type: 'datebox', options: {required: true,editable:false}}
+                    },
+                    WRITE_DATE: {
+                        type:'date',
+                    },
+                    AUDIT_DATE: {
+                        type:'date',
+                    },
+                    APPROVAL_DATE: {
+                        type:'date',
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+
+                }
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "EMELAINITIAL",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a>';
+                                    if("BXZ" == row.STATUS && row.WRITE_MAN_ID == userId){
+                                       html+='<span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span>';
+                                    }
+                                    html+='</li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                }, 'attach');
+            },
+            contextMenus: [
+                {
+                    id: "m-delete", i18nText: "删除",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        var rowIndex = $('#dg').datagrid('getRowIndex', rowData);
+                        if (!rowData.PKID) {
+                            $('#dg').datagrid('deleteRow', rowIndex);
+                            return;
+                        }
+                        common_delete_({
+                            identity: 'dg',
+                            cfmI18next: "确认删除吗",
+                            param: {data: {pkid: rowData.PKID}},
+                            FunctionCode: "EM_ELA_INITIAL_DEL"
+                        })
+                    }
+                },
+                {
+                    id: "", i18nText: "上传", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        common_upload_({
+                            identity: 'dg',
+                            param: {
+                                cat: 'EMELAINITIAL',
+                                sourceId: rowData.PKID,
+                                successCallBack: function () {
+                                    reload_();
+                                },
+                                failCallBack: ""
+                            }
+                        });
+                    },
+                },
+                {
+                    id: "m-sub",
+                    i18nText: "提交",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/workflow/work_flow_account_select.shtml",
+                            param: {
+                                FunctionCode_: "EM_ELA_INITIAL_SUBMIT",
+                                otherParam: rowdata.PKID,
+                                successCallback: function (data) {
+                                    initialStatus = 'SHZ';
+                                    reload_();
+                                }
+                            },
+                            title: $.i18n.t("选择审批人"),
+                            width: 520,
+                            height: 300
+                        });
+                    }
+                },
+                {
+                    id: "m-flowTjt",
+                    i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "EM_ELA_INITIAL"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.STATUS != 'BXZ' || row.WRITE_MAN_ID != userId) {
+                    items['删除'].enable = false;
+                    items['上传'].enable = false;
+                    items['提交'].enable = false;
+                }
+                if (row.STATUS != 'BXZ' || row.AUDIT_MAN_ID) {
+                    items['办理轨迹'].enable = true;
+                }else{
+                    items['办理轨迹'].enable = false;
+                }
+                if(disFlag){
+                    items['删除'].enable = false;
+                    items['上传'].enable = false;
+                    items['提交'].enable = false;
+                    items['办理轨迹'].enable = false;
+                }
+                return items;
+            },
+            onClickRow: function (rowIndex, rowData) {
+                initialPkid = rowData.PKID;
+                initialStatus = rowData.STATUS;
+                InitDataGrid1();
+            },
+            onEndEdit: function(index, row, changes){
+                var data = [];
+                data['ACNO'] = row.ACNO;
+                data['INITIAL_DATE'] = row.INITIAL_DATE;
+                data['PKID'] = row.PKID;
+                if(row.PKID && "BXZ" != row.STATUS){
+                    MsgAlert({content:'此状态不允许编辑',type:'error'});
+                    return;
+                }
+                data = $.extend({}, data, {FunctionCode: 'EM_ELA_INITIAL_ADD_EDIT'});
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            reload_();
+                        }else{
+                            MsgAlert({content:jdata.msg.substring(8),type:'error'});
+                            /*var rowIndex = $('#dg').datagrid('getRowIndex', row);
+                            if (!row.PKID) {
+                                $('#dg').datagrid('deleteRow', rowIndex);
+                                return;
+                            }*/
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function InitDataGrid1() {
+        var pid;
+        if(initialPkid){
+            pid =initialPkid;
+        }else{
+            pid = -1;
+        }
+        $("#dg1").MyDataGrid({
+            identity: 'dg1',
+            enableLineEdit:!disFlag,
+            queryParams: {initialPkid: pid},
+            columns: {
+                param: {FunctionCode: 'EM_ELA_INITIAL_DATA_LIST'},
+                alter: {
+                    SOURCE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['source'] [value];
+                        },
+                        editor: {type: 'combobox', options: {
+                            required: true,
+                            editable: false,
+                            width: 150,
+                            data: COMBOBOX_DATA['source'],
+                            valueField: "VALUE",
+                            textField: "TEXT"
+                        }}
+                    },
+                    INITIAL_LOAD: {
+                        editor: {type: 'numberbox', options: {required: true,precision:3}}
+                    },
+                    /*LOAD_UNIT: {
+                        editor: {type: 'textbox', options: {required: true,editable:false}}
+                    },*/
+                    INITIAL_FACTOR: {
+                        editor: {type: 'numberbox', options: {required: true,min:-1,max:1,precision:3}}
+                    },
+                    CUR_LOAD: {
+                        /*editor: {type: 'numberbox', options: {required: true,precision:2}}*/
+                    },
+                    CUR_FACTOR: {
+                        /*editor: {type: 'numberbox', options: {required: true,precision:2}}*/
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-delete1", i18nText: "删除",
+                    onclick: function () {
+                        var rowData = $("#dg1").datagrid('getSelected');
+                        var rowIndex = $('#dg1').datagrid('getRowIndex', rowData);
+                        if (!rowData.PKID) {
+                            $('#dg1').datagrid('deleteRow', rowIndex);
+                            return;
+                        }
+                        if (rowData.PKID && initialStatus != 'BXZ') {
+                            MsgAlert({content: '此状态不允许删除',type:'error'});
+                            return;
+                        }
+                        common_delete_({
+                            identity: 'dg1',
+                            cfmI18next: "确认删除吗",
+                            param: {data: {pkid: rowData.PKID}},
+                            FunctionCode: "EM_ELA_INITIAL_DATA_DEL"
+                        })
+                    }
+                }
+            ],
+            onEndEdit: function(index, row, changes){
+                var data = [];
+                data['PKID'] = row.PKID;
+                data['INITIAL_PKID'] = initialPkid;
+                data['SOURCE'] = row.SOURCE;
+                data['INITIAL_LOAD'] = row.INITIAL_LOAD;
+                data['LOAD_UNIT'] = row.LOAD_UNIT;
+                data['INITIAL_FACTOR'] = row.INITIAL_FACTOR;
+                data['CUR_LOAD'] = row.CUR_LOAD;
+                data['CUR_FACTOR'] = row.CUR_FACTOR;
+                if(initialPkid && "BXZ" != initialStatus){
+                    MsgAlert({content:'此状态不允许编辑',type:'error'});
+                    return;
+                }
+                data = $.extend({}, data, {FunctionCode: 'EM_ELA_INITIAL_DATA_ADD_EDIT'});
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            InitDataGrid1();
+                        }else{
+                            MsgAlert({content:jdata.msg.substring(8),type:'error'});
+                        }
+                    }
+                });
+            },
+            validAuth: function (row, items) {
+                if(disFlag){
+                    items['删除'].enable = false;
+                }
+                return items;
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+        $("#dg1").datagrid("reload");
+    }
+
+    //增加行
+    function addInitial() {
+        $('#dg').datagrid('appendRow', {});
+    }
+    function addInitialData() {
+        if(initialPkid){
+            if(initialStatus && "BXZ" == initialStatus){
+                $('#dg1').datagrid('appendRow', {});
+            }else{
+                MsgAlert({content: "此状态不允许增加", type: 'error'});
+            }
+        }else{
+            MsgAlert({content: "请选择初始化主数据", type: 'error'});
+        }
+    }
+</script>
+</body>
+</html>

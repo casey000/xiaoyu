@@ -1,0 +1,251 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title></title>
+    <style>
+        #searchBar td{
+            line-height: 25px;
+        }
+    </style>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend>搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellpadding="2" cellspacing="0" class="table table-bordered table-info">
+                <tr>
+                    <th align="right" style="width: 100px;">当前维修状态：</th>
+                    <td>
+                        <input class="easyui-combobox" data-options="" id="maintenanceStatus" name="maintenanceStatus" style="width:180px"/>
+                    </td>
+                    <th align="right" style="width: 100px;">放行状态：</th>
+                    <td>
+                        <input class="easyui-combobox" data-options="" id="releaseStatus" name="releaseStatus" style="width:180px"/>
+                    </td>
+                    <td style="width: 180px; padding:3px;border: none;text-align: right;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+
+                    </td>
+                </tr>
+                <tr>
+                    <th align="right" style="width: 100px;">航站：</th>
+                    <td>
+                        <input class="easyui-textbox" id="station" name="station"
+                               style="height: 25px;width:180px"/>
+<!--                        <img style="vertical-align: -5px" alt="" id="stationBtn" onClick="stationQuery()" src="/img/search.png"/>-->
+                    </td>
+
+<!--                    <td width="800px">-->
+<!--                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="onSearch_()"><span>查询</span></a>-->
+<!--                        &lt;!&ndash;                        <a class="addBtn" data-options="" onclick="add()"><span>新增</span></a>&ndash;&gt;-->
+<!--                    </td>-->
+
+                </tr>
+
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script src="/views/pm/mc/js/datagrid_utils.js" type="text/javascript"></script>
+<script type="text/javascript" src="/js/statistics.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    var firstFlag = true ;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        var relObj = [
+            {
+                VALUE:'UNRELEASED',
+                TEXT:'未放行'
+            },
+            {
+                VALUE:'RELEASED',
+                TEXT:'放行'
+            }
+        ];
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "PM_MC_SUMMARY_MCCSTATUS"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['position'] = DomainCodeToMap_(jdata.data.PM_MC_POSITION);
+                $('#maintenanceStatus').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.PM_MC_SUMMARY_MCCSTATUS
+                });
+                $('#releaseStatus').combobox({
+                    panelHeight: '100px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: relObj
+                });
+                // $('#releaseStatus').combobox("setValue", '')
+                InitDataGrid();
+            }
+        });
+    }
+    // 查询station的点击事件
+    function stationQuery() {
+        var title_ = $.i18n.t('航站查询');
+        var curWidth = ($(window).width() * 0.5).toString();
+        var curheight = ($(window).height() * 0.5).toString();
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: title_,
+            param: {},
+            url: "/views/tbm/flb/station_query.shtml"
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            pagination: false,
+            columns: {
+                param: {FunctionCode: 'FLEET_INFO_LIST'},
+                alter: {
+                    technicalStatus: {
+                        formatter: function (value, row, index) {
+                            return value == 'AIRWORTHY' ? "适航" : "不适航";
+                        }
+                    },
+                    hasFlight: {
+                        formatter: function (value, row, index) {
+                            return value ? "有" : "无";
+                        }
+                    },
+                    isStandby: {
+                        formatter: function (value, row, index) {
+                            if(value == 'y'){
+                                return '是'
+                            }
+                            if(value == 'n'){
+                                return '否'
+                            }
+                            if(value == '-'){
+                                return value
+                            }
+                        }
+                    },
+                    isNoGo: {
+                        formatter: function (value, row, index) {
+                            if(value == 'y'){
+                                return '有'
+                            }
+                            if(value == 'n'){
+                                return '无'
+                            }
+
+                        }
+                    },
+                    releaseStatus: {
+                        formatter: function (value, row, index) {
+                            if(value == 'UNRELEASED'){
+                                return '未放行'
+                            }
+                            if(value == 'RELEASED'){
+                                return '放行'
+                            }
+                            if(value == '-'){
+                                return value
+                            }
+
+                        }
+                    },
+                    limitMap: {
+                        formatter:function (value , row ,index) {
+                            if(value['LIMIT_NAMES_SHORT']){
+                                return  '<span style="color: red"> '+  value['LIMIT_NAMES_SHORT'] +' </span>'
+                            }
+
+                            // Object.keys(value).forEach(function(key){
+                            //     console.log(value['LIMIT_NAMES_SHORT']);
+                            //
+                            //     return value['LIMIT_NAMES_SHORT']
+                            //
+                            // });
+                        }
+                    },
+                    overTime:{
+                        formatter:function (value,row,index) {
+                            var acReg = row.acReg
+                            return '<span onclick="toStr(&apos;'+ acReg +'&apos;)" style="color:#FF6600;cursor: pointer;">查看</span>'
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (value, rowData, rowIndex) {
+                if(firstFlag){
+                    let queryAirport = [];
+                    for(let i in value.data){
+                        var obj = {VALUE:''}
+                        if(queryAirport.indexOf(value.data[i].station) < 0 && value.data[i].station && value.data[i].station != '-'){
+                            obj.VALUE = value.data[i].station
+                            queryAirport.push(obj)
+                        };
+
+                    };
+                    $('#station').combobox({
+                        panelHeight: '150',
+                        data: queryAirport,
+                        valueField: 'VALUE',
+                        textField: 'VALUE'
+                    });
+                    console.log(queryAirport,'queryAirport');
+                    firstFlag = false;
+                }
+
+            }
+            // validAuth: function (row, items) {
+            //     if (flag == 'view') {
+            //         items['编辑'].enable = false;
+            //         items['删除'].enable = false;
+            //     }
+            //     return items;
+            // },
+
+        });
+    }
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+        dynamicStatisticsSrc();
+    }
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    function toStr(acReg) {
+        var curWidth = ($(window).width() * 0.85).toString();
+        ShowWindowIframe({
+            width: 1100,
+            height: 800,
+            title: '',
+            param: {
+                acReg: acReg,
+            },
+            url: "/views/em/emsysconfig/em_sysconfig_onboard_list.shtml"
+        });
+    }
+
+</script>
+</body>
+</html>

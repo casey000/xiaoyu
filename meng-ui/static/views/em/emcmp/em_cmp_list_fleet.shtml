@@ -1,0 +1,114 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">目录选择</title>
+</head>
+<body class="ibody">
+
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:true" style="width: 95%;">
+        <ul id="locTree" class="easyui-tree"></ul>
+        <a class="searchBtn" id="qd" onclick="qd()">确定</a>
+    </div>
+</div>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var objUrl = {};
+    var urlMiaoshu = {};
+    var param = {};
+    var fleet = '';
+
+    var nodeType = '';
+    var nodeName = '';
+    var oid = '';
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        fleet = param.fleet;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_CMP_OBJ_URL,EM_CMP_OBJ_LINK",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    objUrl = DomainCodeToMap_(jdata.data["EM_CMP_OBJ_URL"]);
+                    urlMiaoshu = DomainCodeToMap_(jdata.data["EM_CMP_OBJ_LINK"]);
+                    getTree();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function getTree() {
+        InitFuncCodeRequest_({
+            data: {fleet: fleet, FunctionCode: 'EM_CMP_LIST_TREE_BY_FLEET'},
+            successCallBack: function (jdata) {
+                if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+                    layer.msg(jdata.msg, {icon: 5});
+                    return;
+                }
+                var treeData = HandleTreeData_(jdata.data, 'pid');
+                var tdata_ = WarpTreeGridData_(treeData, "000", ['id', 'pid']);
+
+                if (!tdata_) {
+                    return;
+                }
+
+                $("#locTree").tree({
+                    data: tdata_,
+                    lines: true,
+                    animate: true,
+                    onLoadSuccess: function () {
+                        $("#locTree").tree("collapseAll");
+                    },
+                    formatter: function (tdata_) {
+                        return tdata_.name;
+                    },
+                    onContextMenu: function (e, node) {
+                        e.preventDefault();
+                        // 查找节点
+                        $('#tt').tree('select', node.target);
+                        // 显示快捷菜单
+                        $('#mm').menu('show', {
+                            left: e.pageX,
+                            top: e.pageY
+                        });
+                    },
+                    onClick: function (node) {
+                        var node = $('#locTree').tree('getSelected');
+                        nodeType = node.type;
+                        nodeName = node.name;
+                        oid = node.oid;
+                    }
+                }).css({padding: '5px'});
+                $("#locTree").tree('doFilter');
+            }
+        });
+    }
+
+    function qd() {
+        //文件目录回显
+        if (nodeType != 'ED_FILE') {
+            MsgAlert({content: '目标链接必须为自编文件', type: 'error'});
+            return;
+        }
+        param.OWindow.$("#uploadDir").textbox('setValue', nodeName);
+        param.OWindow.$("#catPkid").val(oid);
+        CloseWindowIframe();
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+</script>
+</body>
+</html>

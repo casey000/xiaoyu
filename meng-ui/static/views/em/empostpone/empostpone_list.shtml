@@ -1,0 +1,345 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="base-data">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>延期申请审核</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" align="right">延期类型：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="postponeSort" style="width:100px" name="postponeSort"/>
+                    </td>
+                    <th class="th" align="right">延期编号：</th>
+                    <td class="td5">
+                        <input style="width:100px" class="easyui-textbox" id="postponeObjectNo"
+                               name="postponeObjectNo"/>
+                    </td>
+                    <th class="th" align="right">处理状态：</th>
+                    <td class="td5">
+                        <input style="width:100px" class="easyui-combobox" id="status"
+                               name="status"/>
+                    </td>
+                    <th class="th" align="right">申请人：</th>
+                    <td class="td5">
+                        <input style="width:100px" class="easyui-textbox" id="applyMan" name="applyMan"/>
+                    </td>
+                    <td style="width: 120px; padding:3px;">
+                        <a class="searchBtn" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {domainCode: "EM_POSTPONE_SORT,EMPOSTPONE_STATUS", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['postponeSort'] = DomainCodeToMap_(jdata.data["EM_POSTPONE_SORT"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EMPOSTPONE_STATUS"]);
+                    $('#postponeSort').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_POSTPONE_SORT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    $('#status').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EMPOSTPONE_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                columns: {
+                    param: {FunctionCode: 'EM_POSTPONE_APPLICATION_LIST'},
+                    alter: {
+                        //延期类型
+                        POSTPONE_SORT: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['postponeSort'] [value];
+                            }
+                        },
+                        //状态
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        },
+                        //原周期
+                        ORIGINAL_DEADLINE: {
+                            type: 'date'
+                        },
+                        //延期周期
+                        POSTPONE_DATE: {
+                            type: 'date'
+                        },
+                        //申请日期
+                        APPLY_DATE: {
+                            type: 'date'
+                        },
+                        //审批日期
+                        APPROVE_DATE: {
+                            type: 'date'
+                        },
+                    }
+                },
+                contextMenus: [
+                    {
+                        id: "m-edit",
+                        i18nText: "编辑",
+                        auth: "",
+                        onclick: function () {
+                            var rowdata = getDG(identity).datagrid('getSelected');
+                            openEdit(rowdata.PKID, rowdata.POSTPONE_SORT, rowdata.POSTPONE_OBJECT_NO, rowdata.ORIGINAL_DEADLINE);
+                        }
+                    },
+                    {
+                        id: "m-submit",
+                        i18nText: "提交工作流",
+                        auth: "",
+                        onclick: function () {
+                            var rowdata = getDG(identity).datagrid('getSelected');
+                            submitFlow(rowdata.PKID, rowdata.POSTPONE_SORT);
+                        }
+                    },
+                    {
+                        id: "m-del",
+                        i18nText: "删除",
+                        auth: "",
+                        onclick: function () {
+                            var rowData = $("#dg").datagrid('getSelected');
+                            if (!confirm("确认删除该记录？")) {
+                                return;
+                            }
+                            InitFuncCodeRequest_({
+                                data: {pkid: rowData.PKID, FunctionCode: 'EM_POST_DELETE'},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    },
+                    {
+                        id: "m-view",
+                        i18nText: "办理轨迹",
+                        auth: "",
+                        onclick: function () {
+                            var rowData = $("#dg").datagrid('getSelected');
+                            ShowWindowIframe({
+                                width: 1100,
+                                height: 600,
+                                title: $.i18n.t('办理轨迹'),
+                                param: {pkid: rowData.PKID, flag: rowData.POSTPONE_SORT},
+                                url: '/views/em/empostpone/empostpone_process.shtml'
+                            });
+                        }
+                    }
+                ],
+
+            validAuth: function (row, items) {
+                items['编辑'].enable = false;
+                items['提交工作流'].enable = false;
+                if (row.STATUS == 'DCL' || row.STATUS == 'BH') {
+                    items['编辑'].enable = true;
+                    items['提交工作流'].enable = true;
+                }
+                if (row.STATUS == 'DCL') {
+                    items['删除'].enable = true;
+                    items['办理轨迹'].enable = false;
+                } else {
+                    items['删除'].enable = false;
+                    items['办理轨迹'].enable = true;
+                }
+                return items;
+            }
+            }
+        );
+    }
+
+    /**
+     * 提交审核工作流
+     * @returns {boolean}
+     */
+    function subMit(engineerName) {
+        var rowdata = getDG('dg').datagrid('getSelected');
+        InitFuncCodeRequest_({
+            data: {
+                PKID: rowdata.PKID, engineerName: engineerName,
+                FunctionCode: "EM_POSTPONE_WORKFLOW"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /**
+     *  刷新列表数据
+     */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+
+    function doReturn() {
+        $.messager.confirm('提示?', "是否进行退回?", function (r) {
+            if (r) {
+                var notes = $("#notes").textbox('getValue');
+                if ($.trim(notes) == '') {
+                    MsgAlert({content: '请输入您的退回意见', type: 'error'});
+                    return;
+                }
+                var $form = $("#mform");
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {
+                    FunctionCode: 'WS_FLOW_TURNBACK', reSelect: "top",
+                    taskId: param.TASK_ID, procDefId: param.PROC_DEF_ID, notes: notes
+                });
+                if (!PAGE_EVENTS.beforeTurnBack(data)) {
+                    return;
+                }
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        MaskUtil.unmask();
+                        PAGE_EVENTS.afterTurnBack(jdata);
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (typeof(param.OWindow.reload_ == 'function')) {
+                                param.OWindow.reload_();
+                            }
+                            param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function openEdit(pkid, postponeSort, postponeObjectNo, originalDeadline) {
+        ShowWindowIframe({ //链接提交延期申请页面
+            width: 610,
+            height: 330,
+            param: {
+                pkid: pkid,
+                postponeSort: postponeSort,
+                postponeObjectPkid: pkid,
+                postponeObjectNo: postponeObjectNo,
+                originalDeadline: originalDeadline
+            },
+            title: "延期申请",
+            url: "/views/em/empostpone/empostpone_add.shtml"
+        });
+    }
+
+    function submitFlow(pkid, postponeSort) {
+
+        var execid = validWorkFlow("EM_FILE_EVAL_DELAY", pkid);
+        if (execid != null && execid != "") {
+            MsgAlert({content: '已经存在流程，请保存后在我的待办中提交！', type: 'warn'});
+            return false;
+        } else {
+            $.messager.confirm('', '是否提交？', function (r) {
+                if (r) {
+                    ShowWindowIframe({
+                        identity: 'dg', isEdit: '', width: 520, height: 300, title: "选择审核人",
+                        title: "提交审核",
+                        param: {
+                            roleId: '',
+                            PKID: pkid,
+                            otherParam: postponeSort,
+                            FunctionCode_: 'EM_POSTPONE_WORKFLOW',
+                            successCallback: reload_
+                        },
+                        url: "/views/flow/work_flow_account_select.shtml"
+                    });
+                }
+            });
+        }
+    }
+
+    /**
+     * 校验工作流是否已经存在
+     *
+     **/
+    function validWorkFlow(objKey, objNo) {
+        var executionId = "";
+        InitFuncCodeRequest_({
+            async: false,
+            data: {objKey: objKey, objNo: objNo, FunctionCode: 'VALID_WORK_FLOW'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        executionId = jdata.data.EXECUTION_ID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return executionId;
+    }
+
+</script>
+
+</body>
+</html>

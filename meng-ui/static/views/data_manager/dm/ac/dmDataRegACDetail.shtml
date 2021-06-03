@@ -1,0 +1,460 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>飞机资料注册详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" id="saveBtn" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">手册来源：</th>
+                        <td class="tdr">
+                            <input class="easyui-combogrid" id="dataFrom" name="dataFrom" data-options="required:true" />
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">手册类型：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="dataType" name="dataType"
+                                   data-options="required:true,editable:false" style="width: 100px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">手册级别：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="dataLevel" name="dataLevel"
+                                   data-options="editable:false" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">手册编号：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="dataNo" name="dataNo"
+                                   data-options="required:true" style="width: 140px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">是否前营运人：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="isBeforeCompany" name="isBeforeCompany"
+                                   data-options="editable:false,onChange:changeBeforeCompany" style="width: 100px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;" id="companyCodeTh">前营运人：</th>
+                        <td style="width: 100px;  padding: 3px" id="companyCodeTd">
+                            <input class="easyui-combobox" id="companyCode" name="companyCode"
+                                   data-options="editable:false" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">手册标题：</th>
+                        <td colspan="5" style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="dataTitle" name="dataTitle"
+                                   style="width: 335px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+
+                        <th class="th" align="right" style="width: 100px;">网址：</th>
+                        <td colspan="5" style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="fileUrl" name="fileUrl" style="width: 335px;"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">适用性：</th>
+                        <td style="width: 100px;  padding: 3px" id="applicStr">
+                            <input class="easyui-combobox" id="applic" name="applic" data-options="required:true,editable:true" style="width: 90px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;" id="subFleetTh">子机型：</th>
+                        <td style="width: 100px;  padding: 3px" id="subFleetTd">
+                            <input class="easyui-combobox" id="subFleet" name="subFleet" data-options="required:true,editable:true" style="width: 90px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                    <th class="th" align="right" style="width: 100px;">备注：</th>
+                        <td style="width:100px;padding: 3px">
+                        <textarea id="memo" name="memo" data-options="editable:true" style="width: 300px;height:60px" ></textarea>
+                    </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var type;
+    var COMBOBOX_DATA = {};
+    var selectStatus="0";//0：不全选 1：全选
+    var subFleetValue="";
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        type = param.type;
+        console.log(type);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "COMPANY_CODE,DM_COMPANY_CODE2,DM_REC_PRIVIDOR,DM_DATA_TYPE_AC,YESORNO,DM_DATA_LEVEL,DA_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    COMBOBOX_DATA['dataType'] = jdata.data.DM_DATA_TYPE_AC;
+                    COMBOBOX_DATA['dataLevel'] = jdata.data.DM_DATA_LEVEL;
+                    COMBOBOX_DATA['fleet'] = jdata.data.DA_FLEET;
+
+                    //资料类型
+                    $("#dataType").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_DATA_TYPE_AC,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (data) {
+                            changeFleet(data.TEXT);
+                        }
+                    });
+                    $('#dataFrom').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.DM_REC_PRIVIDOR,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //资料级别
+                    $("#dataLevel").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_DATA_LEVEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#applic').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (data) {
+                           initSubFleet(data.VALUE)
+                        }
+                    });
+                    $('#isBeforeCompany').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //隐藏
+                    $("#companyCodeTh").hide();
+                    $("#companyCodeTd").hide();
+                    $('#companyCode').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.COMPANY_CODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //适用性初始化
+                    // InitApplic(jdata.data.DA_FLEET);
+                    if (param.pkid) {
+                        InitDataForm(param.pkid);
+                    }
+                }
+
+                if (type == 'view') {
+                    $("#saveBtn").hide();
+                }
+            }
+        })
+    }
+
+    function changeBeforeCompany() {
+        var isBeforeCompany = $('#isBeforeCompany').combobox('getValue');
+        if (isBeforeCompany == "N") {
+            $("#companyCodeTh").hide();
+            $("#companyCodeTd").hide();
+            $("#companyCode").combobox('setValue', '');
+            $("#companyCode").combobox({required: false});
+        } else {
+            $("#companyCodeTh").show();
+            $("#companyCodeTd").show();
+            $("#companyCode").combobox({required: true});
+        }
+
+    }
+
+
+    //初始化适用性
+    function InitApplic(jdata) {
+        fleetArray = jdata;
+        if (fleetArray.length > 0) {
+            var td = $("#applicStr");
+            var html = '<input type="checkbox"   style="width:15px;" onclick="selectAlls();" />全选 &nbsp;';
+            $.each(fleetArray, function (index, data) {
+                html += '<input type="checkbox" value="' + data.VALUE + '"  name="applic" style="width:15px;"/>' + data.VALUE + " &nbsp;";
+            });
+            td.append(html);
+        }
+    }
+
+
+    //全选
+    function selectAlls(){
+        var applicInputs = $("input[name='applic']");
+        if(selectStatus=="0"){
+            applicInputs.each(function(){
+                $(this).attr("checked","checked");
+            });
+            selectStatus="1";
+        }else{
+            applicInputs.each(function(){
+                $(this).removeAttr("checked");
+            });
+            selectStatus="0";
+        }
+
+    }
+
+    //数据反显
+    function InitDataForm(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/online-manual/aircraftManual/selectById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                    $('#isBeforeCompany').combobox({value: jdata.obj.isBeforeCompany});
+                    $('#companyCode').combobox({value: jdata.obj.companyCode});
+                    changeBeforeCompany();
+
+                    if (type == "view") {
+                        $('#dataFrom').combobox({value: jdata.obj.dataFrom, onlyview: true, editable: false});
+                        $('#applic').combobox({value: jdata.obj.applic, onlyview: true, editable: false});
+                        $('#subFleet').combobox({value: jdata.obj.subFleet, onlyview: true, editable: false});
+                        $('#dataLevel').combobox({value: jdata.obj.dataLevel, onlyview: true, editable: false});
+
+                        // $('#dataNo').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+                        $('#dataTitle').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+                        $('#fileUrl').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+                        changeFleet(jdata.obj.dataType);
+                        return;
+                    }
+                    if (type == "edit") {
+                        changeFleet(jdata.obj.dataType);
+                        //已发布后，再编辑，不可修改适用性、资料类型、资料来源。
+                        if (jdata.obj.status == "YFB") {
+                            $('#dataFrom').combobox({value: jdata.obj.dataFrom, onlyview: true, editable: false});
+                            $('#dataType').combobox({value: jdata.obj.dataType, onlyview: true, editable: false});
+                            $('#applic').combobox({value: jdata.obj.applic, onlyview: true, editable: false});
+                            $('#subFleet').combobox({value: jdata.obj.subFleet, onlyview: true, editable: false});
+                        }
+                    } else {
+                        MsgAlert({content: '操作失敗', type: 'error'})
+                    }
+                    //初始化子机型
+                    subFleetValue = jdata.obj.subFleet;
+                    initSubFleet(jdata.obj.applic,jdata.obj.subFleet);
+                }
+            }
+        });
+        // InitFuncCodeRequest_({
+        //     data: {pkid: pkid, FunctionCode: "DM_DATA_REG_AC_PK"}, successCallBack: function (jdata) {
+        //         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+        //             ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+        //             $('#isBeforeCompany').combobox({value: jdata.data.IS_BEFORE_COMPANY});
+        //             $('#companyCode').combobox({value: jdata.data.COMPANY_CODE});
+        //             changeBeforeCompany();
+        //
+        //             if (type == "view") {
+        //                 $('#dataFrom').combobox({value: jdata.data.DATA_FROM, onlyview: true, editable: false});
+        //                 $('#applic').combobox({value: jdata.data.APPLIC, onlyview: true, editable: false});
+        //                 $('#dataLevel').combobox({value: jdata.data.DATA_LEVEL, onlyview: true, editable: false});
+        //
+        //                 // $('#dataNo').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+        //                 $('#dataTitle').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+        //                 $('#fileUrl').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+        //
+        //             }
+        //             if (type == "edit") {
+        //                 //已发布后，再编辑，不可修改适用性、资料类型、资料来源。
+        //                 if (jdata.data.STATUS == "YFB") {
+        //                     $('#dataFrom').combobox({value: jdata.data.DATA_FROM, onlyview: true, editable: false});
+        //                     $('#dataType').combobox({value: jdata.data.DATA_TYPE, onlyview: true, editable: false});
+        //                     $('#applic').combobox({value: jdata.data.APPLIC, onlyview: true, editable: false});
+        //                 }
+        //
+        //                 //适用性初始化
+        //                 // var applicArray=jdata.data.APPLIC.split(",");
+        //                 // var applicInputs = $("input[name='applic']");
+        //                 //
+        //                 // $.each(applicArray, function (index, value) {
+        //                 //     applicInputs.each(function(){
+        //                 //         var valueI=$(this).val();
+        //                 //         var valueB=value;
+        //                 //         // console.log(valueB);
+        //                 //         if(valueI==valueB){
+        //                 //             $(this).attr("checked","checked");
+        //                 //             // $(this).attr("readonly","true");
+        //                 //         }
+        //                 //     });
+        //                 // })
+        //             }
+        //
+        //         } else {
+        //             MsgAlert({content: jdata.msg, type: 'error'});
+        //         }
+        //     }
+        // });
+    }
+
+    // 保存
+    function save() {
+
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+
+
+        //对适用性格式化
+        // var applicInputs = $("input[name='applic']:checked");
+        // var applicArrs="";
+        // if(applicInputs.length!=0){
+        //     for(var i=0;i<applicInputs.length;i++){
+        //         if(applicInputs.length==1){
+        //             applicArrs=$(applicInputs[0]).val();
+        //         }else if(i==applicInputs.length-1){
+        //             applicArrs+=$(applicInputs[i]).val();
+        //         }else{
+        //             applicArrs+=$(applicInputs[i]).val()+","
+        //         }
+        //
+        //     }
+        // }
+
+        if (type =="edit"){
+            if(confirm("修改后将会对飞机资料接收模块同步数据,是否继续?")){
+                if (!!datas.pkid) {
+                    InitGatewayRequest_({
+                        type: "post",
+                        async: false,
+                        data: datas,
+                        path: "/online-manual/aircraftManual/editAircraftManual",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                param.OWindow.reload_();
+                                CloseWindowIframe();
+                            } else {
+                                if(jdata.errorMessage.indexOf("ORA-00001") != -1){
+                                    MsgAlert({content: "请检查[资料类型、资料来源、适用性、资料编号、营运人]是否重复.", type: 'error'});
+
+                                }else{
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+
+        }else{
+            InitGatewayRequest_({
+                type: "post",
+                async: false,
+                data: datas,
+                path: "/online-manual/aircraftManual/addAircraftManual",
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                    } else {
+                        if(jdata.errorMessage.indexOf("UK_DM_NOG")!=-1){
+                            MsgAlert({content: "请检查[手册编号]是否重复.", type: 'error'});
+
+                        }else if(jdata.errorMessage.indexOf("UK_DM_REG")!=-1){
+                            MsgAlert({content: "请检查[手册类型、手册来源、适用性、营运人]是否重复.", type: 'error'});
+
+                        }else{
+                            MsgAlert({content: jdata.errorMessage ? jdata.errorMessage : jdata.obj, type: 'error'});
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     *  功能描述: 通过机型获取子机型
+     *   applic 大机型
+     *  subFleet 子机型
+     *  01379392(王大桥)
+     *  2020/11/3
+     */
+    function initSubFleet(applic,subFleet){
+        $.ajax({
+            type: "get",
+            url: "/ee/emFileModelAction/selectAllModel",
+            contentType: "application/json;charset=utf-8",
+            async: false,
+            success: function (result) {
+                if(!result || !result.data){
+                    return;
+                }
+
+                //不是当前机型删除
+                if(applic) {
+                    var subFleetArr = [];
+                    for (var index in result.data) {
+                        var model = result.data[index].modelSeries;
+                        if (model.indexOf(applic) === -1) {
+                            continue;
+                        }
+                        subFleetArr.push(result.data[index]);
+                    }
+                    $('#subFleet').combobox({panelHeight: '150px',valueField: 'modelSeries', textField: 'modelSeries',data: subFleetArr});
+                }else{
+                    $('#subFleet').combobox({panelHeight: '150px',valueField: 'modelSeries', textField: 'modelSeries',data: result.data});
+                }
+                if(subFleet){
+                    $("#subFleet").combobox("select",subFleet);
+                }
+
+            },
+            error: function (data) {
+                MsgAlert({content: "机型信息查询失败！", type: 'error'});
+            }
+        });
+    }
+
+    function changeFleet(dataType){
+        if(dataType =="SRM"){
+            $("#subFleetTh").show();
+            $("#subFleetTd").show();
+            $("#subFleet").combobox({required: true});
+            var applic = $("#applic").combobox("getValue");
+            initSubFleet(applic,"")
+            return;
+        }
+        $("#subFleetTh").hide();
+        $("#subFleetTd").hide();
+        $("#subFleet").combobox({required: false});
+        $("#subFleet").combobox("setValue","");
+    }
+</script>
+</html>

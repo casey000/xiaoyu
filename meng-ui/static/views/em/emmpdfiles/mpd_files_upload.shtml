@@ -1,0 +1,333 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title>MPD文件上传</title>
+</head>
+<body>
+
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <!--<input type="hidden" name="docVer" value="1">-->
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6"><span style="color: #FF0000">请注意文件类型的选择，波音厂家文件类型不带文件来源标记，客改货文件类型带有文件类型标记</span></td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">机队：</th>
+                        <td class="tdr">
+                            <select name="fleet" id="fleet" class="easyui-textbox"
+                                    data-options="required:true,editable:true" style="width:150px;">
+                            </select>
+                        </td>
+                        <th class="tdl">文件来源：</th>
+                        <td class="tdr">
+                            <select name="docSource" id="docSource" class="easyui-combobox"
+                                    data-options="required:true,editable:true" style="width:150px;">
+                            </select>
+                        </td>
+                        <th class="tdl">文件类型：</th>
+                        <td class="tdr">
+                            <select name="docType" id="docType" data-options="required:true,editable:true"
+                                    class="easyui-combobox" style="width:150px;">
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">文件编号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="docNo" id="docNo"
+                                   data-options="required:true,editable:true" style="width:150px;"/>
+                        </td>
+                        <th class="tdl">文件版次：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="docVer" name="docVer"
+                                   data-options="required:true,editable:true" style="width:150px;"/>
+                        </td>
+                        <th class="tdl">修订日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" name="revDate" data-options="required:true" validType="date"
+                                   style="width:150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">标题：</th>
+                        <td colspan="3" class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="docTitle" name="docTitle"
+                                   data-options="required:true"
+                                   style="width:99%;"/>
+                        </td>
+                        <th class="tdl">版本类别：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="verType" id="verType" data-options="required:true"
+                                   editable="false"
+                                   style="width:150px;"/>
+                    </tr>
+                    <tr>
+                        <!-- <th class="tdl">生效日期：</th>
+                         <td class="tdr">
+                             <input class="easyui-datebox" name="issueDate" data-options="required:true" editable="false"
+                                    style="width:150px;"/>-->
+                    </tr>
+                    <tr>
+                        <th class="tdl">备注：</th>
+                        <td colspan="5" class="tdr">
+                            <input class="easyui-textbox" name="memo" data-options="multiline:true"
+                                   style="height:100px; width: 99%;"/>
+                        </td>
+                    </tr>
+                    <th class="tdl">上传文件：</th>
+                    <td class="tdr" colspan="5">
+                        <input class="textbox easyui-validatebox" type="file" name="file" id="xlsFile"
+                               data-options="buttonText:'请选择Excel文件'"
+                               onChange="insertTitle(this.value);" style="width: 99%;"/>
+                    </td>
+                    <tr>
+                        <td colspan="6" align="center"><input class="btn btn-primary" type="submit" id="saveBtn"
+                                                              value="提交"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<!--<script type="text/javascript" src="/js/emmpdfiles/mpd_files_upload.js"></script>-->
+<script type="text/javascript" src="/js/common.js"></script>
+<script type="text/javascript">
+    var successCallBack;
+    var fileName;
+    var docNo;
+    var docVer;
+    var emMpdDocType = {};
+    var pkid;
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        InitFuncCodeRequest_({
+            data: {mark: "B", FunctionCode: "EM_MPD_DOC_TYPE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    emMpdDocType = jdata.data;
+                }
+            }
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_FLEET,DM_REC_PRIVIDOR,EM_MPD_DOC_TYPE1,EM_CMP_VER_TYPE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#docSource').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.DM_REC_PRIVIDOR,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    $('#fleet').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#docType').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_MPD_DOC_TYPE1,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#verType').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_CMP_VER_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if (pkid) {
+                        InitDataForm(pkid);
+                        $("#saveBtn").hide();
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+
+            }
+        });
+        InitForm_();
+    }
+
+    function insertTitle(path) {
+        // var formFile = path.substring(0, path.indexOf("."));
+        // formFile = formFile.substring(formFile.lastIndexOf("\\") + 1);
+        // $("#docTitle").textbox("setValue", formFile);
+        // $("#docNo").textbox("setValue", formFile);
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_MPD_FILES_PKID"}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    function InitForm_() {
+        $('#mform').form({
+            onSubmit: function () {
+                var $form = $("#mform");
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                //查询机队方案工程师是否设置
+                /*var num = 0;
+                InitFuncCodeRequest_({
+                    data: {fleet: $("#fleet").textbox("getValue"), FunctionCode: "EM_MPD_FILES_QUERY_ENGNEERS"},
+                    async: false,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            num = jdata.data.NUM;
+                        }
+                    }
+                });
+                if (num <= 0) {
+                    alert("请在工作分工规则配置模块配置该机队的方案工程师。")
+                    return;
+                }*/
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {
+                    FunctionCode: ('EM_MP_UPLOAD_CHECK')//验证上传文件是否重复做出提示
+                });
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (jdata.data == 1) {//不存在重复文件直接提交
+                                tijiao();
+                            }
+                            if (jdata.data == 2) {//存在未发布的重复文件
+                                MsgAlert({content: "已存在该文件，请勿重复提交", type: 'error'});
+                                return false;
+                                // tanchuang();
+                            }
+                            if (jdata.data == 3) {//存在已发布的重复文件，告诉他打死不能覆盖不能上传
+                                MsgAlert({content: "该文件已存在，并且已经发布，不可再次上传", type: 'error'});
+                                return false;
+                            }
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+
+                return false;
+            }
+        });
+    }
+
+
+    function tanchuang() {
+        var $form = $("#mform");
+        var fleet = $("#fleet").combobox('getValue');
+        docType = $("#docType").combobox('getValue');
+        docNo = $("#docNo").val();
+        docVer = $("#docVer").val();
+        layerConfirm_({
+            content: '己存在文件类型为' + docType + '，文件编号为' + docNo + '，的文件，是否覆盖该文件？',
+            yesFunc: function (index) {
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {FunctionCode: ('EM_MPD_DELETE_FILE_RECORD')});
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            tijiao();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+
+    }
+
+    function tijiao() {
+        var fileCategory = "MPDIMPORT";
+        var $form = $("#mform");
+        var fleet = $("#fleet").combobox('getValue');
+        var docType = $("#docType").combobox('getValue');
+        var docNo = $("#docNo").val();
+        var docVer = $("#docVer").val();
+        var sourceId = fleet + docType + docNo+docVer;
+        var isValidate = $form.form('validate');
+        if (isValidate) {
+            if ($("#xlsFile").val() == "") {
+                parent.layer.msg("请选择上传文件！", {icon: 5});
+                return false;
+            }
+            if (!validFileSuffix_($("#xlsFile"), ".xls")) {
+                parent.layer.msg("上传文件格式必须为[.xls]文件！", {icon: 5});
+                return false;
+            }
+            $.ajaxFileUpload({
+                url: Constant.API_URL + 'ATTACHMENT_UPLOAD',
+                secureuri: false,
+                fileElementId: 'xlsFile', //file控件id
+                dataType: 'json',
+                data: {
+                    "fileCategory": fileCategory,
+                    "sourceId": sourceId
+                },
+                success: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        var URL = jdata.data.url;
+                        var data = $('#mform').serializeObject();
+                        data.filepath = URL;
+                        file_upload({
+                            url: "/api/v1/mpdfiles/upload",
+                            data: data,
+                            fileElementId: 'xlsFile',
+                            success: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    //parent.layer.msg(jdata.msg ? jdata.msg : "文件解析成功!", {icon: 1});
+                                    param.OWindow.reload_();
+                                    //param.OWindow.analysis_(jdata.data.pkid);
+                                    CloseWindowIframe();
+                                    parent.layer.close(index);
+                                } else {
+                                    parent.layer.msg(jdata.msg ? jdata.msg : (jdata.code + ":"), {icon: 5});
+                                }
+                            },
+                            error: function () {
+                            }
+                        });
+                    } else {
+                        MsgAlert({content: "上传失败" + jdata.msg, type: 'error'});
+                        if (typeof(param.failCallBack) == 'function') {
+                            param.failCallBack(jdata);
+                        }
+                    }
+                }
+
+            })
+
+        }
+    }
+
+</script>
+</body>
+</html>

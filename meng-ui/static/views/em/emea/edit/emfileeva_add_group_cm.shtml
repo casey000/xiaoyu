@@ -1,0 +1,886 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>增加适用性分组</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" class="easyui-textbox" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="4" align="right">
+                            <input id="saveBtn" class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin-right:70px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right">适用型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="actype" name="actype" data-options="" disabled="disabled"
+                            />
+                        </td>
+                        <th class="th" align="right">group：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="groupName" name="groupName" data-options="required:true"
+                                   data-options="editable:true"/>
+                        </td>
+                    </tr>
+                    <!--<tr>
+                        <td colspan="4" align="right">
+                            <input class="btn btn-primary" type="button" onclick="add()" value="增加"
+                                   style="width: 50px;margin-right:70px"/>
+                        </td>
+                    </tr>-->
+                    <!--<tr>
+                        <td colspan="4">
+                            <fieldset class="fieldset_eui" id="fcbg" style=" height:280px">
+                                <table id='dg'>
+                                </table>
+                            </fieldset>
+                        </td>
+                    </tr>-->
+                    <tr>
+                        <td colspan="4"><label style="color: red">件号表达式或件号明细至少必填一项</label></td>
+                    </tr>
+                    <!--范围值-->
+                    <tr>
+                        <td colspan="4">
+                            <fieldset class="fieldset_eui" id="fcbg_1" style=" height:280px">
+                                <table id='dg_1'></table>
+                            </fieldset>
+                        </td>
+                    </tr>
+                    <!--件号-->
+                    <tr>
+                        <td colspan="4">
+                            <fieldset class="fieldset_eui" id="fcbg2" style=" height:280px">
+                                <table>
+                                    <tr>
+                                        <td><label>件号明细</label></td>
+                                        <td align="left">
+                                            <input id="addPnBtn" class="btn btn-primary" type="button" onclick="addPn()" value="增加"
+                                                   style="width: 90px;margin-right:70px;margin-left: 70px"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table id='dg2'>
+                                </table>
+                            </fieldset>
+                        </td>
+                    </tr>
+                    <!--序号-->
+                    <tr>
+                        <td colspan="4">
+                            <fieldset class="fieldset_eui" id="fcbg3" style=" height:280px">
+                                <table>
+                                    <tr>
+                                        <td><label>序号明细</label></td>
+                                        <td colspan="4" align="left">
+                                            <input id="addSnBtn" class="btn btn-primary" type="button" onclick="addSn()" value="增加"
+                                                   style="width: 90px;margin-right:70px"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                                <table id='dg3'></table>
+                            </fieldset>
+                        </td>
+                    </tr>
+                    <!--特征描述-->
+                    <tr>
+                        <td colspan="4">
+                            <fieldset class="fieldset_eui" id="fcbg4" style=" height:150px">
+                                <table id='dg4'>
+                                    <tr>
+                                        <td><label>特征描述</label></td>
+                                        <!--<td colspan="4" align="left">
+                                            <input class="btn btn-primary" type="button" onclick="addDesc()" value="维护特征描述"
+                                                   style="width: 90px;margin-right:70px"/>
+                                        </td>-->
+                                    </tr>
+                                    <tr>
+                                        <td colspan="4">
+                                            <textarea id="rangeValue" name="rangeValue"
+                                                      style="width: 700px;height:60px;"></textarea>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </fieldset>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param = {};
+    var operation;
+    var obj = {};
+    var eoPkid;
+    var applyType;
+    var applyModel;
+    var detailFun;
+    var groupid;
+    var pnExpRangePkid; //pn表达式rangePkid
+    var pnRangePkid; //pn添加时的rangePkid
+    var snRangePkid;
+    var descExpRangePkid; //范围描述rangePkid
+    function i18nCallBack() {
+        window.moveTo(400, 100);
+        window.resizeTo("750", "750");
+        param = getParentParam_();
+        operation = param.operation;
+        //evapkid = param.evapkid;
+        applyType = param.applyType;
+        groupid = param.groupid;
+        applyModel = param.applyModel;
+        eoPkid = param.eoPkid;
+
+        if('view' == operation){
+            $('#saveBtn').attr('disabled', true);
+            $('#addPnBtn').attr('disabled', true);
+            $('#addSnBtn').attr('disabled', true);
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "REVSUG_FLEET,EM_EO_APL_RANGE_TYPE,EM_EO_PART_RANGE_TYPE,EM_EO_ENG_RANGE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#actype").combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.EO_APPLY_MODEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    if (param.applyType == "APL") {
+                        detailFun = "EM_EO_APP_RANGE_APL_LIST";
+                    }else if(param.applyType == 'ENG'){
+                        detailFun = "EM_EO_APP_RANGE_ENG_LIST";
+                    }else{
+                        detailFun = "EM_EO_APP_RANGE_PART_ENG_LIST";
+                    }
+                    $("#actype").combobox("setValue", param.applyModel);
+                    var apply = [];
+                    apply.push.apply(apply, jdata.data["EM_EO_APL_RANGE_TYPE"]);
+                    apply.push.apply(apply, jdata.data["EM_EO_PART_RANGE_TYPE"]);
+                    apply.push.apply(apply, jdata.data["EM_EO_ENG_RANGE_TYPE"]);
+
+                    PAGE_DATA['rangeType'] = DomainCodeToMap_(apply);
+
+                }
+                if (groupid) {
+                    $('#groupName').textbox({editable: false, onlyview:true});
+                    InitDataForm(groupid);
+                    InitDataGrid_1(groupid);
+                    InitDataGrid2(groupid);
+                    InitDataGrid3(groupid);
+                    InitDataGrid4(groupid);
+                }else{
+                    InitDataGrid_1(-1);
+                    InitDataGrid2(-1);
+                    InitDataGrid3(-1);
+                    InitDataGrid4(-1);
+                }
+
+            }
+        })
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {pkid: pkid, FunctionCode: "EM_EO_GROUP_BY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if(jdata.data){
+                        ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                        pkid = pkid;
+                        obj = jdata.data;
+                    }
+                    //初始化范围值
+                    //InitDataGrid(pkid);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(mpkid) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            pagination: false,
+            singleSelect: true,
+            pageSize: 10,
+            resize: function () {
+                return tabs_standard_resize($("#fcbg"), -30, -0.01, -0.01, -0.01);
+            },
+            queryParams: {groupPkid: mpkid},
+            columns: {
+                param: {FunctionCode: 'EM_EO_EVAL_APP_GROUP_LIST'},
+                alter: {
+                    RANGE_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['rangeType'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+
+            onBeginEdit: function (index, row) {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.RANGEPKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        var ranPkid = rowData.RANGEPKID? rowData.RANGEPKID : "";
+                        var ranVal = rowData.RANGE_VALUE;
+                        var ranType = rowData.RANGE_TYPE;
+                        rvalues = rowData.RVALUES;
+                        if(param.applyType == 'PART'){//部件序号
+                            if(!rvalues && ranVal){
+                                rvalues = ranVal.replace(/,/g, ';');
+                            }
+                        }
+                        var fleet = $("#actype").combobox('getValue');
+
+                        ShowWindowIframe({
+                            width: "550",
+                            height: "400",
+                            param: {
+                                appGroupPkid: groupid,
+                                applyType: applyType,
+                                eoPkid: eoPkid,
+                                fleet: fleet,
+                                applyModel: applyModel,
+                                rangeType: ranType,
+                                rvalues: rvalues,
+                                ranPkid: ranPkid
+                            },
+                            url: "/views/em/emeo/applic/addEoAllApplic.shtml"
+                        });
+
+                    }
+                },
+
+                {
+                    id: "m-edit", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.RANGEPKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+
+                        /*if(!confirm("所有被引用适用性明细的地方可能同步删除？")){
+                            return;
+                        }*/
+
+                        if(!confirm('确认删除?')){
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            async : false,
+                            data: {pkid: rowData.RANGEPKID, FunctionCode: "EM_EO_APP_RANGE_DEL"},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+
+
+            validAuth: function (row, items) {
+                if (operation == "view") {
+                    items['删除'].enable = false;
+                }
+
+                return items;
+            }
+
+        });
+    }
+
+    //件号表达式
+    function InitDataGrid_1(mpkid) {
+        $("#dg_1").MyDataGrid({
+            identity: 'dg_1',
+            sortable: true,
+            pagination: false,
+            singleSelect: true,
+            enableLineEdit: true,
+            pageSize: 10,
+            resize: function () {
+                return tabs_standard_resize($("#fcbg_1"), -30, -0.01, -0.01, -0.01);
+            },
+            queryParams: {groupPkid: mpkid},
+            columns: {
+                param: {FunctionCode: 'EM_EO_APP_PN_EXP_LIST'},
+                alter: {
+                    EXT_RANGE_VALUE: {
+                        editor: {
+                            type: 'textbox',
+                            options: {
+                                required: true
+                            }
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function (data) {
+                if (data.rows.length > 0) {
+                    pnExpRangePkid = data.rows[0].RANGEPKID;
+                }else{
+                    pnExpRangePkid = "";
+                }
+            },
+
+            onBeginEdit: function (index, row) {
+            },
+            onEndEdit: function (index, row, changes) {
+                if(operation == 'view'){
+                    return;
+                }
+                saveFcBg(index, row, changes);
+            },
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('增加件号表达式'),
+                iconCls: 'icon-add',
+                handler: function () {
+                    if('view' == operation){
+                        MsgAlert({content: '不允许编辑', type: 'error'});
+                        return;
+                    }
+                    if(!groupid || groupid == -1){
+                        MsgAlert({content: '请先保存适用性分组', type: 'error'});
+                        return;
+                    }
+                    addDatagridRow('add');
+                }
+            }],
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg_1').datagrid('getSelected');
+                        var rowIndex = $('#dg_1').datagrid('getRowIndex', rowData);
+                        if (!rowData.PKID) {
+                            //如果没有保存，直接在datagrid移除该行
+                            $('#dg_1').datagrid('deleteRow', rowIndex);
+                        } else {
+                            if(!confirm("确定删除？")){
+                                return;
+                            }
+                            InitFuncCodeRequest_({
+                                async : false,
+                                data: {pkid: rowData.PKID, rangePkid: rowData.RANGEPKID,
+                                    eoPkid: eoPkid, appGroupPkid: groupid,
+                                    FunctionCode: "EM_EO_APP_PART_PN_EXP_DEL"},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        reload_13();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            ],
+
+
+            validAuth: function (row, items) {
+                if (operation == "view") {
+                    items['删除'].enable = false;
+                }
+
+                return items;
+            }
+
+        });
+    }
+
+    //增加行
+    function addDatagridRow() {
+        $('#dg_1').datagrid('appendRow', {});
+    }
+
+    //行编辑事件
+    function saveFcBg(index, row, changes) {
+        if (row.EXT_RANGE_VALUE == "") {
+            MsgAlert({content: '件号表达式不能为空', type: 'error'});
+            return;
+        }
+        var rangeValue = row.EXT_RANGE_VALUE;
+        var count = (rangeValue.split('*')).length - 1;
+        var index = rangeValue.indexOf('*');
+        var vLen = rangeValue.length;
+        if(rangeValue.length == 1 || count != 1 || (index != 0 && index != (vLen - 1))){
+            MsgAlert({content: '件号表达式首部或尾部必须有*号', type: 'error'});
+            return;
+        }
+
+        row = $.extend({
+            rangeValue: rangeValue,
+            rangePkid: pnExpRangePkid,
+            rangeType: 'PN_EXP',
+            appGroupPkid: groupid,
+            eoPkid: eoPkid,
+            valuePkid : row.PKID
+        }, row, {FunctionCode: 'EM_EO_APP_PART_PN_EXP_SAVE'});
+        InitFuncCodeRequest_({
+            data: row,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    pnExpRangePkid = jdata.data.pkid;
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_1();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                    reload_1();
+                }
+            }
+        });
+    }
+
+    //新增件号
+    function InitDataGrid2(groupid) {
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            sortable: true,
+            pagination: false,
+            singleSelect: true,
+            pageSize: 10,
+            resize: function () {
+                return tabs_standard_resize($("#fcbg2"), -30, -0.01, -0.01, -0.01);
+            },
+            queryParams: {groupPkid: groupid},
+            columns: {
+                param: {FunctionCode: 'EM_EO_APP_PART_PN_LIST'},
+                alter: {
+                }
+            },
+            onLoadSuccess: function (data) {
+                if (data.rows.length > 0) {
+                    pnRangePkid = data.rows[0].RANGEPKID;
+                }else{
+                    pnRangePkid = "";
+                }
+            },
+
+            onBeginEdit: function (index, row) {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg2').datagrid('getSelected');
+                        if (!rowData.RANGEPKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+
+                        if(!confirm("确定删除？")){
+                            return;
+                        }
+                        var detailData = [{
+                            PARTNO: rowData.PARTNO
+                        }]
+                        detailData = JSON.stringify(detailData);
+                        console.log(detailData);
+                        ajaxLoading();
+                        InitFuncCodeRequest_({
+                            data: {
+                                detailData: detailData,
+                                appGroupPkid: groupid,
+                                eoPkid: eoPkid,
+                                rangePkid : pnRangePkid,
+                                rangeType: 'PN',
+                                FunctionCode: "EM_EO_APP_ASSET_CANCEL"
+                            },
+                            successCallBack: function (jdata) {
+                                ajaxLoadEnd();
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    reload_2();
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (operation == "view") {
+                    items['删除'].enable = false;
+                }
+
+                return items;
+            }
+
+        });
+    }
+
+    //新增序号
+    function InitDataGrid3(groupid) {
+        $("#dg3").MyDataGrid({
+            identity: 'dg3',
+            sortable: true,
+            pagination: false,
+            singleSelect: true,
+            pageSize: 10,
+            resize: function () {
+                return tabs_standard_resize($("#fcbg3"), -30, -0.01, -0.01, -0.01);
+            },
+            queryParams: {groupPkid: groupid},
+            columns: {
+                param: {FunctionCode: 'EM_EO_APP_PART_SN_LIST'},
+                alter: {
+                }
+            },
+            onLoadSuccess: function (data) {
+                if (data.rows.length > 0) {
+                    snRangePkid = data.rows[0].RANGEPKID;
+                }else{
+                    snRangePkid = "";
+                }
+            },
+
+            onBeginEdit: function (index, row) {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg3').datagrid('getSelected');
+                        if (!rowData.RANGEPKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+
+                        if(!confirm("确定删除？")){
+                            return;
+                        }
+                        var detailData = [{
+                            ENGID: rowData.ENGID,
+                            PARTNO: rowData.PN,
+                            RANGE_VALUE: rowData.SN
+
+                        }]
+                        detailData = JSON.stringify(detailData);
+                        console.log(detailData);
+                        ajaxLoading();
+                        InitFuncCodeRequest_({
+                            data: {
+                                detailData: detailData,
+                                appGroupPkid: groupid,
+                                eoPkid: eoPkid,
+                                rangePkid : snRangePkid,
+                                rangeType: 'SN',
+                                FunctionCode: "EM_EO_APP_ASSET_CANCEL"
+                            },
+                            successCallBack: function (jdata) {
+                                ajaxLoadEnd();
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    reload_3();
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+
+            validAuth: function (row, items) {
+                if (operation == "view") {
+                    items['删除'].enable = false;
+                }
+
+                return items;
+            }
+
+        });
+    }
+
+    function InitDataGrid4(groupid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {groupPkid: groupid, FunctionCode: "EM_EO_APP_PART_GROUPPKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if(jdata.data){
+                        $('#rangeValue').val(jdata.data.RANGE_VALUE);
+                        descExpRangePkid = jdata.data.RANGE_TYPE_PKID;
+                    }else{
+                        descExpRangePkid = '';
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var groupName = $('#groupName').textbox('getValue');
+        var reg = /^[1-9]\d*$/;
+        if(!reg.test(groupName) || groupName > 999){
+            MsgAlert({content: '分组名称为1~999的正整数', type: 'error'});
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        var actype = $('#actype').combobox('getValue');
+        datas.actype = actype;
+        //datas.groupName = 'G'+ groupName;
+        datas = $.extend({
+            eoPkid: param.eoPkid,
+            groupType: param.applyType
+        }, datas, {FunctionCode: 'EM_EO_APP_GROUP_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#pkid").textbox('setValue', jdata.data.pkid);
+                    pkid = jdata.data.pkid;
+                    groupid = jdata.data.pkid;
+                    obj.GROUP_TYPE = jdata.data.groupType;
+                    obj.EO_PKID = jdata.data.eoPkid;
+                    obj.ACTYPE = jdata.data.actype;
+                    obj.PKID = jdata.data.pkid;
+                    addDesc();
+                    //InitDataGrid(pkid);
+                    param.OWindow.reload_("#dg4");
+                    //param.OWindow.reload_("#dg5");
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg.replace("msg_err:", "") : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function add() {
+        if (!obj.PKID) {
+            MsgAlert({content: "请先保存适用性分组主表数据！", type: "error"});
+            return false;
+        }
+        var fleet = $("#actype").textbox('getValue');
+
+        var allRows = $('#dg').datagrid('getRows');
+        var rangeTypeArray = [];
+        if(allRows.length > 0){
+            for(var i=0; i<allRows.length; i++){
+                rangeTypeArray.push(allRows[i].RANGE_TYPE);
+            }
+        }
+
+        ShowWindowIframe({
+            width: "550",
+            height: "400",
+            param: {
+                appGroupPkid: obj.PKID,
+                applyType: obj.GROUP_TYPE,
+                eoPkid: obj.EO_PKID,
+                fleet: fleet,
+                rangeTypeArray: rangeTypeArray
+            },
+            url: "/views/em/emeo/applic/addEoAllApplic.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg2").datagrid("reload", {groupPkid: groupid});
+        $('#dg3').datagrid("reload", {groupPkid: groupid});
+        param.OWindow.reload_("#dg4");
+        param.OWindow.reload_("#dg5");
+        //时限
+        param.OWindow.param.OWindow.parent.frames["emEoApp2Div"].reload_();
+    }
+
+    function reload_1() {
+        $("#dg_1").datagrid("reload", {groupPkid: groupid});
+        param.OWindow.reload_("#dg4");
+        param.OWindow.param.OWindow.parent.frames["emEoApp2Div"].reload_();
+    }
+
+    function reload_2() {
+        $("#dg2").datagrid("reload", {groupPkid: groupid});
+        $("#dg3").datagrid("reload", {groupPkid: groupid});
+        param.OWindow.reload_("#dg4");
+        param.OWindow.param.OWindow.parent.frames["emEoApp2Div"].reload_();
+    }
+
+    function reload_3() {
+        $("#dg3").datagrid("reload", {groupPkid: groupid});
+        param.OWindow.reload_("#dg4");
+        param.OWindow.param.OWindow.parent.frames["emEoApp2Div"].reload_();
+    }
+
+    function reload_13() {
+        $("#dg_1").datagrid("reload", {groupPkid: groupid});
+        $("#dg3").datagrid("reload", {groupPkid: groupid});
+        param.OWindow.param.OWindow.parent.frames["emEoApp2Div"].reload_();
+    }
+
+    function reload_4() {
+        InitDataGrid4(groupid);
+        param.OWindow.reload_("#dg4");
+        param.OWindow.reload_("#dg5");
+    }
+
+    //驼峰转下划线
+    function toLine(name) {
+        return name.replace(/([A-Z])/g, "_$1").toLowerCase();
+    }
+
+    //维护件号
+    function addPn() {
+        if(!groupid || groupid == -1){
+            MsgAlert({content: '请先保存适用性分组', type: 'error'});
+            return;
+        }
+        ShowWindowIframe({
+            width: 900,
+            height: 700,
+            param: {rangeType: 'PN', eoPkid: eoPkid, applyType: applyType,
+                appGroupPkid: groupid, fleet: 'CM', ranPkid:pnRangePkid},
+            title: "件号维护",
+            url: "/views/em/emeo/applic/addEoEngSeriApplic.shtml"
+        });
+    }
+
+    //维护序号
+    function addSn() {
+        if(!groupid || groupid == -1){
+            MsgAlert({content: '请先保存适用性分组', type: 'error'});
+            return;
+        }
+        if(rowData1.length == 0  && rowData2.length == 0){
+            MsgAlert({content: '请先维护件号或者件号表达式', type: 'error'});
+            return;
+        }
+        var rowData1 = $('#dg_1').datagrid('getRows');
+        var rowData2 = $('#dg2').datagrid('getRows');
+        var beforeExpValue = ""; //前*号
+        var afterExpValue = ""; //后*号
+        var pnValue = "";  //件号
+        if(rowData2 && rowData2.length != 0){
+            for(var i=0; i<rowData2.length; i++){
+                pnValue += rowData2[i].EXT_RANGE_VALUE + ",";
+            }
+        }
+        if(pnValue){
+            pnValue = pnValue.substr(0, pnValue.length - 1);
+        }
+
+        if(rowData1 && rowData1.length != 0){
+            for(var i=0; i<rowData1.length; i++){
+                var value = rowData1[i].EXT_RANGE_VALUE;
+                if(value.indexOf("*") == 0){
+                    value = value.substr(1, value.length);
+                    beforeExpValue += value+","
+                }else{
+                    value = value.substr(0, value.length - 1);
+                    afterExpValue += value+",";
+                }
+            }
+        }
+        if(beforeExpValue){
+            beforeExpValue = beforeExpValue.substr(1, beforeExpValue.length);
+        }
+        if(afterExpValue){
+            afterExpValue = afterExpValue.substr(0, afterExpValue.length -1);
+        }
+
+        ShowWindowIframe({
+            width: 900,
+            height: 700,
+            param: {rangeType: 'SN', eoPkid: eoPkid, applyType: applyType,
+                appGroupPkid: groupid, fleet: 'CM', ranPkid:snRangePkid,
+                pnValue : pnValue, beforeExpValue:beforeExpValue,
+                afterExpValue: afterExpValue
+            },
+            title: "序号维护",
+            url: "/views/em/emeo/applic/addEoEngSeriApplic.shtml"
+        });
+    }
+
+    //维护特征描述
+    function addDesc() {
+        if(!groupid || groupid == -1){
+            MsgAlert({content: '请先保存适用性分组', type: 'error'});
+            return;
+        }
+        /*ShowWindowIframe({
+            width: 580,
+            height: 600,
+            param: {rangeType: 'DESC', eoPkid: eoPkid, applyType: applyType,
+                appGroupPkid: groupid, fleet: 'CM', ranPkid : descExpRangePkid},
+            title: "维护特征描述",
+            url: "/views/em/emeo/applic/addEoDescApplic.shtml"
+        });*/
+
+        var rangeValue = $('#rangeValue').val();
+        if(!rangeValue){
+            MsgAlert({content: '请输入范围值', type: 'error'});
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({
+            rangePkid : descExpRangePkid,
+            appGroupPkid: groupid,
+            eoPkid: eoPkid,
+            rangeType : 'DESC'
+        }, datas, {FunctionCode: 'EM_EO_APP_VALUE_DESC_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    reload_4();
+                    //CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</html>

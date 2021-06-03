@@ -1,0 +1,335 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">补充手册编写评估单</title>
+</head>
+<body class="ibody">
+<div id="tabs" style="width: 100%; height: 100%;">
+
+    <div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+        <fieldset class="fieldset_eui">
+            <form id="mform" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">手册来源：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataFrom" data-options="editable:false" name="dataFrom"
+                                   style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">手册类型：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataType" data-options="editable:false" name="dataType"
+                                   style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">手册版本：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataVer" data-options="editable:false" name="dataVer"
+                                   style="width:100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">机型：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="fleet" data-options="editable:false" name="fleet"
+                                   style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">手册描述：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataMemo" data-options="editable:false" name="dataMemo"
+                                   style="width:100px;"/>
+                        </td>
+
+                    </tr>
+                    <!--<tr>-->
+                        <!--<td colspan="6" align="right">-->
+                            <!--<input id="saveBtn" class="btn btn-primary" type="button" onclick="save()" value="保存"-->
+                                   <!--style="width: 50px;"/>-->
+
+                        <!--</td>-->
+                    <!--</tr>-->
+                </table>
+            </form>
+        </fieldset>
+        <table id="dg"></table>
+    </div>
+</div>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var operation;
+    // var rowObj="";
+    var taskId="";
+    // window.g_datagridRows;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        param = getParentParam_();
+        operation = param.operation;
+        taskId=param.taskId;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "SUPPLEMENT_DEAL_OPTION,DM_DATA_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //处理方式
+                    // $('#DEAL_OPTION').combobox({panelHeight: '140px', data: jdata.data.SUPPLEMENT_DEAL_OPTION, valueField: 'VALUE', textField: 'TEXT'});
+                    //处理方式
+                    PAGE_DATA['DEAL_OPTION'] = DomainCodeToMap_(jdata.data["SUPPLEMENT_DEAL_OPTION"]);
+                    //TODO
+                    InitDataGrid(param.pkid, jdata);
+                    InitDataForm(param.tdPkid)
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_SUPPLEMENT_EVAL_BY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    // rowObj=jdata.data;
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(pkid, jdata) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            enableLineEdit: true,
+            enableCellEdit: true,
+            queryParams: {pkid: pkid},
+            columns: {
+                param: {FunctionCode: 'TD_SUPPLEMENT_EVAL_DETAIL'},
+                alter: {
+                    // TEST_UPLOAD: {},
+                    DEAL_OPTION: {
+                        // editor: {
+                        //     type: 'combobox',
+                        //     options: {
+                        //         data: jdata.data["SUPPLEMENT_DEAL_OPTION"],
+                        //         valueField: 'VALUE',
+                        //         textField: 'TEXT',
+                        //         singleSelect: true,
+                        //         onSelect: optionChange
+                        //     }
+                        // },
+                        formatter: function (value) {
+                            return PAGE_DATA['DEAL_OPTION'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "使用[ AR ]方式处理",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        alert('正在装修中...');
+                    }
+                },
+                {
+                    id: "",
+                    i18nText: "使用[ DS ]方式处理",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDSList("edit",rowData.PKID,rowData.ATA,$("#fleet").textbox('getValue'),$("#dataType").textbox('getValue'));
+                    }
+                },
+                {
+                    id: "",
+                    i18nText: "不适用",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        ShowWindowIframe({
+                            width: "600",
+                            height: "200",
+                            title: "填写不适用意见",
+                            param: {pkid: pkid},
+                            url: "/views/td/evaluate/tdTaskEvaluate_Invalid.shtml"
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if(row.STATUS=="BXZ"||row.STATUS=="BTH"){
+                    items['使用[ AR ]方式处理'].enable = true;
+                    items['使用[ DS ]方式处理'].enable = true;
+                    items['不适用'].enable = true;
+                }else{
+                    items['使用[ AR ]方式处理'].enable = false;
+                    items['使用[ DS ]方式处理'].enable = false;
+                    items['不适用'].enable = false;
+                }
+
+                return items;
+            },
+            // onEndEdit: function (index, row, changes) {
+            //     editDate(index, row, changes);
+            // },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    //补充手册编写评估单
+    function optionChange(data) {
+        var value = data.VALUE;
+        var row = $('#dg').datagrid('getSelected');
+        var rowIndex = $('#dg').datagrid('getRowIndex', $('#dg').datagrid('getSelected'));
+        row.ROW_ID = rowIndex;
+        if (value == "AR") {
+            openARFrame(row);
+        }
+        if (value == "DS") {
+            openDSFrame(row);
+        }
+        if (value == "NONE") {
+            var rowIndex = $('#dg').datagrid('getRowIndex', $('#dg').datagrid('getSelected'));
+            // $('#dg').datagrid('updateRow', {
+            //     index: rowIndex,
+            //     row: {
+            //         DEAL_RESULT: {
+            //             editor:{
+            //                 type: 'textbox'
+            //             }
+            //
+            //         }
+            //     }
+            // });
+        }
+    }
+
+    function openARFrame(row) {
+        var title_ = $.i18n.t('补充手册编写评估单-DS');
+        ShowWindowIframe({
+            width: "790",
+            height: "300",
+            title: title_,
+            param: {row: row},
+            url: "/views/td/evaluate/arEdit.shtml"
+        });
+    }
+
+    function openDSFrame(row) {
+        var title_ = $.i18n.t('补充手册编写评估单-DS');
+        ShowWindowIframe({
+            width: "790",
+            height: "300",
+            title: title_,
+            param: {row: row},
+            url: "/views/td/evaluate/dsEdit.shtml"
+        });
+    }
+
+    function insertDealResult(row) {
+        $("#dg").datagrid("updateRow", {
+            index: row.ROW_ID,
+            row: {
+                DEAL_RESULT: row.DEAL_RESULT,
+            }
+
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+        // window.g_datagridRows=1;
+    }
+
+    //一键设置日期
+    function setDealWithDate(operation) {
+        setDealWithDate(operation, '');
+    }
+
+
+    function setDealWithDate(operation, pkid) {
+        var title_ = $.i18n.t('资料类型详情');
+        ShowWindowIframe({
+            width: "400",
+            height: "150",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/td/rev/setDealWithDate.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+//        dateFormatter_();
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    // 保存
+    function save() {
+        var rows = $('#dg').datagrid('getRows');
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+        }
+        var data = JSON.stringify(rows);
+        InitFuncCodeRequest_({
+            data: {data: data, FunctionCode: "TD_SUPPLEMENT_DETAIL_ADD"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+
+    //---------------Shiro by 2019/1/7
+
+    //打开DS_LIST页面
+    function openDSList(operation, pkid,ata,fleet,manualType) {
+        var title_ = $.i18n.t('DS列表');
+        ShowWindowIframe({
+            width: "600",
+            height: "400",
+            title: title_,
+            param: {operation: operation, pkid: pkid,ata:ata,fleet:fleet,manualType:manualType},
+            url: "/views/td/evaluate/tdTaskEvaluate_DS_List.shtml"
+        });
+    }
+
+
+
+</script>
+</body>
+</html>

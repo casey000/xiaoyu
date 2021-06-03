@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">EA 工卡 选择页面</title>
+</head>
+<body class="ibody">
+<div id="title" class="title" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:50px;" align="right">卡号：</th>
+                    <td style="width:130px; padding:3px;">
+                        <input class="easyui-textbox" id="jcNo" name="jcNo" style="width:130px;"/>
+                    </td>
+
+                    <td align="right">
+                        <input id="searchBtn" class="btn btn-primary" type="button" onclick="searchData()" value="查询"
+                               style="width: 50px;margin:10px;"/>
+                        <input id="clearBtn" class="btn btn-primary" type="button" onclick="doClear_()" value="重置"
+                               style="width: 50px;margin:10px;"/>
+                        <input class="btn btn-primary" type="button" onclick="openDetai('add','')" value="增加"
+                               style="width: 50px;margin:5px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var nalter = {};
+    var param = {};
+    var eojcNo;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        eojcNo = param.eojcNo;
+        var domainCode = new Set();
+        if (param.alter) {
+            for (let i = 0; i < param.alter.length; i++) {
+                domainCode.add(param.alter[i].pageData);
+                let formatter = `{
+                        formatter: function (value) {
+                            return PAGE_DATA['${param.alter[i].field}'][value];
+                        }
+                    }`;
+                nalter[param.alter[i].field] = eval('(' + formatter + ')');
+            }
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.alter) {
+                        for (let i = 0; i < param.alter.length; i++) {
+                            PAGE_DATA[param.alter[i].field] = DomainCodeToMap_(jdata.data [param.alter[i].pageData]);
+                        }
+                    }
+                    InitDataGrid()
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EO_TD_LIST'}
+                /*,
+                alter:  nalter*/
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "dmDataRecExter",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+
+                                }
+
+                            }
+                        });
+                    }
+                });
+
+                //回显选中的工卡
+                if(eojcNo && data){
+                    var eojcNoArray = eojcNo.split(',');
+                    for(var i=0; i<data.rows.length; i++){
+                        for(j=0; j<eojcNoArray.length; j++){
+                            if(eojcNoArray[j] == data.rows[i].JC_NO){
+                                $('#dg').datagrid('checkRow', i);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //打开资料类型详细页面
+    function openDetai() {
+        var rowData = getDG('dg').datagrid('getChecked');
+        var row;
+        if (rowData.length > 0) {
+            //如果已有片段，并且已选中，打开选中的片段
+            if (rowData.length != 1) {
+                MsgAlert({content: "只能选择一条数据!", type: 'error'});
+                return;
+            } else {
+                //选中一条数据
+                row = rowData[0];
+            }
+        } else {
+            MsgAlert({content: "请选择一条数据进行编辑!", type: 'error'});
+        }
+        param.OWindow.setEojcNo(row.JC_NO);
+        CloseWindowIframe();
+
+
+    }
+
+
+</script>
+</body>
+</html>

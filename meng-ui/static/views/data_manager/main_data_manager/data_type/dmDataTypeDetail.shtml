@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>资料类型详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid" />
+                <input type="hidden" id="createBy" name="createBy" />
+                <input type="hidden" id="createTime" name="createTime" />
+                <input type="hidden" id="typeCode" name="typeCode" />
+                <table class="table table-bordered table-info">
+                    <tr id = "view">
+                        <td colspan="4" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存" style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭" style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">资料类别：</th>
+                        <td class="tdr" style="width: 100px;">
+                            <input class="easyui-combobox" id="dataSort" name="dataSort" data-options="required:true"
+                                   style="width: 120px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">有效性：</th>
+                        <td class="tdr" style="width: 60px">
+                            <input class="easyui-combobox" id="validity" name="validity"
+                                   data-options="required:true,editable:false" style="width: 120px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">资料类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="dataType" name="dataType" data-options="required:true"
+                                   style="width: 120px;"/>
+                        </td>
+                        <th id="tech1" class="th" align="right" style="width: 80px;">是否发起评估：</th>
+                        <td id="tech2" class="tdr" style="width: 60px">
+                            <input class="easyui-combobox" data-options="editable:false" id="ifEval" name="ifEval"
+                                   style="width: 120px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">资料描述：</th>
+                        <td class="tdr" colspan="5">
+                            <textarea id="dataDesc" name="dataDesc" data-options="editable:true"
+                                      style="width: 400px;height:60px;"></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        if(operation == "view"){
+            $("#view").hide();
+        }
+
+        InitFuncCodeRequest_({
+            data: {domainCode: "DM_DATA_SORT,YESORNO",FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $("#dataSort").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_DATA_SORT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (data) {
+                            sortChange(data.VALUE);
+                        },
+                        onHidePanel: function() {
+                            validSelectValue_(this, "输入值不存在！");
+                        }
+                    });
+
+                    $('#validity').combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ifEval').combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                }
+                if (param.pkid){
+                    InitDataForm(param.pkid);
+                } else {
+                    $("#tech1").hide();
+                    $("#tech2").hide();
+                }
+            }
+        })
+    }
+
+    function sortChange(sort) {
+        if (sort == "TECHNOLOGY") {
+            $("#tech1").show();
+            $("#tech2").show();
+            $("#ifEval").textbox({required: true});
+        } else {
+            $("#tech1").hide();
+            $("#tech2").hide();
+            $("#ifEval").textbox({required: false});
+        }
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "DM_DATA_TYPE_BY_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#dataSort').combobox({value:jdata.data.DATA_SORT});
+                    $('#validity').combobox({value:jdata.data.VALIDITY});
+                    sortChange(jdata.data.DATA_SORT);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'DM_DATA_TYPE_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if(param.OWindow.onSearch_){
+                        param.OWindow.onSearch_('dg', '#ffSearch');
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

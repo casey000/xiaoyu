@@ -1,0 +1,183 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>引用系统构型适用性</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">构型编号：</th>
+                    <td style="width: 80px;  padding: 3px">
+                        <input class="easyui-textbox" style="width: 150px;"
+                               id="configNo" name="configNo"
+                               data-options="required:true" />
+                    </td>
+                    <td colspan="9" align="right">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="确认"/>
+                        <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                               style="margin-left:3px;margin-right: 18px;"/>
+                        <br/>
+                    </td>
+                </tr>
+                <tr>
+                </tr>
+            </table>
+        </form>
+    <table id="dg"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param; // operation[add,edit,view]
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        if (! param.docType) {
+            MsgAlert({
+                content: "参数【引用文件来源(docType)】未传入，请检查本页面调用参数",
+                type: "error"
+            });
+            return;
+        }
+        if (! param.refDocNo) {
+            MsgAlert({
+                content: "参数【关联文件编号(refDocNo)】未传入，请检查本页面调用参数",
+                type: "error"
+            });
+            return;
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_CONFIG_NO_COMBO",
+                validFlag: "Y"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    $('#configNo').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data,
+                        valueField: 'CONFIG_NO',
+                        textField: 'CONFIG_NO',
+                        onSelect: function (val) {
+                            InitDataGrid(val.CONFIG_NO);
+                        }
+                    });
+                    InitDataGrid($('#configNo').combobox('getValue'));
+                } else {
+                    MsgAlert({ content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(configNo) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            resize: function () {
+                return {width: 813, height: 545};
+            },
+            queryParams: {
+                configNo: configNo ? configNo : "0",
+                docType: param.docType,
+                refDocNo: param.refDocNo
+            },
+            columns: {
+                param: {FunctionCode: 'EM_SYSCONFIG_LIST_FOR_REF'},
+                alter: {
+                    REF_GRAPHIC: {
+                        formatter: function (value, row, index) {
+                            if (! value) {
+                                return "";
+                            }
+
+                            var attachments = value.split(',');
+                            if (attachments.length == 0) {
+                                return "";
+                            }
+
+                            var result = ['<ul>'];
+                            for (var i = 0; i < attachments.length; i++) {
+                                var attachment = attachments[i].split('/');
+                                var fileId = attachment[0];
+                                var filename = attachment[1];
+                                result.push('<li><a onclick="downFile(' + fileId + ')" href="javascript:void(0);">' + filename + '</a></li>');
+                            }
+                            result.push('</ul>');
+                            return result.join('');
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (jdata) {
+                if (jdata) {
+                    $.each(jdata.rows, function (index, row) {
+                        if (row.IS_SELECTED == "Y") {
+                            $('#dg').datagrid("checkRow", index);
+                        }
+                    })
+                }
+            }
+        });
+    }
+
+    function save() {
+        var rows = $('#dg').datagrid("getRows");
+        var checkRows = $('#dg').datagrid("getChecked");
+
+        var i = 0;
+        var j = 0;
+        var modifyRows = [];
+        while (i < rows.length) {
+            if (rows[i] == checkRows[j]) {
+                rows[i].SELECTED = "Y";
+                j++;
+            } else {
+                rows[i].SELECTED = "N";
+            }
+
+            if (rows[i].IS_SELECTED != rows[i].SELECTED) {
+                modifyRows.push(rows[i]);
+            }
+
+            i++;
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_REF_DOC_ADD",
+                docType: param.docType,
+                refDocNo: param.refDocNo,
+                modifyRows: JSON.stringify(modifyRows)
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

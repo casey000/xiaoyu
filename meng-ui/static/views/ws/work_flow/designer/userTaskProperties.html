@@ -1,0 +1,710 @@
+<!--  初始属性页面 -->
+<script type="text/javascript">
+	process = workflow.process;
+
+	function easyuiWidgetDestroy(jQitem){
+		var parent = jQitem.parent();
+		var name = jQitem.attr('textboxname');
+		var ohtml = jQitem.prop('outerHTML');
+		var jQohtml = jq(ohtml);
+		jQohtml.removeClass().attr('name', name);
+		parent.html(jQohtml);
+	}
+
+	jq(function(){
+		setTimeout(function(){
+			InitTaskGeneral();
+			InitTaskStaffing();
+			InitTaskJointly();
+			InitTransmitVariable();
+		},10);
+	});
+
+	/**
+	 * 保存任务的属性配置
+	 */
+	function saveTaskPropConfig(){
+		var generalData = getProData(jq("#pg"));
+		var multiData = jq('#jointForm').serializeObject();
+		// if(multiData.jointCollectionType == 'BLRY' || multiData.jointCollectionType == 'YWFW'){
+		// 	multiData._collection = 'assigneeList';
+		// 	multiData._elementVariable = 'assignee';
+		// }
+		if(multiData.isSequential=='N'){
+			multiData._collection = '';
+			multiData._elementVariable = '';
+			multiData.isSequential='';
+		}else{
+			multiData.isSequential = (multiData.isSequential=='S')?'true':'false'
+		}
+		var collectData = jq.extend({}, generalData, multiData);
+		for(var key in collectData){
+			task[key] = collectData[key];
+		}
+		task.performerType = jq('#performerType').combobox('getValue');
+		task.expression = jq("#expression").val();
+		task.setContent(task.taskName);
+		task.reloadIcon();
+		var rows = jq('#pgvar').datagrid('getRows');
+		task.variables = JSON.stringify(rows);
+		task.flowServiceId = jq('#businessService').combobox('getValue');
+		task.flowServiceVariable = JSON.stringify(getBusServiceParamsData_());
+
+
+
+		//会签节点完成监听
+		var listenerId = jq('#sginCompleteListener_id').val();
+		var listenerExpression = jq('#sginCompleteListener').val();
+		if(!listenerExpression){
+			if(listenerId){
+				task.deleteTaskListener(listenerId);
+			}
+		}else{
+			var listener = null;
+			if(listenerId){
+				updateListener( task.getTaskListener(listenerId));
+			}else {
+				listener = createNewListener()
+				insertNewListener(listener);
+				//防止连续保存
+				jq('#sginCompleteListener_id').val(listener.id)
+			}
+		}
+
+
+		jq.messager.alert('提示','保存成功!','info');
+
+		setTimeout(function () {
+			reloadView&&reloadView();
+		},10)
+	}
+
+	/**
+	 * 初始化-任务一般属性配置
+	 */
+	function InitTaskGeneral(){
+        task.temp_expression = task.expression;
+		var grid = jq('#pg');
+		grid.propertygrid({
+			width: 250,
+			columns: [[
+				{ field: 'name', title: '属性名', width: 90  },
+				{ field: 'value', title: '属性值', width: 150,
+					formatter:function(value,row){
+						return row[[row.field]+"_name"] || value;
+					}
+				}
+			]],
+			fitColumns: true, showGroup: true, scrollbarSize: 0
+		});
+		var rows = [
+			{ "name": "任务ID", "group": "基本属性", "value": task.taskId, "field": "taskId", editor: "text" },
+			{ "name": "任务名称", "group": "基本属性", "value": task.taskName, "field": "taskName", editor: "text" },
+			{ "name": "邮件提醒", "group": "任务属性", "value": task.sendEmail || 'Y', "field": "sendEmail", "editor": {type:'checkbox',options:{on:'Y',off:'N'}} },
+			{ "name": "可退回", "group": "任务属性", "value": task.canReturn || 'N', "field": "canReturn", "editor": {type:'checkbox',options:{on:'Y',off:'N'}} },
+			{ "name": "可转办", "group": "任务属性", "value": task.canTrunTo || 'N', "field": "canTrunTo", "editor": {type:'checkbox',options:{on:'Y',off:'N'}} },
+			//{ "name": "可挂起", "group": "任务属性", "value": task.canHangUp  || 'N', "field": "canHangUp", "editor": {type:'checkbox',options:{on:'Y',off:'N'}} },
+			{ "name": "可加签", "group": "任务属性", "value": task.canSginNode  || 'N', "field": "canSginNode", "editor": {type:'checkbox',options:{on:'Y',off:'N'}} },
+			{ "name": "可终止", "group": "任务属性", "value": task.canTerminate  || 'N', "field": "canTerminate", "editor": {type:'checkbox',options:{on:'Y',off:'N'}} },
+			//{ "name": "到期时间", "group": "任务属性", "value": task.dueDate || '', "field": "dueDate", "editor": "numberbox" },
+			{ "name": "业务表单", "group": "任务属性", "value": task.formId || process.processDefFormId, "field": "formId", editor:{ type:'combobox',
+				options:{
+					valueField:'VALUE', textField:'TEXT',
+					url: Constant.API_URL + "PROCESS_FORM_CBX",
+					loadFilter: function(result){
+						if(checkAjaxResult(result))
+							return result.data;
+					},//queryParams:{ },
+					required:true, tipPosition: 'top', panelHeight: 120
+				}
+			}}
+		];
+		grid.propertygrid('loadData', {total:rows.length, rows: rows});
+		jq.each(rows, function(k, it){
+			grid.propertygrid('beginEdit', k);
+		});
+		/*jq('#pg').propertygrid('updateRow', { index:2, row: { value: '新消息'} });*/
+		BindBusService('#businessService',task.flowServiceId);
+        //BindBusService('#beforeBusinessService',task.flowBeforeServiceId);
+	}
+
+	function BindBusService(id, defval){
+        jq(id).combobox({
+            valueField:'VALUE', textField:'TEXT', loadFilter: function(result){ return result.data; },
+            url: Constant.API_URL + "PROCESS_FLOW_SERVICE_CBX",
+            required:false, tipPosition: 'top', panelHeight: 120,
+            onLoadSuccess: function(){
+                if(defval)
+                    jq(id).combobox('select', defval || "");
+            },
+            onSelect:function(record){
+                var jQparam = jq("#business-params");
+                var params = record.PARAMS_CONF ? eval(record.PARAMS_CONF) : [];
+                var chtml = "";
+                eval('var variable = ' +task.flowServiceVariable + ';');
+                jq.each(params, function(k, it){
+                    var val = (variable||{})[it.name] ||"";
+                    var wd = it.prop ? ' width:'+it.prop.split(',')[0]+'px;height:'+it.prop.split(',')[0]+'px;' : 'width:180px;';
+                    chtml += '<tr><td align="right">'+it.title+':</td><td width="80%">'+
+                        '<input type="text" _paramiput="1" data-options="multiline:true" ' +
+                        ' class="easyui-textbox" style="'+wd+'" name="'+it.name+'" value="'+val+'"/></td></tr>';
+                });
+                jQparam.html(chtml);
+                if(chtml == ""){
+                    jq("#business_area").hide();
+                }else{
+                    jq("#business_area").show();
+                }
+                jQparam.find("input[_paramiput]").textbox();
+            }
+        });
+	}
+
+	function getBusServiceParamsData_(){
+		var _data = {};
+		jq("#business-params input[_paramiput]").each(function(){
+			var k = jq(this).attr("textboxname");
+			var v = jq(this).textbox('getValue');
+			_data[k] = v;
+		});
+		return _data;
+	}
+
+	/**
+	 * 初始化-任务会签配置
+	 */
+	function InitTaskJointly(){
+		jq('#jointCollectionType').combobox({ editable: false,
+			value: task.jointCollectionType || "YMXZ",
+			onSelect: function(record) {
+				if(record.value == 'BLRY'){
+					jq('#joint_collection,#joint_elementVariable').hide();
+				}else if(record.value == 'YWFW'){
+					jq('#joint_collection,#joint_elementVariable').show();
+					easyuiWidgetDestroy(jq('#_collection'));
+					jq('#_collection').combobox({
+						valueField:'VALUE', textField:'TEXT', loadFilter: function(result){ return result.data; },
+						url: Constant.API_URL + "PROCESS_FLOW_SERVICE_CBX",
+						required:false, tipPosition: 'top', panelHeight: 100,
+						onLoadSuccess: function(){
+							if(task._collection)
+								jq("#_collection").combobox('select', task._collection || "");
+						}
+					});
+				}else if(record.value == 'YMXZ'){
+					jq('#joint_collection,#joint_elementVariable').show();
+					easyuiWidgetDestroy(jq('#_collection'));
+					jq('#_collection').textbox({ value: task._collection || '${assigneeList}' });
+					jq('#_elementVariable').textbox({ value: task._elementVariable || 'assignee' });
+					jq('#_completionCondition').textbox({ value: task._completionCondition || "${nrOfCompletedInstances == nrOfInstances " });
+				}
+			}
+		});
+
+		jq('#isSequential').combobox({
+			onSelect: function(newV,oldV) {
+				var value = newV['value']?newV['value']:newV;
+				if(value=='N'){
+					jq('[role="join-view"]').fadeOut();
+				}else{
+					jq('[role="join-view"]').fadeIn();
+				}
+			}
+		});
+
+
+
+		jq('#_collection').textbox({ value: task._collection || '${assigneeList}' });
+		jq('#_elementVariable').textbox({ value: task._elementVariable || 'assignee' });
+		jq('#_completionCondition').textbox({ value: task._completionCondition || "${nrOfCompletedInstances == nrOfInstances}" });
+
+		var joinSelectMap = {
+			'true': 'S',
+			'false': 'P'
+		}
+		jq('#isSequential').combobox('select',joinSelectMap[task.isSequential] || "N");
+		jq('#jointCollectionType').combobox('select',task.jointCollectionType || "YMXZ");
+
+
+		var listener = null;
+		if(task.taskListeners.getSize()>0){
+			listener = task.taskListeners.get(0);
+		}
+
+		jq('#sginCompleteListener').textbox({value:(listener?listener.serviceExpression:'')||''});
+		jq('#sginCompleteListener_id').val((listener?listener.id:'')||'');
+
+	}
+
+	/**
+	 * 初始化-候选&办理人员配置
+	 */
+	function InitTaskStaffing(){
+		var performerType = task.performerType||'assignee';
+		jq('#performerType').combobox({ editable:false, value: performerType,
+			onChange:function(newValue, oldValue){
+				DisplayStaffingZone(newValue);
+			}
+		});
+		DisplayStaffingZone(performerType);
+		//	jq('#formKey').val(task.formKey);
+		//	jq('#dueDate').val(task.dueDate);
+		//	jq('#priority').val(task.priority);
+		//	jq('#documentation').val(task.documentation);
+	}
+
+	/**
+	 * 根据办理类型，显示或隐藏相关区域、控件
+	 */
+	function DisplayStaffingZone(performerType){
+		if(performerType == 'assignee'){ //办理人
+			jq("#candidateZone").hide(); //隐藏候选操作区域
+            jq("#assignee").show();
+            jq("#expression").val("");
+            jq("#chioce").hide().find("#chioce_area").html("");
+            if(task.performerType == "assignee"){
+                jq("#expression").val(task.temp_expression);
+			}else{
+                jq("#expression").val("");
+			}
+            task.expression = task.temp_expression
+		}else {
+            jq("#chioce").show().find("#chioce_area").html("");
+			jq("#candidateZone").show();
+            jq("#assignee").hide();
+			jq("#candidate-user,#candidate-group").hide();
+            task.expression = task.temp_expression
+			if(performerType == 'candidateUsers'){
+                if(task.performerType == "candidateUsers"){
+                    jq("#expression").val(task.temp_expression);
+                }else{
+                    jq("#expression").val("");
+                }
+				jq("#candidate-user").show();
+				InitCandidateUserDG();
+			}else if(performerType == 'candidateGroups'){
+                if(task.performerType == "candidateGroups"){
+                    jq("#expression").val(task.temp_expression);
+                }else{
+                    jq("#expression").val("");
+                }
+				jq("#candidate-group").show();
+				InitCandidateGroupDG();
+			}
+		}
+	}
+
+	/**
+	 * 初始化-候选人员列表
+	 * @constructor
+	 */
+	function InitCandidateUserDG(){
+		jq('#cuserDg').datagrid({
+			url: Constant.API_URL + "FLOW_CANDIDATE_USER",//"SYS_USER_CBX",
+			rownumbers:true,  striped:true, width: 250, height: 200,
+            pagination: true,
+			columns:[[
+				{field:'USER_NUMBER',title:'用户编号',width:100},
+				{field:'USER_NAME',title:'用户名',width:100}
+			]],
+			loadFilter: function(result){
+				if(!checkAjaxResult(result)){
+					return;
+				}
+				return {total: result.total, rows: result.data};
+			},
+			onLoadSuccess : function(data){
+				if(task.performerType == "candidateUsers"){
+					jq.each(data.rows, function(k,v){
+						if((','+task.expression+',').indexOf(','+ v.PKID +',') > -1){
+							jq('#cuserDg').datagrid('selectRow', k);
+						}
+					});
+                    selectExpression();
+				}
+			}
+		});
+	}
+
+	/**
+	 * 初始化-传递（下一节点）变量
+	 * @constructor
+	 */
+	function InitTransmitVariable(){
+		var rows = evalJsonStr(task.variables, []);
+		var data = { total: rows.length, rows: rows  };
+		var $pgvar = jq('#pgvar');
+		$pgvar.datagrid({
+			rownumbers:true,  striped:true, fitColumns: true, width: 250, height: 200, singleSelect: true,
+			data : data, remoteSort: false,
+			columns:[[
+				{field:'varName',title:'变量名称',width:100},
+				{field:'varKey',title:'变量KEY', sortable: true, width:100},
+				{field:'varOption',title:'元素类型',width:80,
+					formatter: function(value,row,index){
+						return value;
+					}
+				},
+				{field:'varDataType',title:'数据类型',width:100},
+				{field:'varValue',title:'变量值',width:100}
+			]],
+			toolbar: [{
+				iconCls: 'icon-add',
+				handler: function(){
+					ShowWindowIframe({
+						width: 650,
+						height: 280,
+						title: '节点变量配置',
+						param: {DG_THIZ: '#pgvar' },
+						url: '/views/ws/work_flow/designer/designer_node_variable_addedit.shtml'
+					});
+				}
+			}],
+			onRowContextMenu: function (e, rowIndex, rowData) {
+				e.preventDefault();
+				DGContextMenu(e, {
+					thiz : jq('#pgvar')[0],
+					contextMenus: [
+						{id: "m-edit", i18nText : "common:COMMON_OPERATION.EDIT", auth:"",
+							onclick: function(){
+								var rowData = $pgvar.datagrid('getSelected');
+								var index = $pgvar.datagrid('getRowIndex', rowData);
+								ShowWindowIframe({
+									width: 650,
+									height: 280,
+									title: '节点变量配置',
+									param: {DG_THIZ:$pgvar[0], INDEX: index, ROW_DATA: rowData },
+									url: '/views/ws/work_flow/designer/designer_node_variable_addedit.shtml'
+								});
+							}
+						}
+						,{id: "m-delete", i18nText : "common:COMMON_OPERATION.DEL", auth:"",
+							onclick: function(){
+								var rowData = $pgvar.datagrid('getSelected');
+								var index = $pgvar.datagrid('getRowIndex', rowData);
+								deleteDGRow($pgvar[0], index);
+							}
+						}
+					]
+				}, rowIndex, rowData);
+			}
+
+		});
+		$pgvar.datagrid('doCellTip',{'max-width':'100px'});
+	}
+
+	/**
+	 * 初始化-候选组列表
+	 * @constructor
+	 */
+	function InitCandidateGroupDG(){
+		jq('#cgroupDg').datagrid({
+			url: Constant.API_URL + "SYS_ROLE_CBX",
+			rownumbers:true, striped:true, width: 250, height: 200, pagination: true,
+			columns:[[
+				{field:'ROLE_NAME',title:'角色名称',width:100},
+				{field:'ROLE_DESC',title:'角色描述',width:100}
+			]],
+			loadFilter: function(result){
+				if(!checkAjaxResult(result)){
+					return;
+				}
+				return {total: result.data.length, rows: result.data};
+			},
+			onLoadSuccess : function(data){
+				if(task.performerType == "candidateGroups"){
+					jq.each(data.rows, function(k,v){
+						if((','+task.expression+',').indexOf(','+ v.PKID +',') > -1){
+							jq('#cgroupDg').datagrid('selectRow', k);
+						}
+					});
+                    selectExpression();
+				}
+			}
+		});
+	}
+
+	/**
+	 * 点击选择-候选人员、组
+	 */
+	function selectExpression(){
+		var performerType = jq('#performerType').combobox('getValue');
+        if(performerType == 'assignee'){
+            task.expression = jq("#expression").val();
+		}else if(performerType == 'candidateUsers'){
+			var d = jq("#cuserDg").datagrid('getSelections');
+			var v = task.expression;
+			var arry = appendArray(v, ArrayCollect_(d, "PKID"));
+			jq.each(d, function(k,v){
+                workflow.umap[v.PKID] = v;
+			});
+
+            renderU(arry);
+			jq("#expression").val(arry.join(','));
+			task.expression = jq("#expression").val();
+		}else if(performerType == 'candidateGroups'){
+			var d = jq("#cgroupDg").datagrid('getSelections');
+			var v = task.expression
+			var arry = appendArray(v, ArrayCollect_(d, "PKID"));
+            jq.each(d, function(k,v){
+                workflow.gmap[v.PKID] = v;
+            });
+            renderG(arry);
+			jq("#expression").val(arry.join(','));
+			task.expression = jq("#expression").val();
+		}
+        task.performerType = performerType;
+	}
+
+    function renderU(arry){
+        var h = "";
+        jq.each(arry, function (k, v) {
+            var o = workflow.umap[v+""];
+            if(o){
+            	h += o['USER_NUMBER'] + "-" + o['USER_NAME'] + " &nbsp;<a href='javascript:void(0)' onclick=\"removeItem('"+o['PKID']+"')\" >X</a><br/>"
+            }
+        });
+        jq("#chioce_area").html(h);
+    }
+
+	function renderG(arry){
+        var h = "";
+        jq.each(arry, function (k, v) {
+            var o = workflow.gmap[v+""];
+            if(o){
+            	h += o['ROLE_NAME'] + " &nbsp;<a href='javascript:void(0)' onclick=\"removeItem('"+o['PKID']+"')\" >X</a><br/>"
+            }
+        });
+        jq("#chioce_area").html(h);
+	}
+
+	function appendArray(v, v2){
+		var vy = v && v.indexOf("$")<0 ? v.split(',') : [];
+		var vy2 = v2 ? v2.split(',') : [];
+		vy2.each(function(it){
+			if(jq.inArray(it, vy) == -1){
+				vy.push(it);
+			}
+		});
+		return vy;
+	}
+
+	function removeItem(v0){
+		var arry = (task.expression||"").split(",")
+		var narry = []
+		jq.each(arry, function(k,v){
+		   if(v0 != v){
+			   narry.push(v);
+		   }
+		});
+        task.expression = narry.join(",");
+        var performerType = jq('#performerType').combobox('getValue');
+        if(performerType == 'candidateUsers'){
+          /*  renderU(narry);
+            jq("#expression").val(narry.join(','));*/
+            jq('#cuserDg').datagrid("reload");
+        }else if(performerType == 'candidateGroups'){
+            /*renderG(narry);
+            jq("#expression").val(narry.join(','));*/
+            jq('#cgroupDg').datagrid("reload");
+        }
+
+	}
+
+	function doUserQuery(){
+		var data = jq('#quform').serializeObject();
+		jq('#cuserDg').datagrid('load', data);
+	}
+
+    function insertDGRow_(identity, record) {
+        var index = jq(identity).datagrid('getRows').length;
+        jq(identity).datagrid('insertRow', {index: index, row: record});
+    }
+
+    function updateDGRow_(identity, index, record) {
+        jq(identity).datagrid('updateRow', {index: index, row: record});
+    }
+
+
+	function createNewListener(){
+		var newListener = new draw2d.UserTask.TaskListener();
+		return newListener;
+	}
+	function updateListener(listener) {
+		if(!listener){
+			return;
+		}
+		listener.event='complete';
+		listener.serviceType='expression';
+		listener.serviceClass=null;
+		listener.serviceExpression=jq('#sginCompleteListener').val();
+	}
+
+	function insertNewListener(listener){
+		listener.event='complete';
+		listener.serviceType='expression';
+		listener.serviceClass=null;
+		listener.serviceExpression=jq('#sginCompleteListener').val();
+		task.taskListeners.add(listener);
+		return true;
+	}
+
+</script>
+
+<div id="task-properties-layout" class="easyui-layout" fit="true">
+	<div id="task-properties-toolbar-panel" region="north" border="false" style="height:30px;background:#E1F0F2;">
+		<a href="##" id="sb2" class="easyui-linkbutton" plain="true" iconCls="icon-save" onclick="saveTaskPropConfig()">保存</a>
+	</div>
+	<div id="task-properties-panel" region="center" border="true">
+		<div id="task-accordion" class="easyui-accordion" multiple="true" fit="true" border="true">
+			<div id="general" title="任务属性" selected="false" class="properties-menu">
+				<table id="pg"></table>
+			</div>
+			<div id="business-config" title="业务配置"  class="properties-menu">
+				<p><b>业务逻辑配置：</b></p>
+				<!--<table id="business-properties" style="width: 100%;">
+					<tr>
+						<td align="right">提交业务逻辑:</td>
+						<td width="70%">
+							<select id="beforeBusinessService"
+									style="width: 130px;">
+							</select>
+						</td>
+					</tr>
+					<tr id="brefore_business_area" style="display: none;">
+						<td colspan="2">
+							<p><b>业务逻辑参数:</b></p>
+							<table id="before_business-params" style="width: 100%;">
+							</table>
+						</td>
+					</tr>-->
+					<tr>
+						<td align="right">提交业务逻辑:</td>
+						<td width="70%">
+							<select id="businessService" name="businessService"
+									style="width: 130px;">
+							</select>
+						</td>
+					</tr>
+					<tr id="business_area" style="display: none;">
+						<td colspan="2">
+							<p><b>业务逻辑参数:</b></p>
+							<table id="business-params" style="width: 100%;">
+							</table>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div id="staffing" title="办理人员" selected="false" class="properties-menu">
+				<table id="main-properties" style="width: 100%;">
+					<tr>
+						<td align="right">办理类型:</td>
+						<td width="70%">
+							<select id="performerType" name="performerType" style="width: 100px;">
+								<option value="assignee">办理人</option>
+								<option value="candidateUsers">候选人</option>
+								<option value="candidateGroups">候选组</option>
+							</select>
+							<a href="javascript:void(0);" class="easyui-linkbutton" plain="true"
+							   onclick="selectExpression()" iconCls="icon-search" >确定</a>
+						</td>
+					</tr>
+					<tr id="chioce">
+						<td colspan="2" align="left">
+							<fieldset class="fieldset_eui" style="width:80%;">
+								<legend>已选择</legend>
+								<div style="overflow-y: auto; height: 50px; text-align: left;" id="chioce_area">
+
+								</div>
+							</fieldset>
+						</td>
+					</tr>
+					<tr id="assignee">
+						<td align="right">表达式:</td>
+						<td>
+							<input type="text" id="expression" name="expression"/>
+						</td>
+					</tr>
+					<tr id="candidateZone" style="display: none">
+						<td colspan="2">
+							<div id="candidate-user">
+								<form id="quform">
+									<fieldset class="fieldset_eui">
+										<legend>搜索</legend>
+										<input name="qvalue" value="" style="width:130px;"/>
+										<a href="javascript:void(0);" class="easyui-linkbutton" plain="true"
+								   			onclick="doUserQuery()" iconCls="icon-search" >查询</a>
+									</fieldset>
+								</form>
+								<table id="cuserDg"></table>
+							</div>
+							<div id="candidate-group"><table id="cgroupDg"></table></div>
+						</td>
+					</tr>
+				</table>
+			</div>
+			<div id="transmitVariable" title="节点变量" selected="false" class="properties-menu">
+				<table id="pgvar"></table>
+			</div>
+			<div id="jointly" title="会签属性" selected="true" class="properties-menu">
+				<p><b>会签属性配置：</b></p>
+				<form id="jointForm">
+				<table id="jointly-properties" style="width: 100%;">
+
+					<tr>
+						<td align="right">并行&顺行:</td>
+						<td width="65%">
+							<select id="isSequential" class="easyui-combobox" name="isSequential" value="N" style="width: 130px;" panelHeight="80">
+								<option value="N">不启用</option>
+								<option value="S">顺序执行</option>
+								<option value="P">并行执行</option>
+							</select>
+						</td>
+					</tr>
+					<tr role="join-view" style="display: none">
+						<td align="right">会签集合类型:</td>
+						<td width="65%">
+							<select id="jointCollectionType" class="easyui-combobox" name="jointCollectionType" style="width: 130px;" panelHeight="80">
+<!--								<option value="BLRY">办理人员</option>-->
+								<!--<option value="YWFW">业务服务</option>-->
+								<option value="YMXZ">表单数据</option>
+							</select>
+						</td>
+					</tr>
+					<tr id="joint_collection"  role="join-view" style="display: none">
+						<td align="right">会签集合:</td>
+						<td width="65%">
+							<input id="_collection" class="easyui-textbox" name="_collection" style="width: 130px;"  panelHeight="80"/>
+						</td>
+					</tr>
+					<tr id="joint_elementVariable"  role="join-view" style="display: none">
+						<td align="right">办理人变量名称:</td>
+						<td width="65%">
+							<input id="_elementVariable" class="easyui-textbox" name="_elementVariable" style="width: 130px;"  panelHeight="80"/>
+						</td>
+					</tr>
+					<tr role="join-view" style="display: none">
+						<td align="right">结束条件:</td>
+						<td width="65%">
+							<input id="_completionCondition" data-options="multiline: true" class="easyui-textbox" name="_completionCondition"
+								   style="width: 130px; height: 90px;"  panelHeight="80"/>
+						</td>
+					</tr>
+					<tr role="join-view" style="display: none">
+						<td colspan="2">节点完成监听器表达式:</td>
+					</tr>
+					<tr role="join-view" style="display: none">
+						<td width="100%" colspan="2">
+							<div style="padding: 3px 10px">
+								<input id="sginCompleteListener" class="easyui-textbox" name="sginCompleteListener" style="width: 200px; height: 20px;"  />
+								<input id="sginCompleteListener_id" hidden style="width: 90%; height: 20px;"  />
+							</div>
+
+						</td>
+					</tr>
+				</table>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>

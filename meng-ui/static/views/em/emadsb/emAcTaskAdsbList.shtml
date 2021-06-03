@@ -1,0 +1,363 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">飞机引进AD/SB对比任务</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">文件类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="taskType" id="taskType" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">文件编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="sysFileNo" id="sysFileNo" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">处理日期：</th>
+                    <td colspan="3">
+                        <input class="easyui-datebox" name="startDate" id="startDate" data-options=""
+                               style="width:120px;"/>至
+                        <input class="easyui-datebox" name="endDate" id="endDate" data-options=""
+                               style="width:120px;"/>
+
+                    </td>
+                    <td colspan="2">
+                    &nbsp;
+                    <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                        <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                    </a>
+                    &nbsp;&nbsp;
+                    <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                        <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                    </a>
+                    &nbsp;&nbsp;
+                    <a class="clearBtn" onclick="downTemplate()" data-options="iconCls:'icon-clear'">
+                        <span>下载文件模版</span>
+                    </a>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 60px">适用性：</th>
+                    <td>
+                        <input class="easyui-textbox" name="approvalStatus" id="approvalStatus" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 60px">处理方式：</th>
+                    <td>
+                        <input class="easyui-combobox" name="proMode" id="proMode" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 60px">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="status" id="status" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 60px">引进类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="impType" id="impType" data-options=""
+                               style="width:100px;"/>
+                    </td>
+                    <td>
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="uploadDetailList()" data-options="iconCls:'icon-search'">
+                            <span>上传随机清单</span>
+                        </a>&nbsp;&nbsp;
+                        <a class="searchBtn" type="button" onclick="addSb()" data-options="iconCls:'icon-search'">
+                            <span>添加非波音SB文件</span>
+                        </a>
+                        <!--&nbsp;&nbsp;-->
+                        <!--<a class="clearBtn" onclick="downTemplate()" data-options="iconCls:'icon-clear'">-->
+                        <!--<span >无需处理</span>-->
+                        <!--</a>-->
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var accountId = getLoginInfo().accountId;
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_ADSB_PRO_MODE,EM_ADSB_TASK_TYPE,EM_ADSB_CONTRAST_RESULT,EM_ADSB_STATUS,EM_AC_IMP_TYPE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_ADSB_STATUS"]);
+                    PAGE_DATA['contrastResult'] = DomainCodeToMap_(jdata.data["EM_ADSB_CONTRAST_RESULT"]);
+                    PAGE_DATA['proMode'] = DomainCodeToMap_(jdata.data["EM_ADSB_PRO_MODE"]);
+                    PAGE_DATA['impType'] = DomainCodeToMap_(jdata.data["EM_AC_IMP_TYPE"]);
+                    $('#proMode').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.EM_ADSB_PRO_MODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#taskType').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.EM_ADSB_TASK_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_ADSB_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#impType').combobox({
+                        panelHeight: '130px',
+                        data: jdata.data.EM_AC_IMP_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_AC_TASK_ADSB_LIST'},
+                alter: {
+                    IMP_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['impType'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    CONTRAST_RESULT: {
+                        formatter: function (value) {
+                            return PAGE_DATA['contrastResult'][value];
+                        }
+                    },
+                    PRO_MODE: {
+                        formatter: function (value) {
+                         return PAGE_DATA['proMode'][value];
+                        }
+                    }
+                }
+            },
+            toolbar: [
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-reg", i18nText: "资料注册",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (rowData.DUTY_MAN_ID != accountId) {
+                            MsgAlert({content: "您不是此条记录的当前责任人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        openDetai('add', rowData);
+
+                    }
+                },
+                {
+                    id: "m-rev", i18nText: "添加新型号",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        if (rowData.DUTY_MAN_ID != accountId) {
+                            MsgAlert({content: "您不是此条记录的当前责任人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        if (confirm("是否添加新型号？")) {
+                            addApplyModel(rowData.PKID);
+                        }
+                    }
+                },
+                {
+                    id: "m-non", i18nText: "无需处理",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        if (rowData.DUTY_MAN_ID != accountId) {
+                            MsgAlert({content: "您不是此条记录的当前责任人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        if (confirm("是否无需处理？")) {
+                            noDeal(rowData.PKID);
+                        }
+
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                //对比结果等于缺失的提供此功能
+                if (row.CONTRAST_RESULT == "1") {
+                    items['资料注册'].enable = true;
+                    items['添加新型号'].enable = false;
+
+                } else {
+                    items['资料注册'].enable = false;
+                }
+                //对比结果等于一致的提供此功能,引进类型为新型号发动机引进或新机型飞机引进的可以进行此操作
+                if (row.CONTRAST_RESULT == "0" && (row.IMP_TYPE == "3" || row.IMP_TYPE == "4")) {
+                    items['添加新型号'].enable = true;
+                } else {
+                    items['添加新型号'].enable = false;
+                }
+                //状态为已处理的禁用一切操作
+                if (row.STATUS == "1") {
+                    items['资料注册'].enable = false;
+                    items['添加新型号'].enable = false;
+                    items['无需处理'].enable = false;
+                }
+                //状态为待处理的可以进行此操作
+                if (row.STATUS == "0") {
+                    items['无需处理'].enable = true;
+                }
+                return items;
+            },
+
+        });
+    }
+    function  downTemplate(){
+        var con = "<form id='_f0_rm' method='post' action='/api/v1/plugins/DOWNLOAD_EM_ADSB'></form>";
+        $("#_f0_rm").remove();
+        $("body").append(con);
+        $("#_f0_rm").submit();
+    }
+    function uploadDetailList() {
+        var title_ = $.i18n.t('上传模板文件');
+        ShowWindowIframe({
+            width: "600",
+            height: "270",
+            title: title_,
+            // param: {operation: operation, pkid: pkid},
+            url: "/views/em/emadsb/emAcTaskAdsbUpload.shtml"
+        });
+    }
+    //打开资料类型详细页面
+    function openDetai(operation, rowData) {
+        var pkid = rowData.PKID;
+        var title_ = $.i18n.t('外部文件接收');
+            var rowData = getDG('dg').datagrid('getSelected');
+        var dataType = rowData.FAC_FILE_TYPE;
+            if(dataType == "SB"){
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {
+                        operation: operation,
+                        epkid: rowData.PKID,
+                        dataType: rowData.FAC_FILE_TYPE,
+                        dataNo: rowData.FAC_FILE_NO,
+                        dataVer: rowData.FAC_FILE_VER
+                    },
+                    url: "/views/em/emadsb/sbAdd.shtml"
+                });
+            }else{
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, epkid: rowData.PKID, dataType: rowData.TASK_TYPE,dataNo:rowData.FAC_FILE_NO,dataVer:rowData.FAC_FILE_VER},
+                    url: "/views/em/emadsb/adAdd.shtml"
+                });
+            }
+
+    }
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function noDeal(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_AC_TASK_ADSB_NO_DEAL"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    searchData();
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function addApplyModel(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_AC_TASK_ADSB_ADD_APPLY"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    searchData();
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function addSb(){
+        var title_ = $.i18n.t('手动添加非波音SB技术资料文件');
+        ShowWindowIframe({
+            width: "720",
+            height: "500",
+            title: title_,
+            url: "/views/em/emadsb/emAcSbList.shtml"
+        });
+    }
+</script>
+</body>
+</html>

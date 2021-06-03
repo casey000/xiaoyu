@@ -1,0 +1,316 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">发动机初始信息维护</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                    <td style="width: 100px">
+                        <input class="easyui-combobox" id="engType" name="engType" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">件号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="matnr" name="matnr" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="sernr" name="sernr" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">状态：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn"  data-options="iconCls:'icon-search'" onclick="reload_();"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                        <a href="javascript:void(0)" class="addBtn" auth = 'ENG_BAS_ORIG1' onclick="addOrEditBasOrig('add')"><span>新增</span></a>
+                        <a href="javascript:void(0)" class="addBtn"  onclick="expExcel()"><span>导出</span></a>&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var ctx=window.location.origin;
+    var PAGE_DATA = {};
+    var loginUser;
+    var loginName;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_BAS_ORIG_STATUS,ENG_OR_APU,ENG_ZZFROM,ENG_POS,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngTypeAll",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#matnr').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+
+                    $('#status').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_BAS_ORIG_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['zzfrom'] = DomainCodeToMap_(jdata.data["ENG_ZZFROM"]);
+                    PAGE_DATA['zzindorg'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA['zzindpos'] = DomainCodeToMap_(jdata.data["ENG_POS"]);
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/basTypeMapper/getEngtypesAll",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#engType').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '100px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var data_ = [];
+        //验证网关查询接口
+        var queryParams = $("#ffSearch").serializeObject();
+        $('#dg').GatewayDataGrid({
+            path: "/meng-engine/engBasOrig/listByPage",
+            async: false,
+            queryParams: queryParams,
+            identity: 'dg',
+            idField: "pkid",
+            pagination: true,
+            title: $.i18n.t(''),
+            columns: {
+                param: {FunctionCode: 'ENG_BAS_ORIG_LIST'},
+                alter: {
+                    zzfrom: {
+                        formatter: function (value) {
+                            return PAGE_DATA['zzfrom'][value];
+                        }
+                    },
+                    zzindorg: {
+                        formatter: function (value) {
+                            return PAGE_DATA['zzindorg'][value];
+                        }
+                    },
+                    zzindpos: {
+                        formatter: function (value) {
+                            return PAGE_DATA['zzindpos'][value];
+                        }
+                    },
+                    zzintdat: {
+                        type: 'date'
+                    },
+                    zzprdat: {
+                        type: 'date'
+                    },
+                    zzjfdate: {
+                        type: 'date'
+                    },
+                    createDate: {
+                        type: 'date'
+                    },
+                    proofDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_BAS_ORIG2",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditBasOrig('edit',rowData);
+                    }
+                },
+                {
+                    id: "m-proof", i18nText: "校核",
+                    auth: "ENG_BAS_ORIG4",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditBasOrig('proof',rowData);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_BAS_ORIG3",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        deleteBasOrig(rowData.pkid);
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if(row.proofUser != "" && row.proofUser != null){
+                    items['编辑'].enable = false;
+                    items['校核'].enable = false;
+                    items['删除'].enable = false;
+                }
+                if(loginUser != row.createUser){
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                }else{
+                    items['校核'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEditBasOrig('view',value);
+            }
+        });
+    }
+
+    //添加或编辑/校核--发动机初始信息维护
+    function addOrEditBasOrig(operation,rowData){
+        var pkid = "";
+        var matnr = "";
+        var sernr = "";
+        if(rowData){
+            pkid = rowData.pkid
+            matnr = rowData.matnr;
+            sernr = rowData.sernr;
+        }
+        var title_ = $.i18n.t('添加或编辑-发动机初始信息维护');
+        ShowWindowIframe({
+            width: "720",
+            height: "400",
+            title: title_,
+            param: {pkid:pkid,operation: operation,matnr:matnr,sernr:sernr},
+            url: "/views/engine/engBasOrig/eng_bas_orig_add_edit.shtml"
+        });
+    }
+
+    //删除
+    function deleteBasOrig(pkid){
+        var int = 0;
+        InitGatewayRequest_({
+            type:'get',
+            async: false,
+            path: "/meng-engine/engBasOrig/deleteBasOrig"+"/"+pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    int = jdata.obj;
+                    if(int > 0){
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }else{
+                        MsgAlert({content: msg, type: 'error'});
+                    }
+                } else {
+                    MsgAlert({content: "更新失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    //刷新列表
+    function reload_(){
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    function expExcel(url) {
+        var queryParams = $("#ffSearch").serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            data: queryParams,
+            path: "/meng-engine/engBasOrig/expExcel",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    url = jdata.obj;
+                    window.location.href = ctx + url;
+                } else {
+                    MsgAlert({content:"导出失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

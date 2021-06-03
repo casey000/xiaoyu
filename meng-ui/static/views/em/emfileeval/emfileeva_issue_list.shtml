@@ -1,0 +1,196 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <input type="hidden" id="selectType" name="selectType">
+                <tr>
+                    <th data-i18n="" style="width:70px;" align="right">评估单号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="evaNo" id="evaNo" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">评估结论：</th>
+                    <td>
+                        <input class="easyui-combobox" name="evaResult" id="evaResult" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">资料标题：</th>
+                    <td>
+                        <input class="easyui-textbox" name="title" id="title" style="width:100px"/>
+                    </td>
+                    <td colspan="2">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchFor()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                        <a class="clearBtn" onclick="save()">
+                            <span data-i18n="">确定</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg">
+</table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var evapkid;
+    var applyType;
+    var applyModel;
+    var exeFlag;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        evapkid = param.evapkid;
+        applyType = param.applyType;
+        applyModel = param.applyModel;
+        exeFlag = param.exeFlag;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EVA_RESULT,DM_URGENT_LEVEL,EM_APPLY_TYPE,EM_EVALUATE_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_EVALUATE_STATUS"]);
+                    PAGE_DATA['applyType'] = DomainCodeToMap_(jdata.data["EM_APPLY_TYPE"]);
+                    PAGE_DATA['evaResult'] = DomainCodeToMap_(jdata.data["EVA_RESULT"]);
+                    PAGE_DATA['urgentLevel'] = DomainCodeToMap_(jdata.data["DM_URGENT_LEVEL"]);
+                    $('#evaResult').combobox({
+                        panelHeight: '50px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EVA_RESULT
+                    });
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                pagination: false,
+            queryParams: {applyType: applyType, applyModel: applyModel, pkid: evapkid},
+                columns: {
+                    param: {FunctionCode: 'EM_FILE_ISSUE_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        },
+                        APPLY_TYPE: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['applyType'] [value];
+                            }
+                        },
+                        EVA_RESULT: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['evaResult'] [value];
+                            }
+                        },
+                        URGENT_LEVEL: {
+                            formatter: function (value) {
+                                return PAGE_DATA['urgentLevel'][value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                }
+            }
+        );
+    }
+
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    function save() {
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: '请至少选择一行数据', type: 'error'});
+            return false;
+        }
+        if (rows.length > 1) {
+            MsgAlert({content: '请至多选择一行数据', type: 'error'});
+            return false;
+        }
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                refpkid: rows[0].PKID,
+                FunctionCode: "EM_FILE_COPY_GROUP_SAVE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_("#dg4");
+                    if(applyType != 'PART'){
+                        param.OWindow.reload_("#dg5");
+                    }
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

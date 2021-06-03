@@ -1,0 +1,431 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <meta content="text/html; charset=UTF-8" http-equiv="content-type">
+		  <title>Process Diagram</title>
+	<!-- framework CSS -->
+	<link href="/js/workflow/themes/default/css/style.css" type="text/css" rel="stylesheet" title="gray"/>
+
+	<!-- JQuery EasyUi CSS-->
+	<!--<link type="text/css" href="/resource/work_flow/js/jquery-easyui/themes/gray/easyui.css" rel="stylesheet" title="gray">
+    <link href="/resource/work_flow/js/jquery-easyui/themes/icon.css" type="text/css" rel="stylesheet"/>-->
+	<link rel="stylesheet" type="text/css" href="/css/icon.css">
+	<link rel="stylesheet" type="text/css" href="/css/plugins/easyui/themes/bootstrap/easyui.css" id="swicth-style">
+	<link rel="stylesheet" type="text/css" href="/css/plugins/easyui/themes/icon.css">
+	<link rel="stylesheet" type="text/css" href="/css/plugins/easyui/themes/color.css">
+
+	<!-- JQuery-->
+	<script type="text/javascript" src="/js/jquery-1.12.0.min.js"></script>
+	<!-- JQuery EasyUi JS-->
+	<script type="text/javascript" src="/js/plugins/easyui/jquery.easyui.min.js"></script>
+
+	<!-- JSON JS-->
+	<script src="/js/workflow/json2.js" type="text/javascript"></script>
+
+	<!-- framework JS -->
+	<script src="/js/workflow/skin.js" type="text/javascript"></script>
+	<link href="/js/workflow/designer/designer.css" type="text/css" rel="stylesheet"/>
+
+	<!-- common, all times required, imports -->
+	<SCRIPT src='/js/workflow/draw2d/wz_jsgraphics.js'></SCRIPT>
+	<SCRIPT src='/js/workflow/draw2d/mootools.js'></SCRIPT>
+	<SCRIPT src='/js/workflow/draw2d/moocanvas.js'></SCRIPT>
+	<SCRIPT src='/js/workflow/draw2d/draw2d.js'></SCRIPT>
+
+	<!-- example specific imports -->
+	<SCRIPT src="/js/workflow/designer/MyCanvas.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/ResizeImage.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/event/Start.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/event/End.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/connection/MyInputPort.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/connection/MyOutputPort.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/connection/DecoratedConnection.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/task/Task.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/task/UserTask.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/task/ManualTask.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/task/ServiceTask.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/task/ScriptTask.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/task/MailTask.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/task/ReceiveTask.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/task/BusinessRuleTask.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/task/CallActivity.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/gateway/ExclusiveGateway.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/gateway/ParallelGateway.js"></SCRIPT>
+	<SCRIPT src="/js/workflow/designer/designer.js"></SCRIPT>
+
+	<!--<script type="text/javascript" src="/js/common.js"></script>-->
+	<script type="text/javascript" src="/js/constants.js"></script>
+	<script type="text/javascript" src="/js/workflow/designer/process_design.js"></script>
+	<script type="text/javascript" src="/js/plugins/layer/layer.js?style=default"></script>
+
+</head>
+<script type="text/javascript">
+<!--
+var processDefinitionId="";
+var processDefinitionVariables="";
+var _process_def_provided_listeners="";
+var is_open_properties_panel = false;
+var task;
+var line;
+var workflow;
+
+var param = getParentParam_();
+if(param && param.ID){
+	processDefinitionId = param.ID;
+}
+
+/**
+ * 获取当前流程UserTask节点数据信息
+ **/
+function flowNodeData(){
+	var usertask = [];
+	var models = workflow.getFigures();
+	//var check = true;
+	for(var i=0; i< models.getSize();i++) {
+		var model = models.get(i);
+		if (draw2d.UserTask.prototype.type == model.type) {
+			var rdata = {
+				id: model.nodeId,
+				nodeName: model.taskName,
+				taskPropId: model.taskId,
+				taskType: model.type,
+				formId: model.formId,
+				sendEmail: model.sendEmail,
+				canReturn: model.canReturn,
+				canTrunTo: model.canTrunTo,
+				canTerminate: model.canTerminate,
+				canHangUp: model.canHangUp,
+				canSginNode: model.canSginNode,
+				dueDate: model.dueDate,
+				isJoint: model.isSequential ? 'Y' : 'N',
+				jointSequential: !model.isSequential?'N':(model.isSequential=='true'?'S':'P'),
+				jointCollection: model._collection,
+				jointCollectionType: model.jointCollectionType,
+				jointCompletionCondition: model._completionCondition,
+				jointElementVariable: model._elementVariable,
+				jointElevarAsAssignee: model._elementAsAssignee,
+				variables : model.variables,
+				flowServiceId :  model.flowServiceId,
+				flowServiceVariable :  model.flowServiceVariable,
+				performerType: model.performerType,
+				expression : model.expression
+			};
+			usertask.push(rdata);
+		}
+	}
+	return usertask;
+}
+
+/**
+ * 保存流程信息
+ * */
+function saveFlowDefinition(){
+	var id = processDefinitionId || "";
+	ShowWindowIframe({
+		width: 650,
+		height: 380,
+		title: '流程属性配置',
+		param: jq.extend({OOWindow: param.OWindow},{workflow :　workflow, id: id, taskNodesJson: flowNodeData() }),
+		url: '/views/ws/work_flow/designer/designer_widget.shtml'
+	});
+}
+
+/**
+ * 打开一个流程信息
+ * */
+function openProcessDef(){
+	Ajax_({
+		url: Constant.API_URL + "WS_FLOW_DEF_OPEN",
+		data: {id: processDefinitionId},
+		success: function (jdata) {
+			if(jdata.code != RESULT_CODE.SUCCESS_CODE){
+				jq.messager.alert("错误提示", "打开流程[ID:"+processDefinitionId+"]数据错误", "error");
+				return;
+			}
+			parseProcessDescriptor(jdata.data.Definition.xmlContent);
+			workflow.process.id = jdata.data.Definition.flowKey;
+			workflow.process.name = jdata.data.Definition.flowName;
+			workflow.process.variables = jdata.data.Definition.variables;
+			workflow.process.description = jdata.data.Definition.description;
+			var nodeMap = jdata.data.NodeMap;
+            var uids = jdata.data.uids.join(",");
+            var umap = {} //PKID, E.ID AS USER_NUMBER, E.NAME AS USER_NAME
+            // Ajax_({
+            //     url: Constant.API_URL + "FLOW_CANDIDATE_USER_QUERY", data: {uids: uids},
+            //     async: false,
+            //     success: function (jdata) {
+			// 		if(jdata.data){
+            //             jq.each(jdata.data, function(key, value){
+            //                 umap[value.PKID] = value;
+			// 			});
+			// 		}
+            //     }
+            // });
+            var gids = jdata.data.gids.join(",");
+            var gmap = {}
+            // Ajax_({
+            //     url: Constant.API_URL + "FLOW_CANDIDATE_GROUP_QUERY", data: {gids: gids},
+            //     async: false,
+            //     success: function (jdata) {
+            //         if(jdata.data){
+            //             jq.each(jdata.data, function(key, value){
+            //                 gmap[value.PKID] = value;
+            //             });
+            //         }
+            //     }
+            // });
+            workflow.umap = umap
+            workflow.gmap = gmap
+
+            var models = workflow.getFigures();
+			var k = {
+				// jointSequential: 'isSequential',
+				jointCollection: '_collection',
+				jointCompletionCondition: '_completionCondition', jointElementVariable: '_elementVariable',
+				jointElevarAsAssignee: '_elementAsAssignee'
+			};
+
+
+			for(var i=0; i< models.getSize();i++){
+				var model = models.get(i);
+				if (draw2d.UserTask.prototype.type == model.type) {
+					if(nodeMap[model.taskId]){
+						jq.each(nodeMap[model.taskId], function(key, value){
+							if(k[key]){
+								model[k[key]] = value;
+							}else{
+								model[key] = value;
+							}
+						});
+					}
+				}
+			}
+		},
+		error: function () {
+			jq.messager.alert("错误提示", "System Error", "error");
+			return "";
+		}
+	});
+}
+//-->
+</script>
+
+<body id="designer" class="easyui-layout">
+	<div region="west" split="true" iconCls="palette-icon" title="工具面板" style="width:180px;">
+		<div class="easyui-accordion" fit="true" border="false" id="tool" >
+<!--				<div id="connection" title="Connection" iconCls="palette-menu-icon" class="palette-menu">-->
+<!--					<a href="##" class="easyui-linkbutton" plain="true" iconCls="sequence-flow-icon">SequenceFlow</a><br>-->
+<!--				</div>-->
+				<div id="event" title="Event" iconCls="palette-menu-icon" class="palette-menu">
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="start-event-icon">Start</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="end-event-icon">End</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="user-task-icon" wfModel="UserTask">User Task</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="parallel-gateway-icon" wfModel="ParallelGateway" iconImg="/js/workflow/designer/icons/type.gateway.parallel.png">ParallelGateway</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="exclusive-gateway-icon" wfModel="ExclusiveGateway" iconImg="/js/workflow/designer/icons/type.gateway.exclusive.png">ExclusiveGateway</a><br>
+				</div>
+				<div id="task" title="Task" iconCls="palette-menu-icon" selected="true" class="palette-menu">
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="user-task-icon" wfModel="UserTask">User Task</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="manual-task-icon" wfModel="ManualTask">Manual Task</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="service-task-icon" wfModel="ServiceTask">Service Task</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="script-task-icon" wfModel="ScriptTask">Script Task</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="mail-task-icon" wfModel="MailTask">Mail Task</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="receive-task-icon" wfModel="ReceiveTask">Receive Task</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="business-rule-task-icon" wfModel="BusinessRuleTask">Business Rule Task</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="subprocess-icon">SubProcess</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="callactivity-icon" wfModel="CallActivity">CallActivity</a><br>
+				</div>
+				<div id="gateway" title="Gateway" iconCls="palette-menu-icon" class="palette-menu">
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="parallel-gateway-icon" wfModel="ParallelGateway" iconImg="/js/workflow/designer/icons/type.gateway.parallel.png">ParallelGateway</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="exclusive-gateway-icon" wfModel="ExclusiveGateway" iconImg="/js/workflow/designer/icons/type.gateway.exclusive.png">ExclusiveGateway</a><br>
+				</div>
+				<div id="boundary-event" title="Boundary event" iconCls="palette-menu-icon" class="palette-menu">
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="timer-boundary-event-icon">TimerBoundaryEvent</a><br>
+					<a href="##" class="easyui-linkbutton" plain="true" iconCls="error-boundary-event-icon">ErrorBoundaryEvent</a><br>
+				</div>
+		</div>
+	</div>
+	<div id="process-panel" region="center" split="true"  iconCls="process-icon" title="流程设计">
+				<div id="process-definition-tab">
+							<div id="designer-area" title="Diagram" style="POSITION: absolute;width:100%;height:100%;padding: 0;border: none;overflow:auto;">
+								<div id="paintarea" style="POSITION: absolute;WIDTH: 3000px; HEIGHT: 3000px" ></div>
+							</div>
+							<div id="xml-area" title="XML" style="width:100%;height:100%;overflow:hidden;overflow-x:hidden;overflow-y:hidden;">
+								<textarea id="descriptorarea" rows="38" style="width: 100%;height:100%;padding: 0;border: none;" readonly="readonly"></textarea>
+							</div>
+				</div>
+	</div>
+	<div id="properties-panel" region="east" split="true" iconCls="properties-icon" title="属性"
+		 style="width:280px;">
+
+	</div>
+	
+	<!-- toolbar -->
+	<div id="toolbar-panel" region="north" border="false" style="height:36px;background:#D4D4D4;">
+		<div style="padding:5px;">
+			<a id="btn_undo" href="javascript:void(0);" onclick="undo()" iconCls="icon-undo" >Undo</a>
+			<a id="btn_redo" href="javascript:void(0);" onclick="redo()" iconCls="icon-redo" >Redo</a>
+			<a id="btn_save" href="javascript:void(0);" onclick="saveFlowDefinition()" iconCls="icon-save" >Save</a>
+		</div>
+	</div>
+	<!-- task context menu -->
+	<!--<div id="task-context-menu" class="easyui-menu" style="width:120px;">
+		<div id="properties-task-context-menu" iconCls="properties-icon">属性</div>
+		<div id="delete-task-context-menu" iconCls="icon-remove">删除</div>
+	</div>-->
+	<!-- form configuration window -->
+	<div id="form-win" title="Form Configuration" style="width:750px;height:500px;">
+	</div>
+	<!-- listener configuration window -->
+	<div id="listener-win" title="Listener Configuration" style="width:750px;height:500px;">
+	</div>
+	<!-- candidate configuration window -->
+	<div id="task-candidate-win" title="" style="width:750px;height:500px;">
+	</div>
+
+</body>
+</html>
+<script src="/js/plugins/i18next/i18next.min.js"></script>
+<script type="text/javascript">
+<!--
+jq(function(){
+	var namespaces = ["common", "msg_err", "msg_tip", "ws_work_flow"];
+	jq.i18n.init({
+		lng : "zh",
+		resGetPath: "/locales/__lng__/__ns__.json",
+		ns: {
+			namespaces: namespaces,
+			defaultNs: "ws_work_flow"
+		},
+		fallbackLng: false
+	}, function (t){
+		InitToolAccordion();
+		InitLayoutTabs();
+		createCanvas(false);
+		BindDragDrop();
+	});
+});
+
+function InitToolAccordion(){
+	jq('#toolbar-panel a').linkbutton({ plain:true });
+	jq("#tool").accordion({ animate:false });
+}
+
+function InitLayoutTabs(){
+	try{
+		_task_obj = jq('#task');
+		_designer = jq('#designer');
+		_properties_panel_obj = _designer.layout('panel','east');
+		_properties_panel_obj.panel({
+			onOpen:function(){
+				is_open_properties_panel = true;
+			},
+			onClose:function(){
+				is_open_properties_panel = false;
+			}
+		});
+		_process_panel_obj = _designer.layout('panel','center');
+		//_task_context_menu = jq('#task-context-menu').menu({});
+		//_designer.layout('collapse','east');
+		jq('#process-definition-tab').tabs({
+			fit:true,
+			onSelect:function(title){
+				if(title=='Diagram'){
+				}else if(title=='XML'){
+					jq('#descriptorarea').val(workflow.toXML());
+					/*if(document.body.innerText)
+					 jq('#xml-area').get(0).innerText=workflow.toXML();
+					 else if(document.body.textContent)
+					 jq('#xml-area').get(0).textContent=workflow.toXML();*/
+				}
+			}
+		});
+	}catch(e){
+		jq.messager.alert("操作提示", e.message, "error");
+	}
+}
+
+function BindDragDrop(){
+	jq('.easyui-linkbutton').draggable({
+		proxy:function(source){
+			var n = jq('<div class="draggable-model-proxy"></div>');
+			n.html(jq(source).html()).appendTo('body');
+			return n;
+		},
+		deltaX:0, deltaY:0, revert:true, cursor:'auto',
+		onStartDrag:function(){
+			jq(this).draggable('options').cursor='not-allowed';
+		},
+		onStopDrag:function(){
+			jq(this).draggable('options').cursor='auto';
+		}
+	});
+	jq('#paintarea').droppable({
+		accept:'.easyui-linkbutton',
+		onDragEnter:function(e,source){
+			jq(source).draggable('options').cursor='auto';
+		},
+		onDragLeave:function(e,source){
+			jq(source).draggable('options').cursor='not-allowed';
+		},
+		onDrop:function(e,source){
+			//jq(this).append(source)
+			//jq(this).removeClass('over');
+			var wfModel = jq(source).attr('wfModel');
+			var shape = jq(source).attr('iconImg');
+			if(wfModel){
+				var x=jq(source).draggable('proxy').offset().left;
+				var y=jq(source).draggable('proxy').offset().top;
+				var xOffset    = workflow.getAbsoluteX();
+				var yOffset    = workflow.getAbsoluteY();
+				var scrollLeft = workflow.getScrollLeft();
+				var scrollTop  = workflow.getScrollTop();
+				//alert(xOffset+"|"+yOffset+"|"+scrollLeft+"|"+scrollTop);//alert(shape);
+				addModel(wfModel,x-xOffset+scrollLeft,y-yOffset+scrollTop,shape);
+			}
+		}
+	});
+}
+
+function createCanvas(disabled){
+	try{
+		workflow = new draw2d.MyCanvas("paintarea");
+		workflow.scrollArea = document.getElementById("designer-area");
+		if (disabled)
+			workflow.setDisabled();
+
+		if (processDefinitionId && processDefinitionId != "") {
+			openProcessDef();
+		} else {
+			var id = "process" + Sequence.create();
+			//var id = workflow.getId();
+			workflow.process.category = 'demo_wf_process_def';
+			workflow.process.id = id;
+			workflow.process.name = id;
+			workflow.process.processDefFormId = '';
+			var startObj = new draw2d.Start("/js/workflow/designer/icons/type.startevent.none.png");
+			//startObj.setId("start");
+			workflow.addFigure(startObj, 200, 50);
+			var endObj = new draw2d.End("/js/workflow/designer/icons/type.endevent.none.png");
+			//endObj.setId("end");
+			workflow.addFigure(endObj, 200, 280);
+
+            workflow.umap = {};
+            workflow.gmap = {};
+		}
+	}catch(e){
+		jq.messager.alert("操作提示", e.message, "error");
+	}
+}
+
+
+function reloadView() {
+	var tab = jq('#process-definition-tab').tabs('getSelected');
+	var index = jq('#process-definition-tab').tabs('getTabIndex',tab);
+	if(index==1){
+		jq('#descriptorarea').val(workflow.toXML());
+	}
+
+}
+
+//-->
+</script>

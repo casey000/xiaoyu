@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>评估时限</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                                   style="margin-right: 20px;"/>
+                            <br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">机号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="acno" name="acno" style="width: 120px"
+                                   data-options="required:true,editable:false,onlyview: true"/>
+                        </td>
+                        <th class="th" id="ataTh" align="right" style="width: 80px;">上一营运人 ：</th>
+                        <td class="tdr" id="ataTd">
+                            <input style="width: 120px" class="easyui-textbox" id="formerOperator" name="formerOperator"
+                                   data-options="required:true,editable:false,onlyview: true"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">机队：</th>
+                        <td class="tdr">
+                            <input style="width: 120px" class="easyui-textbox" id="fleet" name="fleet"
+                                   data-options="required:true,editable:false,onlyview: true"/>
+                        </td>
+                    </tr>
+                    <tr>
+
+                        <th class="th" align="right" style="width: 80px;">飞行小时：</th>
+                        <td class="tdr">
+                            <input style="width: 120px" id="fh" name="fh" class="easyui-textbox"
+                                   data-options="required:true,editable:true"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">飞行循环：</th>
+                        <td class="tdr">
+                            <input style="width: 120px" class="easyui-textbox" id="fc" name="fc"
+                                   data-options="required:true,editable:true"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">天数：</th>
+                        <td class="tdr">
+                            <input style="width: 120px" class="easyui-textbox" id="dates" name="dates"
+                                   data-options="required:true,editable:true"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var PAGE_DATA = {};
+    var pkid = null;//主表PKID
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        $("#pkid").val(pkid);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_TASK_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    pkid = $("#pkid").val();
+                    if (pkid) {
+                        InitDataForm(pkid);
+                    }
+                }
+            }
+        })
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_AC_IN_CHECK_EDIT"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'EM_AC_IN_CHECK_SAVE'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.onSearch_('dg', '#ffSearch');
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

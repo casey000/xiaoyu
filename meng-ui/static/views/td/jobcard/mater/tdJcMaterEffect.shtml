@@ -1,0 +1,197 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>EO</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form id="ffSearch" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:75px;" align="right">MSN：</th>
+                        <td style="width:75px; padding: 3px;">
+                            <input class="easyui-textbox" id="MSN" name="MSN" style="width:75px;"/>
+                        </td>
+
+                        <th class="th" style="width:75px;" align="right">ACNO：</th>
+                        <td style="width:100px; padding: 3px;">
+                            <input class="easyui-textbox" id="ACNO" name="ACNO" style="width:100px;"/>
+                        </td>
+
+                        <td colspan="2">
+                            &nbsp;&nbsp;&nbsp;&nbsp;
+                            <a class="searchBtn" type="button" onclick="searchData()"
+                               data-options="iconCls:'icon-search'">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                            </a>
+                            &nbsp;&nbsp;
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+            <table id="dg"></table>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var COMBOBOX_DATA = {};
+    var acno_;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        acno_ = param.acno;
+        InitDataGrid();
+
+    }
+
+    function InitDataGrid() {
+
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 10,
+            queryParams: {fleet: param.fleet},
+            columns: {
+                param: {FunctionCode: 'TD_MATER_EFFECT_LIST'},
+                alter: {}
+            },
+            onLoadSuccess: function (data) {
+
+                if (data) {
+
+                    $.each(acno_.split(","), function (index, obj) {
+                        $.each(data.rows, function (index, item) {
+                            if (item.ACNO == obj) {
+                                $('#dg').datagrid('checkRow', index);
+                            }
+                        });
+                    });
+                }
+            },
+            toolbar: [
+                {
+                    key: "COMMON_ADD",
+                    text: $.i18n.t('确定'),
+                    auth: "",
+                    handler: function () {
+                        save();
+                    }
+                },
+                {
+                    key: "COMMON_ADD",
+                    text: $.i18n.t('关闭'),
+                    handler: function () {
+                        CloseWindowIframe();
+                    }
+                }
+            ]
+        });
+
+    }
+
+    function save() {
+        var selectRows = $("#dg").datagrid('getChecked');
+        var selectRows_Copy = selectRows;
+        var selectCount = selectRows.length;
+        if (selectCount === 0) {
+            MsgAlert({content: '请选择要增加的记录！', type: 'error'});
+            return;
+        }
+
+
+        var arr = [];
+        var result;
+        var mater = "";
+        var materIds = "";
+        $.each(selectRows, function (j, item) {
+            if ((selectRows.length - 1) == j) {
+                materIds += item.ACNO;
+            } else {
+                materIds += item.ACNO + ",";
+            }
+            var msn = parseInt(item.MSN);
+            arr.push(msn);
+        });
+
+        result = sum(arr);
+
+        $.each(result, function (i, item) {
+            if (i == result.length - 1) {
+                if (item.length > 1) {
+                    mater += convert(item[0]) + convert(item[item.length - 1]);
+                } else {
+                    mater += convert(item[0]);
+                }
+            } else {
+                if (item.length > 1) {
+                    mater += convert(item[0]) + convert(item[item.length - 1]) + ",";
+                } else {
+                    mater += convert(item[0]) + ",";
+                }
+            }
+        });
+
+
+        param.OWindow.setMaterValues(materIds, mater);
+        CloseWindowIframe();
+    }
+
+    function sum(arr) {
+        var result = [];
+        var tmp;
+        while (tmp = arr.shift()) {
+            if (result.length == 0) {
+                result.push([tmp]);
+                continue;
+            }
+
+            var e = result[result.length - 1];
+            if (tmp == e[e.length - 1] + 1) {
+                e.push(tmp);
+            } else {
+                result.push([tmp]);
+            }
+        }
+        return result;
+    }
+
+
+    function convert(msn) {
+        var tempStr = "";
+        if (msn <= 9) {
+            tempStr = "000" + msn;
+        } else if (msn <= 99) {
+            tempStr = "00" + msn;
+        } else if (msn <= 999) {
+            tempStr = "0" + msn;
+        } else {
+            tempStr = msn;
+        }
+        return tempStr;
+    }
+
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</html>

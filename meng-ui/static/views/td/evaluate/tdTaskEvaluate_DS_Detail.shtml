@@ -1,0 +1,366 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>DS片段详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="tdSupplementPkid" name="tdSupplementPkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="9" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭" style="margin-left:3px;margin-right: 18px;"/>
+                            <br/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">修订方式：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-combobox"  style="width: 200px;" id="revised" name="revised" data-options="editable:false,required:true"/>
+                        </td>
+                    </tr>
+
+                    <tr class="isNotNEW" style="display: none;">
+                        <th class="th" align="right" style="width: 80px;">TASKCODE：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input id="taskCode" name="taskCode" class="easyui-textbox easyui-validatebox" data-options="validType:['maxLength[30]']" style="width:200px;"/>
+                        </td>
+                    </tr>
+
+                    <tr class="isNEW" style="display: none;">
+                        <th class="th" align="right" style="width: 80px;">CHAPTER：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-textbox"  style="width: 200px;" id="chapter" name="chapter" data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+
+                    <tr class="isNEW" style="display: none;">
+                        <th class="th" align="right" style="width: 80px;">SECTION：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox"  style="width: 200px;" id="section" name="section" data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+
+                    <tr class="isNEW" style="display: none;">
+                        <th class="th" align="right" style="width: 80px;" id="subText">SUBJECT：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox"  style="width: 200px;" id="subject" name="subject" data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+
+                    <tr class="isNEW" style="display: none;">
+                        <th class="th" align="right" style="width: 80px;" id="pgbText">PGBLOCK：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-textbox " style="width: 200px;" id="pgblock" name="pgblock"
+                                   data-options="validType:['number','length[1,3]']" invalidMessage="请输入正确的参数!"/>
+                        </td>
+                    </tr>
+
+                    <tr class="isNEW" style="display: none;" id="funTr">
+                        <th class="th" align="right" style="width: 80px;">FUNCTION：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox "  style="width: 200px;" id="function" name="function" data-options="validType:['number','length[1,3]']" invalidMessage="请输入正确的数字!"/>
+                        </td>
+                    </tr>
+
+                    <tr class="isNEW" style="display: none;" id="seqTr">
+                        <th class="th" align="right" style="width: 80px;">SEQ：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox "  style="width: 200px;" id="seq" name="seq" data-options="validType:['number','length[1,3]']" invalidMessage="请输入正确的数字!"/>
+                        </td>
+                    </tr>
+
+
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var PAGE_DATA = {};
+    var pkid=null;//主表PKID
+    var ata;
+    var fleet;
+    var manualType;
+    var selectRow;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        pkid=param.pkid;
+        ata=param.ata;
+        fleet=param.fleet;
+        manualType=param.manualType;
+
+        $("#pkid").val(pkid);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TSED_REVISED",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //型号
+                    PAGE_DATA['revised'] = DomainCodeToMap_(jdata.data["TSED_REVISED"]);
+
+                    //初始化ATA
+                    var v_=ata.split("-");
+                    $("#chapter").textbox('setValue',v_[0]);
+                    $("#section").textbox('setValue',v_[1]);
+                    $("#subject").textbox('setValue',v_[2]);
+
+
+                    $('#revised').combobox({
+                        panelHeight: '110px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.TSED_REVISED,
+                        onSelect: function (row) {
+                            if(row.VALUE=="NEW"){
+                                $(".isNEW").show();
+                                $(".isNotNEW").hide();
+
+                                $("#chapter").textbox('setValue',v_[0]);
+                                $("#section").textbox('setValue',v_[1]);
+                                $("#subject").textbox('setValue',v_[2]);
+
+                                $("#taskCode").textbox({value: ''});
+                                $("#tdSupplementPkid").val("");
+                                if (manualType == "SIPC") {
+                                    $("#subText").text("UNITNBR：");
+                                    $("#pgbText").text("FIGNBR：");
+                                    $("#pgblock").textbox({validType: ['length[1,5]']});
+                                    $("#funTr").hide();
+                                    $("#seqTr").hide();
+                                }
+                            }
+                            if(row.VALUE=="AMEND" || row.VALUE=="INVALID"){
+                                $(".isNEW").hide();
+                                $(".isNotNEW").show();
+                                $("#chapter").textbox('setValue',"");
+                                $("#section").textbox('setValue',"");
+                                $("#subject").textbox('setValue',"");
+                                $("#pgblock").textbox('setValue',"");
+                                $("#function").textbox('setValue',"");
+                                $("#seq").textbox('setValue',"");
+                                $("#taskCode").textbox({value:''});
+                                $("#tdSupplementPkid").val("");
+
+
+                            }
+                        }
+                    });
+
+
+                    //初始化改版列表
+                    $("#taskCode").MyComboGrid({
+                        idField: 'TASKCODE',  //实际选择值
+                        textField: 'TASKCODE', //文本显示值
+                        panelWidth:450,
+                        panelHeight: '180px',
+                        // required: true,
+                        queryParams: {fleet:fleet,manualType:manualType},
+                        width: 200,
+                        params: {FunctionCode: 'TD_SUPPLEMENT_FROM_EVAL_LIST'},
+                        columns: [[
+                            {field: 'TASKCODE', title: 'TASKCODE', width: 100,formatter: function(value,row,index){
+                                    return "<lable title='"+value+"'>"+value+"</lable>";
+                            }},
+                            {field: 'DATA_TITLE', title: '手册标题', width: 100,formatter: function(value,row,index){
+                                    return "<lable title='"+value+"'>"+value+"</lable>";
+                            }},
+                            {field: 'DATA_TYPE', title: '手册类型', width: 50,formatter: function(value,row,index){
+                                    return "<lable title='"+value+"'>"+value+"</lable>";
+                            }},
+                            {field: 'CREATE_BY', title: '创建人', width: 70,formatter: function(value,row,index){
+                                    return "<lable title='"+value+"'>"+value+"</lable>";
+                            }},
+                            {field: 'MANUAL_REV', title: '手册版本', width: 50,formatter: function(value,row,index){
+                                    return "<lable title='"+value+"'>"+value+"</lable>";
+                            }}
+                        ]],
+                        onHidePanel: function () {
+                            var t = $(this).combogrid('getValue');
+                            if(t != null && t != '' & t != undefined){
+                                if (selectRow == null || t != selectRow.TASKCODE) {//没有选择或者选项不相等时清除内容
+                                    alert('请选择，不要直接输入！');
+                                    $(this).combogrid({value:''});
+                                }
+                            }
+                        },
+                        onSelect: function (index, row) {
+                            selectRow = row;
+                            $("#tdSupplementPkid").val(row.PKID);
+                        }
+                    });
+                    if (operation == 'view') {
+                        $("#saveBtn").hide();
+                    }
+                    if (param.pkid && operation!="save") {
+                        InitDataForm(param.pkid);
+                    }
+
+                }
+            }
+        })
+    }
+
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_SUPPLEMENT_EVAL_DEAL_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+
+                    if(jdata.data.REVISED=="NEW"){
+                        $(".isNEW").show();
+                        $(".isNotNEW").hide();
+                        $("#taskCode").textbox({value: ''});
+                        $("#tdSupplementPkid").val("");
+                        if (manualType == "SIPC") {
+                            $("#subText").text("UNITNBR：");
+                            $("#pgbText").text("FIGNBR：");
+                            $("#pgblock").textbox({validType: ['length[1,5]']});
+                            $("#funTr").hide();
+                            $("#seqTr").hide();
+                        }
+                    }
+                    if(jdata.data.REVISED=="AMEND" || jdata.data.REVISED=="INVALID"){
+                        $(".isNEW").hide();
+                        $(".isNotNEW").show();
+                        $("#chapter").textbox('setValue',"");
+                        $("#section").textbox('setValue',"");
+                        $("#subject").textbox('setValue',"");
+                        $("#pgblock").textbox('setValue',"");
+                        $("#function").textbox('setValue',"");
+                        $("#seq").textbox('setValue',"");
+                        $("#tdSupplementPkid").val(jdata.data.TD_SUPPLEMENT_PKID);
+                    }
+
+                    $("#revised").combobox({editable: false, onlyview: true,value:jdata.data.REVISED});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    // 保存
+    function save() {
+
+        console.log($("#tdSupplementPkid").val());
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        //校验规则
+        if (!validDatas()) {
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        datas = $.extend(datas, {
+            FunctionCode: 'TD_SUPPLEMENT_EVAL_DEAL_SAVE',
+            type: operation,
+            fleet: fleet,
+            manualType: manualType
+        });
+        if(operation=="save"){
+
+            if (confirm("是否保存？")){
+                InitFuncCodeRequest_({
+                    data: datas, successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            // if (param.OWindow.reload_) {
+                                param.OWindow.reload_();
+                            // }
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            CloseWindowIframe();
+                        }else {
+                            if(jdata.msg.indexOf("TD_SUPPLEMENT_EVAL_DEAL_TR_UNIQUE")!=-1){
+                                MsgAlert({content: "您选择的数据已存在!", type: 'error'});
+
+                            }
+                            else{
+                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                            }
+                        }
+                    }
+                });
+            }
+        }else{
+            InitFuncCodeRequest_({
+                data: datas, successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        // if (param.OWindow.onSearch_) {
+                        //     param.OWindow.onSearch_();
+                        // }
+                        param.OWindow.reload_();
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        CloseWindowIframe();
+                    }else {
+                        if(jdata.msg.indexOf("TD_SUPPLEMENT_EVAL_DEAL_TR_UNIQUE")!=-1){
+                            MsgAlert({content: "您选择的数据已存在!", type: 'error'});
+
+                        }
+                        else{
+                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                        }
+                    }
+                }
+            });
+        }
+
+
+    }
+
+    //
+    function validDatas(){
+        var result = true;
+        var pgblock = $("#pgblock").textbox('getValue');
+        var functions = $("#function").textbox('getValue');
+        var seq = $("#seq").textbox('getValue');
+        if (seq != "") {
+            if (functions == "") {
+                MsgAlert({content: "function不能为空！", type: 'error'});
+                result = false;
+            }
+            if (pgblock == "") {
+                MsgAlert({content: "pgblock不能为空！", type: 'error'});
+                result = false;
+            }
+        }
+        if (functions != "") {
+            if (pgblock == "") {
+                MsgAlert({content: "pgblock不能为空！", type: 'error'});
+                result = false;
+            }
+        }
+        return result;
+    }
+
+    function closeW(){
+        // if (confirm("是否关闭该页面？")){
+            CloseWindowIframe();
+        // }
+    }
+
+</script>
+
+</html>

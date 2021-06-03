@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">选取适用性</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <!--<th class="th" style="width:110px;" align="right">飞机注册号：</th>-->
+                    <!--<td style="width:90px; padding:3px;">-->
+                    <!--<input class="easyui-textbox" id="acno" name="acno" style="width:110px;"/>-->
+                    <!--</td>-->
+                    <!--<th class="th" style="width:110px;" align="right">msn：</th>-->
+                    <!--<td style="width:90px; padding:3px;">-->
+                    <!--<input class="easyui-textbox" id="msn" name="msn" style="width:110px;"/>-->
+                    <!--</td>-->
+                    <td align="right">
+                        <!--<input id="searchBtn" class="btn btn-primary" type="button" onclick="searchData()" value="查询"-->
+                        <!--style="width: 50px;margin:10px;"/>-->
+                        <!--<input id="clearBtn" class="btn btn-primary" type="button" onclick="doClear_()" value="重置"-->
+                        <!--style="width: 50px;margin:10px;"/>-->
+                        <input id="saveBtn" class="btn btn-primary" type="button" onclick="ok()" value="确定"
+                               style="width: 50px;margin:10px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var companyCode;
+    var param;
+    var applyModel;
+    var funcode;
+    var rangValues = [];
+    var acid;
+    var pkid;
+    var spkid;
+    var fleet;
+    // var sbVer;
+    function i18nCallBack() {
+        param = getParentParam_();
+        // applyModel = param.applyModel;
+        // companyCode = param.companyCode;
+        // pkid = param.pkid;
+        // spkid = param.spkid;
+        acid = param.acId;
+        fleet = param.fleet;
+        // sbVer=param.sbVer;
+        if (acid) {
+            rangValues = acid.split(',');
+        }
+        //绑定回车查询事件
+
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_DATA_TYPE,DA_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机队
+                    $('#fleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //手册标准
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_SUPPLEMENT_STATUS"]);
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+
+    //TD_MANUAL_SBI_FLEET_LIST
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            // queryParams: {pkid: pkid, spkid: spkid, applyModel: applyModel, companyCode: companyCode},
+            queryParams: {fleet: fleet},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: "TD_REVSUG_FLEET_LIST"},
+                alter: {
+                    TEST_UPLOAD: {},
+
+                }
+            },
+            onLoadSuccess: function (data) {
+                if (data) {
+                    if (rangValues.length > 0) {
+                        $.each(data.rows, function (index, item) {
+                            for (var j = 0, len = rangValues.length; j < len; j++) {
+                                if (rangValues[j] == item.AC_ID) {
+                                    $('#dg').datagrid('checkRow', index);
+                                }
+                            }
+                        });
+                    }
+
+                }
+            },
+
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function ok() {
+        var rowData = getDG('dg').datagrid('getChecked');
+        var row;
+        var acid;
+        var acid2;
+        if (rowData.length > 0) {
+            //如果已有片段，并且已选中，打开选中的片段
+            // if (rowData.length != 1) {
+            //     MsgAlert({content: "只能选择一条数据!", type: 'error'});
+            //     return;
+            // } else {
+            //     //选中一条数据
+            //     row = rowData[0];
+            // }
+            acid2 = rowData[0].MODEL;
+            acid = rowData[0].AC_ID;
+            for (var i = 1; i < rowData.length; i++) {
+                acid2 = acid2 + "," + rowData[i].MODEL;
+                acid = acid + "," + rowData[i].AC_ID;
+            }
+            if (rowData.length == 1) {
+                param.OWindow.$("#apply").combobox('setValue', acid);
+            } else {
+                param.OWindow.$("#apply").combobox({value: acid});
+            }
+
+            // param.OWindow.$("#acId").combobox('setValue', acid);
+            // param.OWindow.$("#acId2").textbox('setValue',acid2);
+            CloseWindowIframe();
+        } else {
+            MsgAlert({content: "请选择一条数据进行编辑!", type: 'error'});
+        }
+
+    }
+
+
+</script>
+</body>
+</html>

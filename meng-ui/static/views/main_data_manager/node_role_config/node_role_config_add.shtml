@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>节点角色设置</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%; height: 380px">
+    <div class="ibox-content">
+        <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" id="pkid" name="pkid"/>
+
+            <table class="table table-bordered table-info">
+                <tr id="id_btn_row">
+                    <td colspan="2" align="right">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                        <input class="btn btn-primary" type="button" id="closeBtn" onclick="closeW();" value="关闭"
+                               style="margin-left:3px;margin-right: 18px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="" style="width: 80px;">流程名称：</th>
+                    <td style="width: 400px; padding: 3px">
+                        <input class="easyui-combobox" style="width: 300px;"
+                               id="flowName" name="flowName" data-options=""/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">节点名称：</th>
+                    <td style="width: 200px; padding: 3px">
+                        <input class="easyui-textbox" style="width: 180px;"
+                               id="nodeNames" name="nodeNames" data-options="editable:false,onlyview:true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">节点ID：</th>
+                    <td style="width: 300px; padding: 3px">
+                        <input class="easyui-textbox" style="width: 180px;"
+                               id="nodeIds" name="nodeIds" data-options="editable:false,onlyview:true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">角色：</th>
+                    <td style="width: 300px; padding: 3px">
+                        <input class="easyui-combobox" style="width: 180px;"
+                               id="roleId" name="roleId"  data-options="multiple: true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">是否提交本人：</th>
+                    <td style="width: 300px; padding: 3px">
+                        <input class="easyui-combobox" style="width: 180px;"
+                               id="flag" name="flag"  data-options="editable:false,required:true"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var op = null;// operation[add,edit,view,flow]
+    var pkid = null;//主表PKID
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        op = param.operation;
+        pkid = param.pkid;
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "NODE_ROLE_CONFIG_QUERY_ROLE,YESORNO"
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#flag').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $("#flowName").MyComboGrid({
+                        panelHeight: '300px',
+                        panelWidth: '400px',
+                        idField: 'FLOW_NAME',  //实际选择值
+                        textField: 'FLOW_NAME', //文本显示值
+                        editable: true,
+                        required: false,
+                        pagination: false,
+                        tipPosition: 'top',
+                        mode: 'remote',
+                        filter: function(q, row){
+                            var opts = $(this).combobox('options');
+                            alert(row[opts.textField].indexOf(q))
+                            return row[opts.textField].indexOf(q) != -1;
+                        },
+                        params: {FunctionCode: 'NODE_ROLE_CONFIG_QUERY_FLOW'},
+                        columns: [[
+                            {field: 'FLOW_NAME', title: '流程名称', width: '148px', sortable: true},
+                            {field: 'NODE_NAME', title: '节点名称', width: 100, sortable: true},
+                            {field: 'TASK_PROP_ID', title: '节点ID', width: 130, sortable: true, hideColumn :true}
+                        ]],
+
+                        onSelect: function (index, row) {
+                            selectRow = row;
+
+                            $("#nodeNames").textbox("setValue",selectRow.NODE_NAME);
+                            $("#nodeIds").textbox("setValue",selectRow.TASK_PROP_ID);
+                        }
+                    });
+
+                    $('#roleId').combobox({
+                        data: jdata.data.NODE_ROLE_CONFIG_QUERY_ROLE,
+                        valueField: "VALUE",
+                        textField: "TEXT",
+                        required: true,
+                        panelHeight: "auto",
+                        onHidePanel: function() {
+                            var valueField = $(this).combobox("options").valueField;
+                            var val = $(this).combobox("getValues");  //当前combobox的值
+                            var allData = $(this).combobox("getData");   //获取combobox所有数据
+                            var unSelect=[allData.length]
+                            var currentValue=val.toString().split(",");//把选中的值及输入值分割为数组
+                            for(var j=0;j<currentValue.length;j++){//循环选中的值和com中所有值进行比对，不存在的利用unselect清除
+                                var result = true;      //为true说明输入的值在下拉框数据中不存在
+                                for (var i = 0; i < allData.length; i++) {
+                                    if (currentValue[j] == allData[i][valueField]) {
+                                        result = false;
+                                    }
+                                }
+                                if(result){//不存在
+                                    $(this).combobox('unselect', currentValue[j]);
+                                }
+                            }
+
+                        }
+                    });
+                }
+            }
+        });
+
+        if (!! pkid) {
+            InitDataForm(pkid);
+        }else{
+            $('#flag').combobox('setValue','N');
+        }
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "NODE_ROLE_CONFIG_BY_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#roleId').combobox({value: jdata.data.ROLE_ID});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function reload_() {
+        $('#dg').datagrid('reload');
+    }
+
+    function save() {
+
+        var $form = $("#mform");
+        var isValidate = $form.form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var formData = $('#mform').serializeObject();
+        if (Array.isArray(formData['roleId'])) {
+            formData['roleId'] = formData['roleId'].join(',');
+        }
+        formData = JSON.stringify(formData);
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "NODE_ROLE_CONFIG_SAVE",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#pkid').val(jdata.data.pkid);
+
+                    MsgAlert({
+                        content: jdata.msg
+                    });
+                    param.OWindow.i18nCallBack();
+                    CloseWindowIframe();
+                } else {
+                    var rmsg = jdata.msg;
+                    if(rmsg.indexOf('UN_FLOW_NODE') != -1){
+                        rmsg = "流程名称，节点名称不允许重复！";
+                    }
+                    MsgAlert({
+                        content: rmsg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        param.OWindow.i18nCallBack();
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

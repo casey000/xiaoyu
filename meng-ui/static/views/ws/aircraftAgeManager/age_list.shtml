@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>飞机阀值维护</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th style="width: 120px;">机型：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-combobox" id="subFleet" name="subFleet" style="width:110px;"/>
+                    </td>
+                    <td colspan="2">
+
+                        <a href="javascript:void(0)" class="searchBtn"  onclick="onSearch_()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="clearBtn"  onclick="onClear_()"><span
+                                data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a href="javascript:void(0)" class="searchBtn"  onclick="onXxljob_()"><span
+                                >手动计算</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_SUB_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //子机型
+                    $('#subFleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_SUB_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            columns: {
+                param: {FunctionCode: 'AIRCRAFT_LONGEVITY_LIST'}
+            },
+            sortable: true,
+            singleSelect: true,
+            fitColumns: false,
+            rownumbers : true,
+            pagination:true,
+            pageSize:20,
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        var pkid = rowData.PKID;
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        $.ajax({
+                            url: "/api/v1/aircraft/longevity/deleteTdAircraftLongevityById/"+ pkid,
+                            type: "get",
+                            async: false,
+                            success: function (jdata) {
+                                if (jdata.code = 200) {
+                                    reload_();
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    handler: function () {
+                        openDetai("add", "");//打开新增页面
+                    }
+                }, '-',
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: 'dg'});
+                    }
+                }
+            ]
+        });
+
+    }
+    //打开飞机阙值编写页面
+    function openDetai(operation, row) {
+        var pkid = row.PKID;
+        var title_ = $.i18n.t('飞机阀值编写');
+        ShowWindowIframe({
+            width: "650",
+            height: "300",
+            title: title_,
+            param: {operation: operation,  pkid: pkid},
+            url: "/views/ws/aircraftAgeManager/age_add.shtml"
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    function onXxljob_() {
+        $.ajax({
+                url: "/api/v1/aircraft/longevity/longevityXxlJob",
+                type: "get",
+                contentType: "application/json;charset=utf-8",
+                async: false,
+            success: function (jdata) {
+                if (jdata.code = 200) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                }
+            }
+        })
+    }
+
+</script>
+
+</body>
+</html>

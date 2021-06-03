@@ -1,0 +1,359 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>件号申请列表</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend>搜索</legend>
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                    <tr>
+                        <th style="width: 80px;" nowrap align="right">申请单号：</th>
+                        <td>
+                            <input class="easyui-textbox" id="zno" name="zno" data-options=""
+                                   style="width:120px"/>
+                        </td>
+                        <th style="width: 80px;" nowrap align="right">申请件号：</th>
+                        <td>
+                            <input class="easyui-textbox" id="matnr" name="matnr" data-options=""
+                                   style="width:120px"/>
+                        </td>
+                        <th style="width: 80px;" nowrap align="right">申请日期：</th>
+                        <td>
+                            <input class="easyui-datebox" id="jhsqrqB" name="jhsqrqB" data-options="editable:false"
+                                   style="width:120px"/>
+                        </td>
+                        <th style="width: 40px;" nowrap align="right">至：</th>
+                        <td>
+                            <input class="easyui-datebox" id="jhsqrqE" name="jhsqrqE" data-options="editable:false"
+                                   style="width:120px"/>
+                        </td>
+                        <td style="width:40%;text-align:left; padding-right:5px">
+                            <a class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="onSearch_()"><span>查询</span></a>
+                            <a class="clearBtn" onclick="onClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            <a class="ridoBtn" data-options=""
+                               onclick="helpQuery('dg', 'MM_VPN_APPLY_LIST');"><span
+                                    data-i18n="">高级查询</span></a>
+                            <a class="addBtn" data-options="" onclick="add()" ><span>件号申请</span></a>
+                            <a class="excelBtn" style="margin-left: 3px;" id="excelExport"
+                               onclick="excelExport('dg', '件号申请')"
+                               data-options="iconCls:'icon-page_excel'" >
+                                <span data-i18n="common:COMMON_OPERATION.EXPORT">导出</span>
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "YESORNO,DA_ACREG_MP_ACTYPE,MM_DIC_PART_SOURCE,,MSGRP,ATA_2_SORT,MM_DIC_PART_TYPE,MM_DIC_PART_TYPE_C,MM_DIC_PART_TYPE_C1,MM_DIC_PART_TYPE_C2,MM_DIC_PART_TYPE_C3,MM_VPN_APPLY_STATUS"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['actype'] = DomainCodeToMap_(jdata.data.DA_ACREG_MP_ACTYPE);
+                PAGE_DATA['source'] = DomainCodeToMap_(jdata.data.MM_DIC_PART_SOURCE);
+                PAGE_DATA['zzpnlx'] = DomainCodeToMap_(jdata.data.MM_DIC_PART_TYPE);
+                PAGE_DATA['matkl'] = DomainCodeToMap_(jdata.data.MM_DIC_PART_TYPE_C);
+                PAGE_DATA['yesorno'] = DomainCodeToMap_(jdata.data.YESORNO);
+                PAGE_DATA['ata'] = DomainCodeToMap_(jdata.data.ATA_2_SORT);
+                PAGE_DATA['status'] = DomainCodeToMap_(jdata.data.MM_VPN_APPLY_STATUS);
+                InitDataGrid();
+            }
+        });
+    }
+    function InitDataGrid() {
+        var str = '<p style = "color: red">审批人的联系方式：行政时间请联系工程构型处,联系方式 18718866860 ;非行政时间请联系维修控制组或技术支援组。</p>';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            title: str,
+            columns: {
+                param: {FunctionCode: 'MM_VPN_APPLY_LIST'},
+                alter: {
+                    JHSQRQ:{
+                        type:'date'
+                    },
+                    MODIFY_DATE:{
+                        type:'date'
+                    },
+                    JHSPRQ:{
+                        type:'date'
+                    },
+                    KFSPRQ:{
+                        type:'date'
+                    },
+                    ZZATA1: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['ata'][value];
+                        }
+                    },
+                    ZZPMA: {
+                        formatter: function (value, row, index) {
+                            if(value){
+                                return PAGE_DATA['yesorno'][value];
+                            }else{
+                                return PAGE_DATA['yesorno']['N'];
+                            }
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    ZZPNLY: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['source'][value];
+                        }
+                    },
+                    ZZPNLX: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['zzpnlx'][value];
+                        }
+                    },
+                    MATKL: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['matkl'][value];
+                        }
+                    },
+                    ZZGCKX: {
+                        formatter: function (value, row, index) {
+                            if("Y" == value){
+                                return PAGE_DATA['yesorno']['Y'];
+                            }else if("N" == value){
+                                return PAGE_DATA['yesorno']['N'];
+                            }
+                        }
+                    },
+                    ZZHCKX: {
+                        formatter: function (value, row, index) {
+                            if("Y" == value){
+                                return PAGE_DATA['yesorno']['Y'];
+                            }else if("N" == value){
+                                return PAGE_DATA['yesorno']['N'];
+                            }
+                        }
+                    },
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view", i18nText: "浏览", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        ShowWindowIframe({
+                            width: "1050",
+                            height: "420",
+                            title: "件号申请浏览",
+                            param: {pkid: rowData.PKID},
+                            url: "/views/mm/pnApply/mm_pn_apply_view.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑",auth:"",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 800, height: 400,
+                            url: "/views/mm/pnApply/mm_pn_apply_add_edit.shtml"
+                        })
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",auth:"",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        if (confirm("确认删除吗？")) {
+                            InitFuncCodeRequest_({
+                                data: {pkid: rowData.PKID, FunctionCode: 'MM_VPN_APPLY_DEL'},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        $("#dg").datagrid("reload");
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
+                {
+                    id: "m-uploadAttach", i18nText: "上传附件", auth: "",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        common_upload_({
+                            identity: 'dg',
+                            param: {
+                                cat: 'MMPNAPPLY',
+                                sourceId: rowData.PKID,
+                                PKID: rowData.PKID,
+                                successCallBack: function () {
+                                    reload_();
+                                },
+                                failCallBack: ""
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-sub",
+                    i18nText: "提交",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        var jhly = rowdata.ZZPNLY;
+                        if ((jhly == "03" || jhly == "07" || jhly == "09" || jhly == "15" || jhly == "16" || jhly == "17") && (rowdata.UPLOAD == "" || rowdata.UPLOAD == null)) {
+                            MsgAlert({content: '件号来源为“CMM、SRM、STC、化工品、标准件、Others”时必须上传附件！', type: 'error'});
+                            return;
+                        }
+                        //选择人
+                        /*common_add_edit_({
+                            url: "/views/em/workflow/work_flow_account_select.shtml",
+                            param: {
+                                FunctionCode_: "MM_VPN_APPLY_WORKFLOW_DEAL",
+                                otherParam: rowdata.PKID,
+                                successCallback: function (data) {
+                                    reload_();
+                                }
+                            },
+                            title: $.i18n.t("选择审批人"),
+                            width: 520,
+                            height: 300
+                        });*/
+                        //角色签领
+                        if(confirm("确认提交吗？")){
+                            MaskUtil.mask("正在处理...");
+                            InitFuncCodeRequest_({
+                                data: {pkid:rowdata.PKID, FunctionCode: 'MM_VPN_APPLY_WORKFLOW_DEAL'},
+                                successCallBack: function (jdata) {
+                                    MaskUtil.unmask();
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
+                {
+                    id: "m-flowTjt",
+                    i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "MM_VPN_APPLY"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.STATUS != 'BXZ' || row.JHSQRID != getLoginInfo().accountId) {
+                    items['删除'].enable = false;
+                    items['编辑'].enable = false;
+                    items['提交'].enable = false;
+                }
+                if (row.STATUS == 'RETURN') {
+                    items['删除'].enable = true;
+                }
+                if (row.STATUS != 'BXZ' || row.JHSPRID) {
+                    items['办理轨迹'].enable = true;
+                }else{
+                    items['办理轨迹'].enable = false;
+                }
+                if (row.STATUS == 'GCSPZ' || row.STATUS == 'ZLSPZ' || row.STATUS == 'YSX') {
+                    items['上传附件'].enable = false;
+                }
+                return items;
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+
+                        InitFuncCodeRequest_({
+                            data: {SOURCE_ID: row.PKID, CATEGORY: "MMPNAPPLY", FunctionCode: 'ATTACHMENT_RSPL_GET'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    if (row.STATUS = "GCSPZ" || row.STATUS == 'ZLSPZ' || row.STATUS == 'YSX') {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                    } else {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span auth="" onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                    }
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 15)
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    function add() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 800, height: 400,
+            url: "/views/mm/pnApply/mm_pn_apply_add_edit.shtml"
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>服务申请列表</title>
+</head>
+
+<body>
+<div style="">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th>SR编号：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="srSeq" id="srSeq"/>
+                    </td>
+                    <th >发起人：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="creatorName"  id="creatorName"/>
+                    </td>
+                    <th >状态：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="status" id="status"/>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>机型：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="subType" id="subType"/>
+                    </td>
+                    <th >飞机号：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="acReg" id="acReg" />
+                    </td>
+                    <th >ATA：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="ata" id="ata"/>
+                    </td>
+                    <td colspan="1">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="searchBtn" onclick="searchData()"
+                           data-i18n="common:COMMON_OPERATION.QUERY">查询</a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="clearBtn" onclick="doClear_()"
+                           data-i18n="common:COMMON_OPERATION.RESET">重置</a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+    <table id='relation_sr_list' class="table table-bordered table-info">
+    </table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = getParentParam_();
+    var evapkid;
+    var evaNo;
+    var segId;
+    var segSn;
+    var srIds = [];
+    var businessType;
+    function i18nCallBack() {
+        //初始化传值
+        evapkid = param.evapkid;
+        evaNo = param.evaNo;
+        segId = param.segId;
+        segSn = param.segSn;
+        srIds = param.srIds;
+        businessType = param.businessType;
+
+        //绑定回车查询事件2
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitRelationSrList();
+    }
+
+    /**
+     *  功能描述:  初始化列表
+     *  2019/10/30
+     */
+    function InitRelationSrList(paramData) {
+        $("#relation_sr_list").MyDataGrid({
+            identity: 'relation_sr_list',
+            url: '/api/v1/ee/sr/queryRelationSrList',
+            method: 'post',
+            sortable: true,
+            singleSelect: true,
+            fitColumns: false,
+            queryParams:paramData,
+            columns: [
+                {field: 'id', title: 'ID', width: 60, checkbox: true},
+                {field: 'srSeq', title: '服务申请编号', width: 120},
+                {field: 'oem', title: 'SR联系厂商', width: 120},
+                {field: 'venderSrNum', title: '厂家SR编号', width: 120},
+                {field: 'creatorName', title: '发起人', width: 120},
+                {field: 'status', title: '状态', width: 120},
+                {field: 'subType', title: '适用机型', width: 120},
+                {field: 'acReg', title: '适用飞机', width: 120},
+                {field: 'ata', title: 'ATA', width: 80}
+            ],
+            onLoadSuccess: function (data) {
+                var ds = data.rows;
+                if (!srIds) {
+                    return;
+                }
+                $.each(ds, function (i, v) {
+                    if (srIds.indexOf(v.id) >= 0) {
+                        $('#tb').datagrid('checkRow', i);
+                        $("input[type='checkbox']")[i + 1].disabled = true;
+                    } else {
+                        $('#tb').datagrid('uncheckRow', i);
+                    }
+                });
+            },
+            // 添加列表的操作按钮添加，修改，删除等
+            toolbar: [
+                {text: '刷新', iconCls: 'icon-reload', id: 'sr_list_reload', handler: reload_},
+                {text: '确定', iconCls: 'icon-edit', id: 'sr_list_relation', handler: relationSr}
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    }
+
+    //查询
+    function searchData() {
+        $("#relation_sr_list").datagrid("options").pageNumber = 1;
+        let paramData = {
+            "userdata":
+                {
+                    "srSeq": $('#srSeq').textbox('getValue'),
+                    "creatorName": $('#creatorName').textbox('getValue'),
+                    "status": $('#status').textbox('getValue'),
+                    "subType": $('#subType').textbox('getValue'),
+                    "acReg": $('#acReg').textbox('getValue'),
+                    "ata": $('#ata').textbox('getValue')
+                }
+        };
+        InitRelationSrList(paramData);
+    }
+
+    //刷新
+    function reload_() {
+        $("#relation_sr_list").datagrid("reload");
+    }
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //关联
+    function relationSr() {
+        var rows = $("#relation_sr_list").datagrid('getChecked');
+        if (rows == null || rows.length <= 0) {
+            MsgAlert({content: "请选择数据！", type: 'error'});
+            return;
+        }
+        var ids = [];
+        for (i = 0; i < rows.length; i++) {
+            ids.push(rows[i].id);
+        }
+        var params = {
+            "businessId": segId,
+            "businessModule": businessType,
+            "srIds": ids,
+            "taskSourceDescription": "TDMS工程评估:"+evaNo+"分段:"+segSn+"关联",
+            "taskSourceNumber":evaNo,
+            "taskType": "3"
+        };
+        $.ajax({
+            url: '/api/v1/ee/sr/relationSrByEE',
+            type: 'post',
+            data: JSON.stringify(params),
+            contentType: "application/json;charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+                //判断操作是否成功
+                if (data.code == RESULT_CODE.SUCCESS_CODE) {
+                    // 操作后需要刷新的列表
+                    param.OWindow.reload_("#structuralEeSrDg");
+                    // 操作成功后提示
+                    param.OWindow.MsgAlert({content: '操作成功。'});
+                    // 关闭窗口
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: data.msg , type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

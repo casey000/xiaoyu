@@ -1,0 +1,1098 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">补充手册编写</title>
+    <style type="text/css">
+        /*td, th {*/
+            /*padding: 3px;*/
+        /*}*/
+
+        ul {
+            width: 770px;
+        }
+
+        li {
+            float: right;
+            padding: 5px;
+        }
+
+        span{
+            color: #0c2e58;
+            text-align: right;
+            font-weight: bold;
+        }
+
+        l-btn-left l-btn-icon-left{
+            padding-left: 5px;
+        }
+
+        .p-title {
+            width: 60px;
+            text-align: right;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+            letter-spacing:20px;
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="mform" class="form-horizontal">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">片段编号：</th>
+                    <td class="td5" style="width:380px;">
+                        <input class="easyui-textbox" id="chapter" data-options="editable:false,onlyview:true"
+                               name="chapter"
+                               style="width:50px;"/>
+                        -
+                        <input class="easyui-textbox" id="section" data-options="editable:false,onlyview:true"
+                               name="section"
+                               style="width:50px;"/>
+                        -
+                        <input class="easyui-textbox" id="subject" data-options="editable:false,onlyview:true"
+                               name="subject"
+                               style="width:50px;"/>
+                        -
+                        <input class="easyui-textbox" id="pgblock" data-options="editable:false,onlyview:true"
+                               name="pgblock"
+                               style="width:50px;"/>
+                        -
+                        <input class="easyui-textbox" id="function" data-options="editable:false,onlyview:true"
+                               name="function"
+                               style="width:50px;"/>
+                        -
+                        <input class="easyui-textbox" id="seq" data-options="editable:false,onlyview:true" name="seq"
+                               style="width:50px;"/>
+                    </td>
+
+                    <th class="th" style="width:80px;" align="left">是否生效：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="active" name="active"
+                               data-options="editable:false,onlyview:true" style="width:100%;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">机型：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="fleet" name="fleet" data-options="editable:false,onlyview:true"
+                               name="fleetType"
+                               style="width:100%;"/>
+                    </td>
+
+                </tr>
+                <tr>
+                    <th class="th" style="width:80px;" align="right">手册标题：</th>
+                    <td class="td5" colspan="5" >
+                        <input class="easyui-textbox" id="dataTitle" data-options="multiline:true,events:{blur:upper}"
+                               style="width:100%;height:80px" name="dataTitle"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:80px;" align="left">编写方式：</th>
+                    <td  class="td5" >
+                        <input class="easyui-combobox" id="dealOption" name="dealOption" data-options="editable:true"
+                               />
+                    </td>
+                    <th class="th" style="width:80px;" align="right">来源文件编号：</th>
+                    <td class="td5">
+                        <input class="easyui-textbox" id="sourceDataNo" name="sourceDataNo" data-options=""
+                               style=""/>
+                    </td>
+                    <th class="th" style="width:80px;" align="left">手册类型：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="dataType" name="dataType"
+                               data-options="editable:false,onlyview:true" style="width:100%;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="6" align="right">
+                        <input id="saveBtn" class="btn btn-primary" type="button" onclick="save()" value="保存"
+                               style="width: 50px;margin:10px;"/>
+                        <input id="upload" class="btn btn-primary" type="button" onclick="uploadFile()" value="上传" style="width: 50px;margin:10px;"/>
+                        <input id="subBtn" class="btn btn-primary" type="button" onclick="submitSupple()" value="提交"
+                               style="width: 50px;margin:10px;"/>
+                        <input class="btn btn-primary" type="button" id = "closeBtn" onclick="CloseWindowIframe();" value="关闭"
+                               style="width: 50px;margin:10px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var operation;
+    var pkid = "";
+    var cepid = "";
+    var isFlow="";
+    var taskCode = "";
+    var dealOption;
+    var global=null;
+    var dataType;
+    var userName = "";
+    var diffURL;
+    var oemTaskCode;
+    function i18nCallBack() {
+
+        //绑定回车查询事件
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+        cepid = param.cepid;
+        isFlow=param.isFlow;
+        taskCode = param.taskCode;
+        if(typeof(isFlow) != "undefined" && isFlow!=null && isFlow!="" && isFlow=="true"){
+            $("#subBtn").hide();
+            $("#closeBtn").hide();
+            userName = param.userName;
+        } else {
+            var userInfo = getLoginInfo();
+            userName = userInfo.userName;
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_EFFECT_TYPE,DA_FLEET,DM_DATA_TYPE,DEAL_OPTION,SUPPLEMENT_STATUS,TD_SUPPLEMENT_CHECK_OUT,SUPPLEMENT_ACTIVE,YESORNO,TD_MANUAL_CONTENT_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#dealOption').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DEAL_OPTION,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (data) {
+                            // var dealOption = $("#dealOption").combobox('getValue');
+                            // ComOrPerChange(dealOption);
+                        }
+                    });
+                    $('#active').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.SUPPLEMENT_ACTIVE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['effectType'] = DomainCodeToMap_(jdata.data["TD_EFFECT_TYPE"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA['isEffective'] = DomainCodeToMap_(jdata.data["TD_MANUAL_CONTENT_STATUS"]);
+                    InitDataForm(pkid);
+
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    function ComOrPerChange(dealOption) {
+        $("#upload").hide();
+        if (dealOption == "unstructured") {
+            InitDataGrid2(pkid);
+            $("#upload").show();
+        }
+        if (dealOption == "structured") {
+            // upCheckOut();
+            InitDataGrid();
+            $("#upload").hide();
+        }
+
+        if(operation == "view"){
+            $("#upload").hide();
+            $("#saveBtn").hide();
+            $("#closeBtn").hide();
+            $("#subBtn").hide();
+            $('#dealOption').combobox({onlyview: true, editable: false});
+        }
+    }
+
+    //上传
+    function uploadFile() {
+        var fleet = $('#fleet').combobox("getValue");
+        save();//如果切换编写方式需要先保存主表否则有问题
+        if (isEmpty(pkid)) {
+            alert("系统错误！");
+            return;
+        }
+        common_uploadFile({
+            identity: 'dg',
+            param: {
+                cat: "supplementEdit",
+                sourceId: pkid,
+                successCellBack: "",
+                fialCellBack: "",
+                fleet: fleet,
+                taskCode: taskCode
+            }
+        });
+    }
+
+    function afterUploadFile() {
+        ComOrPerChange(dealOption);
+    }
+    //上传
+    function common_uploadFile(edopt) {
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        ShowWindowIframe({
+            width: 690,
+            height: 290,
+            title: title_,
+            param: $.extend({}, edopt.param),
+            url: "/views/data_manager/dm/upload/attachment.shtml"
+        });
+    }
+
+    function InitDataGrid() {
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 185) / 50);
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,
+            pageSize: pageSize, pageList: [pageSize],
+            queryParams: {taskCode: taskCode,dataType:dataType},
+            path: "/online-manual/supplementDetail/querySupplementDetailByPage",
+            resize: function () {
+                return tabs_standard_resize($("#tt"), 0.13, 0.0001, 5, 4);
+            },
+            columns: {
+                //！！！注意！！！ 如果要开启排序，需要对上方的判断做处理，如果为选择片段，默认拿去的表格的第一条数据（desc排序为最新）
+                param: {FunctionCode: 'TD_SUPPLEMENT_DETAIL'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    IS_EFFECTIVE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['isEffective'][value];
+                        }
+                    },
+                    DEAL_DATE:{
+                        type:'datetime'
+                    }
+                }
+            },
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t(' 新增 '),
+                iconCls: 'icon-add',
+                handler: function () {
+                    openDetai();
+                }
+            }, {
+                id: 'btnEdit',
+                text: $.i18n.t(' 编辑 '),
+                iconCls: 'icon-edit',
+                handler: function () {
+                    openEditor();
+                }
+            }, {
+                id: 'btnCheckIn',
+                text: $.i18n.t(' 检入 '),
+                iconCls: 'icon-save',
+                handler: function () {
+                    manualCheckIn();
+                }
+            }, {
+                id: 'btnCancel',
+                text: $.i18n.t(' 取消 '),
+                iconCls: 'icon-cancel',
+                handler: function () {
+                    manualCancel();
+                }
+            },
+                {
+                    id: 'btnCom',
+                    text: $.i18n.t(' 对比 '),
+                    iconCls: 'icon-search',
+                    handler: function () {
+                        cepDiff();
+                    }
+                },
+                {
+                    id: 'btnCom',
+                    text: $.i18n.t('与新版手册对比'),
+                    iconCls: 'icon-search',
+                    handler: function () {
+                        cepDiffFromOriginManual();
+                    }
+                },
+                {
+                    id: 'btnCom',
+                    text: $.i18n.t('与上营运人手册对比'),
+                    iconCls: 'icon-search',
+                    handler: function () {
+                        cepDiffFromLastCompanycodeManual();
+                    }
+                },
+            {
+                id: 'btnPreview',
+                text: $.i18n.t(' PDF预览 '),
+                iconCls: 'icon-print',
+                handler: function () {
+                    cepViewPdf();
+                }
+            }, {
+                id: 'btnArbortext',
+                text: $.i18n.t(' ARBORTEXT预览 '),
+                iconCls: 'icon-print',
+                handler: function () {
+                    abtView();
+                }
+                },
+                //     {
+                //     id: 'btnXml',
+                //     text: $.i18n.t(' XML预览 '),
+                //     iconCls: 'icon-print',
+                //     handler: function () {
+                //         cepViewXml();
+                //     }
+                // },
+                {
+                id: 'btnClear',
+                text: $.i18n.t(' 刷新 '),
+                iconCls: 'icon-reload',
+                handler: function () {
+                    $("#dg").datagrid("reload");
+                }
+            }],
+            onBeforeLoad: function (data) {
+                if (operation == "view") {
+                    $("div.datagrid-toolbar [id ='btnAdd']").eq(0).hide();
+                    $("div.datagrid-toolbar [id ='btnEdit']").eq(0).hide();
+                    $("div.datagrid-toolbar [id ='btnCom']").eq(0).hide();
+                    $("div.datagrid-toolbar [id ='btnCheckIn']").eq(0).hide();
+                    $("div.datagrid-toolbar [id ='btnCancel']").eq(0).hide();
+                    // $("div.datagrid-toolbar [id ='btnArbortext']").eq(0).hide();
+                    // $("div.datagrid-toolbar [id ='btnXml']").eq(0).hide();
+                }
+            },
+            onLoadSuccess: function (row) {
+                formatterUpperDataGrid(row,"dg");
+                var rowData = getDG('dg').datagrid('getData');
+
+                if(rowData.data.length>0){
+                    $('#btnEdit').linkbutton("enable");
+                    $('#btnCheckIn').linkbutton("enable");
+                    $('#btnCancel').linkbutton("enable");
+                    $('#btnPreview').linkbutton("enable");
+                    $('#btnArbortext').linkbutton("enable");
+                    // $('#btnXml').linkbutton("enable");
+
+                    //处理 检入检出操作
+                    InitFuncCodeRequest_({
+                        data: {pkid: pkid, FunctionCode: "TD_SUPPLEMENT_BY_PKID"}, async: false,successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                if(jdata.data!=null){
+                                    if(jdata.data.CHECK_OUT=="Y"){
+                                        $('#btnEdit').linkbutton("disable");//编辑
+                                        $('#btnCheckIn').linkbutton("enable");//检入
+                                        $('#btnCancel').linkbutton("enable");//取消
+                                    }else{
+                                        $('#btnEdit').linkbutton("enable");//编辑
+                                        $('#btnCheckIn').linkbutton("disable");//检入
+                                        $('#btnCancel').linkbutton("disable");//取消
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }else{
+                    $('#btnEdit').linkbutton("disable");
+                    $('#btnCheckIn').linkbutton("disable");
+                    $('#btnCancel').linkbutton("disable");
+                    $('#btnPreview').linkbutton("disable");
+                    $('#btnArbortext').linkbutton("disable");
+                    // $('#btnXml').linkbutton("disable");
+                }
+
+            },
+
+        });
+    }
+
+
+    //工序检出(编辑)
+    function openEditor() {
+        var rowData = getDG('dg').datagrid('getChecked');
+        var row;
+        if(rowData.length>0){
+            //如果已有片段，并且已选中，打开选中的片段
+            if(rowData.length!=1){
+                MsgAlert({content: "请选择一条数据进行编辑!", type: 'error'});
+                return;
+            }else{
+                //选中一条数据
+                row=rowData[0];
+            }
+        }else{
+            //如果已有片段，并且未选中，打开最新片段
+            row = getDG('dg').datagrid('getData').data[0];
+        }
+        // console.log(row);
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {pkid:row.PKID,parentId:pkid , FunctionCode: "TD_MANUAL_CHECKOUT"}, successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#btnEdit').linkbutton("disable");//编辑
+                    $('#btnCheckIn').linkbutton("enable");//检入
+                    $('#btnCancel').linkbutton("enable");//取消
+                    var manualPath=row.DATA_URL;
+                    var i = manualPath.lastIndexOf("/");
+                    // var fileName = row.DATA_TITLE.replace(".xml", "");
+                    var fileName = row.DATA_URL.replace(".xml", "");
+                    var index = fileName.lastIndexOf("\/");
+                    fileName = fileName.substring(index + 1, fileName.length);
+                    var protocol = window.location.protocol;
+                    var newProtocol = protocol.substring(0, protocol.length - 1);
+                    var ip = window.location.hostname;
+                    var pathName = window.location.pathname;
+                    var port = window.location.port;
+                    var controllerName = "jobcardcepcon/downManualFile";
+                    var openMode = "1";
+                    var type = "MANUAL";
+                    var operationType = "EDIT";
+                    var includeGnbr = "false";
+                    var companyCode = "SFN";
+                    var manual = "";
+                    if(global.dataType=="SAMM"){
+                        manual="AMM";
+                    }
+                    if(global.dataType=="SIPC"){
+                        manual="IPC";
+                    }
+                    var command = manualPath + ";" + fileName + ";"
+                        + newProtocol + ";" + ip + ";" + port + ";" + controllerName + ";"
+                        + userName + ";" + openMode + ";" + type + ";" + includeGnbr
+                        + ";" + manual+ ";" + global.taskcode + ";" + companyCode
+                        + ";" + global.fleet + ";" + row.PKID + ";" + manual+ ";" + operationType;
+                    console.log(command);
+                    window.location.href="openEditor:"+command;
+                    reload_();
+                    param.OWindow.reload_();
+                    param.OWindow.reload_2();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //工序检入
+    function manualCheckIn() {
+
+        var rows = getDG('dg').datagrid('getData');
+
+        var count=0;
+        $.each(rows.data, function(index, obj) {
+            if(obj.STATUS=="Y"){
+                count++;
+            }
+        });
+        if(count!=1){
+            MsgAlert({content: "当前包含多条已检出数据,无法检入. [共 "+count+" 条] ", type: 'error'});
+            return;
+        }
+
+        ShowWindowIframe({
+            width: "440",
+            height: "130",
+            title: '检入描述',
+            param: {pkid: pkid},
+            url: "/views/td/rev/tdSupplementCheckInDesc.shtml"
+        });
+
+
+
+    }
+
+    function callbackCheckin(pkid){
+        $('#btnEdit').linkbutton("enable");//编辑
+        $('#btnCheckIn').linkbutton("disable");//检入
+        $('#btnCancel').linkbutton("disable");//取消
+    }
+
+    //取消
+    function manualCancel() {
+
+        var rows = getDG('dg').datagrid('getData');
+
+        var count=0;
+        $.each(rows.data, function(index, obj) {
+            if(obj.STATUS=="Y"){
+                count++;
+            }
+        });
+        if(count!=1){
+            MsgAlert({content: "当前包含多条已检出数据,无法取消. [共 "+count+" 条] ", type: 'error'});
+            return;
+        }
+
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_JC_MANUAL_CANCEL"}, successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#btnEdit').linkbutton("enable");//编辑
+                    $('#btnCheckIn').linkbutton("disable");//检入
+                    $('#btnCancel').linkbutton("disable");//取消
+                    MsgAlert({content: "取消成功！"});
+                    reload_();
+                    param.OWindow.reload_();
+                    param.OWindow.reload_2();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //arbortext预览
+    function abtView(){
+        var rowData = getDG('dg').datagrid('getChecked');
+        var row;
+        if(rowData.length>0){
+            //如果已有片段，并且已选中，打开选中的片段
+            if(rowData.length!=1){
+                MsgAlert({content: "请选择一条数据进行编辑!", type: 'error'});
+                return;
+            }else{
+                //选中一条数据
+                row=rowData[0];
+            }
+        }else{
+            //如果已有片段，并且未选中，打开最新片段
+            row = getDG('dg').datagrid('getData').data[0];
+        }
+
+        var manualPath=row.DATA_URL;
+        var i = manualPath.lastIndexOf("/");
+        // var fileName = row.DATA_TITLE.replace(".xml", "");
+        var fileName = row.DATA_URL.replace(".xml", "");
+        var index = fileName.lastIndexOf("\/");
+        fileName = fileName.substring(index + 1, fileName.length);
+        var protocol = window.location.protocol;
+        var newProtocol = protocol.substring(0, protocol.length - 1);
+        var ip = window.location.hostname;
+        var pathName = window.location.pathname;
+        var port = window.location.port;
+        var controllerName = "jobcardcepcon/downManualFile";
+        var openMode = "1";
+        var type = "MANUAL";
+        var includeGnbr = "false";
+        var companyCode = "SFN";
+        var manual = "";
+        var operationType = "VIEW";
+        if(global.dataType=="SAMM"){
+            manual="AMM";
+        }
+        if(global.dataType=="SIPC"){
+            manual="IPC";
+        }
+        var command = manualPath + ";" + fileName + ";"
+            + newProtocol + ";" + ip + ";" + port + ";" + controllerName + ";"
+            + userName + ";" + openMode + ";" + type + ";" + includeGnbr
+            + ";" + manual+ ";" + global.taskcode + ";" + companyCode
+            + ";" + global.fleet + ";" + row.PKID + ";" + manual+ ";" + operationType;
+        window.location.href="openEditor:"+command;
+        reload_();
+    }
+
+    //打开编辑手册页面
+    function openDetai(){
+        var companyCode=global.companyCode;
+        var fleet=global.fleet;
+        var manualType=global.dataType;
+        var taskCode=global.taskCode;
+        var ver = global.ver;
+        var oemTaskCode = global.oemTaskCode;
+        ShowWindowIframe({
+            width: "500",
+            height: "200",
+            title: "选择编写方式",
+            param: {
+                pkid: pkid,
+                companyCode: companyCode,
+                fleet: fleet,
+                manualType: manualType,
+                taskCode: taskCode,
+                ver: ver,
+                oemTaskCode: oemTaskCode
+            },
+            url: "/views/td/common/supplementManual/TdSupplementSelectOption.shtml"
+        });
+
+
+    }
+    function InitDataGrid2(pkid) {
+        // var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize:15,
+            enableLineEdit: true,
+            enableCellEdit: true,
+            queryParams: {pkid: pkid},
+            path: "/online-manual/supplementDetail/querySupplementDetailPdf",
+            columns: {
+                param: {FunctionCode: 'TD_SUPPLEMENT_DETAIL_PDF'},
+                alter: {
+                    EFFECT_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['effectType'][value];
+                        }
+                    },
+                  /*  DATA_DELETE:{
+                        formatter: function (value, row, index) {
+                            var treeId="";
+                            var pkid=row.PKID;
+                            var op = "删除";
+                            return '<a href="javascript:deleteFile(\''+pkid+'\');" >' + op + '</a>';
+                        }
+                    }*/
+                }
+            },
+            onLoadSuccess: function (row) {
+                formatterUpperDataGrid(row,"dg");
+            },
+            onEndEdit: function (index, row, changes) {
+            },
+            onBeginEdit: function (index, row) {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openAttachmentDetail(rowData.PKID, rowData.DATA_TITLE, rowData.EFFECT_TYPE);
+
+                    }
+                },
+                {
+                    id: "m-del", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        deleteFile(rowData.PKID);
+
+                    }
+                },
+                {
+                    id: "m-view", i18nText: "附件预览", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var curWwwPath = window.document.location.href;
+                        var pathName = window.document.location.pathname;
+                        var pos = curWwwPath.indexOf(pathName);
+                        var localIp = curWwwPath.substring(0, pos + 1);
+                        var pdfurl = localIp + rowData.DATA_URL;
+                        console.log(pdfurl);
+                        manualPreview(pdfurl);
+                    }
+                }],
+
+            validAuth: function (row, items) {
+                if (operation == "view") {
+                    items['删除'].enable = false;
+                    items['编辑'].enable = false;
+                }
+
+                return items;
+            }
+
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/online-manual/supplement/selectById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                    global=jdata.obj;
+                    dataType=jdata.obj.dataType;
+                    cepid = jdata.obj.cepid;
+                    taskCode = jdata.obj.taskCode;
+                    oemTaskCode=jdata.obj.oemTaskCode
+                    $('#fleet').combobox({value: jdata.obj.fleet});
+                    $('#dealOption').combobox({value: jdata.obj.dealOption});
+                    ComOrPerChange(jdata.obj.dealOption);
+//                    if ($($("#chapter").textbox('getValue') != null && $("#chapter").textbox('getValue') != "" && $("#chapter").textbox('getValue') != undefined)) {
+//                        taskcode = $("#chapter").textbox('getValue');
+//                    }
+//                    if ($("#section").textbox('getValue') != null && $("#section").textbox('getValue') != "" && $("#section").textbox('getValue') != undefined) {
+//                        taskcode = taskcode + "-" + $("#section").textbox('getValue');
+//                    }
+//                    if ($("#subject").textbox('getValue') != null && $("#subject").textbox('getValue') != "" && $("#subject").textbox('getValue') != undefined) {
+//                        taskcode = taskcode + "-" + $("#subject").textbox('getValue');
+//                    }
+//                    if ($("#pgblock").textbox('getValue') != null && $("#pgblock").textbox('getValue') != "" && $("#pgblock").textbox('getValue') != undefined) {
+//                        taskcode = taskcode + "-" + $("#pgblock").textbox('getValue');
+//                    }
+//                    if ($("#function").textbox('getValue') != null && $("#function").textbox('getValue') != "" && $("#function").textbox('getValue') != undefined) {
+//                        taskcode = taskcode + "-" + $("#function").textbox('getValue');
+//                    }
+//                    if ($("#seq").textbox('getValue') != null && $("#seq").textbox('getValue') != "" && $("#seq").textbox('getValue') != undefined) {
+//                        taskcode = taskcode + "-" + $("#seq").textbox('getValue');
+//                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //打开附件编辑页面
+    function openAttachmentDetail(pkid, dataTitle, effectType) {
+        var fleet = $('#fleet').combobox("getValue");
+        var title_ = $.i18n.t('附件资料编辑');
+        ShowWindowIframe({
+            width: "690",
+            height: "290",
+            title: title_,
+            param: {pkid: pkid, dataTitle: dataTitle, effectType: effectType, fleet: fleet},
+            url: "/views/td/rev/attachmentDetail.shtml"
+        });
+    }
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+        // InitDataGrid();
+    }
+    //刷新
+    function reload_2() {
+        $("#dg").datagrid("reload");
+    }
+
+    function reloadNew(taskCode2) {
+        taskCode = taskCode2;
+        InitDataForm(pkid);
+        $("#dg").datagrid("reload");
+    }
+    // 保存
+    function save() {
+        var oldDeal = '';
+        var dealOption = $("#dealOption").combobox('getValue');
+
+        //判断当前 结构化数据下是否有已检出数据
+        try{
+            var editBtn= $('#btnEdit').attr("class");
+            var checkInBtn= $('#btnCheckIn').attr("class");
+
+            if(editBtn.indexOf("l-btn-disabled")!=-1 && checkInBtn.indexOf("l-btn-disabled")==-1){
+                MsgAlert({content: '当前有已检出的结构化数据，请检入后重试.', type: 'error'});
+                return;
+            }
+        }catch (e) {}
+
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_SUPPLEMENT_BY_PKID"}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        oldDeal = jdata.data.DEAL_OPTION;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        if (dealOption != oldDeal) {
+            if (!confirm("切换编写方式后将删除原编写方式数据是否继续?")) {
+                return;
+            }
+        }
+
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'TD_SUPPLEMENT_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //切换编写方式选项
+                    var dealOption = $("#dealOption").combobox('getValue');
+                    ComOrPerChange(dealOption);
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    if (typeof(isFlow) == "undefined" || isFlow == null || isFlow == "") {
+                        param.OWindow.reload_();
+                        param.OWindow.reload_2();
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function deleteFile(detailPkid) {
+        if(!confirm("确认删除?")){
+            return;
+        }
+        InitFuncCodeRequest_({
+            data:{pkid:detailPkid,FunctionCode:'TD_SUPPLEMENT_DETAIL_DELETE'},
+            successCallBack: function (jdata) {
+                if (jdata.code == 200) {
+                    InitFuncCodeRequest_({
+                        data: {pkid: detailPkid, FunctionCode: 'ATTACHMENT_RSPL_DEL'},
+                        successCallBack: function(jdata){
+                            if(jdata.code == RESULT_CODE.SUCCESS_CODE){
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                InitDataGrid2(pkid);
+                            }
+                        }
+                    });
+
+                }
+            }
+        });
+    }
+    //提交
+    function submitSupple() {
+
+        //判断当前 结构化数据下是否有已检出数据
+        try{
+            var editBtn= $('#btnEdit').attr("class");
+            var checkInBtn= $('#btnCheckIn').attr("class");
+
+            if(editBtn.indexOf("l-btn-disabled")!=-1 && checkInBtn.indexOf("l-btn-disabled")==-1){
+                MsgAlert({content: '当前有已检出的结构化数据，请检入后重试.', type: 'error'});
+                return;
+            }
+        }catch (e) {}
+
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        var flowKey = "tdSupplementFlow";
+        common_add_edit_({
+            identity: '', isEdit: '', width: 520, height: 300, title: $.i18n.t('选择审批人'),
+            param: {
+                roleId: '',
+                otherParam: pkid,
+                FunctionCode_: 'TD_SUPPLEMENT_SUMBIT',
+                successCallback: reload_par,
+                flowKey: flowKey
+            },
+            url: "/views/flow/work_flow_account_select.shtml"
+        });
+    }
+
+    //刷新
+    function reload_par() {
+        getParentParam_().OWindow.reload_();
+        window.close();
+    }
+
+    function upper() {
+        var title = $(this).val();
+        title = title.toUpperCase();
+        $("#dataTitle").textbox('setValue', title);
+    }
+
+
+    //XML预览
+    function cepViewXml() {
+        var selectRows = $("#dg").datagrid('getChecked');
+        if (selectRows.length == 0) {
+            MsgAlert({content: '请选择数据！', type: 'error'});
+            return false;
+        } else if (selectRows.length > 1) {
+            MsgAlert({content: '只能选择一条数据进行浏览！', type: 'error'});
+            return false;
+        }
+        window.open(selectRows[0].DATA_URL);
+    }
+
+
+    //PDF预览
+    function cepViewPdf() {
+        var cepid = "";
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: 'TD_SUPP_NEW_CEP'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        cepid = jdata.data.CEPID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+        if (cepid == "") {
+            MsgAlert({content: "工序为空！", type: 'error'});
+            return;
+        }
+        var data = $.extend({mpkid: pkid, cepid: cepid, flag: "preview"}, {FunctionCode: 'TD_MANUAL_PREVIEW'});
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: data, successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.length > 0) {
+                        var url = jdata.data;
+                        manualPreview(url);
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function manualPreview(url) {
+        var title_ = $.i18n.t('工卡预览 ');
+        ShowWindowIframe({
+            width: "850",
+            height: "650",
+            title: title_,
+            param: {url: url},
+            url: "/views/td/manual/manualPreview.shtml"
+        });
+    }
+
+    function upCheckOut() {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_MANUAL_UP_CHECKOUT"}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //对比
+    function cepDiff() {
+        var selectRows = $("#dg").datagrid('getChecked');
+        var selectCount = selectRows.length;
+        if (selectCount != 2) {
+            MsgAlert({content: '请选择两条要比较的工序记录！', type: 'error'});
+            return;
+        }
+        var paths = "";
+        $.each(selectRows, function (k, item) {
+            paths += item.DATA_URL + ',';
+        });
+        var ceppaths = paths.substring(0, paths.length - 1);
+        var firstFilePath = ceppaths.split(",")[0].replace(/\\/g, "\\\\");
+        var secondFilePath = ceppaths.split(",")[1].replace(/\\/g, "\\\\");
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_JC_ALL_GET_DIFF_URL"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    reload_();
+                    if (jdata.data != null && jdata.data != "") {
+                        diffURL = jdata.data;
+                    }
+                    ajaxLoading();
+                }
+            }
+        });
+        InitFuncCodeRequest_({
+            data: {
+                firstFilePath: firstFilePath,
+                secondFilePath: secondFilePath,
+                fleet: param.fleet,
+                FunctionCode: "TD_JC_ALL_DIFF_CONVERT"
+            },
+            successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    window.open(diffURL + "/diff/diff-ui/index.html?difffirstdoc=" + firstFilePath + "&diffseconddoc=" + secondFilePath);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //与新手册对比
+    function cepDiffFromOriginManual() {
+        var editBtn = $('#btnEdit').attr("class");
+        var checkInBtn = $('#btnCheckIn').attr("class");
+        if (editBtn.indexOf("l-btn-disabled") != -1 && checkInBtn.indexOf("l-btn-disabled") == -1) {
+            MsgAlert({content: '当前有已检出的结构化数据，请检入后重试.', type: 'error'});
+            return;
+        }
+        var title_ = $.i18n.t('查询待对比手册列表');
+        ShowWindowIframe({
+            width: "850",
+            height: "550",
+            title: title_,
+            param: {
+                pkid: pkid
+            },
+            url: "/views/td/jobcard/commonjc/TdSupplementChooseManual.shtml"
+        });
+    }
+
+    //与上营运人手册对比
+    function cepDiffFromLastCompanycodeManual(){
+        var editBtn = $('#btnEdit').attr("class");
+        var checkInBtn = $('#btnCheckIn').attr("class");
+        if (editBtn.indexOf("l-btn-disabled") != -1 && checkInBtn.indexOf("l-btn-disabled") == -1) {
+            MsgAlert({content: '当前有已检出的结构化数据，请检入后重试.', type: 'error'});
+            return;
+        }
+        var title_ = $.i18n.t('查询上营运人手册列表');
+        ShowWindowIframe({
+            width: "850",
+            height: "550",
+            title: title_,
+            param: {
+                pkid: pkid
+            },
+            url: "/views/td/jobcard/commonjc/TdSupplementChooseLCManual.shtml"
+        });
+    }
+
+</script>
+</body>
+</html>

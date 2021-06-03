@@ -1,0 +1,261 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">时限配置</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">机队：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fleet" id="fleet" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">类型：</th>
+                    <td>
+                        <input class="easyui-textbox" name="type" id="type" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <td>
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var fleetDic;
+    var typeDic;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_FLEET,EM_MPD_CHECK_TYPE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['type'] = DomainCodeToMap_(jdata.data["EM_MPD_CHECK_TYPE"]);
+                    PAGE_DATA['fleet'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    $('#fleet').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    $('#type').combobox({
+                        panelHeight: '200px',
+                        data: jdata.data.EM_MPD_CHECK_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    fleetDic = jdata.data["DA_FLEET"];
+                    typeDic = jdata.data["EM_MPD_CHECK_TYPE"];
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            enableLineEdit: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_MPD_CHECK_SET_LIST'},
+                alter: {
+                    FLEET: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                data: fleetDic,
+                                panelHeight: '80px',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                singleSelect: true,
+                            }
+                        }
+                        ,
+                        formatter: function (value) {
+                            return PAGE_DATA['fleet'][value];
+                        }
+                    },
+                    TYPE: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                data: typeDic,
+                                panelHeight: '80px',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                singleSelect: true,
+                            }
+                        },
+                        formatter: function (value) {
+                            return PAGE_DATA['type'][value];
+                        }
+                    },
+                    FH: {
+                        editor: {
+                            type: 'textbox',
+                        }
+                    },
+                    FC: {
+                        editor: {
+                            type: 'textbox',
+                        }
+                    },
+                    DATES: {
+                        editor: {
+                            type: 'textbox',
+                        }
+                    },
+                    OPERATE_DATE: {
+                        type: "date"
+                    }
+                }
+            },
+            toolbar: [
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                },
+                {
+                    id: 'btnAdd',
+                    text: $.i18n.t('增加'),
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        addDatagridRow('add');
+                    }
+                }
+            ],
+            contextMenus: [],
+            onBeginEdit: function (index, row) {
+                // if (row.REV_CODE != "N" && row.REV_CODE != undefined) {
+                //     isDisable = true;
+                //     var ed1 = getDG('jobCardDg').datagrid('getEditor', {index: index, field: 'CARD_NO'});
+                //     $(ed1.target).textbox({editable: false, onlyview: true, required: false});
+                // } else {
+                //     isDisable = false;
+                // }
+
+            },
+            onEndEdit: function (index, row, changes) {
+                editDate(index, row, changes);
+
+            },
+            validAuth: function (row, items) {
+                return items;
+            },
+
+        });
+    }
+
+    //新增
+    function addDatagridRow() {
+        $('#dg').datagrid('appendRow', {});
+    }
+
+    //行编辑事件
+    function editDate(index, row, changes) {
+
+        row = toCamelCase(row);
+        //全部必填
+        if (!row.fleet) {
+            MsgAlert({content: '机队不能为空！', type: 'error'});
+            return;
+        }
+        if (!row.type) {
+            MsgAlert({content: '类型不能为空！', type: 'error'});
+            return;
+        }
+        if (!row.fh && !row.fc && !row.dates) {
+            MsgAlert({content: 'FC/FH/DATE 不能全部为空！', type: 'error'});
+            return;
+        }
+        // if (!row.fc) {
+        //     MsgAlert({content: $.i18n.t("fc不能为空")});
+        //     return;
+        // }
+        // if (!row.dates) {
+        //     MsgAlert({content: $.i18n.t("天数不能为空")});
+        //     return;
+        // }
+        //校验 相同机队只能有一个类型
+        InitFuncCodeRequest_({
+            data: {
+                pkid: row.pkid,
+                fleet: row.fleet,
+                type: row.type,
+                FunctionCode: 'EM_MPD_CHECK_SET_SAVE_CHECK'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.length == 0) {
+                        var url = $.extend({}, row, {FunctionCode: 'EM_MPD_CHECK_SET_SAVE'});
+                        InitFuncCodeRequest_({
+                            data: url,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                }
+                            }
+                        });
+                    } else {
+                        MsgAlert({content: '该机队已添加过该类型', type: 'error'});
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</body>
+</html>

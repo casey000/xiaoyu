@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>工卡类型详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="companyCode" name="companyCode"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th align="right" style="width: 80px;">机队：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="fleet" name="fleet"
+                                   data-options="required:true,editable:false" style="width: 100px;"/>
+                        </td>
+                        <th align="right" style="width: 80px;">工卡类型：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="jcType" name="jcType" data-options="required:true"
+                                   style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th align="right" style="width: 80px;">工卡类型名称：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="jcTypeName" name="jcTypeName" data-options="required:true"
+                                   style="width: 100px;"/>
+                        </td>
+                        <th align="right" style="width: 80px;">是否结构化：</th>
+                        <td colspan="3" style="padding: 3px;">
+                            <input class="easyui-combobox" id="isStruct" name="isStruct"
+                                   data-options="required:true,editable:false" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var type;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        type = param.type;
+        InitFuncCodeRequest_({
+            data: {domainCode: "DA_FLEET,YESORNO", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#fleet").combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#isStruct').combobox({
+                        panelHeight: '60px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                }
+                if (param.pkid) {
+                    InitDataForm(param.pkid);
+                }
+                if (type == "view") {
+                    $('#saveBtn').hide();
+                }
+            }
+        })
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_JC_TYPE_GETBY_PK_ID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#fleet').combobox({value: jdata.data.FLEET});
+                    $('#isStruct').combobox({value: jdata.data.IS_STRUCT});
+
+                    if (type == "view") {
+                        $('#fleet').combobox({onlyview: true, editable: false});
+                        $('#isStruct').combobox({onlyview: true, editable: false});
+                        $('#jcType').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+                        $('#jcTypeName').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+                    }
+                    if (type == "edit") {
+                        $('#fleet').combobox({onlyview: true, editable: false});
+                        $('#jcType').combobox({onlyview: true, editable: false});
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'TD_JC_TYPE_ADDORUPDATE', type: type});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.onSearch_('dg', '#formSerch');
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

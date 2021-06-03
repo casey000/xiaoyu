@@ -1,0 +1,642 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <h5>适用性：</h5>
+    <ul id="tt"></ul>
+    <!--<table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+
+        <tr>
+            <td colspan="8" align="center">
+                <input class="btn btn-primary" id="save1" onclick="InitSaveForm_();" type="submit" value="保存"
+                       style="margin:5px;"/>
+            </td>
+        </tr>
+    </table>-->
+
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="orgName" name="orgName"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <input style="display:none;" name="pkid" id="pkid"/>
+                    <input style="display:none;" name="eoPkid" id="eoPkid"/>
+
+                    <tr>
+
+
+                        <th class="tdl">航材工具类型:</th>
+
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="mtType" id="mtType"
+                                   data-options="editable:false,required:true"/>
+                        </td>
+
+
+                        <th class="tdl">工作视情:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="workDepends" id="workDepends"
+                                   data-options="editable:false,required:true" style="width:160px"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+
+
+                        <th class="tdl">件号:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="pn" id="pn"
+                                   data-options="" style="width:128px"/>
+                            <input id="chooseBtn" class="btn btn-primary" type="button" onclick="choose()"
+                                   value="选取"
+                                   style="width: 40px;"/>
+                        </td>
+
+
+                        <th class="tdl">替代件号:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="replacePn" id="replacePn"
+                                   data-options="" style="width:160px"/>
+                            <!--<input id="RchooseBtn" class="btn btn-primary" type="button" onclick="choose('replacePn')"
+                                   value="选取"
+                                   style="width: 40px;"/>-->
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="tdl">名称:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="name" id="name"
+                                   data-options="required:true"/>
+                        </td>
+
+                        <th class="tdl">数量:</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" data-options="required:true,validType:'qtyValid'"
+                                   name="qty" id="qty" style="width:160px"
+                            />
+                        </td>
+
+
+                    </tr>
+                    <tr>
+
+
+                        <th class="tdl">单位:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="unit" id="unit" data-options="editable:false,required:true,validType:'comboBoxEditvalid[\'unit\']'"/>
+                        </td>
+
+
+                        <th class="tdl">数量按需:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="qtyDemand" id="qtyDemand"
+                                   data-options="editable:false,required:true" style="width:160px"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">备注：</th>
+                        <td class="td5" colspan="3">
+                            <input class="easyui-textbox" id="memo" name="memo"
+                                      data-options="multiline:true,editable:true,validType:['maxLength[500]'] "
+                                      style="width: 98%;height:50px" />
+                        </td>
+                    </tr>
+                    <!--  <tr>
+                          <th class="tdl">适用性分组:</th>
+                          <td class="tdr">
+                              <input class="easyui-textbox" name="appGroup" id="appGroup"
+                              />
+                          </td>
+                      </tr>
+  -->
+                    <tr>
+                        <td colspan="8" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+    var param = {};
+    var datan;
+    var otherData;
+    var otherDatan = [];
+    var pkid;
+    var saveFlag;
+
+    function i18nCallBack() {
+        window.resizeTo("700", "500");
+        window.moveTo(400, 150);
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_JC_MATER_SORT,TD_JC_MATER_TYPE,TD_JC_MATER_UNIT,YESORNO,TD_JC_MATER_MA_UNS_UNIT,TD_JC_MATER_TOOL_UNIT,QUANTITY_IF_DEMAND",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#pn").textbox({editable: false, onlyview: true});
+                    //航材工具
+                    $('#mtType').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.TD_JC_MATER_SORT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item, old) {
+                            item = item.VALUE;
+                            clearForm();
+                            if (item == 'UNSPECIFIC') { //无指定
+                                $("#chooseBtn").hide();
+                                $("#pn").textbox('setValue', 'No Specific');
+                                $("#pn").textbox({editable: false, onlyview: true});
+                                $("#unit").combobox({editable: true});
+                                MsgAlert({content: "无件号航材将不参与MR推送!!!", type: 'warn'});
+                            } else { //航材 OR 工具/设备
+                                var pnValue = $("#pn").textbox('getValue');
+                                if (item == 'MA') { //航材
+                                    $("#chooseBtn").show();
+                                    $("#pn").textbox({editable: false, onlyview: true, required: true});
+                                    $("#unit").combobox({editable: false})
+                                } else { //工具/设备
+                                    $("#chooseBtn").show();
+                                    $("#pn").textbox({editable: true, required: false, onlyview: false});
+                                    $("#unit").combobox({editable: true})
+                                }
+                            }
+                            //switchUnit(item.VALUE);
+                            if (item == 'MA' || item == 'UNSPECIFIC') {
+                                $('#unit').combobox({
+                                    panelHeight: '200px',
+                                    data: jdata.data.TD_JC_MATER_MA_UNS_UNIT,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT'
+                                })
+                            } else {
+                                $('#unit').combobox({
+                                    panelHeight: '200px',
+                                    data: jdata.data.TD_JC_MATER_TOOL_UNIT,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT'
+                                })
+                            }
+                        }
+
+                    });
+                    //视情
+                    $('#workDepends').combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.QUANTITY_IF_DEMAND,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //数量按需
+                    $('#qtyDemand').combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.QUANTITY_IF_DEMAND,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+
+                    //航次与无指定单位 TD_JC_MATER_MA_UNS_UNIT
+                    //工具与设备单位 TD_JC_MATER_TOOL_UNIT
+                    //单位
+                    $('#unit').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.TD_JC_MATER_MA_UNS_UNIT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                }
+
+                initData();
+                if (param.pkid) {
+                    InitDataForm(param.pkid);
+                }
+            }
+        })
+    }
+
+    /**
+     * 初始化数据
+     * @param pkid
+     * @constructor
+     */
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {pkid: pkid, FunctionCode: "EM_EO_MATERIAL_TOOL_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#unit').combobox('setValue', jdata.data.UNIT);
+                    //switchUnit(item.VALUE);
+                    //$('#unit').combobox('setValue', jdata.data.UNIT);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitSaveForm_() {
+        $('#eoPkid').val(param.eoPkid);
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var pn = $("#pn").textbox('getValue');
+                var mtType = $("#mtType").combobox('getValue');
+                /*if (pn == "" && "WU" != mtType) {
+                    MsgAlert({content: "请先选择件号", type: 'error'});
+                    return;
+                }*/
+                queryOtherMaterialSelect();
+                if(saveFlag == 1){
+                    MsgAlert({content: '适用性分组重复', type: 'error'});
+                    return;
+                }
+
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {FunctionCode: "EM_EO_MATERIAL_TOOL_ADD"});
+                InitFuncCodeRequest_({
+                    async:false,
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            //param.OWindow.reload_();
+                            //MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                            pkid = jdata.data.pkid;
+                            $('#pkid').val(pkid);
+                            saveApp();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+    //选取件号
+    var npChose = "";
+
+    function choose() {
+        var mtType = $('#mtType').combobox('getValue');
+        if(!mtType){
+            alert('请先选择航材工具类型！');
+            return;
+        }
+        var title_ = $.i18n.t('选取件号');
+        ShowWindowIframe({
+            width: "774",
+            height: "412",
+            title: title_,
+            param: {mtType:mtType},
+            url: "/views/em/emeo/sub/PN_LIST.shtml"
+        });
+    }
+
+    //设置件号
+    function setPn(pn, name, replacePn, unit) {
+        /*$("#" + npChose).textbox('setValue', obj);
+        if (npChose == "pn") {
+            $("#name").textbox('setValue', name);
+        }*/
+        $('#pn').textbox('setValue', pn);
+        $("#name").textbox('setValue', name);
+        if(replacePn){
+            $("#replacePn").textbox('setValue', replacePn);
+        }
+        if(unit){
+            $("#unit").textbox('setValue', unit);
+        }
+    }
+
+    //查询其他航材选中的适用性
+    function queryOtherMaterialSelect() {
+        var node = $('#tt').tree('getChecked');
+        var appGroup = JSON.stringify(node);
+        var pn = $('#pn').textbox('getValue'); //件号
+        var name = $('#name').textbox('getValue'); //名称
+        pn = pn? pn : '';
+        name = name? name : '';
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pn: pn,
+                name: name,
+                eoPkid: param.eoPkid,
+                appGroup: appGroup,
+                pkid : param.pkid,
+                FunctionCode: "EM_EO_MATERIAL_OTHER_APP_CHECK"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    saveFlag = jdata.data;
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    /*if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;*/
+                    var result = true;
+                    var allData = $combobox.combobox('getData');
+                    for(var i = 0; i< allData.length; i++){
+                        if(value == allData[i].TEXT){
+                            result = false;
+                            break;
+                        }
+                    }
+                    if(result){
+                        return false;
+                    }else{
+                        return true;
+                    }
+
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        },
+        qtyValid: { //数量
+            validator: function (value) {
+                if (value) {
+                    if(value > 0 && value <= 999999){
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }
+                return false;
+
+            },
+            message: '请输入0~999999的正数'
+        },
+    });
+
+    //适用性--start
+    function initData() {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: param.pkid,
+                eoPkid: param.eoPkid,
+                FunctionCode: 'EM_EO_MATERIAL_TOOL_APP_LIST'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitTreegrid(jdata.data);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitTreegrid(data) {
+        if (!data) return;
+
+        let otherDatan1 = [];
+        //航材工具时或理论工时
+        //queryOtherMtSelect(param.eoPkid, param.pkid);
+        if(otherData){
+            for (let i = 0; i < data.length; i++) {
+                otherDatan.push(toCamelCase(otherData[i]));
+                if (otherDatan[i].checked == 1) {
+                    otherDatan[i].checked = true;
+                }
+
+            }
+
+            for (let i = 0; i < otherDatan.length; i++) {
+                if (!otherDatan[i].appConfig) {
+
+                    let id = otherDatan[i].id;
+                    for (let l = 0; l < otherDatan.length; l++) {
+                        if (otherDatan[l].appGroupPkid == id && otherDatan[l].appConfig) {
+                            if (!otherDatan[i].children) {
+                                let children = [];
+                                otherDatan[i].children = children;
+                            }
+                            otherDatan[i].children.push(otherDatan[l])
+                        }
+                    }
+                    otherDatan1.push(otherDatan[i]);
+                }
+            }
+
+        }
+
+        //找出已选中的适用性
+        let selectedIds = [];
+        if(otherDatan1.length > 0){
+            for(let i = 0; i<otherDatan1.length; i++){
+                if(otherDatan1[i].checked){ //父级被选中
+                    selectedIds.push(otherDatan1[i].id);
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            selectedIds.push(otherDatan1[i].children[j].id);
+                        }
+                    }
+                }else{//父级未选中
+                    let isChildren = false; //标识子级是否被选中
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            if(otherDatan1[i].children[j].checked){
+                                isChildren = true;
+                                selectedIds.push(otherDatan1[i].children[j].id);
+                            }
+                        }
+                        if(isChildren){//子级至少有一个选中时
+                            selectedIds.push(otherDatan1[i].id);
+                        }
+
+                    }
+                }
+            }
+        }
+
+        datan = [];
+        for (let i = 0; i < data.length; i++) {
+            datan.push(toCamelCase(data[i]));
+            if (datan[i].checked == 1) {
+                datan[i].checked = true;
+            }
+
+        }
+        let datan1 = [];
+        for (let i = 0; i < datan.length; i++) {
+            if (!datan[i].appConfig) {
+
+                let id = datan[i].id;
+                for (let l = 0; l < datan.length; l++) {
+                    if (datan[l].appGroupPkid == id && datan[l].appConfig) {
+                        if (!datan[i].children) {
+                            let children = [];
+                            datan[i].children = children;
+                        }
+                        datan[i].children.push(datan[l])
+                    }
+                }
+                datan1.push(datan[i]);
+            }
+        }
+        console.log(datan1);
+        console.log(otherDatan1);
+        console.log(selectedIds);
+
+
+        $('#tt').tree({
+            data: datan1,
+            checkbox: true,
+            idField: 'id',
+            treeField: 'groupName',
+            columns: [[
+                {title: 'Task Name', field: 'groupName', width: 180},
+                {field: 'persons', title: 'Persons', width: 60, align: 'right'},
+                {field: 'begin', title: 'Begin Date', width: 80},
+                {field: 'end', title: 'End Date', width: 80}
+            ]],
+            onCheck:function(node, checked){
+                console.log(node);
+                if (checked) {
+                    /*if(node.id == 2218 || node.id == '2218_Config2'){
+                        $('#tt').tree('uncheck', node.target);
+                    }*/
+                    if(selectedIds.length != 0 && selectedIds.indexOf(node.id) > -1){
+                        $('#tt').tree('uncheck', node.target);
+                    }
+                }
+            }
+        });
+
+    }
+
+    function saveApp() {
+        let data = {};
+        let node = $('#tt').tree('getChecked');
+        let appGroup = JSON.stringify(node);
+        data = $.extend(data, {
+            pkid: pkid,
+            eoPkid: param.eoPkid,
+            appGroup: appGroup
+        }, {FunctionCode: 'EM_EO_MATERIAL_TOOL_APP_ADD'});
+
+        InitFuncCodeRequest_({
+            async: false,
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //查询其他相同件号和数量航材选中的适用性
+    /*function queryOtherMtSelect(eoPkid, pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: pkid,
+                eoPkid: eoPkid,
+                FunctionCode: "EM_EO_MATERIAL_TOOL_OTHER_APP_LIST"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    otherData = jdata.data;
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }*/
+
+
+
+    //适用性end----
+    //下拉框校验
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    /*if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;*/
+                    var result = true;
+                    var allData = $combobox.combobox('getData');
+                    for(var i = 0; i< allData.length; i++){
+                        if(value == allData[i].TEXT){
+                            result = false;
+                            break;
+                        }
+                    }
+                    if(result){
+                        return false;
+                    }else{
+                        return true;
+                    }
+
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        }
+    });
+
+    function clearForm(){
+        $('#workDepends').combobox('setValue','');
+        $('#pn').textbox('setValue','');
+        $('#replacePn').textbox('setValue','');
+        $('#name').textbox('setValue','');
+        $('#qty').numberbox('setValue','');
+        $('#unit').combobox('setValue','');
+        $('#qtyDemand').combobox('setValue','');
+        $('#memo').textbox('setValue','');
+    }
+
+</script>
+</html>

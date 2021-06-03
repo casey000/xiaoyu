@@ -1,0 +1,534 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">孔探报告</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:60px;" align="right">型号：</th>
+                    <td style="width: 130px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:130px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="esn" name="esn" style="width:100px;"/>
+                    </td>
+                    <th class="th" align="right" style="width:100px;">工作日期从：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="workDateS" name="workDateS" data-options="editable:false" style="width: 100px;"/>
+                    </td>
+                    <th class="th" align="right" style="width:20px;">至：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="workDateE" name="workDateE" data-options="editable:false" style="width: 108px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">报告状态：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="status" name="status" style="width:110px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn"  data-options="iconCls:'icon-search'" onclick="searchData();"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                        <a href="javascript:void(0)" class="addBtn" auth="ENG_BSI_REPORT1" onclick="addOrEditEngBsiReport('add','')"><span>报告录入</span></a>&nbsp;
+                        <a href="javascript:void(0)" class="addBtn"  onclick="expExcel()"><span>导出</span></a>&nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:60px;" align="right">机型：</th>
+                    <td style="width: 130px" class="td5">
+                        <input class="easyui-combobox" id="acType" name="acType" style="width:130px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">机号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acReg" name="acReg" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">评估结论：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="conclusion" name="conclusion" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">检查部位：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="area" name="area" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">报告编号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="reportNo" name="reportNo" style="width:110px;"/>
+                    </td>
+                   <!-- <td colspan="2" style="width: 100px" class="td5">
+                        <input type="checkbox" id="" name="" value="" />各发动机最近一次报告
+                    </td>-->
+
+                </tr>
+                <tr>
+                    <th class="th" style="width:60px;" align="right">评估措施：</th>
+                    <td style="width: 130px" class="td5">
+                        <input class="easyui-textbox" id="provAction" name="provAction" style="width:130px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">数据来源：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="dataSource" name="dataSource" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">后续措施：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="workno" name="workno" style="width:110px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var ctx=window.location.origin;
+    var PAGE_DATA = {};
+    var loginUser;
+    var loginName;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData();
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_BSI_STATUS,ENG_BSI_RESULT,ENG_BSI_DATA_SOURCE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    //状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["ENG_BSI_STATUS"]);
+                    PAGE_DATA['conclusion'] = DomainCodeToMap_(jdata.data["ENG_BSI_RESULT"]);
+                    PAGE_DATA['dataSource'] = DomainCodeToMap_(jdata.data["ENG_BSI_DATA_SOURCE"]);
+                    $('#dataSource').combobox({
+                        data:  jdata.data.ENG_BSI_DATA_SOURCE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                    $('#status').combobox({
+                        data:  jdata.data.ENG_BSI_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                    $('#conclusion').combobox({
+                        data:  jdata.data.ENG_BSI_RESULT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '50px',
+                    });
+
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngTypeNew",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#epn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+
+                    InitGatewayRequest_({
+                        async: false,
+                        data:{},
+                        path: "/meng-engine/baseOwn/getEngByTypeNew",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#esn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/engBsiReport/getMpActypes",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#acType').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取机型列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    var datas =  {};
+                    InitGatewayRequest_({
+                        async: false,
+                        data: datas,
+                        path: "/meng-engine/engBsiReport/getAcnos",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#acReg').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取机号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $('#dg').GatewayDataGrid({
+            path: "/meng-engine/engBsiReport/listByPage",
+            async: false,
+            queryParams: queryParams,
+            identity: 'dg',
+            idField: "pkid",
+            pagination: true,
+            title: $.i18n.t(''),
+            columns: {
+                param: {FunctionCode: 'ENG_BSI_REPORT_LIST'},
+                alter: {
+                    dataSource:{
+                        formatter: function (value) {
+                            return PAGE_DATA['dataSource'][value];
+                        }
+                    },
+                    status:{
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    conclusion:{
+                        formatter: function (value) {
+                            return PAGE_DATA['conclusion'][value];
+                        }
+                    },
+                    inspectionDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    },
+                    createDate: {
+                        type: 'date'
+                    },
+                    recheckDate: {
+                        type: 'date'
+                    },
+                    auditDate: {
+                        type: 'date'
+                    },
+                    workDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_BSI_REPORT2",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngBsiReport('edit',rowData);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_BSI_REPORT3",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        deleteBsiReport(rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-revise", i18nText: "生成PDF",
+                    auth: "ENG_BSI_REPORT5",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        print(rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-revise", i18nText: "提交",
+                    auth: "ENG_BSI_REPORT4",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!rowData.conclusion) {
+                            MsgAlert({content: "评估结论为空不允许提交！", type: 'error'});
+                            return;
+                        }
+                        if (loginUser != rowData.worker) {
+                            MsgAlert({content: "只有工作者可以提交！", type: 'error'});
+                            return;
+                        }
+                        submitBsiReport(rowData.pkid);
+                    }
+                }, {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        var pkid = rowData.pkid;
+                        if (!pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        var datas = {"objNo":pkid,"objKey":"ENG_BSI_REPORT"};
+                        InitGatewayRequest_({
+                            async: false,
+                            data:datas,
+                            path: "/meng-engine/engCommonService/checkFlow",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    cou = jdata.obj;
+                                    if(cou == 0){
+                                        MsgAlert({content: "该数据没有办理轨迹!", type: 'error'});
+                                        return;
+                                    }else{
+                                        ShowWindowIframe({
+                                            width: 1100,
+                                            height: 400,
+                                            title: $.i18n.t('审批轨迹'),
+                                            param: {objNo: rowData.pkid, objKey: "ENG_BSI_REPORT"},
+                                            url: '/views/flow/work_flow_history_task_list.shtml'
+                                        });
+                                    }
+                                } else {
+                                    MsgAlert({content: "校验办理轨迹失败!", type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if(row.status != '1' || loginUser != row.createUser){
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                    if(row.status != '1'){
+                        items['提交'].enable = false;
+                    }
+                }else{
+                    items['办理轨迹'].enable = false;
+                }
+                if(row.status == '7' && loginUser == row.createUser){
+                    items['编辑'].enable = true;
+                }
+                if(row.dataSource == '2'){
+                    items['编辑'].display = false;
+                    items['删除'].display = false;
+                    items['提交'].display = false;
+                    items['生成PDF'].display = false;
+                    items['办理轨迹'].display = false;
+                }
+
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEditEngBsiReport('view',value);
+            }
+        });
+    }
+
+    //添加或编辑
+    function addOrEditEngBsiReport(operation,rowData){
+        var dataSource = rowData.dataSource;
+        var pkid = rowData.pkid;
+        var url = '/views/engine/engBsiReport/eng_bsi_report_add_edit.shtml';
+        var width = '857';
+        var height = '610';
+        if(dataSource == '2'){
+            url = '/views/engine/engBsiReportOut/eng_bsi_report_out_add_edit.shtml';
+            width = '920';
+            height = '500';
+        }
+        var title_ = $.i18n.t('添加或编辑-孔探报告');
+        ShowWindowIframe({
+            width: width,
+            height: height,
+            title: title_,
+            param: {pkid:pkid,operation: operation},
+            url: url
+        });
+    }
+
+
+    //删除
+    function deleteBsiReport(pkid){
+        var cou = '';
+        var datas = {"pkid":pkid};
+        InitGatewayRequest_({
+            async: false,
+            data:datas,
+            path: "/meng-engine/engBsiReport/deleteBsiReport",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    cou = jdata.obj;
+                    if(cou > 0){
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                } else {
+                    MsgAlert({content: "删除失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    //查询
+    function searchData() {
+        InitDataGrid();
+    }
+
+    //刷新列表
+    function reload_(){
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    function submitBsiReport(pkid){
+        common_add_edit_({
+            identity: '',
+            isEdit: '',
+            width: 520,
+            height: 300,
+            title: $.i18n.t('选择审批人'),
+            param: {
+                operation: "flow",
+                roleId: '',
+                otherParam: '',
+                PKID: pkid,
+                FunctionCode_: 'ENG_BSI_REPORT_SUBMIT',
+                successCallback: reload_
+            },
+            url: "/views/flow/work_flow_account_select.shtml"
+        });
+    }
+
+    function print(pkid){
+        var url = '';
+        var datas = {"pkid":pkid};
+        InitGatewayRequest_({
+            async: false,
+            data:datas,
+            path: "/meng-engine/engBsiReport/printBsiReport",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    url = jdata.obj;
+                    if(url){
+                        preview(url);
+                    }else{
+                        MsgAlert({content: "打印报错，请联系管理员!", type: 'error'});
+                    }
+                } else {
+                    MsgAlert({content: "打印失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function preview(url) {
+        var title_ = $.i18n.t('孔探报告');
+        ShowWindowIframe({
+            width: "850",
+            height: "650",
+            title: title_,
+            param: {url: url},
+            url: "/views/engine/engBsiReport/preview_pdf.shtml"
+        });
+    }
+
+    function expExcel(url) {
+        var queryParams = $("#ffSearch").serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            data: queryParams,
+            path: "/meng-engine/engBsiReport/expExcel",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    url = jdata.obj;
+                    window.location.href = ctx + url;
+                } else {
+                    MsgAlert({content:"导出失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

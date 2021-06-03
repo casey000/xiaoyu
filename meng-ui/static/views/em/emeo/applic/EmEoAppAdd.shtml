@@ -1,0 +1,313 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+
+                <input type="hidden" id="orgName" name="orgName"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+                    <input style="display:none;" name="pkid" id="pkid"/>
+                    <input style="display:none;" name="eoPkid" id="eoPkid"/>
+                    <tr>
+
+
+
+
+
+                    </tr>
+                </table>
+                <ul id="tt"></ul>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+
+                    <tr>
+                        <td colspan="8" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript">
+
+    var param = {};
+    var datan;
+    var otherData;
+    var otherDatan = [];
+    function i18nCallBack() {
+        window.resizeTo("600", "300");
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EO_EL_DATA_SOURCE,WS_SYS_ACCOUNT_STATE,WS_SYS_ACCOUNT_TYPE,HR_SEX,HR_ORG",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //来源
+                    $('#source').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_EO_EL_DATA_SOURCE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    /*  $("#appGroup").MyComboGrid({
+                          panelWidth: '200',
+                          idField: 'VALUE',  //实际选择值
+                          textField: 'TEXT', //文本显示值
+                          editable: true,
+                          required: true,
+                          pagination: true,
+                          tipPosition: 'top',
+                          multiple: true,
+                          mode: 'remote',
+                          params: {eoPkid: param.eoPkid, FunctionCode: 'EM_EO_APP_SHOW'},
+                          url: Constant.API_URL + 'EM_EO_APP_SHOW',
+                          columns: [[
+                              {field: 'VALUE', title: 'CODE', width: 100, sortable: true},
+                              {field: 'TEXT', title: 'NAME', width: 100, sortable: true}
+                          ]]
+                      });*/
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        initData();
+    }
+
+    function initData() {
+
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: param.pkid,
+                eoPkid: param.eoPkid,
+                FunctionCode: param.appList
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    InitTreegrid(jdata.data);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitTreegrid(data) {
+        if (!data) return;
+
+        let otherDatan1 = [];
+        //航材工具时或理论工时
+        if(param.appFunctionCode == 'EM_EO_MATERIAL_TOOL_APP_ADD' || param.appFunctionCode == 'EM_EO_MH_APP_GROUP_ADD'){
+            //查询相同件号的航材适用性或相同标准工时的适用性
+            if(param.appFunctionCode == 'EM_EO_MATERIAL_TOOL_APP_ADD'){
+                queryOtherMtSelect(param.eoPkid, param.pkid);
+            }else if(param.appFunctionCode == 'EM_EO_MH_APP_GROUP_ADD'){
+                queryOtherMhSelect(param.eoPkid, param.pkid);
+            }
+
+            if(otherData){
+                for (let i = 0; i < data.length; i++) {
+                    otherDatan.push(toCamelCase(otherData[i]));
+                    if (otherDatan[i].checked == 1) {
+                        otherDatan[i].checked = true;
+                    }
+
+                }
+
+                for (let i = 0; i < otherDatan.length; i++) {
+                    if (!otherDatan[i].appConfig) {
+
+                        let id = otherDatan[i].id;
+                        for (let l = 0; l < otherDatan.length; l++) {
+                            if (otherDatan[l].appGroupPkid == id && otherDatan[l].appConfig) {
+                                if (!otherDatan[i].children) {
+                                    let children = [];
+                                    otherDatan[i].children = children;
+                                }
+                                otherDatan[i].children.push(otherDatan[l])
+                            }
+                        }
+                        otherDatan1.push(otherDatan[i]);
+                    }
+                }
+
+            }
+        }
+
+        //找出已选中的适用性
+        let selectedIds = [];
+        if(otherDatan1.length > 0){
+            for(let i = 0; i<otherDatan1.length; i++){
+                if(otherDatan1[i].checked){ //父级被选中
+                    selectedIds.push(otherDatan1[i].id);
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            selectedIds.push(otherDatan1[i].children[j].id);
+                        }
+                    }
+                }else{//父级未选中
+                    let isChildren = false; //标识子级是否被选中
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            if(otherDatan1[i].children[j].checked){
+                                isChildren = true;
+                                selectedIds.push(otherDatan1[i].children[j].id);
+                            }
+                        }
+                        if(isChildren){//子级至少有一个选中时
+                            selectedIds.push(otherDatan1[i].id);
+                        }
+
+                    }
+                }
+            }
+        }
+
+        datan = [];
+        for (let i = 0; i < data.length; i++) {
+            datan.push(toCamelCase(data[i]));
+            if (datan[i].checked == 1) {
+                datan[i].checked = true;
+            }
+
+        }
+        let datan1 = [];
+        for (let i = 0; i < datan.length; i++) {
+            if (!datan[i].appConfig) {
+
+                let id = datan[i].id;
+                for (let l = 0; l < datan.length; l++) {
+                    if (datan[l].appGroupPkid == id && datan[l].appConfig) {
+                        if (!datan[i].children) {
+                            let children = [];
+                            datan[i].children = children;
+                        }
+                        datan[i].children.push(datan[l])
+                    }
+                }
+                datan1.push(datan[i]);
+            }
+        }
+        console.log(datan1);
+        console.log(otherDatan1);
+        console.log(selectedIds);
+
+
+        $('#tt').tree({
+            data: datan1,
+            checkbox: true,
+            idField: 'id',
+            treeField: 'groupName',
+            columns: [[
+                {title: 'Task Name', field: 'groupName', width: 180},
+                {field: 'persons', title: 'Persons', width: 60, align: 'right'},
+                {field: 'begin', title: 'Begin Date', width: 80},
+                {field: 'end', title: 'End Date', width: 80}
+            ]],
+            onCheck:function(node, checked){
+                console.log(node);
+                if (checked) {
+                    /*if(node.id == 2218 || node.id == '2218_Config2'){
+                        $('#tt').tree('uncheck', node.target);
+                    }*/
+                    if(selectedIds.length != 0 && selectedIds.indexOf(node.id) > -1){
+                        $('#tt').tree('uncheck', node.target);
+                    }
+                }
+            }
+        });
+
+    }
+
+
+    function InitSaveForm_() {
+
+
+        let data = {};
+        let node = $('#tt').tree('getChecked');
+        let appGroup = JSON.stringify(node);
+        data = $.extend(data, {
+            pkid: param.pkid,
+            eoPkid: param.eoPkid,
+            appGroup: appGroup
+        }, {FunctionCode: param.appFunctionCode});
+
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //查询其他相同件号和数量航材选中的适用性
+    function queryOtherMtSelect(eoPkid, pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: pkid,
+                eoPkid: eoPkid,
+                FunctionCode: "EM_EO_MATERIAL_TOOL_OTHER_APP_LIST"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    otherData = jdata.data;
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //查询其他相同理论工时选中的适用性
+    function queryOtherMhSelect(eoPkid, pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: pkid,
+                eoPkid: eoPkid,
+                FunctionCode: "EM_EO_MAN_HOUR_OTHER_APP_LIST"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    otherData = jdata.data;
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

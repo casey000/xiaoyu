@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>超限报文处置</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="超限报文处置" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="dealUser" name="dealUser"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="4" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="处置"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th >处置方式：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="dealType" name="dealType" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>处置备注：</th>
+                        <td colspan="3">
+                                <textarea class="easyui-textbox " id="dealMemo" name="dealMemo" multiline="true"
+                                          style="height:150px;width: 98%;border: 1px solid #ddd;border-radius: 5px;"
+                                          data-options="required:true"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>处置人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="dealUserName" name="dealUserName" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th>处置日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="dealDate" name="dealDate" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var pkid;
+    var esn;
+    var sourceType;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        $("#dealUserName").textbox('setValue',userLogin.userName);
+        $("#dealUser").val(userLogin.accountId);
+        $("#dealDate").datebox('setValue',new Date().Format('yyyy-MM-dd'));
+        param = getParentParam_();
+        pkid = param.pkid;
+        esn = param.esn;
+        sourceType = param.sourceType;
+        $('#pkid').val(pkid);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_OIL_DEAL_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#dealType").combobox({
+                        panelHeight: '90px',
+                        data: jdata.data.ENG_OIL_DEAL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            checkKeyList(item.VALUE);
+                        }
+                    });
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    //处置
+    function save(){
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var dealType = $('#dealType').combobox('getValue');
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        var cou = 0;
+        if(dealType == 3){//选择重点监控才拦截
+            cou = checkKeyList();
+        }else{
+            cou = 1;
+        }
+        if(cou != 0){
+            datas.pkid = pkid;
+            InitGatewayRequest_({
+                async: false,
+                path: "/meng-engine/engPerOver/dealPerOver",
+                data:datas,
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        var data = jdata.obj;
+                        if(data > 0){
+                            param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            param.OWindow.reload_();
+                            CloseWindowIframe();
+                        }
+                    } else {
+                        MsgAlert({content: "处置失败!", type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+    function checkKeyList(dealType){
+        var path = "";
+        if(dealType == '3'){
+            path = "/meng-engine/engPerKeylist/checkKeyList";
+        }else if(dealType == '4'){
+            path = "/meng-engine/engPerAlert/checkAlert";
+        }
+        var msg = '';
+        var cflag = false;
+        var datas = {'esn':esn,'sourceType':sourceType};
+        InitGatewayRequest_({
+            async: false,
+            path: path,
+            data:datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    msg = jdata.obj;
+                    if(dealType == '3'){
+                        if(msg != ''){
+                            if (!confirm("当前发动机正在监控中["+msg+"]，是否继续添加新的监控条目？")) {
+                                return;
+                            }else{
+                                cflag = true;
+                            }
+                        }else if(msg == ''){
+                            alert("当前发动机无监控中条目，请先添加监控条目。");
+                            cflag = true;
+                        }
+                    }else{
+                        cflag = true;
+                    }
+                    if(cflag){
+                        addOrEditKeylist('add',dealType);
+                    }
+                } else {
+                    MsgAlert({content: "校验失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function addOrEditKeylist(operation, dealType) {
+        var flag = 'over';
+        var path = '';
+        var width = '';
+        var height = '';
+        if(dealType == '3'){
+            //重点监控清单
+            path = "/views/engine/engPerKeylist/eng_per_keylist_add_edit.shtml";
+            width = '800';
+            height = '580';
+        }else if(dealType == '4'){
+            //性能报警通知单
+            path = "/views/engine/engPerAlert/eng_per_alert_add_edit.shtml";
+            width = '920';
+            height = '680';
+        }
+        var title_ = $.i18n.t('新增');
+        ShowWindowIframe({
+            width: width,
+            height: height,
+            title: title_,
+            param: {operation: operation,flag:flag,esns:esn},
+            url: path
+        });
+    }
+
+    function reload_(){
+        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+    }
+
+</script>
+</body>
+</html>

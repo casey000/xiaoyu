@@ -1,0 +1,255 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">FLB Initialization</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        .table-bordered {
+            border: none;
+        }
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 234px;
+        }
+
+        #btnSyncPlan {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 111px;
+        }
+
+        #btnSync {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 20px;
+        }
+        #btnDel {
+            position: absolute;
+            top: 0px;
+            right: 20px;
+        }
+        #Pdf{
+            background-color: #2465a8;
+            color: #fff;
+            /*position: absolute;*/
+            /*top: 2px;*/
+            /*right: 100px;*/
+        }
+        .datagrid-toolbar table{
+            text-align: right;
+            width: 100%;
+            padding-right: 30px;
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<div class="easyui-tabs" id="tt" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="ffSearch">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th align="right" class="th" style="width:50px;">P/N：</th>
+                    <td style="width:80px; padding:3px;">
+
+                        <input class="easyui-textbox" id="partNo" name="partNo" style="width:180px;"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">库房:</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox checkIsDisabled" id="storeLoc" name="storeLoc" readonly="readonly"
+                               type="text" value=""/>
+                        <img id="storeLoc_sel" name="storeLoc_sel" onclick="storeLocQuery()" src="/images/ico_search_16.gif"
+                             style="vertical-align: -10%">
+                    </td>
+                    <th align="right" class="th" style="width:50px;">库存是否大于0：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" id="availableQty" name="availableQty" style="width:180px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th align="right" class="th" style="width:50px;">Description：</th>
+                    <td style="width:80px; padding:3px;">
+
+                        <input class="easyui-textbox" id="description" name="description" style="width:180px;"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">Location：</th>
+                    <td style="width: 120px;padding:3px;">
+                        <input class="easyui-textbox" id="location" name="location" style="width:180px;"/>
+
+                    </td>
+                    <td style="width: 120px; padding:3px;border: none;text-align: right;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a class="excelBtn" data-options="iconCls:'icon-page_excel'" onclick="export_()">
+                            <span data-i18n="common:COMMON_OPERATION.EXPORT">导出</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+        <table id="dg"></table>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script src="/js/date_format.js" type="text/javascript"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+
+        //绑定回车查询事件2
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitDataGrid()
+
+    }
+    $("#availableQty").combobox({
+        valueField: 'id',
+        textField: 'text',
+        data: [ {id: "", text: "否"},{id: "0", text: "是"}],
+        value :"0"
+    });
+
+    function InitDataGrid(paramData) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            url:'/api/v1/md_mx_invasset/list2',
+            method:'post',
+            sortable: true,
+            singleSelect: true,
+            queryParams: paramData,
+            fitColumns:false,
+            columns: [
+                {
+                    field: 'itemNum', title: 'Item Num', width: 200,align:'center',
+                },
+                {
+                    field: 'partNo', title: 'P/N', width: 200,align:'center',
+                },
+                {
+                    field: 'availableQty', title: 'Available Qty', width: 150,align:'center',
+                },
+                {
+                    field: 'unit', title: 'Unit', width: 100,align:'center',
+                },
+                {
+                    field: 'location', title: 'Location', width: 170,align:'center',
+                },
+                {
+                    field: 'storeLoc', title: '库房', width: 170,align:'center',
+                },
+                {
+                    field: 'storeDescription', title: '库房描述', width: 170,align:'center',
+                },
+                {
+                    field: 'description', title: 'Description', width: '200',align:'center',
+                },
+                {
+                    field: 'restrictive', title: 'Restrictive', width: 100,align:'center',
+                },
+            ],
+            onLoadSuccess: function (value, rowData, rowIndex) {
+                if (value.total == 0) {
+                    //添加一个新数据行，第一列的值为你需要的提示信息，然后将其他列合并到第一列来，注意修改colspan参数为你columns配置的总列数
+                    $(this).datagrid('appendRow', { 'itemNum': '<div style="text-align:center;color:red">没有相关记录！</div>' }).datagrid('mergeCells', {index: 0,field: 'itemNum', colspan: 7})
+                    $(this).closest('div.datagrid-wrap').find('div.datagrid-pager').hide();
+                }
+                //如果通过调用reload方法重新加载数据有数据时显示出分页导航容器
+                else $(this).closest('div.datagrid-wrap').find('div.datagrid-pager').show();
+            },
+            toolbar: [],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    }
+
+    function export_() {
+        //导出Excel
+        var data = $('#ffSearch').serializeObject();
+        // console.log(data)
+        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/md_mx_invasset/export_inventory'></form>");
+        form.append($("<input name='fileType' value = 'excel'/>"));
+        $.each(data, function (key, val) {
+            if (typeof (val) == "object") {
+                $.each(val, function (k1, v1) {
+                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                });
+            } else {
+                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+            }
+        });
+        $('#ffSearch').append(form);
+        form.submit();
+        form.remove();
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        $("#dg").datagrid("options").pageNumber = 1;
+        let paramData = {
+            "qvalue[0]":$('#partNo').textbox('getValue'),
+            "qvalue[1]":$('#description').textbox('getValue'),
+            "qvalue[2]":$('#location').textbox('getValue'),
+            "qvalue[3]":$('#storeLoc').textbox('getValue'),
+            //查询库存要大于0时，就传入0；否则赋值为空
+            "qvalue[4]":$('#availableQty').textbox('getValue')
+        }
+        InitDataGrid(paramData);
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        $('#availableQty').combobox('setValue', '0');
+        searchData();
+    }
+
+    function storeLocQuery() {
+        // var title_ = $.i18n.t('航站查询');
+        var title_ = "选择库房";
+        var curWidth = ($(window).width() * 0.9).toString();
+        var curheight = ($(window).height() * 0.9).toString();
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: title_,
+            param: {
+                successCallback: function () {}
+            },
+            url: "/views/mr/mrStore_select.shtml"
+        });
+    }
+
+
+</script>
+</html>

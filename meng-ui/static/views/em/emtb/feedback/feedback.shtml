@@ -1,0 +1,244 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">TB反馈</title>
+</head>
+<body class="ibody">
+<div sclass="title">
+    <fieldset class="easyui-panel  " style="width:750px; height: 100%">
+        <legend>TB反馈</legend>
+        <form id="mform" class="form-horizontal">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <input type="hidden" id="status" name="status"/>
+            <table class="table table-bordered table-info">
+                <tr id="id_btn_row">
+                    <td colspan="9" align="right">
+                        <input class="btn btn-primary" type="button" onclick="pdfShow()" value="PDF预览"/>
+                        <input class="btn btn-primary" type="button" id="upload" onclick="uploadFile()" value="上传附件"/>
+                        <input class="btn btn-primary" type="button" id="saves" onclick="save();" value="反馈" style="margin-left:3px;margin-right: 18px;"/>
+                        <br/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">TB编号：</th>
+                    <td style="padding: 3px">
+                        <input id="tbNo" name="tbNo"
+                               class="easyui-textbox"
+                               data-options="width:'150px',readonly:true,disabled:true"/>
+                    </td>
+                    <th class="th" align="right" style="width: 80px;">TB版次：</th>
+                    <td style="padding: 3px">
+                        <input id="tbVer" name="tbVer"
+                               class="easyui-textbox"
+                               data-options="required:true,disabled:true"/>
+                    </td>
+                    <th class="th" align="right">适用类型：</th>
+                    <td style="padding: 3px">
+                        <input id="applyType" name="applyType"
+                               class="easyui-textbox" style="width: 150px;"
+                               data-options="required:true ,disabled:true "/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">接受部门：</th>
+                    <td colspan="5" style="padding: 3px;">
+                        <input id="sendDep" name="sendDep"
+                               class="easyui-textbox" style="width: 100%" data-options="disabled:true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">反馈描述：</th>
+                    <td colspan="5" style="padding: 3px;">
+                        <input id="feedbackDes" name="feedbackDes"
+                               class="easyui-textbox" style="width: 99%;height:60px"
+                               data-options="required:true,multiline:true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">反馈人：</th>
+                    <td style="padding: 3px">
+                        <input id="operator" name="operator"
+                               class="easyui-combobox" style="width: 150px;"
+                               data-options="required:true,disabled:true"/>
+                    </td>
+                    <th class="th" align="right">反馈日期：</th>
+                    <td style="padding: 3px">
+                        <input id="operationDate" name="operationDate"
+                               class="easyui-datebox   " style="width: 150px;" data-options="disabled:true"/>
+                    </td>
+                    <th class="th" align="right">反馈状态：</th>
+                    <td style="padding: 3px">
+                        <input id="feedbackStatus" name="feedbackStatus"
+                               class="easyui-combobox" style="width: 150px;" data-options="disabled:true"/>
+                    </td>
+                </tr>
+
+            </table>
+        </form>
+    </fieldset>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var nalter = {};
+    var param = {};
+    var listCode = "";
+    var tbPkid = "";
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        InitFuncCodeRequest_({
+            //适用型号 //ATA //新飞机 没配
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_APPL_TYPE," +
+                    "EMTB_FEEDBACK_STATUS"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //适用类型
+                    $('#applyType').combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.EM_APPL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //适用类型
+                    $('#feedbackStatus').combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.EMTB_FEEDBACK_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                }
+                if (param.pkid) {
+                    InitDataForm(param.pkid);
+                }
+            }
+        });
+    }
+
+    /**
+     * 初始化数据
+     * @param pkid
+     * @constructor
+     */
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_TB_SEND_DEPARTMENT_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    tbPkid = jdata.data.TB_PKID;
+                    if ("YFK" === jdata.data.FEEDBACK_STATUS) {
+                        $("#saves").attr("disabled", true);
+                        $("#upload").attr("disabled", true);
+                    }
+                    //设置子页面数据
+                    //  setSubData(jdata.data)
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    function reset() {
+        $("#nos").textbox("setValue", "");
+    }
+
+    //保存反馈消息
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        datas = $.extend({}, datas, {FunctionCode: 'EM_TB_SEND_DEPARTMENT_SAVE'});
+
+        InitFuncCodeRequest_({
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+
+                    $("#operator").textbox("setValue", jdata.data.operator);
+                    $("#operationDate").datebox("setValue", jdata.data.operationDate);
+
+                    $("#feedbackStatus").combobox("setValue", jdata.data.feedbackStatus);
+                    $("#saves").attr("disabled", true);
+                    $("#upload").attr("disabled", true);
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function pdfShow() {
+        if (tbPkid == -1 || tbPkid == "") {
+            MsgAlert({content: 'pdf预览错误', type: 'error'});
+            return;
+        }
+
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {pkid: tbPkid, FunctionCode: 'EM_TB_PRINT'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    let urls = jdata.data;
+                    if (urls.indexOf(":") != -1) {
+                        urls = urls.substring(urls.indexOf(":") + 1).replace("//", "/");
+                    }
+                    ajaxLoadEnd();
+                    jcPreview(urls);
+                } else {
+                    MsgAlert({content: jdata.msg, type: "error"});
+                }
+                ajaxLoadEnd();
+            }
+        });
+    }
+
+    function jcPreview(url) {
+        ShowWindowIframe({
+            width: 1200,
+            height: 650,
+            param: {url: url},
+            title: "TB预览PDF",
+            url: "/views/em/emeo/emeo_add_pdf.shtml"
+        });
+    }
+
+    //上传
+    function uploadFile() {
+        let pkid = $("#pkid").val();
+        if (pkid == -1 || pkid == "") {
+            MsgAlert({content: '请先创建保存TB', type: 'error'});
+            return;
+        }
+
+        common_uploadFile({
+            identity: 'dg',
+            param: {
+                cat: 'emTbSend',
+                sourceId: pkid,
+                successCellBack: "",
+                fialCellBack: ""
+            }
+        });
+    }
+
+
+    function reload_() {
+    }
+</script>
+</body>
+</html>

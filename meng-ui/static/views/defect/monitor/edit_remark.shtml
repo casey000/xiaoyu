@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title></title>
+</head>
+<body>
+    <style>
+        th, td{
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            /*height: 40px;*/
+        }
+    </style>
+    <table class="table table-bordered table-info" style="padding-top:10px" id="worklogList">
+        <tr style="height: 5px;"></tr>
+<!--        <tr>-->
+<!--            <td style="width: 5px"></td>-->
+<!--            <th class="param-title param-title-middle">下发日期</th>-->
+<!--            <td>-->
+<!--            <dd class="param-content" style="margin: 10px 0;">-->
+<!--                <input class="easyui-datebox" id="date" name="date" style="height: 25px;"/>-->
+<!--            </dd>-->
+<!--            </td>-->
+<!--        </tr>-->
+        <tr>
+            <td style="width: 5px"></td>
+            <th>Remark</th>
+            <td style="height: 150px">
+                <textarea id="edit_remark" name="edit_remark" maxlength="1000" style="height: 100%;width: 100%;resize: none;"></textarea>
+            </td>
+
+        </tr>
+
+    </table>
+
+    <script type="text/javascript">
+        var sub_win = frameElement.api, P = sub_win.opener;
+        var s_params = sub_win.data;
+        sub_win.data = sub_win.data || {};
+        var id = s_params['id'] || '';
+        html_required = '<span class="td-font-red"  style="color:red;">*</span>',
+        html_error_div = '<div class="error_div" style="color:red;"><span class="error">{text}</span></div>';
+        // $(function () {
+        //     $('#date').datebox('setValue', formatterDate(new Date()));
+        // });
+        sub_win.button(
+                {
+                    name : 'Submit',
+                    callback : function(){
+                        let url = "";
+                        let post_data = {};
+                        if(s_params.type === "EDIT"){
+                            url = "/api/v1/defect/defect/pend/updateRemark";
+                            post_data = {
+                                id: s_params.id,
+                                remark: $("#edit_remark").val()
+                            };
+                            updateRemark(post_data, url).catch(err=>{
+                                P.$.dialog.alert('编辑失败,'+ err);
+                            })
+                        }else if(s_params.type === "MCC"){
+                            //下发之后的remark提交，提交成功之后才执行下发，否则不执行
+                            url = "/api/v1/defect/defect_base_info/updateMccRemark";
+                            post_data = {
+                                defectNo: s_params.cardNumber,
+                                mccRemark: $("#edit_remark").val()
+                            };
+                            updateRemark(post_data, url, true).then(()=>{
+                                return assign(s_params)
+                            }).catch(err=>{
+                                P.$.dialog.alert('下发失败,'+ err);
+                            })
+                        }
+                        return false
+                    }
+                }
+                ,{
+                    name : 'Close'
+
+            });
+        function updateRemark(post_data, url, isAssign = false){
+            return axios.post(url, post_data).then(response=>{
+                let data = response.data.data;
+                if(data && data.ajaxResult && data.ajaxResult.indexOf('success')!=-1){
+                    if(typeof s_params.refresh == "function" && isAssign) s_params.refresh("MCC");
+                    if(s_params.type != "MCC") sub_win.close();
+                }else{
+                    throw new Error(response.data.msgData[0])
+                }
+            })
+        }
+
+        /**
+         * 下发
+         * @param  {Object} data 航班选择之后携带的参数(s_params)
+         */
+        function assign(data){
+            // if(selectInsideTime()=="0"){
+            //     return false;
+            // }
+            let url = "/api/v1/tbm_flow/addMccInfo";
+            let post_data = Object.assign({}, data);
+            delete post_data.type;
+            delete post_data.refresh;
+            // delete post_data.startDate;
+            // delete post_data.endDate;
+            Object.assign(post_data, {
+                jobDate: new Date(s_params.jobDate),
+                flightNo: s_params.flightNo,
+                flightId: s_params.flightId,
+                station: s_params.station
+            });
+            return axios.post(url, post_data).then(response => {
+                if (response.data.data && response.data.data.ajaxResult && response.data.data.ajaxResult.indexOf('success') != -1) {
+                    P.$.dialog.success('下发成功! ');
+                    if(typeof s_params.refresh == "function") s_params.refresh("MCC");
+                    sub_win.close();
+                }else{
+                if (response.data && response.data.msg) {
+                    throw new Error(response.data.msg);
+                } else {
+                    throw new Error(response.data.msgData[0]);
+                }
+                }
+            })
+        }
+
+        // function selectInsideTime() {
+        //     var flag;
+        //     var startData = s_params.startDate;
+        //     var endData = s_params.endDate;
+        //     var starTime = new Date(startData);
+        //     var endTime = new Date(endData);
+        //     var nowTime = new Date($("#date").datebox("getValue"));
+        //     if(nowTime>endTime||nowTime<starTime){
+        //         alert("请选择"+startData+"到"+endData+"范围内的时间");
+        //         flag = 0;
+        //     }else {
+        //         flag = 1;
+        //     };
+        //     return flag;
+        // }
+        //
+        // function formatterDate(date){
+        //     var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+        //     var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+        //         + (date.getMonth() + 1);
+        //     return date.getFullYear() + '-' + month + '-' + day;
+        // }
+    </script>
+
+</body>
+</html>

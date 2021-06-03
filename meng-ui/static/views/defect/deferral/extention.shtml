@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <style type="text/css">
+        th, td {
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            height: 40px;
+            line-height: 40px;
+        }
+        .foot-btns {
+            float: right;
+            margin: 10px 20px 0 0;
+        }
+    </style>
+</head>
+<body>
+    <form id="extention_form">
+        <table class="table table-bordered table-info" width="100%" style="padding-top:10px">
+            <!--            <tr>-->
+            <!--                <td class="" colspan="2">-->
+            <!--                    <a style="color: #f60" onclick="view_detail()">View Detail</a>-->
+            <!--                </td>-->
+            <!--            </tr>-->
+            <tr>
+                <th class="" style="width: 30%">Category</th>
+                <td class="" style="width: 70%">
+                    <span id="category"></span>
+                </td>
+            </tr>
+            <tr>
+                <th class="" style="width: 30%">Extention Date</th>
+                <td class="" style="width: 70%">
+                    <span id="extentionDate"></span>
+                </td>
+            </tr>
+            <tr>
+                <th class="" style="width: 30%">Expired Date</th>
+                <td class="" style="width: 70%">
+                    <span id="expiredDate" name="expiredDate"></span>
+                </td>
+            </tr>
+            <tr>
+                <th class="" style="width: 30%">FH</th>
+                <td class="" style="width: 70%">
+                    <span id="extensionFh" name="extensionFh"></span>
+                </td>
+            </tr>
+            <tr>
+                <th class="" style="width: 30%">FC</th>
+                <td class="" style="width: 70%">
+                    <span id="extentionFc" name="extentionFc"></span>
+                </td>
+            </tr>
+            <tr>
+                <th class="" style="width: 30%">CalendarDay</th>
+                <td class="" style="width: 70%">
+                    <span id="extentionCalendarDay" name="extentionCalendarDay"></span>
+                </td>
+            </tr>
+            <tr>
+                <th class="" style="width: 30%">FlightDay</th>
+                <td class="" style="width: 70%">
+                    <span id="extentionFlightDay" name="extentionFlightDay"></span>
+                </td>
+            </tr>
+            <tr>
+                <th class="" style="width: 30%">Extention Reason</th>
+                <td class="" style="width: 70%; height: 100px">
+                    <textarea id="extentionReason" name="id="extentionReason"" maxlength="1000" style="height: 100%;width: 100%;resize: none;"></textarea>
+                </td>
+            </tr>
+        </table>
+    </form>
+    <div class="foot-btns">
+        <a class="searchBtn" type="button" onclick="submit()" data-options="iconCls:'icon-clear'" style="margin-right: 10px;">
+            <span data-i18n="common:COMMON_OPERATION.SAVE"></span>
+        </a>
+        <a class="ridoBtn" data-options="iconCls:'icon-clear'" id="cancelBtn" onclick="close_window()" type="button">
+            <span data-i18n="common:COMMON_OPERATION.CANCEL"></span>
+        </a>
+    </div>
+    <script type="text/javascript">
+        const params = getParentParam_();
+        const categoryStr = params.categoryStr;
+        const extentionDate = params.extentionDate + ' ' +'23:59:59';
+
+        function getCurrentDateStr(date) {
+            console.log(date)
+            date = new Date(date)
+            var year = date.getFullYear();
+            var month = date.getMonth() + 1;
+            month = month < 10 ?("0" +  month) : month;
+            var day = date.getDate();
+            day = day < 10 ?("0" +  day) : day;
+            return year + "-" + month + "-" + day + " " + date.getHours() +":" + date.getMinutes() + ":" + date.getSeconds();
+        };
+        function hasCategory(category, cat){
+            return category.indexOf(cat) != -1 ? true : false;
+        }
+        function init_data(){
+            if(hasCategory(categoryStr, "b")){
+                params.expiredDate = getCurrentDateStr(new Date(extentionDate).getTime() + 3*24*60*60*1000);
+            }else if(hasCategory(categoryStr, "c")){
+                params.expiredDate = getCurrentDateStr(new Date(extentionDate).getTime() + 10*24*60*60*1000);
+            }else if(hasCategory(categoryStr, "d")){
+                params.expiredDate = getCurrentDateStr(new Date(extentionDate).getTime() + 120*24*60*60*1000);
+            }
+            for(key in params){
+                if (key != "id") $(`#${key}`).text(params[key] || '');
+            }
+
+
+        }
+
+        function submit(){
+            let post_data = {
+                expiredDate: new Date($("#expiredDate").text()),
+                extensionFh: $("#extensionFh").text(),
+                extentionFc: $("#extentionFc").text(),
+                extentionCalendarDay: $("#extentionCalendarDay").text(),
+                extentionFlightDay: $("#extentionFlightDay").text(),
+                extentionReason: $("#extentionReason").val(),
+                id: params.id
+            };
+            let url = "/api/v1/defect/defect/dfrl/submitExtension";
+            axios.post(url, post_data).then(response=>{
+                if(response.data.msg.indexOf("SUCCESS") != -1){
+                    if (typeof params.successCallback == "function") params.successCallback();
+                    close_window()
+                }else if(response.data.msg.indexOf("ERROR") != -1){
+                    throw new Error(response.data.msgData[0])
+                }
+            }).catch(err=>{
+                MsgAlert({type: "error", content: "保存失败" + err});
+            })
+        }
+
+        function close_window() {
+            window.opener = null;
+            window.open('', '_self');
+            window.close();
+        }
+
+        $(function(){
+            init_data();
+        })
+    </script>
+</body>
+</html>

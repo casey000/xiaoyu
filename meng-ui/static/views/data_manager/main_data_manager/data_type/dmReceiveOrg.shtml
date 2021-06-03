@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">资料接收单位维护</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">单位类型：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="deptType" name="deptType" style="width:90px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">单位名称：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="orgId" name="orgId" style="width:90px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">站点：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="station" name="station" style="width:90px;"/>
+                    </td>
+                    <td class="td5">
+                        <a class="searchBtn" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                  <!--  <td class="td5">
+                        <a class="addBtn" id="submit" onclick="editDetailData('add')"
+                           data-options="iconCls:'icon-add'">
+                            <span data-i18n="common:COMMON_OPERATION.ADD">增加</span></a>
+                    </td>-->
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_DEPT_TYPE,DM_RECEIVE_ORG_NAME,DM_RECEIVE_ORG_STATION",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['dept_type'] = DomainCodeToMap_(jdata.data["DM_DEPT_TYPE"]);
+                    PAGE_DATA['org_name'] = DomainCodeToMap_(jdata.data["DM_RECEIVE_ORG_NAME"]);
+
+                    //单位类型
+                    $('#deptType').combobox({panelHeight: '140px', data: jdata.data.DM_DEPT_TYPE, valueField: 'VALUE', textField: 'TEXT'});
+
+                    //单位名称
+                    $('#orgId').combobox({panelHeight: '140px', data: jdata.data.DM_RECEIVE_ORG_NAME, valueField: 'VALUE', textField: 'TEXT'});
+
+
+                    //站点
+                    $('#station').combobox({panelHeight: '140px', data: jdata.data.DM_RECEIVE_ORG_STATION, valueField: 'VALUE', textField: 'TEXT'});
+
+
+                    InitDataGrid();
+                }else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'DM_RECEIVE_ORG_LIST'},
+                alter: {
+                    DEPT_TYPE: {
+                        formatter: function(value){
+                            return PAGE_DATA['dept_type'][value];
+                        }
+                    },
+                    CREATE_TIME: {
+                        type: 'date'
+                    },
+                    MODIFY_TIME: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function () {},
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'DM_RECEIVE_ORG_DELETE'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            toolbar:[{
+                id:'btnAdd',
+                text:$.i18n.t('增加'),
+                iconCls:'icon-add',
+                handler:function(){
+                    editDetailData('add');
+                }
+            }],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        openDetai(operation, '');
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('资料接收单位维护详情');
+        ShowWindowIframe({
+            width: "680",
+            height: "300",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/em/dm/basedata/dmReceiveOrgDetail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

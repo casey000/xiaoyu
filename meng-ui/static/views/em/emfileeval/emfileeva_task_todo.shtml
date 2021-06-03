@@ -1,0 +1,687 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>工程文件评估任务接收</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" class="easyui-textbox" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr id="evan">
+                        <th class="th" align="right" style="width: 80px">处理方式：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="dealType" data-options="required:true"
+                                   name="dealType"
+                                   style="width:110px;"/>
+                        </td>
+                        <th id="no1" class="th" align="right" style="width: 60px">评估单号：</th>
+                        <td id="no2" class="td5">
+                            <input class="easyui-textbox" id="evaNo" name="evaNo"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <td>
+                            <input class="btn btn-primary" type="button" onclick="save()" value="处理任务"
+                                   style="width: 80px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                                   style="width: 50px;"/>
+                            <input class="btn btn-primary" type="button" onclick="openDetai()" value="查看详情"
+                                   style="width: 80px;"/>
+                        </td>
+                    </tr>
+                    <tr id="evay">
+                        <td>
+                            <input class="btn btn-primary" type="button" onclick="dealEva()" value="立即处理"
+                                   style="width: 80px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                                   style="width: 50px;"/>
+                            <input class="btn btn-primary" type="button" onclick="openDetai()" value="查看详情"
+                                   style="width: 80px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var recordId;
+    var msgpkid;
+    var dataType;
+    var flag;
+    var evaId;
+    var minAta = "";
+    var minFleet = "";
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        recordId = param.recordId;
+        msgpkid = param.msgpkid;
+        flag = param.flag;
+        evaId = param.evaId;
+        if (flag == 'Y') {
+            $("#evay").show();
+            $("#evan").hide();
+        } else {
+            $("#evay").hide();
+            $("#evan").show();
+        }
+
+        $("#no1").hide();
+        $("#no2").hide();
+
+        $("#evaNo").textbox('setValue', randomNumber());
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_FILE_EVAL_DEAL_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#dealType").combobox({
+                        panelHeight: '100px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EM_FILE_EVAL_DEAL_TYPE
+                    });
+
+                    InitFuncCodeRequest_({
+                        data: {dmpkid: recordId, FunctionCode: 'EM_FILE_BY_DMPKID'},
+                        async: false,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                if (jdata.data != null) {
+                                    dataType = jdata.data.DATA_TYPE;
+                                }
+                            } else {
+                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                            }
+                        }
+                    });
+
+
+                }
+            }
+        })
+    }
+
+    //优化后的
+    function save() {
+        var dealType = $("#dealType").combobox('getValue');
+        var evaNo = $("#evaNo").textbox('getValue');
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var countline = 0;
+        var sbLevel = "";
+        InitFuncCodeRequest_({
+            data: {dmpkid: recordId, FunctionCode: 'EM_FILE_BY_DMPKID'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    dataType = jdata.data.DATA_TYPE;
+                    var dataNo = jdata.data.DATA_NO;
+                    var dataVer = jdata.data.DATA_VER;
+                    var dataTitle = jdata.data.DATA_TITLE;
+                    var applyType = jdata.data.APPLY_TYPE;
+                    var applyModel = jdata.data.APPLY_MODEL;
+                    var urgentLevel = jdata.data.URGENT_LEVEL;
+                    var fitScope = jdata.data.FIT_SCOPE;
+                    var ata = jdata.data.ATA;
+                    var adNo = jdata.data.REF_AD_NO;
+                    var adVer = jdata.data.REF_AD_VER;
+                    var issMan = jdata.data.DEALWITH_MAN_ID;
+                    var issDate = jdata.data.DEALWITH_DATE;
+                    var effectDate = jdata.data.EFFECT_DATE;
+                    var sbGrade = jdata.data.SB_GRADE;
+                    var day = getDays(effectDate);
+                    var eff = "";
+                    getAtaAndModel(applyType, applyModel, ata);
+
+                    if (dataType == 'AD' || dataType == 'CAD' || dataType == 'AMOC') {
+                        if (day < 30) {
+                            sbLevel = "AA";
+                            eff = "小于30天";
+                        } else if (30 <= day && day <= 60) {
+                            sbLevel = "BB";
+                            eff = "30到60天";
+                        } else if (day > 60) {
+                            sbLevel = "CC";
+                            eff = "大于60天";
+                        }
+                    }
+
+                    if (dataType == 'SB' || dataType == 'SL') {
+                        sbLevel = sbGrade;
+                    }
+                    InitFuncCodeRequest_({
+                        data: {dataType: dataType, sbLevel: sbLevel, FunctionCode: 'EM_FILE_COUNT_LINE'},
+                        async: false,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                if (jdata.data.COU != null) {
+                                    countline = jdata.data.COU;
+                                }
+                            } else {
+                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                            }
+                        }
+                    });
+
+                    if (dataType == 'AD') {
+                        if (dealType == "add") {
+                            if (countline == 0) {
+                                MsgAlert({
+                                    content: '请先在资料模块-评估时限维护配置' + dataType + '的时限及生效日期[' + eff + ']!',
+                                    type: 'error'
+                                });
+
+                            } else {
+                                //新建
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        issMan: issMan,
+                                        issDate: issDate,
+                                        evaNo: evaNo,
+                                        dataTitle: dataTitle,
+                                        applyType: applyType,
+                                        applyModel: applyModel,
+                                        urgentLevel: urgentLevel,
+                                        ata: ata,
+                                        dataType: dataType,
+                                        fitScope: fitScope,
+                                        msgpkid: msgpkid,
+                                        dmpkid: recordId,
+                                        effectDate: effectDate,
+                                        sbGrade: sbGrade,
+                                        minAta: minAta,
+                                        minFleet: minFleet,
+                                        FunctionCode: 'EM_FILE_TASK_NEW'
+                                    }, async: false, successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            MsgAlert({content: '新建评估单成功，可在工程文件评估页面继续评估。'});
+                                            reload2();
+                                        } else {
+                                            MsgAlert({
+                                                content: jdata.msg ? jdata.msg : jdata.data,
+                                                type: 'error'
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        } else if (dealType == "merge") {
+                            var title_ = $.i18n.t('合并评估单');
+                            ShowWindowIframe({
+                                width: "861",
+                                height: "516",
+                                title: title_,
+                                param: {
+                                    dmpkid: recordId,
+                                    msgpkid: msgpkid,
+                                    dataType: dataType,
+                                    dataNo: dataNo,
+                                    issMan: issMan,
+                                    issDate: issDate,
+                                    applyModel: applyModel,
+                                    applyType: applyType
+                                },
+                                url: "/views/em/emfileeval/emfileeva_merge_list.shtml"
+                            });
+                        }
+                    } else if (dataType == 'CAD' || dataType == 'MOD') {
+                        //此处是无评估单的情况 flag= 'N'
+                        if (dealType == "add") {
+                            if (countline == 0 && dataType == 'CAD') {
+                                MsgAlert({
+                                    content: '请先在资料模块-评估时限维护配置' + dataType + '的时限及生效日期[' + eff + ']!',
+                                    type: 'error'
+                                });
+                            } else {
+                                //新建
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        issMan: issMan,
+                                        issDate: issDate,
+                                        evaNo: evaNo,
+                                        dataTitle: dataTitle,
+                                        applyType: applyType,
+                                        applyModel: applyModel,
+                                        urgentLevel: urgentLevel,
+                                        ata: ata,
+                                        dataType: dataType,
+                                        fitScope: fitScope,
+                                        msgpkid: msgpkid,
+                                        dmpkid: recordId,
+                                        effectDate: effectDate,
+                                        sbGrade: sbGrade,
+                                        minAta: minAta,
+                                        minFleet: minFleet,
+                                        FunctionCode: 'EM_FILE_TASK_NEW'
+                                    }, async: false, successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            MsgAlert({content: '新建评估单成功，可在工程文件评估页面继续评估。'});
+                                            reload2();
+                                        } else {
+                                            MsgAlert({
+                                                content: jdata.msg ? jdata.msg : jdata.data,
+                                                type: 'error'
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        } else if (dealType == "merge") {
+                            var title_ = $.i18n.t('合并评估单');
+                            ShowWindowIframe({
+                                width: "861",
+                                height: "516",
+                                title: title_,
+                                param: {
+                                    dmpkid: recordId,
+                                    msgpkid: msgpkid,
+                                    dataType: dataType,
+                                    flag: flag,
+                                    dataNo: dataNo,
+                                    issMan: issMan,
+                                    issDate: issDate,
+                                    applyModel: applyModel,
+                                    applyType: applyType
+                                },
+                                url: "/views/em/emfileeval/emfileeva_merge_list.shtml"
+                            });
+                        }
+                    } else {
+                        //SB OTHERS
+                        //此处是无评估单的情况 flag= 'N'
+                        if (countline == 0) {
+                            if (dataType == 'SB' || dataType == 'SL') {
+                                MsgAlert({
+                                    content: '请先在资料模块-SB/SL级别及时限维护配置' + dataType + '的级别[' + sbLevel + ']和时限!',
+                                    type: 'error'
+                                });
+                            } else {
+                                MsgAlert({
+                                    content: '请先在资料模块-评估时限维护配置' + dataType + '的时限!',
+                                    type: 'error'
+                                });
+                            }
+                        } else {
+                            //新建
+                            InitFuncCodeRequest_({
+                                data: {
+                                    issMan: issMan,
+                                    issDate: issDate,
+                                    evaNo: evaNo,
+                                    dataTitle: dataTitle,
+                                    applyType: applyType,
+                                    applyModel: applyModel,
+                                    urgentLevel: urgentLevel,
+                                    ata: ata,
+                                    dataType: dataType,
+                                    fitScope: fitScope,
+                                    msgpkid: msgpkid,
+                                    dmpkid: recordId,
+                                    effectDate: effectDate,
+                                    sbGrade: sbGrade,
+                                    minAta: minAta,
+                                    minFleet: minFleet,
+                                    FunctionCode: 'EM_FILE_TASK_NEW'
+                                }, async: false, successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: '新建评估单成功，可在工程文件评估页面继续评估。'});
+                                        reload2();
+                                    } else {
+                                        MsgAlert({
+                                            content: jdata.msg ? jdata.msg : jdata.data,
+                                            type: 'error'
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function getDays(secondDate) {
+        var date = new Date;
+        var year = date.getFullYear();
+        var month = date.getMonth() + 1;
+        var d = date.getDate();
+        month = (month < 10 ? "0" + month : month);
+        var mydate = (year.toString() + "-" + month.toString() + "-" + d.toString());
+        var firstDate = new Date(mydate);
+        var secondDate = new Date(secondDate);
+        var diff = Math.abs(firstDate.getTime() - secondDate.getTime());
+        var result = parseInt(diff / (1000 * 60 * 60 * 24));
+        return result;
+    }
+
+    //有评估单自动处理 flag = 'Y'
+    function dealEva() {
+        var dealType = $("#dealType").combobox('getValue');
+        var evaNo = $("#evaNo").textbox('getValue');
+        var evaStatus = '';
+
+        InitFuncCodeRequest_({
+            data: {dmpkid: recordId, FunctionCode: 'EM_FILE_BY_DMPKID'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    dataType = jdata.data.DATA_TYPE;
+                    var dataNo = jdata.data.DATA_NO;
+                    var dataVer = jdata.data.DATA_VER;
+                    var dataTitle = jdata.data.DATA_TITLE;
+                    var applyType = jdata.data.APPLY_TYPE;
+                    var applyModel = jdata.data.APPLY_MODEL;
+                    var urgentLevel = jdata.data.URGENT_LEVEL;
+                    var fitScope = jdata.data.FIT_SCOPE;
+                    var ata = jdata.data.ATA;
+                    var issMan = jdata.data.DEALWITH_MAN_ID;
+                    var issDate = jdata.data.DEALWITH_DATE;
+
+                    if (dataType == 'AMOC' || dataType == 'IN' || dataType == 'NSC') {
+                        InitFuncCodeRequest_({
+                            data: {evaId: evaId, FunctionCode: 'EM_FILE_EVA_INFO'},
+                            async: false,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    if (jdata.data != null) {
+                                        evaStatus = jdata.data.STATUS;
+                                        empkid = evaId;
+                                        if (!(evaStatus == 'PGZ' || evaStatus == 'ISSUED' || evaStatus == 'TURNBACK')) {
+                                            var sta = "";
+                                            if (evaStatus == "JDZ") {
+                                                sta = "校对中";
+                                            } else if (evaStatus == "SHZ") {
+                                                sta = "审核中";
+                                            } else if (evaStatus == "ZGSPZ") {
+                                                sta = "总工审批中";
+                                            } else if (evaStatus == "KKXQZSPZ") {
+                                                sta = "可靠性群组审批中";
+                                            } else if (evaStatus == "WXFZSPZ") {
+                                                sta = "维修副总审批中";
+                                            } else if (evaStatus == "SFFZRSPZ") {
+                                                sta = "顺丰负责人审批中";
+                                            } else if (evaStatus == "ARCHIVE") {
+                                                sta = "归档";
+                                            }
+                                            MsgAlert({
+                                                content: '评估单状态为[' + sta + "],不允许合并，待评估单为评估中或是生效状态即可处理！",
+                                                type: 'error'
+                                            });
+                                            return false;
+                                        } else {
+                                            InitFuncCodeRequest_({
+                                                data: {
+                                                    flag: flag,
+                                                    empkid: empkid,
+                                                    dmpkid: recordId,
+                                                    msgpkid: msgpkid,
+                                                    dataNo: dataNo,
+                                                    dataType: dataType,
+                                                    issMan: issMan,
+                                                    issDate: issDate,
+                                                    status: evaStatus,
+                                                    FunctionCode: 'EM_FILE_TASK_MERGE'
+                                                },
+                                                successCallBack: function (jdata) {
+                                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                        MsgAlert({content: '合并评估单成功。'});
+                                                        reload2();
+                                                    } else {
+                                                        MsgAlert({
+                                                            content: jdata.msg ? jdata.msg : jdata.data,
+                                                            type: 'error'
+                                                        });
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        });
+                    } else {//CAD SB OTHERS
+                        InitFuncCodeRequest_({
+                            data: {dataNo: dataNo, FunctionCode: 'EM_FILE_EVA_CAD'},
+                            async: false,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    if (jdata.data != null) {
+                                        evaStatus = jdata.data.STATUS;
+                                        empkid = jdata.data.PKID;
+                                        if (!(evaStatus == 'PGZ' || evaStatus == 'ISSUED' || evaStatus == 'TURNBACK')) {
+                                            var sta = "";
+                                            if (evaStatus == "JDZ") {
+                                                sta = "校对中";
+                                            } else if (evaStatus == "SHZ") {
+                                                sta = "审核中";
+                                            } else if (evaStatus == "ZGSPZ") {
+                                                sta = "总工审批中";
+                                            } else if (evaStatus == "KKXQZSPZ") {
+                                                sta = "可靠性群组审批中";
+                                            } else if (evaStatus == "WXFZSPZ") {
+                                                sta = "维修副总审批中";
+                                            } else if (evaStatus == "SFFZRSPZ") {
+                                                sta = "顺丰负责人审批中";
+                                            } else if (evaStatus == "ARCHIVE") {
+                                                sta = "归档";
+                                            }
+                                            MsgAlert({
+                                                content: '评估单状态为[' + sta + "],不允许合并，待评估单为评估中或是生效状态即可处理！",
+                                                type: 'error'
+                                            });
+                                            return false;
+                                        } else {
+                                            InitFuncCodeRequest_({
+                                                data: {
+                                                    flag: flag,
+                                                    empkid: empkid,
+                                                    dmpkid: recordId,
+                                                    msgpkid: msgpkid,
+                                                    dataNo: dataNo,
+                                                    dataType: dataType,
+                                                    issMan: issMan,
+                                                    issDate: issDate,
+                                                    status: evaStatus,
+                                                    FunctionCode: 'EM_FILE_TASK_MERGE'
+                                                },
+                                                successCallBack: function (jdata) {
+                                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                        MsgAlert({content: '合并评估单成功。'});
+                                                        reload2();
+                                                    } else {
+                                                        MsgAlert({
+                                                            content: jdata.msg ? jdata.msg : jdata.data,
+                                                            type: 'error'
+                                                        });
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function randomNumber() {
+        var num = 1;
+        var todayDate = new Date();
+        var year = todayDate.getFullYear();
+        var serialNo = "EE-" + year;
+        InitFuncCodeRequest_({
+            data: {serialNo: serialNo, FunctionCode: "TD_EVALUATE_BY_NO"},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        if (jdata.data.OLDNUM) {
+                            num = parseInt(jdata.data.OLDNUM, 10) + 1;
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        num = pad(num, 4);
+        serialNo = serialNo + num;
+        return serialNo;
+    }
+
+    var pad = function () {
+        var tbl = [];
+        return function (num, n) {
+            var len = n - num.toString().length;
+            if (len <= 0) return num;
+            if (!tbl[len]) tbl[len] = (new Array(len + 1)).join('0');
+            return tbl[len] + num;
+        }
+    }();
+
+    function reload2() {
+        param.OWindow.reloadTodo();
+        CloseWindowIframe();
+    }
+
+    //打开资料类型详细页面
+    function openDetai() {
+        var namespace = "emFileEvaluate";
+        var pkid = recordId;
+        var operation = "view";
+        var flag = "V";
+        var title_ = $.i18n.t('外部文件接收');
+        if (flag == "A") {
+            ShowWindowIframe({
+                width: "850",
+                height: "500",
+                title: title_,
+                param: {operation: operation, pkid: pkid, namespace: namespace, dataType: dataType},
+                url: "/views/data_manager/technology_data/adother/dmExterDetail.shtml"
+            });
+        } else {
+            if (dataType == "SB") {
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, namespace: namespace, dataType: dataType},
+                    url: "/views/data_manager/technology_data/sbsl/sbAdd.shtml"
+                });
+            } else if (dataType == "CAD") {
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, namespace: namespace, dataType: dataType},
+                    url: "/views/data_manager/technology_data/cad/cadAdd.shtml"
+                });
+            } else if (dataType == "AD") {
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, namespace: namespace, dataType: dataType},
+                    url: "/views/data_manager/technology_data/ad/adAdd.shtml"
+                });
+            } else if (dataType == "AMOC") {
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, namespace: namespace, dataType: dataType},
+                    url: "/views/data_manager/technology_data/amoc/amocAdd.shtml"
+                });
+            } else if (dataType == 'IN' || dataType == 'NSC') {
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, namespace: namespace, dataType: dataType},
+                    url: "/views/data_manager/technology_data/nsc/nscAdd.shtml"
+                });
+            } else {
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, namespace: namespace, dataType: dataType},
+                    url: "/views/data_manager/technology_data/adother/dmExterDetail.shtml"
+                });
+            }
+        }
+    }
+
+    function getAtaAndModel(applyType, applyModel, ata2) {
+        if (ata2.indexOf(",") != -1) {
+            var array = ata2.split(",");
+            minAta = array[0];//定义最小值为该数组的第一个数
+            for (var i = 0; i < array.length; i++) {
+                if (minAta > array[i]) {
+                    minAta = array[i];
+                }
+            }
+        } else {
+            minAta = ata2;
+        }
+
+        if (applyType == 'APL') {
+            if (applyModel.indexOf(",") != -1) {
+                var array = applyModel.split(",");
+                minFleet = array[0];//定义最小值为该数组的第一个数
+                for (var i = 0; i < array.length; i++) {
+                    if (minFleet > array[i]) {
+                        minFleet = array[i];
+                    }
+                }
+            } else {
+                minFleet = applyModel;
+            }
+        } else if (applyType == 'ENG') {
+            if (applyModel.indexOf("CFM56") != -1) {
+                minFleet = 'CFM56';
+            } else if (applyModel.indexOf("CF6") != -1) {
+                minFleet = 'CF6';
+            } else if (applyModel.indexOf("RB211") != -1) {
+                minFleet = 'RB211';
+            } else if (applyModel.indexOf("PW4000") != -1) {
+                minFleet = 'PW4000';
+            }
+        } else {
+            minFleet = applyModel;
+        }
+    }
+
+</script>
+</html>

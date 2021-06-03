@@ -1,0 +1,371 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">鸟击报告管理主菜单</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<fieldset class="fieldset_eui">
+    <legend>搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th style="width:40px;" align="right">编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="reportNo" id="reportNo"
+                               data-options="" style="width:85px;"/>
+                    </td>
+                    <th style="width:50px;" align="right">飞机号：</th>
+                    <td>
+                        <input class="easyui-combobox" name="acno" id="acno"
+                               data-options="" style="width:85px;"/>
+                    </td>
+                    <th align="right" style="width: 70px;">发生时间：</th>
+                    <td style="width: 50px">
+                        <input class="easyui-datebox" id="startDate" name="startDate" data-options="editable:false"
+                               style="width: 90px;"/>
+                    </td>
+                    <th style="width:15px;" align="center">至：</th>
+                    <td style="width: 50px">
+                        <input class="easyui-datebox" id="endDate" name="endDate" data-options="editable:false"
+                               style="width: 90px;"/>
+                    </td>
+                    <th style="width:40px;" align="right">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="status" id="status"
+                               style="width:100px;"/>
+                    </td>
+                    <td class="td5" align="right" style="padding-right:5px">
+                        <a class="searchBtn"
+                           data-options="iconCls:'icon-search'"
+                           onclick="onSearchEvent()" auth="PM_MC_BIRD_QUERY">查询</a>
+                        <a class="addBtn"
+                           data-options="iconCls:'icon-search'"
+                           onclick="addBirdSDReport('add')" auth="PM_MC_BIRD_ADD">新增</a>
+                        <a class="clearBtn"
+                           data-options="iconCls:'icon-search'"
+                           onclick="doClear_() ">重置</a>
+                        <a class="ridoBtn"
+                           data-options="iconCls:'icon-search'"
+                           onclick="helpQuery('dg', 'BIRD_STRIKE_REPORT_LIST');" auth="PM_MC_BIRD_HIGH_QUERY">高级查询
+                        </a>
+                        <a class="excelBtn" data-options="iconCls:'icon-page_excel'" style="margin-left: 4px;"
+                           onclick="excelExport('dg', '鸟击事件报告')" auth="PM_MC_BIRD_EXPORT"><span>导出</span></a>
+                        <!--onclick="confFieldsExport_('dg', '鸟击事件报告', 'SYS_COMMON_EXPORT')"><span>导出</span></a>-->
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+    <table id="dg"></table>
+</div>
+
+<script type="text/javascript">
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "MSGRP,PM_MC_BIRD_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //飞机号
+                    $('#acno').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.MSGRP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //状态
+                    $('#status').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.PM_MC_BIRD_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'BIRD_STRIKE_REPORT_LIST'},
+                alter: {
+                    OCCUR_DATE: {
+                        type: 'datetime'
+                    },
+                    'UPLOAD': {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    }
+                }
+            },
+            // 状态：1-EDIT、2-HISTORY、3-ACTIVE
+            validAuth: function (row, items) {
+                //不是自己新增的不能删除
+                if (row.INPUTER_ID != getLoginInfo().accountId
+                    || row.STATUS == "HISTORY") {
+                    items['删除'].enable = false;
+                    items['编辑'].enable = false;
+                    items['改版'].enable = false;
+                    items['提交'].enable = false;
+                } else if (row.STATUS == "ACTIVE") {
+                    items['编辑'].enable = false;
+                    items['提交'].enable = false;
+                    items['删除'].enable = false;
+                }
+                if (row.STATUS == "EDIT") {
+                    items['改版'].enable = false;
+                }
+
+                return items;
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+
+                        InitFuncCodeRequest_({
+                            data: {SOURCE_ID: row.PKID, CATEGORY: "BIRDSTRIKE", FunctionCode: 'ATTACHMENT_RSPL_GET'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span auth="PM_MC_BIRD_DEL" onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            contextMenus: [
+                {
+                    id: "m-browse", i18nText: "浏览", auth: "PM_MC_BIRD_VIEW",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('view', rowData.PKID);
+
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "PM_MC_BIRD_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+                    }
+                },
+                {
+                    id: "",
+                    i18nText: "删除",auth:"PM_MC_BIRD_DEL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        var data = {pkid: rowData.PKID, delId: getLoginInfo().accountId, delName: getLoginInfo().userName};
+                        InitFuncCodeRequest_({
+                            data: $.extend(data, {FunctionCode: 'PM_MC_BIRD_DEL'}),
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-submit", i18nText: "提交", auth: "PM_MC_BIRD_SUBMIT_FLOW",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        MaskUtil.mask("正在处理...");
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'PM_MC_BIRD_SUBMIT'},
+                            successCallBack: function (jdata) {
+                                MaskUtil.unmask();
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-uploadAttach", i18nText: "common:RES.COMMON.UPLOAD_ATTACHMENT", auth: "PM_MC_BIRD_UPLOAD",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        common_upload_({
+                            identity: 'dg',
+                            param: {
+                                cat: 'BIRDSTRIKE',
+                                sourceId: rowData.PKID,
+                                PKID: rowData.PKID,
+                                successCallBack: function () {
+                                    reload_();
+                                },
+                                failCallBack: ""
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-print", i18nText: "打印", auth: "PM_MC_BIRD_PRINT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        //打印请求
+                        ajaxLoading();
+                        doPost(Constant.API_URL + 'PM_MCC_BIRD_PRINT',
+                            {pkid: rowData.PKID, domainCode: ''});
+                        ajaxLoadEnd()
+                    }
+                },
+                {
+                    id: "m-rev",
+                    i18nText: "改版",auth:"PM_MC_BIRD_REV",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'PM_MC_BIRD_REV'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                /*{
+                 id: "m-change", i18nText: "变更日志", auth: "",
+                 onclick: function () {
+                 var rowData = getDG('dg').datagrid('getSelected');
+                 if (!rowData.PKID) {
+                 MsgAlert({content: "请选择数据！", type: 'error'});
+                 return;
+                 }
+                 viewLogs(rowData.PKID);
+                 }
+                 },*/
+            ],
+            onDblClickRow: function (index, field, value) {
+                openDetai('view', value.PKID);
+            },
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 15)
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //浏览
+    function openDetai(operation, pkid) {
+        ShowWindowIframe({
+            width: "1200",
+            height: "650",
+            title: "鸟击事件报告管理详情页",
+            param: {operation: operation, pkid: pkid},
+            url: "\\views\\pm\\mc\\event\\bird\\bird_strike_report_Detail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //新增
+    function addBirdSDReport(operation) {
+        ShowWindowIframe({
+            width: "1200",
+            height: "600",
+            title: "鸟伤报告详情页",
+            param: {operation: operation},
+            url: "\\views\\pm\\mc\\event\\bird\\bird_strike_report_Detail.shtml"
+        });
+    }
+
+    //查询
+    function onSearchEvent() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //查看更改日志
+    function viewLogs(birdId) {
+
+    }
+</script>
+</body>
+</html>

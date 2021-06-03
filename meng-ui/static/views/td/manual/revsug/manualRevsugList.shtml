@@ -1,0 +1,717 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册修改建议单列表</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:110px;" align="right">机队：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-combobox" id="fleet" name="fleet" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:110px;" align="right">建议单类型：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-combobox" id="revsugType" name="revsugType" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:110px;" align="right">手册类型：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-combobox" id="manualType" name="manualType" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:110px;" align="right">状态：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-combobox" id="status" name="status" style="width:110px;"/>
+                    </td>
+                    <td style="width: 120px; padding:3px;">
+                        <a class="searchBtn" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:110px;" align="right">建议单号：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" id="revsugNo" name="revsugNo" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:110px;" align="right">建议单来源：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-combobox" id="revsugFrom" name="revsugFrom" style="width:110px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var companyCode;
+    var accountId;
+    function i18nCallBack() {
+        accountId = getLoginInfo().accountId;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO,REVSUG_FROM,REVSUG_FLEET,REVSUG_DEAL_OPTION,MANUAL_TYPE,REVSUG_DATA_TYPE,REVSUG_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机队
+                    $('#fleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.REVSUG_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#revsugType').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.REVSUG_DEAL_OPTION,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#manualType').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.REVSUG_DATA_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.REVSUG_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#revsugFrom').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.REVSUG_FROM,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //手册标准
+                    PAGE_DATA['revsugType'] = DomainCodeToMap_(jdata.data["REVSUG_DEAL_OPTION"]);
+                    PAGE_DATA['manualType'] = DomainCodeToMap_(jdata.data["REVSUG_DATA_TYPE"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["REVSUG_STATUS"]);
+                    PAGE_DATA['revsugFrom'] = DomainCodeToMap_(jdata.data["REVSUG_FROM"]);
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkAttach(mPkid) {
+        var flag = false;
+        InitFuncCodeRequest_({
+            data: {pkid: mPkid, FunctionCode: 'REVSUG_ATTACHMENT_CHECK'}, async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == 200) {
+                    if (jdata.data.COU > 0) {
+                        flag = true;
+                    } else {
+                        flag = false;
+                    }
+                }
+            }
+        });
+        return flag;
+    }
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+          queryParams["companyCode"] = companyCode;
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: queryParams,
+            pageSize: 15,
+            path:"/online-manual/tdManualRevsug/queryPageTdManualRevsugList",
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_REVSUG_LIST'},
+                alter: {
+                    TEST_UPLOAD: {},
+                    CHECK_OUT: {
+                        formatter: function (value) {
+                            return PAGE_DATA['checkOut'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    MANUAL_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['manualType'][value];
+                        }
+                    },
+                    REVSUG_FROM: {
+                        formatter: function (value) {
+                            return PAGE_DATA['revsugFrom'][value];
+                        }
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                    DEADLINE: {
+                        type: 'datetime'
+                    },
+                    REVIEWED_DATE: {
+                        type: 'datetime'
+                    },
+                    APPROVED_DATE: {
+                        type: 'datetime'
+                    },
+                    DEAL_DATE: {
+                        type: 'datetime'
+                    },
+                    CREATE_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function (row) {
+                formatterUpperDataGrid(row,"dg");
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+
+                    }
+                }, {
+                    id: "m-submit", i18nText: "提交", auth: "",
+                    onclick: function () {
+
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, pkid: rowData.PKID, FunctionCode: "TD_REVSUG_BEG_SUBMIT"},
+                            async: false,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    if (jdata.data.COU == 0) {
+                                        MsgAlert({content: "请先添加子表数据！", type: 'error'});
+
+                                    } else {
+                                        if (!checkAttach(rowData.PKID)) {
+                                            MsgAlert({content: "请先上传附件！", type: 'error'});
+                                            return;
+                                        }
+
+                                        if (!confirm("确认提交该记录？")) {
+                                            return;
+                                        }
+                                        datas = $.extend({}, {}, {
+                                            FunctionCode: 'FLOW_BEFORE_CHECK',
+                                            pkid: rowData.PKID,
+                                            TABLE_NAME: "TD_MANUAL_REVSUG"
+                                        });
+                                        var flowKey = "tdManualRevsugBoEingFlow";
+                                        if (rowData.REVSUG_TYPE = "DS") {
+                                            flowKey = "tdManualRevsugSPFlow";
+                                        }
+                                        InitFuncCodeRequest_({
+                                            data: datas, successCallBack: function (jdata) {
+                                                if (jdata.data != null) {
+                                                    common_add_edit_({
+                                                        identity: '',
+                                                        isEdit: '',
+                                                        width: 520,
+                                                        height: 300,
+                                                        title: $.i18n.t('选择审批人'),
+                                                        param: {
+                                                            operation: "workflow",
+                                                            roleId: '',
+                                                            otherParam: rowData.PKID,
+                                                            FunctionCode_: 'TD_MANUAL_REV_SUG_SUBMIT',
+                                                            successCallback: reload_,
+                                                            flowKey: flowKey
+                                                        },
+                                                        url: "/views/flow/work_flow_account_select.shtml"
+                                                    });
+                                                } else {
+                                                    MsgAlert({content: "该数据已被提交过了。", type: 'error'});
+                                                }
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }, {
+                    id: "m-rev", i18nText: "改版", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var stopCount = 0;
+                        InitFuncCodeRequest_({
+                            async: false,
+                            data: {revsugPkid: rowData.PKID, FunctionCode: 'EM_EOEA_STOP_EO_PKID_COUNT'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    stopCount = jdata.data.COUNT_DATA;
+                                }
+                            }
+                        });
+                        if (stopCount != 0) {
+                            MsgAlert({content: "已失效或者失效中的建议单不可改版！", type: 'error'});
+                            return;
+                        }
+                        revision(rowData.PKID, rowData.FPKID, rowData.REVSUG_NO);
+
+                    }
+                },
+                {
+                    id: "m-flowReturn",
+                    i18nText: "流程退回", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        //只有提交人才能撤回
+                        var crearter = rowData.MODIFY_BY;
+                        if (accountId != crearter) {
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        turnEvalAct(rowData);
+                    }
+
+                },{
+                    id: "m-del", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        delRevsug(rowData.PKID);
+
+                    }
+                },
+                {
+                    id: "m-stop", i18nText: "失效", auth: "",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        var pkid = rowData.PKID;
+                        if (!pkid) {
+                            MsgAlert({content: '请选择记录', type: 'error'});
+                            return;
+                        }
+                        //检查是否可重复终止
+                        var count = 0;
+                        InitFuncCodeRequest_({
+                            async: false,
+                            data: {FunctionCode: 'TD_MANUAL_REVSUG_STOP_COUNT', revsugPkid: rowData.PKID},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    count = jdata.data.STOP_COUNT;
+                                }
+                            }
+                        });
+
+                        if (count != 0) {
+                            MsgAlert({content: '不可重复终止', type: 'error'});
+                            return;
+                        }
+
+                        //检查是否存在高版数据
+                        var sta = '';
+                        var revsugNo = rowData.REVSUG_NO;
+                        InitFuncCodeRequest_({
+                            data: {revsugNo: revsugNo, FunctionCode: 'TD_MANUAL_REVSUG_CHECK_SX'},
+                            async: false,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    if (jdata.data != null) {
+                                        sta = jdata.data.STATUS;
+                                    }
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        });
+                        if (sta != 'ISSUED') {
+                            MsgAlert({content: "该建议单存在高版数据，请先处理高版数据再提交终结流程！", type: 'error'});
+                            return;
+                        }
+
+                        ShowWindowIframe({
+                            width: 820,
+                            height: 270,
+                            title: $.i18n.t('手册修改建议单失效申请'),
+                            param: {revsugPkid: pkid, revsugNo: rowData.REVSUG_NO, revsugVer: rowData.VER},
+                            url: '/views/td/manual/revsug/manualRevsugStopAdd.shtml'
+                        });
+                    }
+                },
+                {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "TD_MANUAL_REVSUG"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+                    }
+                }
+                , {
+                    id: "m-flowChart", i18nText: "流程图", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        var userInfo = getLoginInfo();
+
+                        if (rowData.MANUAL_TYPE == "BOEING") {
+                            if (rowData.STATUS == "AUDIT" || rowData.STATUS == "TURNBACK" || rowData.STATUS == "APPROVAL" || rowData.STATUS == "TBXEDIT" || rowData.STATUS == "REVIEW") {
+                                //获取当前在流程中的流程图，需要使用 pkid进行关联
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        FunctionCode: 'TD_FLOW_PROCESS',
+                                        objNo: rowData.PKID,
+                                        objKey: "TD_MANUAL_REVSUG"
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            ShowWindowIframe({
+                                                width: "850",
+                                                height: "650",
+                                                title: "查看流程图",
+                                                param: {
+                                                    PROC_DEF_ID: jdata.data.PROC_DEF_ID,
+                                                    PROC_INST_ID: jdata.data.PROC_INST_ID,
+                                                    BUSINESS_KEY: jdata.data.BUSINESS_KEY
+                                                },
+                                                url: "/views/ws/work_flow/flow_definition/flow_diagram_view.shtml"
+                                            });
+                                        }
+                                    }
+                                });
+                            } else if (rowData.STATUS == "ISSUED") {
+                                //获取整个流程最新的流程图有多个流程实例，使用最新的流程
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        FunctionCode: 'TD_FLOW_GET_PROC_DEF_ID',
+                                        flow_key: "tdManualRevsugBoEingFlow",//流程定义Key/流程Key
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            ShowWindowIframe({
+                                                width: "850",
+                                                height: "650",
+                                                title: "查看流程图",
+                                                param: {PROC_DEF_ID: jdata.data.PROC_DEF_ID},
+                                                url: "/views/ws/work_flow/flow_definition/flow_definition_diagram_view.shtml"
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        if (rowData.MANUAL_TYPE == "SUPPLEMENT") {
+                            if (rowData.STATUS == "AUDIT" || rowData.STATUS == "TURNBACK" || rowData.STATUS == "APPROVAL") {
+                                //获取当前在流程中的流程图，需要使用 pkid进行关联
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        FunctionCode: 'TD_FLOW_PROCESS',
+                                        objNo: rowData.PKID,
+                                        objKey: "TD_MANUAL_REVSUG"
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            ShowWindowIframe({
+                                                width: "850",
+                                                height: "650",
+                                                title: "查看流程图",
+                                                param: {
+                                                    PROC_DEF_ID: jdata.data.PROC_DEF_ID,
+                                                    PROC_INST_ID: jdata.data.PROC_INST_ID,
+                                                    BUSINESS_KEY: jdata.data.BUSINESS_KEY
+                                                },
+                                                url: "/views/ws/work_flow/flow_definition/flow_diagram_view.shtml"
+                                            });
+                                        }
+                                    }
+                                });
+                            } else if (rowData.STATUS == "ISSUED") {
+                                //获取整个流程最新的流程图有多个流程实例，使用最新的流程
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        FunctionCode: 'TD_FLOW_GET_PROC_DEF_ID',
+                                        flow_key: "tdManualRevsugSPFlow",//流程定义Key/流程Key
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            ShowWindowIframe({
+                                                width: "850",
+                                                height: "650",
+                                                title: "查看流程图",
+                                                param: {PROC_DEF_ID: jdata.data.PROC_DEF_ID},
+                                                url: "/views/ws/work_flow/flow_definition/flow_definition_diagram_view.shtml"
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        }
+
+
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    id: 'btnAdd',
+                    text: $.i18n.t('增加'),
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        editDetailData('add');
+                    }
+                },
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('导出excel'),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        excelExportMicro('dg', '手册修改建议单', '', function () {
+                            return {'PAGE_DATA': PAGE_DATA}
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.STATUS != "EDIT") {
+                    if(row.STATUS != "TURNBACK"){//TURNBACK
+                        items['编辑'].enable = false;
+                    }
+                    items['提交'].enable = false;
+                } else {
+                    items['办理轨迹'].enable = false;
+                    items['流程图'].enable = false;
+                }
+                if (row.STATUS != "ISSUED" || row.REVSUG_FROM != "CUS" || row.STATUS == 'YSX') {
+                    items['改版'].enable = false;
+                }
+                if (row.STATUS == "AUDIT" || row.STATUS == "APPROVAL" || row.STATUS == "TBXEDIT" || row.STATUS == "REVIEW") {
+                    items['流程退回'].enable = true;
+                } else {
+                    items['流程退回'].enable = false;
+                }
+
+                if(row.REVSUG_FROM =="CUS" && (row.STATUS == "EDIT" || row.STATUS == "TURNBACK")){
+                    items['删除'].enable = true;
+                }else {
+                    items['删除'].enable = false;
+                }
+                if (row.STATUS != 'ISSUED' || row.REVSUG_FROM == 'EE') {
+                    items['失效'].enable = false;
+                } else {
+                    items['失效'].enable = true;
+                }
+                return items;
+            },
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //手册修改建议单编写页面
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('手册修改建议单编写页面');
+        ShowWindowIframe({
+            width: "960",
+            height: "670",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/td/manual/revsug/manualRevsugDetail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onGateWaySearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+
+    //新增
+    function editDetailData(operation) {
+        openDetai(operation, '');
+    }
+
+    function publish(mpkid) {
+        if (!confirm("确认发布?")) {
+            return;
+        }
+
+        InitFuncCodeRequest_({
+            data: {pkid: mpkid, FunctionCode: 'TD_REVSUG_PUBLISH'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function revision(mpkid, fpkid, revsugNo) {
+        if (!confirm("确认改版?")) {
+            return;
+        }
+
+        //校验是否已经做过改版
+        InitFuncCodeRequest_({
+            data: {revsugNo: revsugNo, FunctionCode: 'TD_REVSUG_REVISION_CHECK'}, async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.COU != 0) {
+                        MsgAlert({content: "该记录已经改版，请不要重复操作!", type: 'error'});
+
+                    } else {
+                        InitFuncCodeRequest_({
+                            data: {pkid: mpkid, fpkid: fpkid, FunctionCode: 'TD_REVSUG_REVISION'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
+
+    }
+
+    function delRevsug(mpkid) {
+        if (!confirm("确认删除?")) {
+            return;
+        }
+        InitFuncCodeRequest_({
+            data: {pkid: mpkid, FunctionCode: 'TD_REVSUG_DEL'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function turnEvalAct(row) {
+        var pkid = row.PKID;
+        var objNo = pkid;
+        var objKey = "TD_MANUAL_REVSUG";
+        var taskId = "";
+        var procInstId = "";
+        $.messager.confirm('提示?', "是否确认退回?", function (r) {
+            if (r) {
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: {
+                        FunctionCode: 'WS_FLOW_EXECUTION_QUERY',
+                        objNo: objNo,
+                        objKey: objKey
+                    },
+                    async: false,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            taskId = jdata.data["TASK_ID"];
+                            procInstId = jdata.data["PROC_INST_ID_"];
+                            InitFuncCodeRequest_({
+                                data: {pkid: pkid, procInstId: procInstId, FunctionCode: 'TD_MNUAL_REVSUG_TURN_ACT'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MaskUtil.unmask();
+                                        reload_();
+                                        MsgAlert({content: '操作成功。'});
+                                    } else {
+                                        MaskUtil.unmask();
+                                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_numgenerator">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="PAGE.PM_SER_LIST.TITLE">消息预警定时任务配置</title>
+</head>
+
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend>搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 80px;">定时任务名：</th>
+                    <td style="width:130px">
+                        <input class="easyui-textbox" name="jobName" id="jobName" style="width: 120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 80px;">任务描述：</th>
+                    <td style="width:130px">
+                        <input class="easyui-textbox" name="taskDesc" id="taskDesc" style="width: 120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 80px;">是否启用：</th>
+                    <td style="width:100px">
+                        <input class="easyui-combobox" name="enable" id="enable" style="width: 120px;"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a class="searchBtn" onclick="onSearch_()" data-i18n="RES.COMMON.SEARCH">查询</a>&nbsp;&nbsp;
+                        <a class="clearBtn" onclick="onClear_()" data-i18n="RES.COMMON.RESET">重置</a>&nbsp;&nbsp;
+                        <a class="ridoBtn" onclick="reLoad()" data-i18n="">刷新JOB</a>
+                        <!--<span style="margin-left:30px;color: red;font-size: 11px;font-weight:bold;">定时任务配置完成，将在服务器重启后生效。</span>-->
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+    function i18nCallBack() {
+        $('#enable').combobox({
+            panelHeight: '80px',
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            data: [{'VALUE': '0', 'TEXT': '禁用'}, {'VALUE': '1', 'TEXT': '启用'}]
+        });
+        InitDataGrid()
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'WS_SYS_JOB_LIST'},
+                alter: {
+                    ENABLE: {
+                        formatter: function (value) {
+                            return value == "0" ? "禁用" : (value == "1" ? "启用" : value);
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 600, height: 450,
+                            url: '/views/ws/job/ws_job_add_edit.shtml'
+                        });
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                    onclick: function () {
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {pkid: "PKID"},
+                            FunctionCode: "WS_SYS_JOB_DELETE",
+                            successCallBack: reload_
+                        })
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "启用",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择记录！", type: 'error'});
+                            return;
+                        }
+                        if (rowData.ENABLE == '1') {
+                            MsgAlert({content: "此记录已启用！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认启用此定时任务？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, enable: 'Y', FunctionCode: 'WS_SYS_JOB_ENABLE'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        })
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "禁用",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择记录！", type: 'error'});
+                            return;
+                        }
+                        if (rowData.ENABLE == '0') {
+                            MsgAlert({content: "此记录已禁用！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认禁用此定时任务？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, enable: 'N', FunctionCode: 'WS_SYS_JOB_ENABLE'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        })
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth: "",
+                    handler: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 600, height: 450,
+                            url: '/views/ws/job/ws_job_add_edit.shtml'
+                        });
+                    }
+                }, '-', {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }]
+        });
+    }
+
+    /** 刷新列表数据 会被弹窗调用，用来重新请求列表数据*/
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    function reLoad() {
+        InitFuncCodeRequest_({
+            data: {FunctionCode: 'WS_SYS_JOB_RELOAD'},
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        })
+    }
+</script>
+
+</body>
+</html>

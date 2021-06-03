@@ -1,0 +1,783 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <title></title>
+<style type="text/css" scoped>
+    .table-cell{
+        text-align: center;
+        padding: 0;
+        margin: 0;
+    }
+    .cell-normal {
+        height: 40px;
+        line-height: 40px;
+    }
+    .cell-high {
+        height: 100px;
+    }
+    input[type="radio"], input[type="checkbox"] {
+         vertical-align: -2px
+    }
+    td, #dm, #RIIRCI{
+        -webkit-user-select:none;
+        -moz-user-select:none;
+        -ms-user-select:none;
+        user-select:none;
+    }
+    .panel{
+        position: absolute;
+        left: 350px;
+        top: 150px;
+    }
+    .foot-btns{
+        float: right;
+        margin: 20px 20px 20px 0px;
+    }
+</style>
+</head>
+<body> 
+    <table class="table table-bordered table-info" width="100%" style="padding-top:10px">
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%">Total FLT Hours</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="fltHours"></span>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">Total FLT Cycles</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="fltCycles"></span>
+            </td>
+            <th class="table-cell cell-normal required" style="width: 16%">Model</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="acModel"></span>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%">Status</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="status"></span>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">Closed Date</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="closedDate"></span>
+            </td>
+            <th class="table-cell cell-normal required" style="width: 16%">Affected ENG</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="affecteEng"></span>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%">飞机号</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="acname"></span>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">描述(中文)</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="defectDescChn"></span>
+            </td>
+            <th class="table-cell cell-normal required" style="width: 16%">描述(英文)</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="defectDescEng"></span>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%">Tlb No</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="tlbNo"></span>
+            </td>
+            <td class="table-cell cell-normal" style="width: 16%"><span style="font-weight: bold;color: rgb(50, 64, 75);font-family: 微软雅黑;font-size: 11px;">区域：</span><span id="zone"></span></td>
+            <th class="table-cell cell-normal" style="width: 16%">Reasons</th>
+            <td class="table-cell cell-normal" colspan="2"><form id="reasons"></form></td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%"><span id="pendName"></span></th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="pendNo"></span>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">Reference</th>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="reference"></span>
+            </td>
+            <td class="table-cell cell-normal" style="width: 16%">
+                <span id="referenceOther"></span>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">DM: 
+                <form style="display: inline-block; font-weight: normal;"  id="dm">
+                    <label><input type="radio" name="dm" id="dmYes" value="y" disabled="true">是</label>
+                    <label><input type="radio" name="dm" id="dmNo" style="margin-left: 15px" value="n" disabled="true">否</label>
+                </form>         
+            </th>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%">Placard</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="placard">
+                    <input type="radio" name="placard" id="placardYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="placard" id="placardNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">Maintenace Caution Item</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="MCI">
+                    <input type="radio" name="MCItem" id="MCItemYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="MCItem" id="MCItemNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%">（M）Item</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="MItem">
+                    <input type="radio" name="MItem" id="MItemYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="MItem" id="MItemNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">执行“备注或例外”SPECIAL REQUIREMENT</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="SQ">
+                    <input type="radio" name="SQ" id="SQYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="SQ" id="SQNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%">每个飞行前检查 REVIEW EACH PREFLIGHT</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="reviewBefore">
+                    <input type="radio" name="reviewBefore" id="reviewBeforeYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="reviewBefore" id="reviewBeforeNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">每个飞行日检查 REVIEW EACH FLYING DAY</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="reviewDuring">
+                    <input type="radio" name="reviewDuring" id="reviewDuringYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="reviewDuring" id="reviewDuringNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%">是否有O项（O）ITEM</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="OItem">
+                    <input type="radio" name="OItem" id="OItemYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="OItem" id="OItemNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">Flight Crews Notified</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="FCN">
+                    <input type="radio" name="FCN" id="FCNYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="FCN" id="FCNNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal" style="width: 16%">EWIS</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="EWIS">
+                    <input type="radio" name="EWIS" id="EWISYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="EWIS" id="EWISNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+            <th class="table-cell cell-normal" style="width: 16%">油液渗漏</th>
+            <td class="table-cell cell-normal" colspan="2" style="width: 16%">
+                <form style=""  id="oilSpill">
+                    <input type="radio" name="oilSpill" id="oilSpillYes" value="y" disabled="true"><span style="padding-left: 5px">Y</span>
+                    <input type="radio" name="oilSpill" id="oilSpillNo" style="margin-left: 15px" value="n" disabled="true"><span style="padding-left: 5px">N</span>
+                </form>
+            </td>
+        </tr>
+
+        <tr>
+            <th class="table-cell cell-normal">Apply Date</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="applyDate"></span>
+            </td>
+            <th class="table-cell cell-normal">Category</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="category"></span>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal">
+                <div id="div_expiredDate"></div>
+            </th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="expiredDate"></span>
+            </td>
+            <th class="table-cell cell-normal">Attach File</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="attachFile"></span>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal">Requested By</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="requestedBy"></span>
+            </td>
+            <th class="table-cell cell-normal">License No.</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="requesterLice"></span>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal">Approved By</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="approvedBy"></span>
+            </td>
+            <th class="table-cell cell-normal">License No.</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="licenseNo2"></span>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal">Extention Reason</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="extentionReason"></span>
+            </td>
+            <th class="table-cell cell-normal">Extention Date</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="extentionDate"></span>
+            </td>
+        </tr>
+        <tr>
+            <th class="table-cell cell-normal">Approval By Quality Management DEPT.</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="ABQ"></span>
+            </td>
+            <th class="table-cell cell-normal">Approval By CAAC</th>
+            <td class="table-cell cell-normal" colspan="2">
+                <span id="ABC"></span>
+                <input type="text" id="pendin_id" style="display:none;">
+            </td>
+        </tr>
+        <tr>
+            <th  class="table-cell cell-normal">ATTACH PATH</th>
+            <td class="table-cell cell-normal" colspan="2" id="upload">ATTACH PATH</td>
+            <th class="table-cell cell-normal required" style="width: 16%"><span>Finder Sign</span></th>
+            <td class="table-cell cell-normal" colspan="2">
+                <!--                <input  class="easyui-textbox " id="finderSign" style="width: 90%"/>-->
+                <span id="finderSign" ></span>
+            </td>
+        </tr>
+    </table>
+    <table class="table table-bordered table-info" width="100%" style="padding-top:10px" id="jilu_table">
+        <tr>
+            <th class="table-cell cell-normal">修改人</th>
+            <th class="table-cell cell-normal">时间</th>
+            <th class="table-cell cell-normal">记录</th>
+        </tr>
+
+    </table>
+    <div class="foot-btns" id="boot_btns">
+        <!--<a class="searchBtn" type="button" onclick="save()" data-options="iconCls:'icon-clear'" style="margin-right: 10px;">
+            <span data-i18n="common:COMMON_OPERATION.SAVE"></span>
+        </a>-->
+        <a class="searchBtn" id="printButton" type="button" onclick="print_button()" data-options="iconCls:'icon-clear'" style="margin-right: 10px;">
+            <span>打印</span>
+        </a>
+        <a class="ridoBtn" type="button" onclick="close_window()" data-options="iconCls:'icon-clear'">
+            <span data-i18n="common:COMMON_OPERATION.CANCEL"></span>
+        </a>
+        <a class="ridoBtn" id="isCanEditReasons" type="button" onclick="isCanEditReasons_button()" data-options="iconCls:'icon-clear'" style="margin-left: 5px;display: none">
+            <span>确认</span>
+        </a>
+    </div>
+    <script type="text/javascript" src="/js/upload_file.js"></script>
+<script type="text/javascript">
+    const params = getParentParam_();
+
+    /** category选项配置 **/
+    const category_list = {
+        a: "A: 一天",
+        b: "B: 三天",
+        c: "C: 十天",
+        d: "D: 一百二十天",
+        other: "OTHER "
+    };
+
+    /** 故障保留category选项配置 **/
+    const category_list_deferral = {
+        a: "A: ",
+        b: "B: 三天",
+        c: "C: 十天",
+        d: "D: 一百二十天",
+        other: "OTHER "
+    };
+    
+    /** reasons选项的配置 **/
+    const reasons_list = [
+        {
+            value: "Material",
+            label: "Material",
+            name: "Material"
+        },
+        {
+            value: "Ground Time",
+            label: "Ground Time",
+            name: "Ground Time"
+        },
+        {
+            value: "Tooling",
+            label: "Tooling",
+            name: "Tooling"
+        },
+        {
+            value: "Engineering",
+            label: "Engineering",
+            name: "Engineering"
+        },
+    ];
+
+    /** 保存页面临时信息的全局变量 **/
+    var global_data = {
+        fh: "",
+        fc: "",
+        calendarDays: "",
+        flyingDays: ""
+    };
+
+
+    
+    /** 添加必填标志 **/
+    function add_require(){
+        $(".required").append("<span style='color: red'>*</span>")
+
+    }
+
+    /** 所有easyui组件的初始化 **/
+    function init_page(){
+        $.ajax({cache: false});
+        // $("#reasons").checkboxList({
+        //     data: reasons_list,
+        //     disabled: true
+        // })
+    }
+
+    /** 页面数据初始化 **/
+    function init_data(page_data){
+        console.log(page_data);
+        $("#pendin_id").val(page_data.defectPend.id);
+        if (page_data.category=="DFRL") {
+            $("#pendNo").html(page_data.defectPend.deferredNo);
+            $("#pendName").html('保留编号');
+            if(page_data.defectPend.auditStatus && page_data.defectPend.auditStatus != 4){
+                $('#printButton').css('display','none');
+            }
+        }else if(page_data.category=="PEND")
+        {
+            $("#pendName").html('pending编号');
+            $("#pendNo").html(page_data.defectPend.pendNo);
+            $('#printButton').css('display','none');
+        }
+
+        if(page_data.isCanEditReasons){
+            $("#reasons").checkboxList({
+                data: reasons_list,
+                disabled: false
+            });
+            $("#isCanEditReasons").show();
+        }else {
+            $("#reasons").checkboxList({
+                data: reasons_list,
+                disabled: true
+            })
+        }
+        if(page_data.dataChangeLogList.length>0){
+            for(let a in page_data.dataChangeLogList){
+                let file = " <tr>\n" +
+                    "            <td class=\"table-cell cell-normal\"><span>"+page_data.dataChangeLogList[a].createName+"</span></td>\n" +
+                    "            <td class=\"table-cell cell-normal\"><span>"+page_data.dataChangeLogList[a].createDate+"</span></td>\n" +
+                    "            <td class=\"table-cell cell-normal\"><span>"+page_data.dataChangeLogList[a].logRecord+"</span></td>\n" +
+                    "        </tr>";
+                let html_row = $(file);
+                $("#jilu_table").append(html_row);
+            }
+        }
+        $("#acname").html(page_data.dbi.acReg);
+        $("#defectDescChn").html(page_data.defectPend.defectDescChn);
+        $("#defectDescEng").html(page_data.defectPend.defectDescEng);
+        var affecteEngType = page_data.dbi.engineType;
+        var affecteEngData = "";
+        if (affecteEngType) {
+            if (affecteEngType == '1') {
+                affecteEngData = 'ENG1';
+            } else if (affecteEngType == '2') {
+                affecteEngData = 'ENG2';
+            } else if (affecteEngType == '3') {
+                affecteEngData = 'APU';
+            }
+            affecteEngData = affecteEngData + "  " + page_data.dbi.engineSn;
+        }
+        $("#affecteEng").html(affecteEngData);
+        $("#acModel").html(page_data.dbi.minorModel);
+        $("#tlbNo").html(page_data.tlbTechLog.tlbNo);
+        $("#zone").html(page_data.tlbTechLog.zoneNo);
+        if (page_data.defectPend.lackMater == "y") {
+            $("#reasons").checkboxList("check", "Material")
+        }
+        if (page_data.defectPend.lackTech == "y") {
+            $("#reasons").checkboxList("check", "Engineering")
+        }
+        if (page_data.defectPend.lackTime == "y") {
+            $("#reasons").checkboxList("check", "Ground Time")
+        }
+        if (page_data.defectPend.lackTool == "y") {
+            $("#reasons").checkboxList("check", "Tooling")
+        }
+        $("#others").html(page_data.defectPend.reasonOther);
+        $("#category").html(init_category(page_data.defectPend.dfralCategory, page_data.defectPend.ddDueDatas[page_data.defectPend.ddDueDatas.length - 1],page_data.defectPend.reference));
+
+        if(isShowRemainData(page_data)) {
+            $("#div_expiredDate").text("Remain Data");
+            let expiredDateHTML = init_remain(page_data.defectPend.dfralCategory,
+                page_data.defectPend.ddDueDatas[page_data.defectPend.ddDueDatas.length - 1],
+                page_data.defectPend.reference);
+            $("#expiredDate").html(expiredDateHTML.split("(")[1].split(")")[0]);
+        } else {
+            $("#div_expiredDate").text("Expired Date");
+            $("#expiredDate").html(page_data.defectPend.expiredDate);
+        }
+        // $("#categoryOther").textbox("getValue");好像没有
+        $("#reference").html(page_data.defectPend.reference);
+        $("#referenceOther").html(page_data.defectPend.referItem);
+        // let dm = $("input[name='dm']:checked").val();
+        if(page_data.defectPend.dm == "y"){
+            $("#dmYes").attr("checked", "checked");
+        }else if(page_data.defectPend.dm == "n"){
+            $("#dmNo").attr("checked", "checked");
+        }
+        $("#manHours").html(page_data.tlbTechLog.manHours);
+        if(page_data.tlbTechLog.dlyCnl == "y"){
+            $("input[name='dlyCnl']").prop("checked", true);
+        }else if(page_data.tlbTechLog.dm == "n"){
+            $("input[name='dlyCnl']").prop("checked", true);
+        }
+        if(page_data.tlbTechLog.rii == "y"){
+            $("input[name='RII']").prop("checked", true);
+        }else if(page_data.tlbTechLog.rii == "n"){
+            $("input[name='RII']").prop("checked", true);
+        }
+        if(page_data.tlbTechLog.rci == "y"){
+            $("input[name='RCI']").prop("checked", true);
+        }else if(page_data.tlbTechLog.rci == "n"){
+            $("input[name='RCI']").prop("checked", true);
+        }  
+        // let dlyCnl = $("input[name='dlyCnl']:checked").val() == "on"? "y": "n";
+        // let rii = $("input[name='RII']:checked").val() == "on"? "y": "n";
+        // let rci = $("input[name='RCI']:checked").val() == "on"? "y": "n";
+        if(!!page_data.tlbTechLog.inspectorNo && !!page_data.tlbTechLog.inspector){
+            $("#sign").html(`${page_data.tlbTechLog.inspector}(${page_data.tlbTechLog.inspectorNo})`);
+        }
+        $("#chineseReport").html(page_data.dbi.faultReportChn);
+        $("#englishReport").html(page_data.dbi.englishReport);
+
+        var status = "";
+        if (page_data.defectPend.status) {
+
+            if (page_data.defectPend.status == 1) {
+                status = "Open";
+            } else if (page_data.defectPend.status == 2) {
+                status = "Close";
+            }
+        }
+        $("#status").html(status);
+
+        $("#closedDate").html(page_data.defectPend.closeDate);
+
+        if(page_data.defectPend.isPlacard == "y"){
+            $("#placardYes").attr("checked", "checked");
+        }else if(page_data.defectPend.isPlacard == "n"){
+            $("#placardNo").attr("checked", "checked");
+        }
+        if(page_data.defectPend.isReview == "y"){
+            $("#reviewDuringYes").attr("checked", "checked");
+        }else if(page_data.defectPend.isReview == "n"){
+            $("#reviewDuringNo").attr("checked", "checked");
+        }
+        if(page_data.defectPend.isSpecial == "y"){
+            $("#SQYes").attr("checked", "checked");
+        }else if(page_data.defectPend.isSpecial == "n"){
+            $("#SQNo").attr("checked", "checked");
+        }
+        if(page_data.defectPend.isO == "y"){
+            $("#OItemYes").attr("checked", "checked");
+        }else if(page_data.defectPend.isO == "n"){
+            $("#OItemNo").attr("checked", "checked");
+        }
+        if(page_data.defectPend.isM == "y"){
+            $("#MItemYes").attr("checked", "checked");
+        }else if(page_data.defectPend.isM == "n"){
+            $("#MItemNo").attr("checked", "checked");
+        }
+        if(page_data.defectPend.isCaution == "y"){
+            $("#MCItemYes").attr("checked", "checked");
+        }else if(page_data.defectPend.isCaution == "n"){
+            $("#MCItemNo").attr("checked", "checked");
+        }
+        if(page_data.defectPend.isCheck == "y"){
+            $("#reviewBeforeYes").attr("checked", "checked");
+        }else if(page_data.defectPend.isCheck == "n"){
+            $("#reviewBeforeNo").attr("checked", "checked");
+        }
+        if(page_data.defectPend.isNotify == "y"){
+            $("#FCNYes").attr("checked", "checked");
+        }else if(page_data.defectPend.isNotify == "n"){
+            $("#FCNNo").attr("checked", "checked");
+        }
+        if(page_data.tlbTechLog.isHasEwis == "y"){
+            $("#EWISYes").attr("checked", "checked");
+        }else if(page_data.tlbTechLog.isHasEwis == "n"){
+            $("#EWISNo").attr("checked", "checked");
+        }
+        if(page_data.tlbTechLog.isHasOil == "y"){
+            $("#oilSpillYes").attr("checked", "checked");
+        }else if(page_data.tlbTechLog.isHasOil == "n"){
+            $("#oilSpillNo").attr("checked", "checked");
+        }
+        $("#applyDate").html(page_data.defectPend.applyDate);
+        if(!!page_data.defectPend.requester && !!page_data.defectPend.requesterNo){
+            $("#requestedBy").html(`${page_data.defectPend.requester}(${page_data.defectPend.requesterNo})`);
+        }
+        $("#requesterLice").html(page_data.defectPend.requesterLice);
+
+        if (!!page_data.defectPend.auditor && !!page_data.defectPend.auditorNo) {
+
+            $("#approvedBy").html(`${page_data.defectPend.auditor}(${page_data.defectPend.auditorNo})`);
+        }
+
+        $("#licenseNo2").html(page_data.defectPend.auditorLice);
+
+        $("#fltCycles").html(page_data.flbFlightDataVo.cyTotalAll);
+
+        var totalFh = page_data.flbFlightDataVo.fhTotal;
+        if (null != totalFh) {
+            totalFh = flbFormatTime(totalFh);
+        }
+        $("#fltHours").html(totalFh);
+        //发现人
+        if(page_data.tlbTechLog.technicianFound && page_data.tlbTechLog.technicianFoundNo){
+            $("#finderSign").html(`${page_data.tlbTechLog.technicianFound}(${page_data.tlbTechLog.technicianFoundNo})`);
+        }
+        // let isHasOil = $("input[name='oilSpill']:checked").val();
+        // let isHasEwis = $("input[name='EWIS']:checked").val();
+        let ewis_data = page_data.pageEwislst;
+        let oil_data = page_data.pageOillst;
+        $("#EWIS").EWIS("view", ewis_data);
+        $("#oilSpill").oilSpill("view", oil_data);
+        // $("#oilSpill").oilSpill("view", oil_data);
+
+        if(page_data.defectPend.extentionReason) {
+            $("#extentionReason").html(page_data.defectPend.extentionReason);
+        }
+        if(page_data.defectPend.extentionDate) {
+            $("#extentionDate").html(page_data.defectPend.extentionDate);
+        }
+        if(page_data.defectPend.qualApprover && page_data.defectPend.qualApproverNo) {
+            $("#ABQ").html(page_data.defectPend.qualApprover + "(" + page_data.defectPend.qualApproverNo + ")");
+        }
+        ddRenewalInsuranceAttachment(page_data);
+    }
+
+    function isShowRemainData(page_data) {
+        if(page_data.defectPend.category == 'DFRL' &&
+            (page_data.defectPend.dfralCategory == 'a' || page_data.defectPend.dfralCategory == 'other')){
+            return true;
+        }
+        if(page_data.defectPend.category == 'PEND' && (page_data.defectPend.dfralCategory == 'a' || page_data.defectPend.dfralCategory == 'other')){
+            if(page_data.defectPend.reference=="MEL"||page_data.defectPend.reference=="CDL"||page_data.defectPend.reference=="TE"){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function flbFormatTime(time) {
+        var hour = parseInt(time / 60);
+        var minute = time % 60;
+        hour = hour >= 10 ? hour : ("0" + hour);
+        minute = minute >= 10 ? minute : ("0" + minute);
+        return hour + ":" + minute;
+    }
+
+    function get_data(){
+
+        let category = "";
+        let url = "";
+        if (params) {
+            if (params.operation) {
+                if (params.operation === "DEFERRAL") {
+                    category = "DFRL";
+                    url = `/api/v1/defect/defect/dfrl/find?id=${params.defectId}&category=` + category;
+                } else if (params.operation === "PEND") {
+                    category = "PEND";
+                    url = `/api/v1/defect/defect/pend/find?id=${params.defectId}&category=` + category;
+                }
+            }
+
+            if (params.btnDisplay) {
+                $("#boot_btns").css('display', 'none');
+            }
+            axios.get(url).then(response => {
+                if(response.data.msg.indexOf("ERROR") != -1) {
+                    throw new Error(response.data.msgData[0])
+                } else if(response.data.msg.toUpperCase().indexOf("SUCCESS") != -1) {
+                    init_data(response.data.data)
+                }
+            }).catch(err => {
+                MsgAlert({type: "error", content: err.message})
+            })
+        }
+    }
+
+    /** category other 回填 **/
+    function init_category(category, other,reference){
+        // debugger
+        let category_dict = category_list;
+        if(params.operation == "DEFERRAL"){
+            category_dict = category_list_deferral;
+        }
+        if(params.operation == "PEND" && (reference == 'MEL' || reference == 'CDL' || reference == 'TE')){
+            category_dict = category_list_deferral;
+        }
+        let html = category_dict[category];
+        let other_html = "";
+        if(other.fh){
+            other_html += other.fh + "FH "
+        }
+        if(other.fc){
+            other_html += other.fc + "FC "
+        }
+        if(other.calendarDay){
+            other_html += other.calendarDay + "日历日 "
+        }
+        if(other.flightDay){
+            other_html += other.flightDay + "飞行日 "
+        }
+        if(category == "other" || (category == "a" && (params.operation == "DEFERRAL" || (params.operation == "PEND" && (reference == 'MEL' || reference == 'CDL' || reference == 'TE'))))){
+            html += `(${other_html})`;
+        }
+        return html;
+
+    }
+
+    /** category other 回填 **/
+    function init_remain(category, other,reference){
+        let category_dict = category_list;
+        if(params.operation == "DEFERRAL"){
+            category_dict = category_list_deferral;
+        }
+        let html = category_dict[category];
+        if(reference=='MEL'||reference=='CDL'||reference=='TE'){
+            html = html.replace("一天","");
+        }
+        let other_html = "";
+        if(other.fhRemain){
+            other_html += other.fhRemain + "FH "
+        }
+        if(other.fcRemain){
+            other_html += other.fcRemain + "FC "
+        }
+        if(other.calendarDayRemain){
+            other_html += other.calendarDayRemain + "日历日 "
+        }
+        if(other.flightDayRemain){
+            other_html += other.flightDayRemain + "飞行日 "
+        }
+        if(category == "other" || category == "a" ){
+            html += `(${other_html})`;
+        }
+        return html;
+
+    }
+
+    function close_window(){
+        window.opener=null;
+        window.open('','_self');
+        window.close();
+    }
+
+    function  print_button() {
+        let defectId = params.defectId;
+        let url = "/api/v1/defect/defect/dfrl/printPdf";
+        let con = "<form id='_f0_rm' method='GET' action='" + url + "'>" +
+            "<input class=\"beiliao\" value=\"" + defectId + "\"  type=\"text\" name=\"defectId\" style='display: none'>" +
+            "</form>";
+        $("#_f0_rm").remove();
+        $("body").append(con);
+        $("#_f0_rm").submit();
+    }
+
+    function isCanEditReasons_button(){
+        let zhen=false;
+        let reason={
+            id:$("#pendin_id").val(),
+            lackMater: "n",
+            lackTech: "n",
+            lackTime: "n",
+            lackTool: "n",
+        };
+        var arr = [];
+        $("#reasons input:checkbox:checked").each(function(i){
+            arr[i] = $(this).val();
+            if($(this).val()=="Material"){
+                reason.lackMater="y";
+                zhen=true;
+            }
+            if($(this).val()=="Ground Time"){
+                reason.lackTime="y";
+                zhen=true;
+            }
+            if($(this).val()=="Tooling"){
+                reason.lackTool="y";
+                zhen=true;
+            }
+            if($(this).val()=="Engineering"){
+                reason.lackTech="y";
+                zhen=true;
+            }
+        });
+        if(!zhen){
+            alert("Reasons不能为空！");
+            return;
+        }
+     console.log(reason);
+        $.ajax({
+            type: "POST",
+            url: "/api/v1/defect/defect/pend/updateReasons",
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify(reason),
+            dataType: "json",
+            success: function (data) {
+               alert("成功!")
+            },
+            error: function () {
+                window.alert("失败！");
+            }
+        });
+    }
+
+    function ddRenewalInsuranceAttachment(page_data){
+        let attData = {};
+        attData.attachments = page_data.ddRenewalInsuranceAttachmentList;
+        $("#upload").UPLOAD("view",attData.attachments);
+    }
+
+    $(function(){
+        init_page();
+        // init_data();
+        get_data();
+    })
+
+    
+</script>
+</body>
+</html>

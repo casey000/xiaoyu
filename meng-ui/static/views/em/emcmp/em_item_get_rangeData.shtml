@@ -1,0 +1,138 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">获取范围值</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2">
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">SB编号：</th>
+                    <td>
+                        <input class="easyui-combobox" id="revCode" name="revCode"
+                               style="width:110px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;" align="right">标题：</th>
+                    <td>
+                        <input class="easyui-textbox" id="itemNo" name="itemNo"
+                               style="width:110px"/>
+                    </td>
+
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
+                           onclick="getNo()">确定</a>&nbsp;&nbsp;
+
+                    </td>
+                </tr>
+            </table>
+
+        </div>
+    </form>
+</fieldset>
+<fieldset class="fieldset_eui">
+    <div style="width: 100%;height: 315px">
+        <table id="dg"></table>
+    </div>
+
+</fieldset>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var identity = 'dg';
+    var param = {};
+    param = getParentParam_();
+
+    var type_ = param.type;
+    var fleet = param.fleet;
+    var rangeType_msn = "MSN";
+    var rangeType_model = "MODEL";
+    var functionCode_;
+
+    function i18nCallBack() {
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_REV_CODE,EM_IF_TMP",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+
+
+                    //获取当前机队的值
+
+                    if (type_ == rangeType_msn) {
+                        functionCode_ = 'RANGETYPE_MSN_LIST';
+                    }
+                    if (type_ == rangeType_model) {
+                        functionCode_ = 'RANGETYPE_MODLE_LIST';
+                    }
+
+
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+
+        $("#dg").MyDataGrid({
+            identity: identity,
+            fit: true,
+            sortable: true,
+            title: $.i18n.t(''),
+            singleSelect: false,
+            queryParams: {fleet: fleet},
+            columns: {
+                param: {FunctionCode: functionCode_},
+
+            },
+            contextMenus: [],
+        });
+    }
+
+
+    function getNo() {
+        var rows = $('#dg').datagrid('getSelections');
+
+        var nos = '';
+
+        if (rows.length == 0) {
+            MsgAlert({content: '请选择数据项', type: 'error'});
+            return false;
+        }
+
+        for (var i = 0; i < rows.length; i++) {
+
+            if (type_ == rangeType_msn) {
+                nos += rows[i].MSN + ",";
+            }
+            if (type_ == rangeType_model) {
+                //model
+                nos += rows[i].CONF_ACTYPE + ",";
+            }
+
+        }
+        param.OWindow.getData(nos);
+        CloseWindowIframe();
+
+    }
+
+
+</script>
+</body>
+</html>

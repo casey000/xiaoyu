@@ -1,0 +1,402 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="emmpdeval">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">MPD/CMP评估</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <!--<th data-i18n="" style="width:80px;padding-right: 6px;" align="right">文件类型：</th>-->
+                    <!--<td>-->
+                    <!--<input class="easyui-combobox" name="docType" id="docType" data-options="editable: false" style="width:80px"/>-->
+                    <!--</td>-->
+
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">修订标识：</th>
+                    <td>
+                        <input class="easyui-combobox" name="revCode" id="revCode" data-options="editable: false" style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">章节:</th>
+                    <td>
+                        <input class="easyui-textbox" name="ata" id="ata" data-options="" style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">项目号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="itemNumber" id="itemNumber" data-options=""
+                               style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;" align="right">适用类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="applType"  id="applType" data-options="editable: false"
+                               style="width:80px"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">评估人：</th>
+                    <td>
+                        <input class="easyui-combobox" name="evalByid" id="evalByid" data-options=""
+                               style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">机队：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fleet" id="fleet" data-options="editable: false" style="width:80px"/>
+                    </td>
+
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">MP号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="cmpNo" id="cmpNo" data-options="" style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">评估单号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="evalNo" id="evalNo" data-options="" style="width:80px"/>
+                    </td>
+
+                    <!-- <th class="easyui-checkbox" style="width:80px;padding-right: 6px;" align="right">是否超期 ：</th>
+                     <td class="tdr" colspan="">
+                         <input type="checkbox" value="Y" id="" name="" item="aa" data-options="required:true">
+                     </td>-->
+
+                    <td style="right: auto" colspan="2">&nbsp;&nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+
+
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+
+<table id="dg"></table>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var evalNo;
+    var FLEET;
+    var PKID;
+    var flag = true;
+    var userName;
+    var accountId;
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        userName = getLoginInfo().userName;
+        accountId = getLoginInfo().accountId;
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "YESORNO,DA_FLEET,EM_MPD_CTL_TYPE,EM_APPL_TYPE,EM_IF_REV_CMP,EM_IF_APPL,EM_MPD_DOC_TYPE,EM_REV_CODE,EM_ATA,EM_EVAL_BY,DA_FLEET,EM_MPD_EVAL_STATE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA ["ifRevCmp"] = DomainCodeToMap_(jdata.data["EM_IF_REV_CMP"]);
+                    PAGE_DATA ["ifAppl"] = DomainCodeToMap_(jdata.data["EM_IF_APPL"]);
+                    PAGE_DATA ["applType"] = DomainCodeToMap_(jdata.data["EM_APPL_TYPE"]);
+                    PAGE_DATA ["yesorno"] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA ["ctlType"] = DomainCodeToMap_(jdata.data["EM_MPD_CTL_TYPE"]);
+                    PAGE_DATA ["evalState"] = DomainCodeToMap_(jdata.data["EM_MPD_EVAL_STATE"]);
+                    PAGE_DATA ["revCode"] = DomainCodeToMap_(jdata.data["EM_REV_CODE"]);
+                    // $('#docType').combobox({
+                    //     panelHeight: '150px',
+                    //     data: jdata.data.EM_MPD_DOC_TYPE,
+                    //     valueField: 'VALUE',
+                    //     textField: 'TEXT',
+                    //     loadFilter: function (jdata) {
+                    //         jdata.unshift({TEXT: 'UDF', VALUE: 'UDF'});
+                    //         return jdata;
+                    //     },
+                    //
+                    // });
+                    $('#applType').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.EM_APPL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#revCode').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_REV_CODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    // $('#ata').combobox({
+                    //     panelHeight: '150px',
+                    //     data: jdata.data.EM_ATA,
+                    //     valueField: 'VALUE',
+                    //     textField: 'TEXT',
+                    //     loadFilter: function (jdata) {
+                    //         jdata.unshift({TEXT: '00', VALUE: '00'});
+                    //         return jdata;
+                    //     },
+                    // });
+
+                    $("#evalByid").MyComboGrid({
+                        idField: 'ACCOUNTID',  //实际选择值
+                        textField: 'NAME', //文本显示值
+                        panelWidth: '250px',
+                        width: '80px',
+                        editable: true,
+                        required: false,
+                        pagination: true,
+                        tipPosition: 'top',
+                        mode: 'remote',
+                        params: {FunctionCode: 'WS_USER'},
+                        url: Constant.API_URL + 'WS_USER',
+                        columns: [[
+                            // {field: 'NO', title: '员工编号', width: 100, sortable: true},
+                            {field: 'NAME', title: '名称', width: 100, sortable: true}
+                        ]]
+                    });
+                    $('#fleet').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        //registerEnterEvent(document.forms[0], searchData);
+
+    }
+
+    /*function registerEnterEvent(form, func) {
+        Event.observe(form, "keypress", queryData);
+        function queryData() {
+            var e = event || window.event;
+            if (e.keyCode == 13) {
+                e.returnValue = false;
+                func();
+            }
+        }
+    }*/
+    $(document).ready(function (e) {
+        $(this).keydown(function (e) {
+            if (e.which == "13") {
+                searchData();//触发该事件
+            }
+        })
+    });
+    //批量处理飞机明细
+    function makeDate() {
+        alert("开始处理");
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "EM_MAKE_DATE_SERVECE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    alert("处理完成");
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'EM_MPD_EVAL_LIST'},
+                alter: {
+                    IF_REV_CMP: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['ifRevCmp'][value];
+                        }
+                    },
+                    IF_APPL: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['ifAppl'][value];
+                        }
+                    },
+                    APPL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['applType'][value];
+                        }
+                    },
+                    EVAL_STATE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['evalState'][value];
+                        }
+                    },
+                    CTL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['ctlType'][value];
+                        }
+                    },
+                    REV_CODE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['revCode'][value];
+                        }
+                    },
+                    EVAL_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            onLoadSuccess: function (data) {
+                if (flag) {
+                    onSearch_();
+                    flag = false;
+                }
+            },
+            contextMenus: [
+
+                {
+                    id: "m-eval", i18nText: "评估", auth: "EM_MPD_EVAL_EVAL",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        var evalNo = rowdata.EVAL_NO;
+                        var itemNumber = rowdata.ITEM_NUMBER;
+                        var isUdf = rowdata.DOC_TYPE == "UDF" ? 'Y' : 'N';
+                        var fleetPass = rowdata.FLEET;
+                        ShowWindowIframe({
+                            width: 1300,
+                            height: 750,
+                            param: {
+                                evalNo: evalNo,
+                                Flag: '1',
+                                isUdf: isUdf,
+                                isEdit: 1,
+                                itemNumber: itemNumber,
+                                fleetPass: fleetPass
+                            },
+                            title: "评估",
+                            url: "/views/em/emmpdeval/evalNote.shtml"
+                        });
+
+                    }
+                }, {
+                    id: "m-copy", i18nText: "复制", auth: "EM_MPD_EVAL_COPY2",
+                    onclick: function () {
+                        $.messager.confirm('', '确认复制该记录？', function (r) {
+                            if (!r) {
+                                return;
+                            }
+                            var rowdata = getDG(identity).datagrid('getSelected');
+                            var evalNo = rowdata.EVAL_NO;
+                            var type = "COPY";
+                            InitFuncCodeRequest_({
+                                data: {
+                                    evalNo: evalNo, type: type,
+                                    FunctionCode: 'EM_MPD_EVAL_COPY_COPY'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        });
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除", auth: "EM_MPD_EVAL_DELETE",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (rowdata.EVAL_BYID != accountId) {
+                            MsgAlert({content: "您不是此条记录的评估人，不允许删除！", type: 'error'});
+                            return;
+                        }
+                        $.messager.confirm('', '确认删除该记录？', function (r) {
+                            if (!r) {
+                                return;
+                            }
+
+                            var evalNo = rowdata.EVAL_NO;
+                            InitFuncCodeRequest_({
+                                data: {
+                                    evalNo: evalNo,
+                                    FunctionCode: 'EM_MPD_EVAL_DELETE'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        });
+                    }
+                },
+            ],
+            validAuth: function (row, items) {
+
+                if (row.EVAL_STATE == "PGZ" || row.EVAL_STATE == "YCJ") {
+                    items['评估'].enable = true;
+                } else {
+                    items['评估'].enable = false;
+                }
+                if (row.EVAL_STATE == "PGZ" || row.EVAL_STATE == "YCJ") {
+                    items['复制'].enable = true;
+                } else {
+                    items['复制'].enable = false;
+                }
+                if (row.EVAL_STATE == "PGZ" || row.EVAL_STATE == "TURNBACK") {
+                    items['删除'].enable = true;
+                } else {
+                    items['删除'].enable = false;
+                }
+                return items;
+            },
+
+        });
+
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+    /** 增加*/
+    function addOrEdit(operation) {
+        var title_;
+        var isEdit;
+        if ('add' == operation) {
+            title_ = $.i18n.t('新增');
+            isEdit = '';
+        } else if ('edit' == operation) {
+            title_ = $.i18n.t('编辑');
+            isEdit = '1';
+        } else {
+            title_ = $.i18n.t('查看');
+            isEdit = '1';
+        }
+        common_add_edit_({
+            identity: 'dg', isEdit: isEdit, width: 840, height: 560, title: title_,
+            param: {operation: operation},
+            url: "/views/em/emmpdeval/em_jc_refmh_ratio.shtml"
+        });
+    }
+
+</script>
+</body>
+
+</html>

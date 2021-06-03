@@ -1,0 +1,124 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>修订说明</title>
+</head>
+<body class="ibody">
+<div id="tt" style="">
+    <form id="mform" method="post">
+        <input type="hidden" id="cmpPkid" name="cmpPkid"/>
+        <input type="hidden" id="pkid" name="pkid"/>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="th" style="width:100px;" align="right">是否修订：</th>
+                <td>
+                    <input class="easyui-combobox" id="isRev" name="isRev" data-options="required:true"/>
+                </td>
+            </tr>
+            <tr id="isView">
+                <th class="th" style="width:100px;" align="right">修订说明：</th>
+                <td width="400">
+                    <input class="easyui-textbox" id="revDesc" name="revDesc"
+                           data-options="required:true,multiline:true"
+                           style="width: 400px; height: 150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" align="center" style="padding: 10px 0;">
+                    <a href="javascript:void(0)" class="addBtn" data-options="iconCls:'icon-search'"
+                       onclick="submit()">
+                        <span>确定</span></a>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/pageoffice.js" id="po_js_main"></script>
+<script type="text/javascript">
+    var param;
+    var fileId;
+    var catid;
+    var type;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        fileId = param.fileId;
+        catid = param.catid;
+        type = param.type;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#isRev').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data["YESORNO"],
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange: function (value) {
+                            if (value == 'Y') {
+                                $("#isView").show();
+                                $("#revDesc").textbox({value: $("#revDesc").textbox('getValue'), required: true});
+                            } else {
+                                $("#isView").hide();
+                                $("#revDesc").textbox({value: '', required: false});
+                            }
+                        }
+                    });
+                }
+                if ('delete' == type) {
+                    $("#isRev").combobox({value: 'Y', onlyview: true, readonly: true});
+                } else {
+                    $("#isRev").combobox({value: 'Y'});
+                }
+            }
+        });
+    }
+
+    function submit() {
+        var id = getLoginInfo().userId;
+        var revDesc = $("#revDesc").textbox("getValue");
+        var isRev = $("#isRev").combobox("getValue");
+        if (!revDesc && isRev == 'Y') {
+            MsgAlert({content: "修订说明不能为空！", type: 'error'});
+            return;
+        }
+        if (isRev == 'Y') {
+            InitFuncCodeRequest_({
+                data: {pkid: catid, revManId: id, revDesc: revDesc, FunctionCode: 'EM_CMP_CAT_REV_UPDATE'},
+                successCallBack: function (jdata) {
+                    if (jdata.code == 200) {
+                        if ('delete' == type) {
+                            InitFuncCodeRequest_({
+                                data: {pkid: fileId, FunctionCode: 'ATTACHMENT_RSPL_DEL'},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == 200) {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        param.OWindow.successCallBack();
+                                        CloseWindowIframe();
+                                    }
+                                }
+                            });
+                        } else if ('edit' == type) {
+                            param.OWindow.editOnline(fileId);
+                            CloseWindowIframe();
+                        }
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        } else {
+            if ('edit' == type) {
+                param.OWindow.editOnline(fileId);
+                CloseWindowIframe();
+            }
+        }
+    }
+</script>
+</body>
+</html>

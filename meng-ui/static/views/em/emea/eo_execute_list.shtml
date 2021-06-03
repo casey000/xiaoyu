@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">EO执行记录</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <!--<th data-i18n="" style="width: 90px">机号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="acno" id="acno" data-options=""
+                               style="width:120px;" />
+                    </td>
+                    <th data-i18n="" style="width: 90px">称重报告编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="reportNo" id="reportNo" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">称重日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="startDate" id="startDate" data-options=""
+                               style="width:120px;"/>至
+                        <input class="easyui-datebox" name="endDate" id="endDate" data-options=""
+                               style="width:120px;"/>
+
+                    </td>-->
+
+                    <!--<td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="searchData()"
+                           >查询</a>
+                    </td>-->
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var eoNo;
+    var eoEa;
+    var applyType;
+    var eoVer;
+    var eoPkid;
+    var func = '';
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        eoNo = param.eoNo;
+        eoEa = param.eoEa;
+        applyType = param.applyType;
+        eoVer = param.eoVer;
+        eoPkid = param.eoPkid;
+        if(applyType == 'APL'){
+            func = 'EM_EO_EXECUTE_LIST';
+        }else{
+            func = 'EM_EO_EXECUTE_OTHER_LIST'
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_MAN_ACNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data["DA_ACREG_MAN_ACNO"]);
+
+                    $('#acno').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DA_ACREG_MAN_ACNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 10,
+            queryParams: {eoNo : eoNo, eoPkid: eoPkid, eoVer: eoVer},
+            columns: {
+                param: {FunctionCode: func},
+                /*alter: {
+                    FH_TOTAL: {
+                        formatter: function (value) {
+                            if(value){
+                                return timeStamp(value);
+                            }else{
+                                return '';
+                            }
+                        }
+                    },
+                    NEXT_FH: {
+                        formatter: function (value) {
+                            if(value){
+                                return timeStamp(value);
+                            }else{
+                                return '';
+                            }
+                        }
+                    }
+                }*/
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [
+            ]
+
+        });
+    }
+
+
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    function timeStamp(value) {
+        var mode = value % 60;
+        var hour = (value - mode) / 60;
+        var hourInt = hour;
+        if(hour == 0){
+            hour = '00:';
+        }else if(hour < 10){
+            hour = '0'+hour+':';
+        }else{
+            hour = hour+':';
+        }
+
+        var min = value - 60 * hourInt;
+        if(min == 0){
+            min = "00";
+        }else if(min < 10){
+            min = '0'+min;
+        }
+        return hour+min;
+    }
+
+
+</script>
+</body>
+</html>

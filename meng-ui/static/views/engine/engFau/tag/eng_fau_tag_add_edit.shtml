@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>添加/编辑-故障标签</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="故障标签维护" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr id ="btnTr">
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" style="margin: 10px" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th >标签类别：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="tagType" name="tagType" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                        <th>标签名称：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="tagName" name="tagName" data-options="required: true,events:{blur:checkTag}" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>维护人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th>维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var operation;
+    var pkid;
+    var flag;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        $("#modifyName").textbox('setValue',userLogin.userName);
+        $("#modifyUser").val(userLogin.accountId);
+        $("#modifyDate").datebox('setValue',new Date().Format('yyyy-MM-dd'));
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+        flag = param.flag;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_FAU_TAG_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },async:false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#tagType').combobox({editable:false,onlyview:true});
+                    $('#tagType').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_FAU_TAG_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#tagType').combobox('setValue','2')
+                    if(operation == "view"){
+                        $(".easyui-textbox").textbox({required:false,editable:false,onlyview:true});
+                        $(".easyui-combobox").combobox({required:false,editable:false,onlyview:true});
+                        $(".easyui-datebox").datebox({required:false,editable:false,onlyview:true});
+                        $('#btnTr').hide();
+                    }
+
+                    InitDataForm(pkid);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+
+    //回显
+    function InitDataForm(pkid) {
+        $('#pkid').val(pkid);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engFauTag/selectById" + "/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFauTag/checkUnique",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if (data > 0) {
+                        MsgAlert({content: "标签名称，不允许重复!", type: 'error'});
+                        return;
+                    }else{
+                        msave(datas);
+                    }
+                } else {
+                    MsgAlert({content: "校验唯一性失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function msave(datas){
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFauTag/addOrEditFauTag",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if (data != null) {
+                        $('#pkid').val(data.pkid);
+                        pkid = data.pkid;
+                        operation = 'edit';
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        if(flag != 'confirm'){
+                            param.OWindow.reload_();
+                        }
+                        CloseWindowIframe();
+                    }
+                } else {
+                    MsgAlert({content: "保存失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkTag(){
+        var str = $(this).val();
+        if (str && str.indexOf(',') != -1) {
+            alert('不允许使用英文逗号！');
+            $(this).val('');
+        }
+    }
+
+
+</script>
+</body>
+</html>

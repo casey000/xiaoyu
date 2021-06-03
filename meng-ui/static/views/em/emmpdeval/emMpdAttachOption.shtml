@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">MARK信息</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td class="td5" align="right">
+                        <input class="btn btn-primary" value="确定" type="button" onclick="sureOnclick()"
+                               style="margin:5px;"/>
+                        <input class="btn btn-primary" value="关闭" type="button" onclick="CloseWindowIframe()"
+                               style="margin:5px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    param = getParentParam_();
+    var evalNo = param.evalNo;
+    var attachOption = param.attachOption;
+    var sources = param.sources;
+    function i18nCallBack() {
+
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            columns: {
+                param: {FunctionCode: 'EM_MPD_ATTACH_OPTIONS_LIST'}
+            },
+            onLoadSuccess: function (data) {
+                //源文件中有AD的 默认MARK信息勾选AD,源文件中有CMR的 默认MARK信息勾选CMR
+                if (data) {
+
+                    $.each(data.rows, function (index, item) {
+                        // if (sources.indexOf("AD") > -1) {
+                        //     if (item.TEXT == "AD") {
+                        //         $('#dg').datagrid('checkRow', index);
+                        //     }
+                        // }
+                        // if (sources.indexOf("CMR") > -1) {
+                        //     if (item.TEXT == "CMR") {
+                        //         $('#dg').datagrid('checkRow', index);
+                        //     }
+                        // }
+                        if (attachOption.indexOf(item.TEXT) > -1) {
+                            $('#dg').datagrid('checkRow', index);
+                        }
+                    });
+                }
+            },
+            onCheck: function (index, row) {
+                if (row.TEXT == "IFSD" || row.TEXT == "DM") {
+                    MsgAlert({content: '请评估工卡是否需要改版'});
+                }
+            },
+            onUncheck: function (index, row) {
+                if (row.TEXT == "IFSD" || row.TEXT == "DM") {
+                    MsgAlert({content: '请评估工卡是否需要改版'});
+                }
+            }
+        });
+    }
+
+    //确定，返回数据串
+    function sureOnclick() {
+        var checkedItems = $('#dg').datagrid('getChecked');
+        var re = checkedItems.indexOf("IFSD");
+        var attachOptions = [];
+        var values = [];
+        var b1 = false;
+        var b2 = false;
+        $.each(checkedItems, function (index, item) {
+            if (item.TEXT == "IFSD") {
+                b1 = true;
+            }
+            if (item.TEXT == "DM") {
+                b2 = true;
+            }
+
+            attachOptions.push(item.TEXT);
+            values.push(item.VALUE);
+        });
+        // if (b1 && b2) {
+        //     MsgAlert({content: '不能同时勾选IFSD和DM', type: 'error'});
+        //     return;
+        // }
+        InitFuncCodeRequest_({
+            data: {evalNo: evalNo, attachOption: values.join(","), FunctionCode: 'EM_MPD_ATTACH_OPTIONS_EDIT'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.refreshAttachOption(attachOptions.join(","));
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

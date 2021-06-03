@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>自有工程属性维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="发动机/APU型号维护" style="width: 100%"></div>
+                <input type="hidden" id="createUser" name="createUser"/>
+
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="8" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="type" name="type" data-options="required:true" style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="engType" name="engType" data-options="required:true" style="width: 160px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">件号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="part" name="part" data-options="required:true" style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">机型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="acType" name="acType" data-options="required:true" style="width: 160px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">维护人：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="createName" name="createName" data-options="onlyview: true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="createDate" name="createDate" data-options="onlyview: true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var user;
+    function i18nCallBack() {
+        param = getParentParam_();
+        user = getLoginInfo();
+        $("#createUser").val(user.accountId);
+        $("#createName").textbox('setValue',user.userName);
+        $("#createDate").textbox('setValue',new Date().Format("yyyy-MM-dd"));
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_BAS_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#type').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.ENG_BAS_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#part').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px'
+                    });
+                } else {
+                    MsgAlert({content: '获取件号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiReport/getMpActypes",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#acType').combobox({
+                        data: jdata.obj,
+                        valueField: 'value',
+                        textField: 'text',
+                        panelHeight: '100px',
+                    });
+                } else {
+                    MsgAlert({content: '获取机型列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/basTypeMapper/getEngtypes",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#engType').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/basTypeMapper/insert",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $("#pkid").val(jdata.obj);
+                    param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.onSearchClick();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

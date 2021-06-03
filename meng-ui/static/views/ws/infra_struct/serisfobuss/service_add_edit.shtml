@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+    <script type="text/javascript">
+
+        var isEdit_;
+        var param = {};
+        $(function () {
+            param = getParentParam_();
+            isEdit_ = param && param.PKID;
+            if (isEdit_) {
+                $("#objNo").textbox({editable: false, value: param.OBJ_NO});
+                InitFuncCodeRequest_({
+                    data: {pkid: param.PKID, businessCode: param.BUSINESS_CODE, FunctionCode: "ONLY_SERVICE_GET"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                            InitEditForm_();
+                        } else {
+                            layer.msg(jdata.msg, {icon: 5});
+                        }
+                    }
+                })
+            } else {
+                InitEditForm_();
+            }
+        });
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'ONLY_SERVICE_EDIT' : 'ONLY_SERVICE_ADD')
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" name="pkid" value=""/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">PKID：</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox easyui-validatebox" name="pkid"
+                                   data-options="validType:['maxlength:[18]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">服务类型：</th>
+                        <td class="tdr">
+
+                            <select name="svType" class="easyui-combobox" data-options="editable:false"
+                                    panelHeight="120" style="width:80px">
+                                <option value="1">之前</option>
+                                <option value="2">替换</option>
+                                <option value="3">之后</option>
+                            </select>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="tdl">服务对象：</th>
+                        <td class="tdr">
+                            <select name="instanceName" class="easyui-combobox easyui-validatebox"
+                                    data-options="required:true" panelHeight="120" style="width:180px">
+                                <option value="commonService">commonService</option>
+                            </select>
+                        </td>
+
+                    </tr>
+
+                    <tr>
+                        <th class="tdl">方法：</th>
+                        <td class="tdr">
+                            <select name="method" class="easyui-combobox" data-options="required:true" panelHeight="120"
+                                    style="width:180px">
+                                <option value="getRecordListByPage">getRecordListByPage</option>
+                                <option value="getRecordList">getRecordList</option>
+                                <option value="saveRecord">saveRecord</option>
+                                <option value="saveRecordByClass">saveRecordByClass</option>
+                                <option value="updateRecord">updateRecord</option>
+                                <option value="updateRecordByClass">updateRecordByClass</option>
+                                <option value="getRecord">getRecord</option>
+                                <option value="getRecords">getRecords</option>
+                                <option value="deleteRecord">deleteRecord</option>
+                                <option value="deleteRecordByClass">deleteRecordByClass</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">返回结果：</th>
+                        <td class="tdr">
+                            <select name="hasResult" class="easyui-combobox" panelHeight="120" style="width:80px">
+                                <option value="1">是</option>
+                                <option value="0">否</option>
+                            </select>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">返回结果集Key：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="resultKey"
+                                   data-options="validType:['maxlength:[33]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">SQL：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox " name="sqlText"
+                                   data-options="multiline:true " style="width:480px;height:150px">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">固定参数：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox " name="sqlParam"
+                                   data-options="multiline:true ,validType:['maxLength[2000]']"
+                                   style="width:480px;height:150px">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">是否是业务事务：</th>
+                        <td class="tdr">
+                            <select name="isfoBusiness" class="easyui-combobox" data-options="editable:false"
+                                    panelHeight="120" style="width:80px">
+                                <option value="0">否</option>
+                                <option value="1">是</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">服务编码：</th>
+                        <td class="tdr">
+
+                            <input class="easyui-textbox easyui-validatebox" data-options="validType:['maxLength[10]']"
+                                   name="businessCode"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">服务名称：</th>
+                        <td class="tdr">
+
+                            <input class="easyui-textbox easyui-validatebox" data-options="validType:['maxLength[120]']"
+                                   name="businessName"
+                                   data-options="length:[1,120]"/>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="btn btn-primary" type="submit" value="提交"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

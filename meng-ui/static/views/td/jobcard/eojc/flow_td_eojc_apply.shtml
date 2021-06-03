@@ -1,0 +1,1223 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_work_flow">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script src="/js/workflow/activiti_workflow.js" type="text/javascript"></script>
+    <script src="/js/workflow/formtemplet.js" type="text/javascript"></script>
+    <script src="/js/datagrid_utils.js" type="text/javascript"></script>
+    <title></title>
+
+
+</head>
+<body class="ibody">
+
+<div id="tabs" style="width: 100%; height: 100%;">
+    <div id="tab01" title="业务表单数据" style="">
+        <div class="ibox float-e-margins">
+            <div class="ibox-content">
+                <form class="form-horizontal m-t" id="mform" style="margin-top: 0px;">
+                    <input type="hidden" id="reviewedBy" name="reviewedBy">
+                    <input type="hidden" id="approvedBy" name="approvedBy">
+                    <input type="hidden" id="publicBy" name="publicBy">
+                    <!--zhangxun-->
+                    <input type="hidden" id="isFirstNode" name="isFirstNode">
+                    <!--zhangxun-->
+                    <!-- 业务数据展示 start-->
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <input type="hidden" id="cepCheckout" name="cepCheckout"/>
+                    <input type="hidden" id="cepFilePath" name="cepFilePath"/>
+
+                    <div style="height: 640px;">
+                        <iframe scrolling="auto" id="iframe01" frameborder="0" src=""
+                                style="width:100%;height:100%;"></iframe>
+                    </div>
+
+                    <!-- 业务数据展示end-->
+                    <h5 style="margin-bottom: 4px;">流程处理：</h5>
+                    <input name="taskId" type="hidden"/>
+                    <table class="table table-bordered table-info">
+                        <tbody id="custom_options"></tbody>
+                    </table>
+                    <table class="table table-bordered table-info" id="mtable">
+                        <tr>
+                            <th class="tdl" style="width: 100px;">处理意见：</th>
+                            <td class="tdr">
+                                <input id="notes" name="notes" class="easyui-textbox easyui-validatebox"
+                                       data-options="multiline:true,validType:['maxLength[200]']"
+                                       style="height:55px; width: 100%;"/>
+                            </td>
+                            <th class="tdl xmclass" style="width: 100px">下一级办理人：</th>
+                            <td class="tdr xmclass">
+                                <input id="authId" name="authId" class="easyui-textbox easyui-validatebox"
+                                       data-options="validType:['maxLength[20]'] " style="height:25px; width:150px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="6" align="center">
+                                <input id="canSubmit" class="btn" disabled="disabled" type="button"
+                                       onclick="doSubmit();" value="提交"/>
+                                <input id="canTrunTo" class="btn" disabled="disabled" type="button"
+                                       onclick="doTurnTo();" value="转办"/>
+                                <input id="canReturn" class="btn" disabled="disabled" type="button"
+                                       onclick="doReturn();" value="退回"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div title="流程信息" style="">
+        <table class="table table-bordered table-info" id="processInfo">
+            <tr>
+                <th class="tdl" style="width: 145px;">流程业务Key ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="businessKey"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程业务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="executionName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程创建时间 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="createTime"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程创建人 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="userName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="nodeName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">是否会签任务 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="isJoint"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务-配置 ：</th>
+                <td class="tdr" colspan="3" style="vertical-align: middle;">
+                    <input type="checkbox" name="canReturn" value="" disabled/> 可退回
+                    <input type="checkbox" name="canTrunTo" value="" disabled/> 可转办
+                    <input type="checkbox" name="canTerminate" value="" disabled/> 可终止
+                    <input type="checkbox" name="canHangUp" value="" disabled/> 可挂起
+                </td>
+            </tr>
+        </table>
+        <div id="workflow" style="overflow-x: scroll;"></div>
+    </div>
+    <div id="tab02" title="历史任务信息" style="">
+        <table id="historyDg"></table>
+    </div>
+</div>
+
+<script type="text/javascript">
+    /**
+     *
+     * @param resource  业务数据
+     * @param execution 流程实例数据
+     * @param node 节点配置数据
+     * @constructor
+     */
+
+    var COMBOBOX_DATA = {};
+    var jc_pkid = null;//主表PKID
+    var jcNo;
+    var cPkid = null;
+    var cDesc = null;
+    var g_appType = null;//当前数据库适用性类型
+    var operation = "edit";
+    var segPkid = "";
+    var userLogin;
+    var cepFilePath;
+    var cepCheckout;
+    var flowStatus;
+    var type;
+    var appType;
+    var fleet;
+    var jcType;
+
+    function InitLoadResource(resource, execution, node) {
+        //ParseFormField_(resource, null, Constant.CAMEL_CASE);
+        jc_pkid = resource.pkid;
+        jcNo = resource.jcNo;
+        userLogin = getLoginInfo();
+        cepFilePath = resource.cepFilePath;
+        cepCheckout = resource.cepCheckout;
+        appType = resource.appType;
+        fleet = resource.fleet;
+        jcType = resource.jcType;
+
+
+        if (resource.status == "AUDIT") {
+            type = "view";
+            flowStatus = "AUDIT";
+            operation = "view";
+        } else if (resource.status == "RATIFY") {
+            type = "view";
+            flowStatus = "RATIFY";
+            operation = "view";
+        } else if (resource.status == "TURNBACK") {
+            type = "edit";
+            flowStatus = "TURNBACK";
+            operation = "edit";
+        }
+
+        $("#pkid").val(jc_pkid);
+
+        $("#iframe01").attr("src", "/views/td/jobcard/eojc/tdEojcDetail.shtml?pkid=" + jc_pkid + "&jcNo=" + jcNo + "&operation=" + operation + "&taskId=" + node.taskPropId + "&userLogin=" + userLogin.accountId + "&flowStatus=" + flowStatus + "&type=" + type + "&userName=" + userLogin.userName + "&cepFilePath=" + cepFilePath + "&cepCheckout=" + cepCheckout + "&eoJcNo=" + jcNo + "&appType=" + appType + "&fleet=" + fleet + "&jcType=" + jcType);
+
+
+        if(resource.jcType == "EOJC"){
+            InitFuncCodeRequest_({
+                data: {
+                    domainCode: "DA_FLEET,YESORNO,TD_JC_CONFIG_TYPE,TD_JC_MATER_SORT,TD_JC_MATER_TYPE,TD_JC_MATER_UNIT,TD_JC_MATER_IMPORTANCE",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                        //机队
+                        COMBOBOX_DATA['fleet'] = jdata.data.DA_FLEET;
+                        //是否必检
+                        COMBOBOX_DATA['ifRii'] = jdata.data.YESORNO;
+                        //反馈厂家
+                        COMBOBOX_DATA['backVendor'] = jdata.data.YESORNO;
+
+                        //航材/工具
+                        COMBOBOX_DATA['materSort'] = DomainCodeToMap_(jdata.data["TD_JC_MATER_SORT"]);
+                        //航材类别
+                        COMBOBOX_DATA['materType'] = DomainCodeToMap_(jdata.data["TD_JC_MATER_TYPE"]);
+                        //数量按需
+                        COMBOBOX_DATA['qtyReq'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                        //单位
+                        COMBOBOX_DATA['unit'] = DomainCodeToMap_(jdata.data["TD_JC_MATER_UNIT"]);
+                        //适用情况（是否视情）
+                        COMBOBOX_DATA['importance'] = DomainCodeToMap_(jdata.data["TD_JC_MATER_IMPORTANCE"]);
+
+                        //是否必检
+                        $('#ifRii').combobox({
+                            panelHeight: '50px',
+                            data: jdata.data.YESORNO,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                            // value: 'Y'
+                        });
+
+                        //反馈厂家
+                        $('#backVendor').combobox({
+                            panelHeight: '50px',
+                            data: jdata.data.YESORNO,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onChange: function () {
+                                var backVendor = $("#backVendor").textbox('getValue');
+                                if (backVendor != "" && backVendor == "Y") {
+                                    $("#sendEmail").textbox({
+                                        onlyview: false,
+                                        editable: true,
+                                        required: true,
+                                        validType: ['email', 'length[0,20]']
+                                    });
+                                    $("#recEmail").textbox({onlyview: false, editable: true, required: true});
+                                }
+                                if (backVendor != "" && backVendor == "N") {
+                                    $("#sendEmail").textbox({onlyview: true, editable: false, value: ""});
+                                    $("#recEmail").textbox({onlyview: true, editable: false, value: ""});
+                                }
+                            }
+                        });
+
+                        //机队
+                        $('#fleet').combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.DA_FLEET,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                            // value: 'Y'
+                        });
+
+                        //构型类型
+                        $("#appType").combobox({
+                            panelHeight: '50px',
+                            data: jdata.data.TD_JC_CONFIG_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            value: 'MX'
+                        });
+
+                        //获取当前适用性类型
+                        if (jc_pkid) {
+                            InitFuncCodeRequest_({
+                                data: {jcPkId: jc_pkid, FunctionCode: 'TD_JC_ALL_EOJC_GET_APPTYPE'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE && jdata.data != null && jdata.data[0] != null) {
+                                        g_appType = jdata.data[0].CONFIG_TYPE;
+                                        if (g_appType == 'MX') {
+                                            $('#appType').combobox({value: 'MX'});
+                                            $("#jhmx").show();
+                                        } else {
+                                            $('#appType').combobox({value: 'XH'});
+                                            $("#jhmx").hide();
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
+                        var roleId = queryNodeRole(jc_pkid, "TD_JC_ALL").ROLE_ID;
+                        //下个审批人选择初始化
+                        $("#authId").MyComboGrid({
+                            idField: 'ACCOUNT_ID',  //实际选择值
+                            textField: 'USER_NAME', //文本显示值
+                            panelHeight: '180px',
+                            required: true,
+                            width: 140,
+                            params: {userId: userLogin.accountId, roleId: roleId, FunctionCode: 'FLOW_WORK_ACCOUNT'},
+                            columns: [[
+                                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                                {field: 'USER_NAME', title: '审核人', width: 50}
+                            ]],
+                            onHidePanel: function () {
+                                var t = $(this).combogrid('getValue');
+                                if (t != null && t != '' & t != undefined) {
+                                    if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                                        alert('请选择，不要直接输入！');
+                                        $(this).combogrid({value: ''});
+                                    }
+                                }
+                            },
+                            onSelect: function (index, row) {
+                                selectRow = row;
+                                if ('task1532343658824' == node.taskPropId) {//任务退回提交
+                                    $("#approvedBy").val(row.ACCOUNT_ID);
+                                } else if ('task1532343563002' == node.taskPropId) {//当前节点为审核，送批准
+                                    $("#publicBy").val(row.ACCOUNT_ID);
+                                }
+                            }
+                        });
+
+                        /*---zhangxun---*/
+                        if ('task1532343563002' == node.taskPropId) {     //第一个节点
+                            $("#isFirstNode").val('Y');
+                        } else if ('task1532343658824' == node.taskPropId) {   // 任务退回节点只能提交
+                            $("#canReturn").hide();
+                            $("#isFirstNode").val('N');
+                        } else {
+                            $("#isFirstNode").val('N');
+                        }
+                        /*---zhangxun---*/
+
+                        //当前节点为审核节点批准节点时
+                        if ('task1532343599976' == node.taskPropId) {//批准节点
+                            $(".xmclass").hide();
+                            $("#authId").combogrid({required: false});
+                        }
+
+                        //初始化构型datagrid
+                        InitDataGrid_apptype();
+
+                        // 初始化机号明细
+                        InitDataGrid_jhmx(0);
+
+                        //初始化航材
+                        InitDataGrid_mater();
+
+                        //初始化参考文件
+                        InitDataGrid_Upload();
+
+                        if (jc_pkid) {
+                            InitDataForm(jc_pkid);
+                        }
+
+                        //---zhangshaoming start (除已退回外,其他节点的按钮只留pdf预览功能)
+                        if ("task1532343658824" == node.taskPropId) {
+                            $("#saveBtn").show();
+                            $("#editBtn").show();
+                            $(".addBtn").show();
+                        }
+                        //---zhangshaoming end
+                    }
+                }
+            })
+        }else if(resource.jcType =="EAJC"){
+            InitFuncCodeRequest_({
+                data: {
+                    domainCode: "DA_FLEET,YESORNO,TD_JC_CONFIG_TYPE,TD_JC_MATER_SORT,TD_JC_MATER_TYPE,TD_JC_MATER_UNIT,TD_JC_MATER_IMPORTANCE",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                        //机队
+                        COMBOBOX_DATA['fleet'] = jdata.data.DA_FLEET;
+                        //是否必检
+                        COMBOBOX_DATA['ifRii'] = jdata.data.YESORNO;
+                        //反馈厂家
+                        COMBOBOX_DATA['backVendor'] = jdata.data.YESORNO;
+
+                        //航材/工具
+                        COMBOBOX_DATA['materSort'] = DomainCodeToMap_(jdata.data["TD_JC_MATER_SORT"]);
+                        //航材类别
+                        COMBOBOX_DATA['materType'] = DomainCodeToMap_(jdata.data["TD_JC_MATER_TYPE"]);
+                        //数量按需
+                        COMBOBOX_DATA['qtyReq'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                        //单位
+                        COMBOBOX_DATA['unit'] = DomainCodeToMap_(jdata.data["TD_JC_MATER_UNIT"]);
+                        //适用情况（是否视情）
+                        COMBOBOX_DATA['importance'] = DomainCodeToMap_(jdata.data["TD_JC_MATER_IMPORTANCE"]);
+
+                        //是否必检
+                        $('#ifRii').combobox({
+                            panelHeight: '50px',
+                            data: jdata.data.YESORNO,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                            // value: 'Y'
+                        });
+
+                        //反馈厂家
+                        $('#backVendor').combobox({
+                            panelHeight: '50px',
+                            data: jdata.data.YESORNO,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onChange: function () {
+                                var backVendor = $("#backVendor").textbox('getValue');
+                                if (backVendor != "" && backVendor == "Y") {
+                                    $("#sendEmail").textbox({
+                                        onlyview: false,
+                                        editable: true,
+                                        required: true,
+                                        validType: ['email', 'length[0,20]']
+                                    });
+                                    $("#recEmail").textbox({onlyview: false, editable: true, required: true});
+                                }
+                                if (backVendor != "" && backVendor == "N") {
+                                    $("#sendEmail").textbox({onlyview: true, editable: false, value: ""});
+                                    $("#recEmail").textbox({onlyview: true, editable: false, value: ""});
+                                }
+                            }
+                        });
+
+                        //机队
+                        $('#fleet').combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.DA_FLEET,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                            // value: 'Y'
+                        });
+
+                        //构型类型
+                        $("#appType").combobox({
+                            panelHeight: '50px',
+                            data: jdata.data.TD_JC_CONFIG_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            value: 'MX'
+                        });
+
+                        //获取当前适用性类型
+                        if (jc_pkid) {
+                            InitFuncCodeRequest_({
+                                data: {jcPkId: jc_pkid, FunctionCode: 'TD_JC_ALL_EOJC_GET_APPTYPE'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE && jdata.data != null && jdata.data[0] != null) {
+                                        g_appType = jdata.data[0].CONFIG_TYPE;
+                                        if (g_appType == 'MX') {
+                                            $('#appType').combobox({value: 'MX'});
+                                            $("#jhmx").show();
+                                        } else {
+                                            $('#appType').combobox({value: 'XH'});
+                                            $("#jhmx").hide();
+                                        }
+                                    }
+                                }
+                            });
+                        }
+
+                        //下个审批人选择初始化
+                        $("#authId").MyComboGrid({
+                            idField: 'ACCOUNT_ID',  //实际选择值
+                            textField: 'USER_NAME', //文本显示值
+                            panelHeight: '180px',
+                            required: true,
+                            width: 140,
+                            params: {FunctionCode: 'FLOW_WORK_ACCOUNT'},
+                            columns: [[
+                                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                                {field: 'USER_NAME', title: '审核人', width: 50}
+                            ]],
+                            onHidePanel: function () {
+                                var t = $(this).combogrid('getValue');
+                                if (t != null && t != '' & t != undefined) {
+                                    if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                                        alert('请选择，不要直接输入！');
+                                        $(this).combogrid({value: ''});
+                                    }
+                                }
+                            },
+                            onSelect: function (index, row) {
+                                selectRow = row;
+                                if ('task1562922437929' == node.taskPropId) {//任务退回提交
+                                    $("#approvedBy").val(row.ACCOUNT_ID);
+                                } else if ('task1562921934889' == node.taskPropId) {//当前节点为审核，送批准
+                                    $("#publicBy").val(row.ACCOUNT_ID);
+                                }
+                            }
+                        });
+
+                        /*---zhangxun---*/
+                        if ('task1562921934889' == node.taskPropId) {     //第一个节点
+                            $("#isFirstNode").val('Y');
+                        } else if ('task1562922437929' == node.taskPropId) {   // 任务退回节点只能提交
+                            $("#canReturn").hide();
+                            $("#isFirstNode").val('N');
+                        } else {
+                            $("#isFirstNode").val('N');
+                        }
+                        /*---zhangxun---*/
+
+                        //当前节点为审核节点批准节点时
+                        if ('task1562922358043' == node.taskPropId) {//批准节点
+                            $(".xmclass").hide();
+                            $("#authId").combogrid({required: false});
+                        }
+
+                        //初始化构型datagrid
+                        InitDataGrid_apptype();
+
+                        // 初始化机号明细
+                        InitDataGrid_jhmx(0);
+
+                        //初始化航材
+                        InitDataGrid_mater();
+
+                        //初始化参考文件
+                        InitDataGrid_Upload();
+
+                        if (jc_pkid) {
+                            InitDataForm(jc_pkid);
+                        }
+
+                        //---zhangshaoming start (除已退回外,其他节点的按钮只留pdf预览功能)
+                        if ("task1562922437929" == node.taskPropId) {
+                            $("#saveBtn").show();
+                            $("#editBtn").show();
+                            $(".addBtn").show();
+                        }
+                        //---zhangshaoming end
+                    }
+                }
+            })
+        }
+    }
+
+
+    //构型表格
+    function InitDataGrid_apptype() {
+        if ($.trim(jc_pkid) == null || $.trim(jc_pkid) == "") {
+            jc_pkid = 0;
+        }
+
+        var jcPkid = jc_pkid;
+        var appType = $('#appType').combobox('getValue');
+        var fleet;
+        var func;
+        var queryParams = {};
+
+        if ($('#fleet').combobox('getValue') == null || $('#fleet').combobox('getValue') == "") {
+            fleet = 0;
+        } else {
+            fleet = $('#fleet').combobox('getValue');
+        }
+        if (appType == "MX") {
+            func = "TD_JC_ALL_EOJC_APPTYPE_LIST";
+            queryParams = {jcPkid: jcPkid, configType: appType};
+        }
+        if (appType == "XH") {
+            func = "TD_JC_ALL_EOJC_APPTYPE_LIST1";
+            queryParams = {jcPkid: jcPkid, fleet: fleet, configType: appType};
+        }
+
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 185));
+        $("#dg1").MyDataGrid({
+            identity: 'dg1',
+            sortable: true,
+            singleSelect: true,
+            pageSize: pageSize, pageList: [pageSize],
+            queryParams: queryParams,
+            enableLineEdit: true,
+            resize: function () {
+                return tabs_standard_resize($("#tt"), 0.13, 0.5, 5, 4);
+            },
+            columns: {
+                param: {FunctionCode: func},//函数列表
+                alter: {
+                    CONFIG: {
+                        editor: {
+                            type: 'textbox',
+                            options: {tipPosition: 'top', validType: ['maxLength[300]'], required: true}
+                        }
+                    },
+                    CONFIG_DESC: {
+                        editor: {
+                            type: 'textbox',
+                            options: {tipPosition: 'top', validType: ['maxLength[300]'], required: true}
+                        }
+                    }
+                }
+            },
+            onEndEdit: function (index, row, changes) {
+                row = toCamelCase(row);
+                row = $.extend({
+                    jcPkid: jc_pkid,
+                    appType: $('#appType').combobox('getValue')
+                }, row, {FunctionCode: 'TD_JC_ALL_EOJC_APPTYPE_ADD'});
+                InitFuncCodeRequest_({
+                    data: row,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                        reload_('dg1');
+                    }
+                });
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg1').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("该操作会删除所以相关记录,确认删除？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'TD_JC_ALL_EOJC_APPTYPE_DELETE'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_('dg1');
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            onLoadSuccess: function () {
+            },
+            onClickRow: function (rowIndex, rowData) {
+                cPkid = rowData.PKID;
+                cDesc = rowData.CONFIG_DESC;
+                dodg2(rowData.PKID);
+            }
+        });
+    }
+
+
+    //机号明细
+    function InitDataGrid_jhmx(configId) {
+        if ($.trim(configId) == null || $.trim(configId) == "") {
+            configId = 0;
+        }
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 185) / 50);
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {configId: configId},
+            enableLineEdit: false,
+            pageSize: pageSize, pageList: [pageSize],
+            resize: function () {
+                return tabs_standard_resize($("#tt"), 0.13, 0.5, 5, 4);
+            },
+            columns: {
+                param: {FunctionCode: 'TOJC_JHMX_LIST'}
+            },
+            onLoadSuccess: function () {
+            },
+            onClickRow: function (rowIndex, rowData) {
+
+            },
+            onDblClickRow: function (index, field, value) {
+
+            }
+        });
+    }
+
+
+    //初始化航材
+    //    function InitDataGrid_mater() {
+    //        if ($.trim(jc_pkid) == null || $.trim(jc_pkid) == "") {
+    //            jc_pkid = 0;
+    //        }
+    //
+    //        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 185) / 50);
+    //        $("#dg").MyDataGrid({
+    //            identity: "dg",
+    //            sortable: true,
+    //            singleSelect: true,
+    //            pageList: [pageSize],
+    //            resize: function () {
+    //                return tabs_standard_resize($("#tt"), 0.13, 0.0001, 5, 4);
+    //            },
+    //            queryParams: {jcPkId: jc_pkid},
+    //            columns: {
+    //                param: {FunctionCode: 'TD_JC_ALL_EOJC_MATER_LIST'},
+    //                alter: {
+    //                    TEST_UPLOAD: {},
+    //                    MATER_SORT: {
+    //                        formatter: function (value) {
+    //                            return COMBOBOX_DATA['materSort'][value];
+    //                        }
+    //                    },
+    //                    MATER_TYPE: {
+    //                        formatter: function (value) {
+    //                            return COMBOBOX_DATA['materType'][value];
+    //                        }
+    //                    },
+    //                    QTY_REQ: {
+    //                        formatter: function (value) {
+    //                            return COMBOBOX_DATA['qtyReq'][value];
+    //                        }
+    //                    },
+    //                    UNIT: {
+    //                        formatter: function (value) {
+    //                            return COMBOBOX_DATA['unit'][value];
+    //                        }
+    //                    },
+    //                    IMPORTANCE: {
+    //                        formatter: function (value) {
+    //                            return COMBOBOX_DATA['importance'][value];
+    //                        }
+    //                    }
+    //                }
+    //            },
+    //            onClickRow: function (rowIndex, rowData) {
+    //
+    //            }
+    //        });
+    //    }
+
+
+    //参考资料
+    //    function InitDataGrid_Upload() {
+    //        if ($.trim(jc_pkid) == null || $.trim(jc_pkid) == "") {
+    //            jc_pkid = 0;
+    //        }
+    //
+    //        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 185) / 50);
+    //        $("#dg3").MyDataGrid({
+    //            identity: 'dg3',
+    //            sortable: true,
+    //            singleSelect: true,
+    //            queryParams: {pkid: jc_pkid},
+    //            enableLineEdit: false,
+    //            pageSize: pageSize, pageList: [pageSize],
+    //            resize: function () {
+    //                return tabs_standard_resize($("#tt"), 0.13, 0.0001, 5, 4);
+    //            },
+    //            columns: {
+    //                param: {FunctionCode: 'TD_JC_ALL_EOJC_FJ_LIST'},
+    //                alter: {
+    //                    TEST_UPLOAD: {
+    //                        formatter: function (value, row, index) {
+    //                            if (row.TEST_UPLOAD) {
+    //                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+    //                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+    //                            }
+    //                        }
+    //                    }
+    //                }
+    //            },
+    //            onLoadSuccess: function () {
+    //                InitSuspend('a.attach', {
+    //                    'onmouseover': function (thiz, event, callback) {
+    //                        var index = $(thiz).attr("rowindex");
+    ////                        var row = $("#dg3").datagrid('getRows')[index];
+    //                        InitFuncCodeRequest_({
+    //                            data: {
+    //                                SOURCE_ID: jc_pkid,
+    //                                CATEGORY: "eojcMater",
+    //                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+    //                            },
+    //                            successCallBack: function (jdata) {
+    //                                var html = "";
+    //                                for (var i = 0; i < jdata.data.length; i++) {
+    //                                    html += '<li><a target="_blank" onclick="downFileLocal(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+    //                                }
+    //                                callback(html);
+    //                            }
+    //                        });
+    //                    }
+    //                });
+    //                $("#dg3").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+    //            },
+    //            onClickRow: function (rowIndex, rowData) {
+    //
+    //            },
+    //            onDblClickRow: function (index, field, value) {
+    //
+    //            }
+    //        });
+    //    }
+
+
+    //刷新明细表
+    function dodg2(configId) {
+        if (!configId) {
+            configId = -1;
+        }
+        getDG('dg2').datagrid('load', {configId: configId});
+    }
+
+    function dodg1(jcPkid) {
+        if (!jcPkid || jcPkid == -1) {
+            jcPkid = -1;
+        }
+        getDG('dg1').datagrid('load', {jcPkid: jcPkid});//刷新构型
+//        getDG('dg').datagrid('load', {jcPkid: jcPkid}); //刷新航材
+    }
+
+
+    //刷新
+    //    function reload_(id) {
+    //        if ('dg1' == id) {
+    //            $("#dg1").datagrid("reload");
+    //        } else if ('dg2' == id) {
+    //            $("#dg2").datagrid("reload");
+    //        } else if ("dg" == id) {
+    //            $("#dg").datagrid("reload");
+    //        }
+    //        else if ("dg3" == id) {
+    //            $("#dg3").datagrid("reload");
+    //        }
+    //    }
+
+    function reload_() {
+        $("#dg1").datagrid("reload");
+        $("#dg2").datagrid("reload");
+        InitDataForm(jc_pkid);
+    }
+
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_JC_ALL_CMJC_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+
+                    $("#jcNo").textbox({onlyview: true, editable: false});
+
+                    if (jdata.data.ETOPS != null && jdata.data.ETOPS != "" && jdata.data.ETOPS == "Y") {
+                        $("#etops").attr("checked", true);
+                    }
+                    if (jdata.data.GGY != null && jdata.data.GGY != "" && jdata.data.GGY == "Y") {
+                        $("#ggy").attr("checked", true);
+                    }
+                    if (operation == "view") {
+                        $("#appType").combobox({onlyview: true, editable: false});
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //PDF预览
+    function preview() {
+        var data = $.extend({pkid: jc_pkid}, {FunctionCode: 'TD_JC_PREVIEW'});
+        InitFuncCodeRequest_({
+            data: data, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.length > 0) {
+                        var url = jdata.data;
+                        jcPreview(url);
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function jcPreview(url) {
+        var title_ = $.i18n.t('EO工卡预览');
+        ShowWindowIframe({
+            width: "850",
+            height: "650",
+            title: title_,
+            param: {url: url},
+            url: "/views/td/jobcard/smjc/smjcedit/jobcardPreview.shtml"
+        });
+    }
+
+    //======================================================
+
+    //适用性批量删除
+    function deleteEffect() {
+        var selectRows = $("#dg2").datagrid('getChecked');
+        var selectCount = selectRows.length;
+        if (selectCount === 0) {
+            MsgAlert({content: '请选择要删除的记录！', type: 'error'});
+            return;
+        }
+        if (!confirm("确认删除选中的记录？")) {
+            return;
+        }
+        var pkids = '';
+
+        $.each(selectRows, function (k, item) {
+            pkids += item.PKID + ',';
+        });
+
+        pkids = pkids.substring(0, pkids.length - 1);
+        InitFuncCodeRequest_({
+            data: {pkids: pkids, FunctionCode: 'TOJC_EFFECT_DEL'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_("dg2");
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    //构型和适用性增加
+    function addRow(type) {
+
+        if (type == 'apptype') {
+            if (jc_pkid == null || jc_pkid == "") {
+                MsgAlert({content: "请先保存部件封面数据，在进行资料选择。", type: 'error'});
+                return;
+            }
+            $('#dg1').datagrid('appendRow', {});
+        }
+
+        if (type == 'mx') {
+            if (jc_pkid == null || jc_pkid == "") {
+                MsgAlert({content: "请先保存部件封面数据，在进行资料选择。", type: 'error'});
+                return;
+            }
+            if (!cPkid) {
+                alert("请先选择一条构型数据");
+                return;
+            }
+            var title_ = $.i18n.t('适用性');
+            ShowWindowIframe({
+                width: "500",
+                height: "350",
+                title: title_,
+                param: {jcPkid: jc_pkid, cPkid: cPkid, cDesc: cDesc, fleet: $("#fleet").combobox("getValue")},
+                url: "/views/td/jobcard/tojc/tojcedit/tdTojcEditEffect.shtml"
+            });
+        }
+    }
+
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        //获取工卡号
+        var jcNo = $("#jcNo").textbox('getValue');
+//        var aToz = $("#aToz").textbox('getValue');
+//        if (aToz != "") {
+//            jcNo = jcNo + "-" + aToz;
+//        }
+        //内控版本
+//        var ver = $("#ver").textbox('getValue');
+
+        var mark = getCheckBoxValues('markCK');
+        if (mark) {
+            // "-"替换为"/"
+            mark = mark.replace(/\-/g, "/");
+            datas.mark = mark;
+        }
+        datas = $.extend(datas, {FunctionCode: 'TD_JC_ALL_EOJC_ADD', jcNo: jcNo, type: operation});
+        if (confirm("是否保存？")) {
+            InitFuncCodeRequest_({
+                data: datas, successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+    //打开航材详情页
+    //    function addMater(operation) {
+    //        var pkid = jc_pkid;
+    //
+    //        if (jc_pkid == null || jc_pkid == "") {
+    //            MsgAlert({content: "请先保存部件封面数据，在进行资料选择。", type: 'error'});
+    //            return;
+    //        }
+    //        var title_ = $.i18n.t('航材工具详情');
+    //        ShowWindowIframe({
+    //            width: "600",
+    //            height: "180",
+    //            title: title_,
+    //            param: {pkid: pkid, type: operation},
+    //            url: "/views/td/jobcard/eojc/tdEoJcMaterDetail.shtml"
+    //        });
+    //    }
+
+    //    function editMater(operation, materPkid, config, configPkid) {
+    //        var title_ = $.i18n.t('航材工具详情');
+    //        ShowWindowIframe({
+    //            width: "600",
+    //            height: "220",
+    //            title: title_,
+    //            param: {pkid: jc_pkid, materPkid: materPkid, type: operation, config: config, configPkid: configPkid},
+    //            url: "/views/td/jobcard/eojc/tdEoJcMaterDetail.shtml"
+    //        });
+    //    }
+
+    function batchDelete() {
+        var selectRows = $("#dg").datagrid('getChecked');
+        var selectCount = selectRows.length;
+        if (selectCount === 0) {
+            MsgAlert({content: '请选择要删除的记录！', type: 'error'});
+            return;
+        }
+        if (!confirm("确认删除选中的记录？")) {
+            return;
+        }
+        var pkids = '';
+
+        $.each(selectRows, function (k, item) {
+            InitFuncCodeRequest_({
+                data: {pkid: item.PKID, FunctionCode: 'TD_JC_ALL_EOJC_DELETE_MASTER'},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_("dg");
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        });
+
+
+    }
+
+
+    function editProcedure() {
+        if (jc_pkid == null || jc_pkid == "") {
+            MsgAlert({content: "请先保存部件封面数据，在进行资料选择。", type: 'error'});
+            return;
+        }
+
+        var title_ = $.i18n.t('编辑工序选项');
+        var pkid = jc_pkid;
+        var fleet = $("#fleet").textbox('getValue');
+        var checkout = $("#cepCheckout").val();//null
+        var cepFilePath = $("#cepFilePath").val();//null
+        var refType = $("#refdataType").val();//null 应该默认为SB
+        var refData = $("#refData").val();
+
+        ShowWindowIframe({
+            width: "400",
+            height: "200",
+            title: title_,
+            param: {
+                jcPkid: pkid,
+                fleet: fleet,
+                checkout: checkout,
+                cepFilePath: cepFilePath,
+                refType: refType,
+                refData: refData
+            },
+            url: "/views/td/jobcard/eojc/TdJcSelectCep.shtml"
+        });
+    }
+
+    function cepView(data) {
+        $("#cepCheckout").val('N');
+        $("#cepFilePath").val(data.jcCepPath);
+    }
+
+
+    /**
+     * 导入EO构型
+     */
+    function addConfig() {
+        if (jc_pkid == null || jc_pkid == "") {
+            MsgAlert({content: "请先保存工卡信息", type: 'error'});
+            return;
+        }
+        ShowWindowIframe({
+            width: 800,
+            height: 360,
+            title: "增加适用性构型",
+            param: {segPkid: segPkid, jcPkid: jc_pkid, appType: $('#appType').combobox('getValue')},
+            url: "/views/td/jobcard/eojc/tdEojc_config_add.shtml"
+        });
+    }
+
+    /**
+     * 导入航材
+     */
+    function importMater() {
+        if (jc_pkid == null || jc_pkid == "") {
+            MsgAlert({content: "请先保存工卡信息", type: 'error'});
+            return;
+        }
+        ShowWindowIframe({
+            width: 800,
+            height: 360,
+            title: "增加航材工具",
+            param: {segPkid: segPkid, jcPkid: jc_pkid},
+            url: "/views/td/jobcard/eojc/tdEojc_materials_add.shtml"
+        });
+
+    }
+
+    //附件上传
+    function upload_mater() {
+        if (jc_pkid == null || jc_pkid == "") {
+            MsgAlert({content: "请先保存部件封面数据，在进行资料选择。", type: 'error'});
+            return;
+        }
+        common_uploadFile({
+            identity: 'dg3',
+            param: {
+                cat: "eojcMater",//文件夹
+                sourceId: jc_pkid,//
+                successCellBack: reload_dg3,
+                fialCellBack: ""
+            },
+        });
+    }
+
+    function reload_dg3() {
+        $("#dg3").datagrid("reload");
+    }
+
+    function deleteFile(pkid) {
+        if (!confirm("是否刪除"))
+            return;
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: 'ATTACHMENT_RSPL_DEL'},
+            successCallBack: function (jdata) {
+                if (jdata.code == 200) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_dg3();
+                }
+            }
+        });
+    }
+
+    //退回
+    function doReturn() {
+        var msg = '您确定要退回吗?<br/> <input name="rdo_return" type="radio" value="top" checked="checked"/> 退回到开始';
+        $.messager.confirm('提示', msg, function (r) {
+            if (r) {
+                var notes = $("#notes").textbox('getValue');
+                if ($.trim(notes) == '') {
+                    MsgAlert({content: '请输入您的退回意见', type: 'error'});
+                    return;
+                }
+                var dore = $("input[name='rdo_return']:checked").val();
+                if ($.trim(dore) == '') {
+                    MsgAlert({content: '请选择退回项', type: 'error'});
+                    return;
+                }
+                var $form = $("#mform");
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {
+                    FunctionCode: 'WS_FLOW_TURNBACK', reSelect: dore,
+                    taskId: param.TASK_ID, procDefId: param.PROC_DEF_ID, notes: notes
+                });
+                if (!PAGE_EVENTS.beforeTurnBack(data)) {
+                    return;
+                }
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        MaskUtil.unmask();
+                        PAGE_EVENTS.afterTurnBack(jdata);
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (typeof(param.OWindow.reload_ == 'function')) {
+                                param.OWindow.reload_();
+                            }
+                            param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+
+</script>
+
+
+<script id="tempCombobox" type="text/html">
+    <tr>
+        <th class="tdl">{{d.titleName }} ：</th>
+        <td class="tdr">
+            <select name="{{d.fieldName}}" class="easyui-combobox"
+                    data-options="required:true, editable: false" panelHeight="120" style="width:180px">
+                {{#
+                for(var i = 0; i < d.options.length; i++){
+                }}
+                <option value="{{d.options[i]['value']}}">{{d.options[i]['text']}}</option>
+                {{# } }}
+            </select>
+        </td>
+    </tr>
+</script>
+<script id="tempTextbox" type="text/html">
+    <tr>
+        <th class="tdl">{{d.titleName }} ：</th>
+        <td class="tdr">
+            <input name="{{d.fieldName}}" class="easyui-textbox"
+                   data-options="required:true, editable: true" style="width:180px"/>
+        </td>
+    </tr>
+</script>
+
+</body>
+</html>

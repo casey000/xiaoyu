@@ -1,0 +1,233 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">选取适用性</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 101%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:110px;" align="right">机队：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-combobox" id="fleet" name="fleet" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:110px;" align="right">手册类型：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-combobox" id="manualType" name="manualType" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:110px;" align="right">建议单号：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" id="revsugNo" name="revsugNo" style="width:110px;"/>
+                    </td>
+                    <td align="right">
+                        <input id="searchBtn" class="btn btn-primary" type="button" onclick="searchData()" value="查询"
+                               style="width: 50px;margin:10px;"/>
+                        <input id="clearBtn" class="btn btn-primary" type="button" onclick="doClear_()" value="重置"
+                               style="width: 50px;margin:10px;"/>
+                        <input id="saveBtn" class="btn btn-primary" type="button" onclick="ok()" value="确定"
+                               style="width: 50px;margin:10px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var companyCode;
+    var param;
+    var applyModel;
+    var funcode;
+    var rangValues = [];
+    var acid;
+    var pkid;
+    var fromEo;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        acid = param.acId;
+        fleet = param.fleet;
+        pkid=param.pkid;
+        fromEo=param.fromEo;
+        // sbVer=param.sbVer;
+        if (acid) {
+            rangValues = acid.split(',');
+        }
+        //绑定回车查询事件
+
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "REVSUG_FROM,DM_DATA_TYPE,DA_FLEET,REVSUG_DATA_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机队
+                    $('#fleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#manualType').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.REVSUG_DATA_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //手册标准
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_SUPPLEMENT_STATUS"]);
+                    PAGE_DATA['manualType'] = DomainCodeToMap_(jdata.data["REVSUG_DATA_TYPE"]);
+                    PAGE_DATA['revsugFrom'] = DomainCodeToMap_(jdata.data["REVSUG_FROM"]);
+                    InitDataGrid();
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+           queryParams['companyCode'] = 'SFN';
+           queryParams['status'] = 'ISSUED';
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,
+            queryParams: queryParams,
+            pageSize: 15,
+            path:"/online-manual/tdManualRevsug/queryPageTdManualRevsugList",
+            columns: {
+                param: {FunctionCode: "TD_UN_REVSUG_EVALUATE_LIST"},
+                alter: {
+                    TEST_UPLOAD: {},
+                    MANUAL_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['manualType'][value];
+                        }
+                    },
+                    REVSUG_FROM: {
+                        formatter: function (value) {
+                            return PAGE_DATA['revsugFrom'][value];
+                        }
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                    DEADLINE: {
+                        type: 'datetime'
+                    },
+                    REVIEWED_DATE: {
+                        type: 'datetime'
+                    },
+                    APPROVED_DATE: {
+                        type: 'datetime'
+                    },
+                    DEAL_DATE: {
+                        type: 'datetime'
+                    },
+                    CREATE_DATE: {
+                        type: 'date'
+                    }
+
+                }
+            },
+            onLoadSuccess: function (data) {
+                formatterUpperDataGrid(data,"dg");
+                if (data) {
+                    if (rangValues.length > 0) {
+                        $.each(data.rows, function (index, item) {
+                            for (var j = 0, len = rangValues.length; j < len; j++) {
+                                if (rangValues[j] == item.AC_ID) {
+                                    $('#dg').datagrid('checkRow', index);
+                                }
+                            }
+                        });
+                    }
+
+                }
+            },
+
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+    //查询
+    function searchData() {
+        InitDataGrid();
+        // onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function ok() {
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length > 0) {
+            if(fromEo) {
+                if (rows.length > 1) {
+                    MsgAlert({content: "只能选择一条数据!", type: 'error'});
+                    return;
+                } else {
+                    //选中的一条数据
+                    param.OWindow.setManulName(rows[0]);
+                    CloseWindowIframe();
+                }
+            }else{
+                var detailData = [];
+                for (var index in rows) {
+                    var rsg = {"pkid": rows[index].PKID}
+                    detailData.push(rsg);
+                }
+                InitFuncCodeRequest_({
+                    data: {pkid: pkid,detailData: JSON.stringify(detailData), FunctionCode: 'TD_REVSUG_EVALUATE_SUB_SAVE'},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            param.OWindow.reload_();
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        } else {
+            MsgAlert({content: "请选择一条数据进行编辑!", type: 'error'});
+        }
+
+    }
+
+
+</script>
+</body>
+</html>

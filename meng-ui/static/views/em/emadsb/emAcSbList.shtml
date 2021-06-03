@@ -1,0 +1,182 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">非波音SB技术资料文件</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <table class="table table-bordered table-info">
+        <input type="hidden" id="monitoringId" name="monitoringId">
+            <tr>
+                <th class="th" style="width:40px;" align="right">机型:</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" style="width: 140px;"
+                           id="applyModel" name="applyModel"
+                           data-options=""/>
+                </td>
+                <td colspan="2" class="tdr">
+                    <input id="searBtn" class="btn btn-primary" type="button" onclick="searchData()" value="查询"
+                           style="width: 50px;margin:5px;margin-left: 320px"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="th" style="width:70px;" align="right">引进类型:</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" style="width: 140px;"
+                           id="impType" name="impType"
+                           data-options="required:true"/>
+                </td>
+                <th style="width:50px" align="right" class="tdl">适用性：</th>
+                <td class="tdr">
+                    <input type="hidden" id="apply" size="30" name="apply" data-options="erequired:true,onlyview:true,editable:false"/>
+                    <input class="easyui-textbox" id="apply2" style="width: 120px" name="apply2" data-options="erequired:true,onlyview:true,editable:false"/>
+                    <input id="chooseBtn" class="btn btn-primary" type="button" onclick="choose()" value="选取"
+                           style="width: 50px;margin:5px;margin-left: 69px"/>
+                    <input id="saveBtn" class="btn btn-primary" type="button" onclick="save()" value="保存"
+                           style="width: 50px;margin:5px;"/>
+                </td>
+            </tr>
+        </table>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+    var param = getParentParam_();
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "REVSUG_FLEET,EM_AC_IMP_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#applyModel').combobox({
+                        panelHeight: '115px',
+                        data: jdata.data.REVSUG_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#impType').combobox({
+                        panelHeight: '117px',
+                        data: jdata.data.EM_AC_IMP_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange: function (value) {
+                            $("#apply").val("");
+                            $("#monitoringId").val("");
+                            $("#apply2").textbox("setValue", "");
+                        }
+                    });
+
+                    InitDataGrid();
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function choose() {
+        var impType = $("#impType").combobox("getValue");
+        if (!impType) {
+            MsgAlert({content: '请先选择引进类型', type: 'error'});
+            return;
+        }
+        if (impType == "0") {
+            MsgAlert({content: '纯文件对比无需选择适用性', type: 'error'});
+            return;
+        }
+        var url = "/views/em/emadsb/fleetList.shtml";
+        if (impType == "1") {
+            url = "/views/em/emadsb/existfleetList.shtml";
+        }
+        if (impType == "2") {
+            url = "/views/em/emadsb/existengList.shtml";
+        }
+        if (impType == "3") {
+            url = "/views/em/emadsb/newfleetList.shtml";
+        }
+        if (impType == "4") {
+            url = "/views/em/emadsb/newengList.shtml";
+        }
+        var title_ = $.i18n.t('适用性');
+
+        ShowWindowIframe({
+            width: 554,
+            height: 346,
+            title: title_,
+            url: url
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            resize: function () {
+                return tabs_standard_resize($('#dg'), -432)
+            },
+            columns: {
+                param: {FunctionCode: "EM_AC_SB_LIST"}
+            },
+            onLoadSuccess: function (data) {
+            }
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    function save(){
+        var impType = $('#impType').combobox('getValue');
+        var apply = $('#apply').val();
+        if(impType == null || impType == '' || apply == null || apply == ''){
+            MsgAlert({content: '请先选择引进类型和适用性！', type: 'error'});
+            return;
+        }
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: "至少选择一条！", type: 'error'});
+            return;
+        } else {
+            var $form = $("#ffSearch");
+            var datas = $form.serializeObject();
+            var tempStr = '';
+            var applist = apply.split(',');
+            for(var i = 0 ; i < rows.length;i++ ){
+                for(var j = 0 ; j < applist.length;j++ ){
+                  tempStr = tempStr + rows[i].DATA_NO+';'+rows[i].DATA_VER+';'+applist[j]+';'+rows[i].PKID+',';
+                }
+            }
+            tempStr = tempStr.substring(0, tempStr.length-1);
+            datas = $.extend({ tempStr: tempStr}, datas, {FunctionCode: 'EM_AC_SB_ADD'});
+            InitFuncCodeRequest_({
+                data: datas,async:false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_("#dg");
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+</script>
+</body>
+</html>

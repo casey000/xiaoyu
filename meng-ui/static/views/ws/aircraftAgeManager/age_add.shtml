@@ -1,0 +1,175 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>新增飞机阀值</title>
+    <style type="text/css">
+        .td-left{
+            padding-left: 1%;
+        }
+    </style>
+</head>
+<body class="ibody">
+<div id="tt"  style="width:100%; height: 100%">
+        <form id="mform" class="form-horizontal">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <table class="table table-bordered table-info">
+                <tr style="height:66px;">
+                    <td colspan="4" align="right">
+                        <input id="saveBtn" class="btn btn-primary" type="button" onclick="save()" value="保存"
+                               style="width: 50px;margin:10px;"/>
+                        <input class="btn btn-primary" type="button" id = "closeBtn" onclick="CloseWindowIframe();" value="关闭"
+                               style="width: 50px;margin:10px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:100px;height:46px;" align="left">小机型：</th>
+                    <td class="td-left">
+                        <input class="easyui-combobox" id="subFleet" name="subFleet" style="width:65%;" data-options="editable: false,required: true"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="left">使用年限：</th>
+                    <td class="td-left">
+                        <input class="easyui-textbox" id="serviceLife" data-options="validType:['number'],editable: true,required: true,"
+                               style="width:70%" name="serviceLife"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:100px;height:46px;" align="left">使用FH：</th>
+                    <td class="td-left" >
+                        <input class="easyui-textbox" id="fh" data-options="validType:['positive'],editable: true,required: true"
+                               style="width:70%;" name="fh"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="left">使用FC：</th>
+                    <td class="td-left">
+                        <input class="easyui-textbox" id="fc" data-options="validType:['number'],editable: true,required: true,"
+                               style="width:70%;" name="fc"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        operation=param.operation;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_SUB_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //子机型
+                    $('#subFleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_SUB_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataForm(pkid);
+        InitOperation(operation);
+    }
+    function InitDataForm(pkid) {
+        if(!pkid){
+            return;
+        }
+        $.ajax({
+            url:"/api/v1/aircraft/longevity/selectAircraftLongevityById/"+ pkid,
+            type: "get",
+            async: false,
+            success: function (jdata) {
+                if (jdata.code = 200) {
+                    ParseFormField_(jdata.data, $("#mform"));
+                    $('#subFleet').combobox({value: jdata.data.subFleet});
+                }
+            }
+        })
+    }
+    function InitOperation(operation) {
+        if(operation=="view"){
+            $("#subBtn").hide();
+            $('#subFleet').combobox({onlyview: true, editable: false});
+            $('#fh').textbox({onlyview: true, editable: false});
+            $('#fc').textbox({onlyview: true, editable: false});
+            $('#serviceLife').textbox({onlyview: true, editable: false});
+        }
+    }
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate){
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        var pkid = $("#pkid").val();
+        var requestUrl="";
+        if (pkid == -1 || pkid == "") {//新增
+            requestUrl="/api/v1/aircraft/longevity/addTdAircraftLongevity";
+        }else{//编辑
+            requestUrl="/api/v1/aircraft/longevity/updateTdAircraftLongevity";
+        }
+        $.ajax({
+            url: requestUrl,
+            type: "post",
+            data: datas,
+            dataType: "json",
+            async: false,
+            success: function (data) {
+                if (data.code == 200) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                }else{
+                    MsgAlert({type: "error", content: data.msg});
+                }
+            },
+            error: function (err) {
+                MsgAlert({type: "error", content: data.msg});
+                // CloseWindowIframe();
+            }
+        });
+
+    }
+
+    $.extend($.fn.validatebox.defaults.rules, {
+        positive: {
+            //正数且保留两位小数
+            validator: function (value, param) {
+                if (/^(?!0+(?:\.0+)?$)(?:[1-9]\d*|0)(?:\.\d{1,2})?$/.test(value)) {
+                    return true;
+                } else {
+                    if (value == 0) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+
+                }
+            },
+            message: '请输入正数,允许两位小数'
+        },
+        number: {
+            validator:function (value) {
+                var t = /^[0-9]*[1-9][0-9]*$/;
+                if (t.test(value)) {
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+            message: '请输入正整数'
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>软件构型维护</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%; height: 100%">
+    <div class="ibox-content">
+        <fieldset class="fieldset_eui">
+            <legend>软件基本信息</legend>
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="configId" name="configId"/>
+
+                <table class="table table-bordered table-info">
+                    <tr id="id_btn_row">
+                        <td colspan="9" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                                   style="margin-left:3px;margin-right: 18px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">软件件号：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="swPn" name="swPn"
+                                   data-options="required:true" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">软件版本：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 100px;"
+                                   id="swVer" name="swVer" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">软件描述：</th>
+                        <td colspan="5" style="padding: 3px;">
+                        <input class="easyui-textbox" style="width: 400px" id="swDesc" name="swDesc" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">磁盘件号：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="diskPn" name="diskPn" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">硬件件号：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 400px;"
+                                   id="hwPn" name="hwPn" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">硬件名称：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 400px;"
+                                   id="hwName" name="hwName" readonly />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">关联文件：</th>
+                        <td colspan="5" style="padding: 3px;">
+                        <input class="easyui-textbox" style="width: 400px"
+                                  id="associatedFile" name="associatedFile" />
+                        </td>
+                    </tr>
+                    <tr id="id_attachment">
+                        <th class="th" align="right" style="width: 100px;">上传附件：</th>
+                        <td colspan="5" style="padding: 3px;">
+                            <input id="fileToUpload" name="file"
+                                   class="easyui-filebox" style="width: 400px">
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">附件：</th>
+                        <td colspan="5" style="padding: 3px;">
+                            <ul id="imageBlock"></ul>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </fieldset>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param;
+    var op = null;// operation[add,edit,view,flow]
+    var configId = null;
+    var pkid = null;//主表PKID
+    var attachQty = 0;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        op = param.operation;
+        configId = param.configId;
+        pkid = param.pkid;
+
+        if (op == "view") {
+            $('#saveBtn').hide();
+            $('#id_attachment').hide();
+            $('input.easyui-textbox').each(function (i, v) {
+                $('#' + v.id).textbox("readonly", true);
+            });
+        } else {
+            $('#hwPn').textbox({
+                buttonText: "选择",
+                onClickButton: function () {
+                    ShowWindowIframe({
+                        url: "/views/em/emswconfig/em_swconfig_sw_hw.shtml?" +
+                            "fleet=" + param.fleet +
+                            "&hwPn=" + $('#hwPn').textbox('getValue') +
+                            "&hwName=" + $('#hwName').textbox('getValue'),
+                        title: "软件构型-硬件件号选择",
+                        width: 600,
+                        height: 400
+                    });
+                }
+            });
+        }
+        if (param.ver != "0" && op != "add") {
+            $('#swPn').textbox("readonly", true);
+        }
+        $('#hwName').textbox({
+            multiline: true,
+            height: 80
+        });
+
+        if (op == "edit" || op == "view") {
+            InitDataForm(pkid);
+            initAttachment(pkid);
+        }
+        $('#configId').val(configId);
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_SW_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function initAttachment(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ATTACHMENT_LIST",
+                category: "emswconfig",
+                sourceId: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    var attachments = jdata.data;
+                    attachQty = attachments.length;
+                    $('#imageBlock').empty();
+                    for (var i = 0; i < attachments.length; i++) {
+                        var fileId = attachments[i].FILE_ID;
+                        var filename = attachments[i].ORG_NAME;
+                        var strs = [
+                            '<li>',
+                            i + 1,
+                            '--<a onclick="downFile(' + fileId + ')" href="javascript:void(0);">' + filename + '</a>',
+                        ];
+                        if (param.operation == "add" || param.operation == "edit") {
+                            strs.push('&nbsp;');
+                            strs.push('<span onclick="deleteFile(' + fileId + '); initAttachment(' + pkid + '); return false;" class="icon-cross">&nbsp;&nbsp;&nbsp;&nbsp;</span>');
+                        }
+                        strs.push('</li>');
+                        $('#imageBlock').append(strs.join(''));
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function save() {
+        var isValidate = $('#mform').form('validate');
+        if (! isValidate) {
+            return;
+        }
+        // 用户提出需求变更，不再需要判定
+        // if (attachQty == 0 && ! $('#fileToUpload').filebox('getValue')) {
+        //     MsgAlert({
+        //         content: "附件不能为空！",
+        //         type: "warn"
+        //     });
+        //     return;
+        // }
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_SW_ADD",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"));
+                    param.pkid = jdata.data.pkid;
+                    pkid = jdata.data.pkid;
+
+                    if (!! $('#fileToUpload').filebox('getValue')) {
+                        upload(jdata.data.pkid);
+                    }
+
+                    param.OWindow.reload1();
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function upload(pkid) {
+        $.ajaxFileUpload({
+            url: Constant.API_URL + "ATTACHMENT_UPLOAD",
+            secureuri: false,
+            fileElementId: "filebox_file_id_1",
+            dataType: "json",
+            type: "post",
+            data: {
+                "fileCategory": "emswconfig",
+                "sourceId": pkid
+            },
+            success: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    $('#fileToUpload').filebox('clear');
+                    initAttachment(pkid);
+                    param.OWindow.reload1();
+                } else {
+                    MsgAlert({
+                        content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_FAILED') + jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

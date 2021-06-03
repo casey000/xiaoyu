@@ -1,0 +1,287 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <meta charset="UTF-8">
+    <title>工时预警待办</title>
+    <link href="/css/nrc/nrc_add.css" rel="stylesheet">
+    <style type="text/css">
+        .button_a a {
+            display: inline-block;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px 20px;
+            border: none;
+            font-size: 14px;
+            margin-right: 12px;
+            float: right;
+        }
+        .btnAll{
+            position: fixed;
+            bottom: 0px;
+            width: 100%;
+            background-color: #f0f0f0;
+            margin-left: -10px;
+        }
+        .zhezhao {
+            display: none;
+            background-color: rgba(77, 82, 77, 0.05);
+            position: absolute;
+            z-index: 9;
+            top: 0px;
+            bottom: 0px;
+            right: 0px;
+            left: 0px;
+        }
+        .td-font-red,
+        .errorMessage{
+            color: red;
+        }
+        .title-background-color{
+            background-color: #F5F5F5;
+        }
+    </style>
+</head>
+<body>
+<div class="nrc_div">
+    <form id="work_time_form">
+        <table class="addnrc_table">
+            <tbody>
+            <tr>
+                <div style="display: none">
+                    <input  id="workTimeId" name="id" value="">
+                    <input  id="workTimeType" name="type" value="">
+                    <input id="ccid" type="text"/> <input class="easyui-textbox" id="ac_id"/>
+                    <input id="workorderId" type="text"/>
+                </div>
+                <td colspan="2" class="title-background-color">工时预警NO:</td>
+                <td colspan="2" >
+                    <div id="timeWarning"></div>
+                </td>
+                <td colspan="2"  class="title-background-color">上班打卡时间:</td>
+                <td colspan="2" >
+                    <div id="workStart"></div>
+                </td>
+                <td colspan="2"  class="title-background-color">预排工作时长:</td>
+                <td colspan="2" >
+                    <div id="planWorkHours"></div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2"  class="title-background-color">实际工作时长:</td>
+                <td colspan="2" >
+                    <div id="hadWorkHour"></div>
+                </td>
+                <td colspan="2"  class="title-background-color">剩余工作时长:</td>
+                <td colspan="2" >
+                    <div id="workHours"></div>
+                </td>
+                <td colspan="2"  class="title-background-color">状态选择:<span class="td-font-red">*</span></td>
+                <td colspan="2" >
+                    <input class="easyui-combobox" id="opera" style="width: 97%" >
+                    <div class="errorMessage"></div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </form>
+    <div class="btnAll" >
+        <div colspan="5" align="right" style="padding: 5px 5px;">
+            <!--            编辑提交-->
+            <input class="btn btn-primary" type="button" style="    font-size: 15px;margin-right: 20px;" id="submitBtn" onclick="submitParam('submit')" value="提交"/>
+        </div>
+    </div>
+</div>
+</body>
+
+<script type="text/javascript">
+    var params = {};
+    var name,accountId,workTimeId,objKey;
+
+    // <!-- 初始化-->
+    function pageInit() {
+        params = getParentParam_();
+        //赋值ID
+        if(!!params.id){
+            workTimeId = params.id;
+            objKey = params.objKey;
+            $("#workTimeId").val(workTimeId);
+        };
+        //隐藏嵌套框的按钮
+        $(top.window.document.getElementById("canSubmit")).hide();
+        //根据objKey使用不同的数据
+        var postData = [];
+        if(objKey == 'ATTENDANCE_REPORT_WARNING_MANGER'){
+            postData = [
+                {
+                    id:"",
+                    text:"—请选择—"
+                }, {
+                    id: 1,
+                    text: "已下班"
+                }, {
+                    id: 2,
+                    text: "可在正常时间内下班"
+                }, {
+                    id: 7,
+                    text: "可正常交接工作按时下班"
+                }, {
+                    id: 8,
+                    text: "可安排休息"
+                },{
+                    id: 6,
+                    text: "外站跟机"
+                }];
+        }else {
+            postData = [
+                {
+                    id:"",
+                    text:"—请选择—"
+                }, {
+                    id: 1,
+                    text: "已下班"
+                }, {
+                    id: 2,
+                    text: "可在正常时间内下班"
+                }, {
+                    id: 3,
+                    text: "忘记打休息结束卡"
+                }, {
+                    id: 4,
+                    text: "忘打休息开始和结束卡"
+                }, {
+                    id: 5,
+                    text: "立即开始休息"
+                }, {
+                    id: 6,
+                    text: "外站跟机"
+                }];
+        };
+        //操作动作
+        $('#opera').combobox({
+            valueField: 'id',
+            textField: 'text',
+            data: postData,
+        });
+    };
+
+    //编辑初始化
+    function dataInit(data) {
+        //工时预警
+        var warningTime;
+        if(!!data.warningTime && !!data.type){
+            warningTime = timestampToTime(data.workDate).substring(0,10) + data.type;
+            $("#timeWarning").html(warningTime);
+        };
+        //开始工作时间
+        if(!!data.punchIn){
+            $("#workStart").html(timestampToTime(data.punchIn));
+        };
+        //排班工作时长
+        if(!!data.planHours || data.planHours == "0"){
+            $("#planWorkHours").html(data.planHours+"小时");
+        };
+        //已工作时长
+        if(!!data.workHours || data.workHours == "0"){
+            $("#hadWorkHour").html(parseInt(Number(data.workHours)/60)  +" 小时 "+Math.abs(Number(data.workHours)%60) +"分钟");
+        };
+        //剩余工作时长
+        if(!!data.surplusHours || data.surplusHours == "0"){
+            $("#workHours").html(parseInt(Number(data.surplusHours)/60)  +" 小时 "+Math.abs(Number(data.surplusHours)%60) +"分钟");
+        };
+    };
+
+    //提交保存
+    function submitParam() {
+        if(!$('#opera').combobox("getValue")){
+            MsgAlert({content: "请选择状态选项!", type: 'error'});
+            return false;
+        };
+        var postParam = {
+            feedBack:$('#opera').combobox("getValue"),
+            id:$("#workTimeId").val()
+        };
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/otws/attendanceWarning/feedBackPc?id=" + postParam.id +"&&feedBack="+ postParam.feedBack ,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    //关闭任务后 代办任务刷新
+                    if(top.window.colsa_window){
+                        top.window.colsa_window();
+                    }
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                };
+            },
+            error:function (jdata) {
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+    };
+
+    //根据ID获取数据
+    function getDataById() {
+        var ID = $("#workTimeId").val();
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/otws/attendanceWarning/selectById?id="+  ID,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    dataInit(data);
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            },
+            error:function (jdata) {
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+    };
+
+    //时间戳转换
+    function timestampToTime(timestamp) {
+        var timesLength,date,Y,M,D,h,m,s,returnDate;
+        if(!!timestamp){
+            timesLength = timestamp.toString().length;
+            if(timesLength == 10){
+                date = new Date(Number(timestamp) * 1000);
+            }else if(timesLength == 13){
+                date = new Date(Number(timestamp));
+            };
+            Y = date.getFullYear() + '-';
+            M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+            D = (date.getDate() < 10 ? '0'+date.getDate() : date.getDate()) + ' ';
+            h = (date.getHours() < 10 ? '0'+date.getHours() : date.getHours()) + ':';
+            m = (date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes()) + ':';
+            s = (date.getSeconds() < 10 ? '0'+date.getSeconds() : date.getSeconds());
+            if (timesLength == 10){
+                returnDate = Y+M+D;
+            } else if(timesLength == 13){
+                returnDate = Y+M+D+h+m+s;
+            };
+        }else {
+            returnDate=""
+        };
+        return returnDate;
+    };
+
+    //运行
+    function carriedOut() {
+        //页面设置初始化
+        pageInit();
+        //获取数据
+        getDataById();
+    };
+
+    $(function () {
+        carriedOut();
+    })
+</script>
+</html>

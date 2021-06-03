@@ -1,0 +1,347 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>添加/编辑-阶跃上升滑耗阈值设置</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="阶跃上升滑耗阈值设置" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="createUser" name="createUser"/>
+                <input type="hidden" id="createName" name="createName"/>
+                <input type="hidden" id="createDate" name="createDate"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <input type="hidden" id="pkidOrg" name="pkidOrg"/>
+                <input type="hidden" id="ver" name="ver"/>
+                <input type="hidden" id="status" name="status"/>
+                <input type="hidden" id="companyCode" name="companyCode"/>
+                <input type="hidden" id="deleteFlag" name="deleteFlag"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>监控名称：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="alertName" name="alertName" data-options="required: true"
+                                   style="width: 460px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>机型/组别：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="acTypeGroup" name="acTypeGroup"
+                                   data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                        <th>部位：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-combobox" id="engOrApu" name="engOrApu" data-options="required: true,editable:false"
+                                   style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>件号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="engType" name="engType" data-options="required: true,editable:false"
+                                   style="width: 164px;"/>
+                        </td>
+                        <th>滑耗类别：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="valueType" name="valueType" data-options="required: true,editable:false"
+                                   style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>前N个加油点：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="pointNum" name="pointNum" data-options="required: true,validType:['number','length[1,4]']"
+                                   style="width: 164px;"/>
+                        </td>
+                        <th>阈值：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="upValue" name="upValue" data-options="required: true,validType:['floatLength[6,3]']"
+                                   style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>维护人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName" style="width: 164px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th>维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate" style="width: 164px;"
+                                   data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var operation;
+    var pkid;
+    var pkidOrg = "";
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        $("#modifyName").textbox('setValue', userLogin.userName);
+        $("#modifyUser").val(userLogin.accountId);
+        var currentDate = new Date();
+        var year = currentDate.getFullYear().toString();
+        var month = (currentDate.getMonth() + 1).toString();
+        var day = currentDate.getDate().toString();
+        $("#modifyDate").datebox('setValue', year + "-" + month + "-" + day);
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_OIL_SET_GROUP,DA_FLEET,ENG_OR_APU,ENG_OIL_NONE_UNIT,ENG_OIL_TYPE,ENG_OIL_DATA_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机型或组别
+                    $('#acTypeGroup').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_OIL_SET_GROUP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange:valChange
+                    });
+                    //部位
+                    $('#engOrApu').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.ENG_OR_APU,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //滑耗类别
+                    $("#valueType").combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.ENG_OIL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        value: "13"
+                    });
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#engType').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    if (pkid) {
+                        InitDataForm(pkid);
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        if (operation == "view") {
+            $(".easyui-textbox").textbox({required: false, onlyview: true});
+            $(".easyui-combobox").combobox({required: false, onlyview: true});
+            $(".easyui-datebox").datebox({required: false, onlyview: true});
+            $("#saveBtn").hide();
+        }
+    }
+
+
+    //回显
+    function InitDataForm(pkid) {
+        $('#pkid').val(pkid);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/oilSetStep/selectById" + "/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    if (jdata.obj.pkidOrg) {
+                        pkidOrg = jdata.obj.pkidOrg;
+                        $("#acTypeGroup").combobox({required: true, editable: false, onlyview: true});
+                    }
+                    ParseFormField_(jdata.obj, $("#mform"));
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var acTypeGroup = $("#acTypeGroup").combobox('getValue');
+        var engOrApu = $("#engOrApu").combobox('getValue');
+        var engType = $("#engType").combobox('getValue');
+        var alertName = $("#alertName").textbox('getValue');
+        var pkid = $("#pkid").val();
+        if(engOrApu == '' || engOrApu == null){
+            engOrApu = '-1';
+        }
+        if(engType == '' || engType == null){
+            engType = '-1';
+        }
+        if (operation == "add") { //添加
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: "/meng-engine/oilSetStep/ifExit/" + alertName + "/" + acTypeGroup + "/" + engOrApu + "/" + engType,
+                successCallBack: function (jdata) {
+                    if (jdata.obj > 0) {
+                        if(acTypeGroup.indexOf("T") != -1){
+                            MsgAlert({content: "监控名称+特殊组别，已经设置阈值，不能重复设置!", type: 'error'});
+
+                        }else{
+                            MsgAlert({content: "监控名称+机型+部位+型号，已经设置阈值，不能重复设置!", type: 'error'});
+
+                        }
+                        } else {
+                            saveOrEditJobcard(operation);
+                        }
+
+                }
+            });
+        } else { //编辑
+            if(pkidOrg==""){
+                InitGatewayRequest_({
+                    type: "get",
+                    async: false,
+                    path: "/meng-engine/oilSetStep/ifExitEdit/" + alertName + "/" + acTypeGroup + "/" + engOrApu + "/" + engType + "/" + pkid,
+                    successCallBack: function (jdata) {
+                        if (jdata.obj > 0) {
+                            if(acTypeGroup.indexOf("T") != -1){
+                                MsgAlert({content: "监控名称+特殊组别，已经设置阈值，不能重复设置!", type: 'error'});
+
+                            }else{
+                                MsgAlert({content: "监控名称+机型+部位+型号，已经设置阈值，不能重复设置!", type: 'error'});
+
+                            }
+                        } else {
+                            saveOrEditJobcard(operation);
+                        }
+
+                    }
+                });
+            }else{
+                saveOrEditJobcard(operation);
+            }
+
+        }
+    }
+
+    function saveOrEditJobcard(operation) {
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        // datas = $.extend({
+        //     operation: operation
+        // }, datas, {FunctionCode: 'ENG_OIL_SET_SET_ADD_EIDT'});
+        if (operation == "add") {
+
+
+            InitGatewayRequest_({
+                async: false,
+                path: "/meng-engine/oilSetStep/insertOilSetStep",
+                data: datas,
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+        } else {
+
+            InitGatewayRequest_({
+                async: false,
+                path: "/meng-engine/oilSetStep/updateOilSetStep",
+                data: datas,
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+
+        }
+    }
+
+    function valChange(val){
+        if(operation != 'view'){
+            if(val.indexOf('T') != '-1'){
+                $('#engOrApu').combobox({required: false,editable: false, onlyview: true});
+                $('#engOrApu').combobox('setValue','');
+                $('#engType').combobox({required: false,editable: false, onlyview: true});
+                $('#engType').combobox('setValue','');
+            }else{
+                $('#engOrApu').combobox({required: true,editable: false, onlyview: false});
+                $('#engType').combobox({required: true,editable: false, onlyview: false});
+            }
+            if(pkidOrg!=""){
+                $("#alertName").textbox({required:true,editable:false,onlyview:true});
+                $("#engOrApu").combobox({required:true,editable:false,onlyview:true});
+                $("#engType").combobox({required:true,editable:false,onlyview:true});
+            }
+        }
+    }
+
+</script>
+</body>
+</html>

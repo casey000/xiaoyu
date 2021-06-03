@@ -1,0 +1,330 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+
+
+    <title data-i18n=""></title>
+    <style type="text/css">
+        #tt {
+            padding: 0 10px;
+        }
+
+        .tit {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            border: none !important;
+        }
+
+        dd {
+            margin-bottom: 10px;
+        }
+
+        dd span.tit {
+            display: inline-block;
+            min-width: 60px;
+            vertical-align: top;
+            text-align: left;
+        }
+
+        dd textarea {
+            width: 400px;
+        }
+
+        .upload {
+            border: none;
+            padding: 3px 15px;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .uploadBlock {
+            margin-bottom: 5px;
+        }
+
+        b {
+            font-weight: 600;
+        }
+
+        .bot_btn {
+            width: 90%;
+            margin: 20px auto;
+            text-align: right;
+        }
+
+        .bot_btn span {
+            display: inline-block;
+            padding: 3px 20px;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        span.cancel {
+            background-color: #DDDDDD;
+            color: #333;
+            margin-left: 10px;
+        }
+
+        video {
+            width: auto !important;
+            height: auto !important;
+        }
+
+        #attachmengtList tr {
+            height: 30px;
+            line-height: 30px;
+        }
+
+        .wysiwyg > [contenteditable=true] {
+            height: 200px;
+            width: 600px;
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<div class="" id="tt" style="width:100%; height: 100%;padding-top: 30px">
+    <dl>
+        <dd>
+            <span class="tit">第一级<font color="red">*</font>：</span>
+            <input class="easyui-combobox" id="first" name="first" style="width:280px;"/>
+        </dd>
+        <dd>
+            <span class="tit">第二级：</span>
+            <input class="easyui-combobox" id="second" name="second" style="width:280px;"/>
+        </dd>
+        <dd>
+            <span class="tit">第三级：</span>
+            <input class="easyui-combobox" id="third" name="third" style="width:280px;"/>
+        </dd>
+    </dl>
+    <div class="bot_btn">
+        <span class="submit" onclick="submit()">提交</span>
+        <span class="cancel" onclick="window.close()">取消</span>
+    </div>
+</div>
+</body>
+<script type="text/javascript">
+
+    function submit() {
+        ajaxLoading();
+        var param = getParentParam_();
+
+        var post_data = {
+            firstCategoryLevel:$("#first").combobox('getValue'),
+            secondCategoryLevel:$("#second").combobox('getValue'),
+            thirdCategoryLevel:$("#third").combobox('getValue'),
+        };
+
+        if(!(post_data.firstCategoryLevel.trim())){
+            MsgAlert({type: "error", content: "第一级必填"});
+            ajaxLoadEnd();
+            return
+        }
+        // post_data = JSON.stringify(post_data);
+        // data = $.extend({}, {TmcExperienceInfoDTO:post_data}, {FunctionCode: "TMC_EXPERICE_ADDORUPDATE"});
+
+        axios.post('/api/v1/defect/defect_base_info/setCategoryLevel?selectedIds=' + param.defectId, post_data).then(response => {
+            if (response.data.msg.indexOf("SUCCESS") != -1) {
+                ajaxLoadEnd();
+                param.OWindow.$("#common_list_grid").jqGrid().trigger("reloadGrid");
+                param.OWindow.MsgAlert({content: response.msg ? response.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                CloseWindowIframe();
+                // param.OWindow.reload_();
+            } else if (response.data.msg.indexOf("ERROR") != -1) {
+                throw new Error(response.data.msgData[0])
+            }
+        }).catch(err => {
+            ajaxLoadEnd();
+            MsgAlert({type: "error", content: "保存失败" + err});
+        })
+
+    }
+
+
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitDataGrid()
+    }
+
+
+    function InitDataGrid() {
+        $('#hdType').text('新增');
+        var responArr = [];
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            path: "/maintenanceDefect/defectCategoryLevelApi/selectAllDefectCategoryLevel",
+            data:{},
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    responArr = jdata.obj;
+                } else {
+
+                }
+            }
+        });
+        var firstArr = [],secondArr = [],thirdArr = [];
+
+        for(var i = 0 ; i < responArr.length ; i++){
+            if(responArr[i].pid === '0')
+            {
+                firstArr.push(responArr[i])
+            }
+        }
+
+        for(var i = 0 ; i < firstArr.length ; i++){
+            for(var k = 0 ; k < responArr.length ; k++){
+                if(firstArr[i].id === responArr[k].pid)
+                {
+                    secondArr.push(responArr[k])
+                }
+            }
+        }
+
+        for(var i = 0 ; i < secondArr.length ; i++){
+            for(var k = 0 ; k < responArr.length ; k++){
+                if(secondArr[i].id === responArr[k].pid)
+                {
+                    thirdArr.push(responArr[k])
+                }
+            }
+        }
+
+        console.log(firstArr)
+        console.log(secondArr)
+        console.log(thirdArr)
+
+        $('#first').combobox({
+            panelHeight: '100px',
+            valueField: 'categoryLevel',
+            textField: 'categoryLevel',
+            editable: true,
+            prompt: '请选择',
+            data: firstArr,
+            onSelect: (n) => {
+                secondArr = [];
+                thirdArr = [];
+                for(var k = 0 ; k < responArr.length ; k++){
+                    if(n.id === responArr[k].pid)
+                    {
+                        secondArr.push(responArr[k]);
+                        $('#second').combobox({data: secondArr})
+                    }
+                }
+                if(secondArr.length === 0){
+                    $('#second').combobox({data: secondArr})
+                }
+                console.log(secondArr)
+                for(var i = 0 ; i < secondArr.length ; i++){
+                    for(var k = 0 ; k < responArr.length ; k++){
+                        if(secondArr[i].id === responArr[k].pid)
+                        {
+                            thirdArr.push(responArr[k])
+                            $('#third').combobox({data: thirdArr})
+                        }
+                    }
+                }
+                if(thirdArr.length === 0){
+                    $('#third').combobox({data: secondArr})
+                }
+                console.log(thirdArr)
+
+            }
+        });
+        $('#second').combobox({
+            panelHeight: '100px',
+            valueField: 'categoryLevel',
+            textField: 'categoryLevel',
+            editable: true,
+            prompt: '请选择',
+            data: secondArr,
+            onSelect: (n) => {
+                thirdArr = [];
+                for(var k = 0 ; k < responArr.length ; k++){
+                    if(n.id === responArr[k].pid)
+                    {
+                        thirdArr.push(responArr[k]);
+                        $('#third').combobox({data: thirdArr})
+                    }
+                }
+
+
+            }
+        });
+        $('#third').combobox({
+            panelHeight: '100px',
+            valueField: 'categoryLevel',
+            textField: 'categoryLevel',
+            editable: true,
+            prompt: '请选择',
+            data: thirdArr,
+            onSelect: (n) => {
+                for(var k = 0 ; k < responArr.length ; k++){
+                    if(n.pid === responArr[k].id)
+                    {
+                        secondArr.push(responArr[k]);
+                        secondArr = [...new Set(secondArr)]
+                        $('#second').combobox(
+                            {
+                                data: secondArr,
+                            }
+                        );
+                        $('#second').combobox("setValue" , responArr[k].categoryLevel);
+                    }
+                };
+                for(var i = 0 ; i < secondArr.length ; i++){
+                    if($('#second').combobox('getValue') == secondArr[i].categoryLevel){
+                        for(var k = 0 ; k < firstArr.length ; k++){
+                            if(secondArr[i].pid === firstArr[k].id)
+                            {
+                                // firstArr.push(responArr[k]);
+                                // firstArr = [...new Set(firstArr)]
+                                // console.log(firstArr,'fir')
+                                // $('#first').combobox({data: firstArr});
+                                $('#first').combobox("setValue" , firstArr[k].categoryLevel);
+
+                            }
+                        }
+                    }
+
+                }
+                console.log($('#second').combobox('getValue'));
+
+            }
+        });
+
+        if (param.defectId.split(",").length == 1) {
+            axios.get('/api/v1/defect/defect_base_info/selectDefectById?id=' + param.defectId).then(response => {
+                if (response.data.msg.indexOf("SUCCESS") != -1) {
+                    $('#first').combobox("setValue" , response.data.data.firstCategoryLevel || '');
+                    $('#second').combobox("setValue" , response.data.data.secondCategoryLevel|| '');
+                    $('#third').combobox("setValue" , response.data.data.thirdCategoryLevel|| '');
+                    // param.OWindow.reload_();
+                } else if (response.data.msg.indexOf("ERROR") != -1) {
+                    throw new Error(response.data.msgData[0])
+                }
+            }).catch(err => {
+                ajaxLoadEnd();
+                MsgAlert({type: "error", content: "保存失败" + err});
+            })
+        }
+
+    }
+
+
+</script>
+</html>

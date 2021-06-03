@@ -1,0 +1,172 @@
+    <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+    <html>
+    <head id="i18n_" module="">
+        <!--#include virtual="/views/items/resource_.shtml"-->
+        <title data-i18n="PAGE.PROCESS_SERVICE_LIST.">流程审批回调配置</title>
+    </head>
+    <body class="ibody">
+    <fieldset class="fieldset_eui">
+        <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th style="width: 80px;">流程KEY：</th>
+                        <td style="width:110px">
+                            <input class="easyui-textbox" id="procDefId" name="procDefId" />
+                        </td>
+                        <th style="width: 80px;">节点KEY：</th>
+                        <td style="width:110px">
+                            <input class="easyui-textbox" id="procNodeKey" name="procNodeKey" />
+                        </td>
+                        <th style="width: 80px;">审批状态：</th>
+                        <td style="width:110px">
+                            <input class="easyui-textbox" id="actionType" name="actionType" />
+                        </td>
+                        <td colspan="2">
+                            &nbsp;&nbsp;
+                            <a class="searchBtn" onclick="onSearch_()" data-i18n="common:COMMON_OPERATION.QUERY">查询</a>&nbsp;&nbsp;
+                            <a class="clearBtn" onclick="onClear_()" data-i18n="common:COMMON_OPERATION.RESET">重置</a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <script type="text/javascript">
+        function i18nCallBack(){
+            //绑定回车查询事件
+            bindFormonSearch_('#ffSearch', function () {
+                onSearch_()
+            });
+
+            $('#actionType').combobox({
+                panelHeight: '80px',
+                valueField: 'VALUE',
+                textField: 'TEXT',
+                data: [{'VALUE':'complete','TEXT':'complete'},{'VALUE':'turnback','TEXT':'turnback'}]
+            });
+
+            InitDataGrid();
+        }
+
+        function InitDataGrid(){
+            $("#dg").MyDataGrid({
+                identity: 'dg',
+                sortable: true,
+                singleSelect: true,
+                enableLineEdit:true,
+                columns: {
+                    param: { FunctionCode: 'WS_FLOW_SE_CONF_LIST'},
+                    alter: {
+                        PROC_DEF_ID: {
+                            editor: {type: 'textbox', options: { required: true,tipPosition: 'top', validType: ['maxLength[128]']}}
+                        },
+                        PROC_NODE_KEY: {
+                            editor: {type: 'textbox', options: { required: true,tipPosition: 'top', validType: ['maxLength[128]']}}
+                        },
+                        SERVICE_NAME: {
+                            editor: {type: 'textbox', options: { required: true,tipPosition: 'top', validType: ['maxLength[325]']}}
+                        },
+                        METHOD_NAME: {
+                            editor: {type: 'textbox', options: { required: true,tipPosition: 'top', validType: ['maxLength[325]']}}
+                        },
+                        ACTION_TYPE: {
+                            formatter: function (value) {
+                                return value;
+                            },
+                            editor: {
+                                type: 'combobox',
+                                options: {
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '80px',
+                                    editable:false,
+                                    required: true,
+                                    data : [{'VALUE':'complete','TEXT':'complete'},{'VALUE':'turnback','TEXT':'turnback'},{'VALUE':'turnto','TEXT':'turnto'},{'VALUE':'claim','TEXT':'claim'}],
+                                    tipPosition: 'top'
+                                }
+                            }
+                        },
+                        PARAMS_CONF: {
+                            editor: {type: 'textbox', options: { required: false,tipPosition: 'top', validType: ['maxLength[2000]']}}
+                        }
+                    }
+                },
+                contextMenus:[
+                    {id: "m-delete", i18nText : "common:COMMON_OPERATION.DEL", auth:"",
+                        onclick: function(){
+                            var rowData = $('#dg').datagrid('getSelected');
+                            var index = getDG("dg").datagrid('getRowIndex',rowData);
+                            if (!rowData.PKID){
+                                $('#dg').datagrid('deleteRow', index);
+                                return;
+                            }
+                            $.messager.confirm('', '是否确认删除该记录？', function (r) {
+                                if (r) {
+                                    InitFuncCodeRequest_({
+                                        data: {pkid: rowData.PKID, FunctionCode: "WS_FLOW_SE_CONF_DELETE"},
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                reload_();
+                                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                            } else {
+                                                MsgAlert({content: jdata.msg, type: 'error'});
+                                            }
+                                        }
+                                    })
+                                }
+                            });
+                        }
+                    }
+
+                ],
+                onEndEdit: function(index, row, changes){
+                    row = toCamelCase(row);
+                    row = $.extend({}, row, {FunctionCode:'WS_FLOW_SE_CONF_ADD_EDIT'});
+                    InitFuncCodeRequest_({
+                        data: row,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                                // if(!row.PKID) {
+                                //     $('#dg').datagrid('deleteRow', index);
+                                //     reload_();
+                                //     return;
+                                // }
+                            }
+                        }
+                    });
+                },
+                toolbar: [
+                    {key:"COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth:"",
+                        handler: function () {
+                            var forTotal = $('#dg').datagrid('getRows');
+                            var row = {
+                                isAdd__: 1,
+                                GI_DOCUMENT_NO_ITEM: (forTotal.length + 1) * 10
+                            };
+                            $('#dg').datagrid('insertRow', {index:0,row:row});
+                        }
+                    }, '-',
+                    {key:"COMMON_RELOAD",text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                        handler: function () {
+                            common_reload_({identity: 'dg'});
+                        }
+                    }
+                ]
+            });
+        }
+
+        /** 刷新列表数据 */
+        function reload_(){
+            $("#dg").datagrid("reload");
+        }
+    </script>
+    </body>
+    </html>

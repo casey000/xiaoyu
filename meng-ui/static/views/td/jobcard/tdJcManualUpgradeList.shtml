@@ -1,0 +1,312 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册升版列表</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">机队：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="fleet" name="fleet" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">关联手册：</th>
+                    <td style="width:100px;" class="td5">
+                        <input class="easyui-textbox" id="relateManual" name="relateManual" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">章节：</th>
+                    <td style="width:160px;" class="td5">
+                        <input class="easyui-combobox" id="ata" name="ata" style="width:160px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">状态：</th>
+                    <td style="width: 100px;" class="td5">
+                        <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a class="searchBtn" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var user;
+    var jcType = '';
+    var searchFlag = true;
+    var param;
+    var pkid;//手册解析ID
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        user = getLoginInfo();
+        jcType = param.jcType;
+        pkid = param.pkid;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        //TODO TD_MANUAL_UPGRADE_STATUS 待添加，用于记录手册升版评估时的状态
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,TD_SMJC_ATA",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                //机队
+                $('#fleet').combobox({
+                    panelHeight: '100px',
+                    data: jdata.data.DA_FLEET,
+                    valueField: 'VALUE',
+                    textField: 'TEXT'
+                });
+                $('#ata').combobox({
+                    panelHeight: '100px',
+                    data: jdata.data.TD_SMJC_ATA,
+                    valueField: 'VALUE',
+                    textField: 'TEXT'
+                });
+//                    //评估状态
+//                    $('#status').combobox({
+//                        panelHeight: '180px',
+//                        data: jdata.data.TD_MANUAL_UPGRADE_STATUS,
+//                        valueField: 'VALUE',
+//                        textField: 'TEXT',
+//                        value: 'EDIT'
+//                    });
+//                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_MANUAL_UPGRADE_STATUS"]);
+
+                InitDataGrid();
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'TD_JC_MANUAL_UPGRADE_LIST'},
+                alter: {}
+            },
+            validAuth: function (row, items) {
+//                    if (row.STATUS != "EDIT" || getLoginInfo().accountId != row.WRITER) {
+//                        items["编辑"].enable = false;
+//                    }
+//                    return items;
+            },
+            contextMenus: [
+                {
+                    id: "m-", i18nText: "评估",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        var msgArr = [];
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (rowData.QUA_MAN_ID != accountId) {
+                            // MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            // return;
+                            msgArr.push("您不是此条记录的当前操作人，不允许操作！");
+                        }
+                        if (msgArr.length > 0) {
+                            hints(msgArr);
+                        } else {
+                            openDetai('edit', rowData.PKID, rowData.FLEET, rowData.JC_TYPE);
+                        }
+                    }
+                },
+                {
+                    id: "m-track", i18nText: "办理轨迹",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        tranHis(rowData.PKID);
+                    }
+                },
+                {
+                    i18nText: "退回", auth: "",
+                    onclick: function () {
+                        var row = $('#dg1').datagrid('getSelected');
+                        var msgArr = [];
+                        if (row.WRITER != accountId && row.QUA_WRITER_ID != accountId) {
+                            // MsgAlert({content: "您不是此条记录的OWNER或者处理人，不允许驳回！", type: 'error'});
+                            // return;
+                            msgArr.push("您不是此条记录的OWNER或者处理人，不允许驳回");
+                        }
+                        //初始转发只能对状态为审核中,批准中且未有转发或转发已经转回的记录进行此操作
+                        if ('EDIT' == row.STATUS || 'EDITED' == row.STATUS || 'ISSUE' == row.STATUS || 'ISSUED' == row.STATUS || 'ARCHIVED' == row.STATUS) {
+                            // MsgAlert({content: '只有流程中状态的数据才能退回！', type: 'error'});
+                            // return;
+                            msgArr.push("只有流程中状态的数据才能退回");
+                        }
+                        if (msgArr.length > 0) {
+                            hints(msgArr);
+                        } else {
+                            turnEvalAct(row);
+                        }
+                    }
+                },
+            ],
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID, value.FLEET, value.JC_TYPE);
+            }
+        });
+    }
+
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        openDetai(operation, '', '', '');
+    }
+
+    //打开手册升版评估页面
+    function openDetai(operation, pkid, fleet, jcType) {
+        var title_ = $.i18n.t('航线工卡编写');
+        ShowWindowIframe({
+            width: "1020",
+            height: "260",
+            title: title_,
+            param: {operation: operation, pkid: pkid, fleet: fleet, jcType: jcType},
+            url: " /views/td/jobcard/lmjc/tdLmjcEditDetail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    function tranHis(pkid) {
+        var title_ = $.i18n.t('办理轨迹列表');
+        ShowWindowIframe({
+            width: "790",
+            height: "519",
+            title: title_,
+            param: {pkid: pkid},
+            url: "/views/td/jobcard/smjc/smjcedit/tdJcTransList.shtml"
+        });
+    }
+
+    function turnEvalAct(row) {
+        var pkid = row.PKID;
+        var objNo = pkid;
+        var objKey = "TD_JC_ALL";
+        var taskId = "";
+        var procInstId = "";
+        $.messager.confirm('提示?', "是否确认退回?", function (r) {
+            if (r) {
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: {
+                        FunctionCode: 'WS_FLOW_EXECUTION_QUERY',
+                        objNo: objNo,
+                        objKey: objKey
+                    },
+                    async: false,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            taskId = jdata.data["TASK_ID"];
+                            procInstId = jdata.data["PROC_INST_ID_"];
+                            InitFuncCodeRequest_({
+                                data: {pkid: pkid, procInstId: procInstId, FunctionCode: 'TD_LMJC_TURN_ACT'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MaskUtil.unmask();
+                                        reload_();
+                                        MsgAlert({content: '操作成功!'});
+                                    } else {
+                                        MaskUtil.unmask();
+                                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function hints(mgs) {
+        ShowWindowIframe({
+            width: 320,
+            height: 300,
+            param: {mgs: mgs},
+            title: "工卡提示",
+            url: "/views/td/jobcard/commonjc/TdHints.shtml"
+        });
+    }
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+</script>
+</body>
+</html>

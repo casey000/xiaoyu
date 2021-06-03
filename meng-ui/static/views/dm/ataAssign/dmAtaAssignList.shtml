@@ -1,0 +1,268 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">分工配置</title>
+</head>
+<body class="ibody">
+
+<div class="easyui-tabs" id="tt" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="ffSearch">
+            <table cellpadding="2" cellspacing="0" class="table table-bordered table-info">
+                <tr>
+                    <th align="right" class="th" style="width:65px;">配置类型：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="applyType" name="applyType" style="width:100px;"/>
+                    </td>
+
+                    <th align="right" class="th" style="width:100px;">型号：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="acengModel" name="acengModel" style="width:100px;"/>
+                    </td>
+
+                    <th align="right" class="th" style="width:100px;">章节：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="ata" name="ata" style="width:100px;"/>
+                    </td>
+
+                    <th align="right" class="th" style="width:100px;">负责人：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="engineer" name="engineer" style="width:100px;"/>
+                    </td>
+
+                    <td colspan="2">
+                        &nbsp;
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                    </td>
+
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var companyCode;
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,DM_ATA_ASSIGN_CONFIGTYPE,DM_ATA_ASSIGN_ENGINEER,DM_ATA",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //型号
+                    PAGE_DATA['acengModel'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    //配置类型
+                    PAGE_DATA['applyType'] = DomainCodeToMap_(jdata.data["DM_ATA_ASSIGN_CONFIGTYPE"]);
+                    //负责人
+                    PAGE_DATA['engineer'] = DomainCodeToMap_(jdata.data["DM_ATA_ASSIGN_ENGINEER"]);
+                    //ATA
+                    PAGE_DATA['ata'] = DomainCodeToMap_(jdata.data["DM_ATA"]);
+                    //配置类型
+                    $('#applyType').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DM_ATA_ASSIGN_CONFIGTYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (row) {
+                            console.log(row);
+                            if (row.VALUE == "FLEET") {
+                                $('#acengModel').combobox({
+                                    panelHeight: '110px',
+                                    data: jdata.data.DA_FLEET,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT'
+                                });
+                            } else {
+                                $('#acengModel').combobox({
+                                    panelHeight: '110px',
+                                    data: {},
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT'
+                                });
+                            }
+                        }
+                    });
+                    //型号
+                    $('#acengModel').combobox({
+                        panelHeight: '110px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //负责人
+                    $('#engineer').combobox({
+                        panelHeight: '110px',
+                        valueField: 'VALUE',
+                        data: jdata.data.DM_ATA_ASSIGN_ENGINEER,
+                        textField: 'TEXT'
+                    });
+                    //ATA
+                    $('#ata').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DM_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {companyCode: companyCode},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'DM_ATA_ASSIGN_LIST'},
+                alter: {
+                    CREATE_TIME: {
+                        type: 'date'
+                    },
+                    MODIFY_TIME: {
+                        type: 'date'
+                    },
+                    APPLY_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['applyType'][value];
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+
+            },
+            validAuth: function (row, items) {
+                items['编辑'].enable = true;
+                items['删除'].enable = true;
+                return items;
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+                    }
+                },
+                {
+                    id: "",
+                    i18nText: "删除",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (confirm("是否确认删除？")) {
+                            InitFuncCodeRequest_({
+                                data: {FunctionCode: 'DM_ATA_ASSIGN_DELETE', pkid: rowData.PKID},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD",
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    handler: function () {
+                        openDetai("save", "");//打开新增页面
+                    }
+                },
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('分工配置详情');
+        ShowWindowIframe({
+            width: "600",
+            height: "400",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/dm/ataAssign/dmAtaAssignDetail.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

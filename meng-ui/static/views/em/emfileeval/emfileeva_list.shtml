@@ -1,0 +1,1802 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <input type="hidden" id="selectType" name="selectType">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">适用类型：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="applyType" name="applyType" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">适用型号：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" id="applyModel" name="applyModel" style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" align="right">状态：</th>
+                    <td style="width:120px">
+                        <input class="easyui-combobox" name="status" id="status"
+                               style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">章节：</th>
+                    <td style="width:120px">
+                        <input class="easyui-textbox" name="evaAta" id="evaAta" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">文件类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="dataType" id="dataType" style="width:120px"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" align="right">评估单号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="evaNo" id="evaNo" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">旧评估单号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="oldEvaNo" id="oldEvaNo" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">文件编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="dataNo" id="dataNo" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">操作人：</th>
+                    <td>
+                        <input class="easyui-textbox" name="quaManName" id="quaManName" style="width:120px"/>
+                    </td>
+                    <td colspan="2">
+                        <a href="javascript:void(0)" auth="EE_LIST_SEARCH" class="searchBtn"
+                           data-options="iconCls:'icon-search'"
+                           onclick="onSearchFor()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                        <a class="ridoBtn" data-options=""
+                           onclick="helpQuery('dg', 'EM_FILE_EVALUATE_LIST');"><span
+                                data-i18n="">高级查询</span></a>
+                        <!--  <a class="excelBtn" id="excelExport"
+                             onclick="confFieldsExport_('dg', '工程文件评估单', 'SYS_COMMON_EXPORT')"
+                             data-options="iconCls:'icon-page_excel'">
+                              <span data-i18n="common:COMMON_OPERATION.EXPORT">导出</span>
+                          </a>-->
+                        <a class="excelBtn" data-options="iconCls:'icon-page_excel'"
+                           onclick="excelExport('dg','工程文件评估单','EM_FILE_EVALUATE_LIST')"><span>导出</span></a>
+
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" align="right">评估人：</th>
+                    <td>
+                        <input class="easyui-textbox" name="evaManName" id="evaManName" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">评估结论：</th>
+                    <td>
+                        <input class="easyui-combobox" name="evaResult" id="evaResult" style="width:120px"/>
+                    </td>
+                    <th data-i18n="" align="right">修正案号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="dataAmend" id="dataAmend" style="width:120px"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="10">
+                        <span style="color: red;">注意：评估超期为红色  剩余3日为黄色  </span></br>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg">
+</table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var status = '';
+    var name = getLoginInfo().userName;
+    var accountId = getLoginInfo().accountId;
+    var flag = true;
+    var executionId = ""; //流程实例ID
+    var param = {};
+    param = getParentParam_();
+    var type = param.type;
+    var result = "";
+    var groupname = "";
+
+    var applyTypeFleetDic;
+    var applyTypeEngDic;
+    var sflag;
+    var eflag;
+    $("#selectType").val(type);
+
+    function i18nCallBack() {
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearchFor()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_URGENT_LEVEL,EVA_RESULT_SL," +
+                "EM_EVALUATE_STATUS,DM_DATA_TYPE_TECHNOLOGY,REVSUG_FLEET,DA_ENG_TYPE,EM_ATA,WF_STATUS,EVA_RESULT,EM_APPLY_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_EVALUATE_STATUS"]);
+                    PAGE_DATA['evaResult'] = DomainCodeToMap_(jdata.data["EVA_RESULT_SL"]);
+                    PAGE_DATA['urgentLevel'] = DomainCodeToMap_(jdata.data["DM_URGENT_LEVEL"]);
+                    PAGE_DATA['wfStatus'] = DomainCodeToMap_(jdata.data["WF_STATUS"]);
+                    PAGE_DATA['applyType'] = DomainCodeToMap_(jdata.data["EM_APPLY_TYPE"]);
+                    applyTypeFleetDic = jdata.data["REVSUG_FLEET"];
+                    applyTypeEngDic = jdata.data["DA_ENG_TYPE"];
+                    $('#status').combobox({
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EM_EVALUATE_STATUS,
+                    });
+                    $('#dataType').combobox({
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.DM_DATA_TYPE_TECHNOLOGY,
+                    });
+
+                    $('#applyType').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_APPLY_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange: applyTypeChange
+                    });
+                    $('#evaResult').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EVA_RESULT_SL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if (type == null) {
+                        $("#quaManName").textbox("setValue", name);
+                    }
+                    InitDataGrid();
+
+                    $("#status").combobox("setValue", "PGZ");
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    function applyTypeChange() {
+        var applyType = $("#applyType").combobox('getValue');
+        if (applyType == "APL") {
+            $('#applyModel').combobox({
+                panelHeight: '70px',
+                data: applyTypeFleetDic,
+                valueField: 'VALUE',
+                textField: 'TEXT'
+            });
+
+            $("#applyModel").combobox({disabled: false});
+        } else if (applyType == "ENG") {
+            $('#applyModel').combobox({
+                panelHeight: '100px',
+                panelWidth: '100px',
+                data: applyTypeEngDic,
+                valueField: 'VALUE',
+                textField: 'TEXT'
+            });
+            $("#applyModel").combobox({disabled: false});
+        } else if (applyType == "PART") {
+            $("#applyModel").combobox({disabled: true});
+            $("#applyModel").textbox('setValue', "CM");
+        }
+
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 130) / 25);
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                firstLoad: true,
+                singleSelect: true,
+                pageSize: pageSize,
+            queryParams: {selectType: type},
+                columns: {
+                    param: {FunctionCode: 'EM_FILE_EVALUATE_LIST'},
+                    alter: {
+                        UPLOAD: {
+                            formatter: function (value, row, index) {
+                                if (row.UPLOAD) {
+                                    return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                        '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                                }
+                            }
+                        },
+                        URGENT_LEVEL: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['urgentLevel'] [value];
+                            }
+                        },
+                        EVA_STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        },
+                        EVA_VER: {
+                            formatter: function (value, row, index) {
+                                return value;
+                            }
+                        },
+                        EVA_RESULT: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['evaResult'] [value];
+                            }
+                        },
+                        APPLY_TYPE: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['applyType'] [value];
+                            }
+                        },
+                        DEADLINE: {
+                            type: 'date'
+                        },
+                        EVA_DEADLINE: {
+                            type: 'date',
+                        },
+                        ISSUE_DATE: {
+                            type: 'date'
+                        },
+                        EFFECT_DATE: {
+                            type: 'date'
+                        },
+                        VER_DATE: {
+                            type: 'date'
+                        },
+                        DISTRIBUTE_DATE: {
+                            type: 'date'
+                        },
+                        VALID_DATE: {
+                            type: 'date'
+                        },
+                        EVA_DATE: {
+                            type: 'date'
+                        },
+                        APPROVE_DATE: {
+                            type: 'date'
+                        },
+                        WRITE_DATE: {
+                            type: 'date'
+                        },
+                        PROO_DATE: {
+                            type: 'date'
+                        },
+                        AUDIT_DATE: {
+                            type: 'date'
+                        },
+                        WF_STATUS: {
+                            formatter: function (value) {
+                                return PAGE_DATA['wfStatus'][value];
+                            }
+                        }
+
+                    }
+
+                },
+                resize: function () {
+                    return {
+                        height: $(document.body).height() - 80,
+                        width: $(document.body).width()
+                    };
+                },
+                onLoadSuccess: function (data) {
+                    if (flag) {
+                        onSearchFor();
+                        flag = false;
+                    }
+                    InitSuspend('a.attach', {
+                        'onmouseover': function (thiz, event, callback) {
+                            var index = $(thiz).attr("rowindex");
+                            var row = $("#dg").datagrid('getRows')[index];
+                            InitFuncCodeRequest_({
+                                data: {
+                                    SOURCE_ID: row.DATA_PKID,
+                                    CATEGORY: "dmDataRecExter",
+                                    FunctionCode: 'ATTACHMENT_RSPL_GET'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == 200) {
+                                    }
+                                    var html = "";
+                                    for (var i = 0; i < jdata.data.length; i++) {
+                                        html += '<li><a target="_blank" title="' + jdata.data[i].ORG_NAME + '" ' +
+                                            ' onclick="downFileLocal(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a>' +
+                                            '<span onclick="deleteFile(' + jdata.data[i].PKID + ');' +
+                                            'return false;" class="icon-cross"></span></li>';
+                                    }
+                                    callback(html);
+                                }
+                            });
+                        }
+                    });
+                    $("#dg").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+                },
+                rowStyler: function (index, row) {
+                    var evaDeadLine = row.EVA_DEADLINE;
+                    var sta = row.STATUS;
+                    var his = row.IF_HIS_DATA;
+                    if (!(sta == "ISSUED" || sta == "ARCHIVE")) {
+                        if (evaDeadLine && evaDeadLine != null && evaDeadLine != '') {
+                            var days = diffDays(evaDeadLine);
+                            if (days < 0) {
+                                return 'background-color:#FF0000;';//红色
+                            } else if (days >= 0 && days <= 3) {
+                                return 'background-color:#FFBB77;';//橙黄FFA500
+                            }
+                        }
+                    }
+
+                },
+                contextMenus: [
+                    {
+                        i18nText: "评估", auth: "EE_LIST_PG",
+                        onclick: function () {
+                            var row = $('#dg').datagrid('getSelected');
+                            var cou = row.COU;
+                            var couzh = row.COUZH;
+                            var userId = getLoginInfo().accountId;
+                            if (!row.PKID) {
+                                MsgAlert({content: '请选择记录！', type: 'error'});
+                                return;
+                            }
+                            if (row.QUA_MAN_ID != accountId) {
+                                MsgAlert({content: "您不是此条记录的操作人，不允许评估！", type: 'error'});
+                                return;
+                            }
+                            if ('PGZ' != row.STATUS) {
+                                MsgAlert({content: '状态不是待评估，不允许评估！', type: 'error'});
+                                return;
+                            }
+                            openDetai('edit', row);
+                        }
+                    },
+                    {
+                        i18nText: "转发", auth: "EE_LIST_TRAN",
+                        onclick: function () {
+                            var row = $('#dg').datagrid('getSelected');
+                            var cou = row.COU;
+                            var couzh = row.COUZH;
+                            if (row.QUA_MAN_ID != accountId) {
+                                MsgAlert({content: "您不是此条记录的操作人，不允许转发！", type: 'error'});
+                                return;
+                            }
+                            //初始转发只能对状态为评估中且未有转发或转发已经转回的记录进行此操作
+                            if ('PGZ' != row.STATUS) {
+                                MsgAlert({content: '状态不是评估中，不允许转发！', type: 'error'});
+                                return;
+                            }
+//                            if (!(cou == 0 || couzh > 0)) {
+//                                MsgAlert({content: '已经转发，且未转回，不能再次转发！', type: 'error'});
+//                                return;
+//                            }
+                            ShowWindowIframe({
+                                width: 550,
+                                height: 250,
+                                title: "转发",
+                                param: {accId: row.EVA_MAN_ID, pkid: row.PKID, accountId: accountId,fluflag:'list'},
+                                url: '/views/em/emfileeval/emfileeva_filetrans.shtml'
+                            });
+                        }
+                    },
+                    {
+                        i18nText: "驳回", auth: "",//EE_LIST_TURN
+                        onclick: function () {
+                            var row = $('#dg').datagrid('getSelected');
+                            var evapkid = row.PKID;
+                            if (row.QUA_MAN_ID != accountId) {
+                                MsgAlert({content: "您不是此条记录的处理人，不允许驳回！", type: 'error'});
+                                return;
+                            }
+                            var quacou = 0;
+                            InitFuncCodeRequest_({
+                                data: {evaId: evapkid, FunctionCode: 'EM_FILE_QUA_COU'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        if (jdata.data != null) {
+                                            quacou = jdata.data.COU;
+                                        }
+                                    } else {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                    }
+                                }
+                            });
+                            if (quacou == 0) {
+                                MsgAlert({content: "没有联合评估记录，不能驳回！", type: 'error'});
+                                return;
+                            }
+                            //初始转发只能对状态为评估中且未有转发或转发已经转回的记录进行此操作
+                            if ('PGZ' != row.STATUS) {
+                                MsgAlert({content: '状态不是评估中，不允许驳回！', type: 'error'});
+                                return;
+                            }
+                            turnEval(row);
+                        }
+                    },
+                    {
+                        i18nText: "办理轨迹", auth: "EE_LIST_TRAN_VIEW",
+                        onclick: function () {
+                            var row = $('#dg').datagrid('getSelected');
+                            var cou = row.COU;
+                            var couzh = row.COUZH;
+                            if (cou == 0) {
+                                MsgAlert({content: '没有办理轨迹！', type: 'error'});
+                                return;
+                            }
+                            tranHis(row.PKID);
+                        }
+                    },
+                    {
+                        i18nText: "再评估", auth: "EE_LIST_PG_AGAIN",
+                        onclick: function () {
+                            var rowData = $("#dg").datagrid('getSelected');
+                            if (!confirm("确认再评估？")) {
+                                return;
+                            }
+                           if (rowData.QUA_MAN_ID != accountId) {
+                                MsgAlert({content: "您不是此条记录的操作人，不允许再评估！", type: 'error'});
+                                return;
+                            }
+                            revsionEva(rowData);
+                        }
+                    },
+                    {
+                        id: "m-submit", i18nText: "提交", auth: "EE_LIST_COMMIT",
+                        onclick: function () {
+
+                            var rowData = getDG('dg').datagrid('getSelected');
+                            var evapkid = rowData.PKID;
+                            var dataType = rowData.DATATYPE;
+                            var applyType = rowData.APPLY_TYPE;
+                            var applyModel = rowData.APPLY_MODEL;
+                            var ata2 = rowData.EVA_ATA;
+                            var stcFlag = "N";
+                            if (dataType.indexOf("MOD") != -1 || dataType.indexOf("VSTC") != -1 || dataType.indexOf("MDL") != -1) {
+                                stcFlag = "Y";
+                            }
+                            if (!rowData.PKID) {
+                                MsgAlert({content: "请选择数据！", type: 'error'});
+                                return;
+                            }
+                            if (rowData.QUA_MAN_ID != accountId) {
+                                MsgAlert({content: "您不是此条记录的操作人，不允许提交！", type: 'error'});
+                                return;
+                            }
+
+                            var sourResult = "相同来源厂商，类型的资料只能有一个生效的。不符合要求数据如下：";
+                            var sresult = "";
+                            if (dataType.indexOf("AD") != -1 || dataType.indexOf("CAD") != -1) {
+                                InitFuncCodeRequest_({
+                                    data: {evaId: evapkid, FunctionCode: 'EM_FILE_CHECK_SOUR'},
+                                    async: false,
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            if (jdata.data != null) {
+                                                var zxArray = jdata.data;
+                                                if (Array.isArray(zxArray)) {
+                                                    if (zxArray.length > 0 && zxArray[0] != null) {
+                                                        for (var i = 0; i < zxArray.length; i++) {
+                                                            if (zxArray[i].COU != 1) {
+                                                                sresult = sresult + "[源文件：" + zxArray[i].DATA_TYPE + ",来源厂商：" + zxArray[i].DATA_FROM + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        } else {
+                                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                        }
+                                    }
+                                });
+                            }
+                            if (sresult != "") {
+                                MsgAlert({content: sourResult + sresult, type: 'error'});
+                                return false;
+                            }
+//                            if (stcFlag == 'N') {
+
+                                var reqCou = 0;
+                                InitFuncCodeRequest_({
+                                    data: {evapkid: evapkid, FunctionCode: 'EM_FILE_REQ_COU'},
+                                    async: false,
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            if (jdata.data != null) {
+                                                reqCou = jdata.data.COU;
+                                            }
+                                        } else {
+                                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                        }
+                                    }
+                                });
+                                if (reqCou > 0) {
+                                    MsgAlert({content: "请先填写评估概述、经济性评估页面必填项，保存之后再提交！", type: 'error'});
+                                    return;
+                                }
+//                            }
+
+
+                            if(dataType.indexOf("SB") != -1 || dataType.indexOf("MOD") != -1){
+                                //SB校验必要性
+                                var reqCou = 0;
+                                InitFuncCodeRequest_({
+                                    data: {evapkid: evapkid, FunctionCode: 'EM_FILE_BYX_COU'},
+                                    async: false,
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            if (jdata.data != null) {
+                                                reqCou = jdata.data.COU;
+                                            }
+                                        } else {
+                                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                        }
+                                    }
+                                });
+                                if (reqCou > 0) {
+                                    MsgAlert({content: "请先填写必要性评估页面必填项，保存之后再提交！", type: 'error'});
+                                    return;
+                                }
+                            }
+
+                            if (rowData.OVERDATE > 0) {
+                                MsgAlert({content: '评估单已经超期，不允许提交，请先提交延期申请！', type: 'error'});
+                                return false;
+                            }
+                            var cou = rowData.COU;
+                            var couzh = rowData.COUZH;
+
+                            var pnCou = 0;
+                            InitFuncCodeRequest_({
+                                data: {evapkid: evapkid, FunctionCode: 'EM_FILE_MTBUR_COU'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        if (jdata.data != null) {
+                                            pnCou = jdata.data.COU;
+                                        }
+                                    } else {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                    }
+                                }
+                            });
+
+                            var ifNecessity = rowData.IF_NECESSITY;
+                            var abnormainRate = rowData.ABNORMAIN_RATE;
+                            var faultRate = rowData.FAULT_RATE;
+                            var reliabilityDes = rowData.RELIABILITY_DES;
+                            if (ifNecessity == "Y" && !abnormainRate && !faultRate && !reliabilityDes && pnCou == 0) {
+                                MsgAlert({content: "必要性评估为是时，可靠性评估和MTBUR二者至少添加一个", type: "error"});
+                                return;
+                            }
+
+                            //剩下的校验都是只有评估单为适用的时候才校验
+                            var evaResult = rowData.EVA_RESULT;
+                            if (evaResult == "SY" || stcFlag == 'Y') {
+                                //校验关联文件
+                                var refCou = 1;
+                                if (dataType.indexOf("AD") != -1 || dataType.indexOf("CAD") != -1) {
+                                    InitFuncCodeRequest_({
+                                        data: {evaId: evapkid, FunctionCode: 'EM_FILE_CHECK_REF'},
+                                        async: false,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    refCou = jdata.data.COU;
+                                                }
+                                            } else {
+                                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                                if (refCou == 0) {
+                                    if (!confirm("关联文件为空，请确认是否提交？")) {
+                                        return;
+                                    }
+                                }
+
+                                //校验经济性价格表
+                                var econCou = 1;
+                                InitFuncCodeRequest_({
+                                    data: {evaId: evapkid, FunctionCode: 'EM_FILE_CHECK_ECON'},
+                                    async: false,
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            if (jdata.data != null) {
+                                                var econ = jdata.data.IF_ECON;
+                                                if (econ == "Y") {
+                                                    InitFuncCodeRequest_({
+                                                        data: {evaId: evapkid, FunctionCode: 'EM_FILE_CHECK_ECON_COU'},
+                                                        async: false,
+                                                        successCallBack: function (jdata) {
+                                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                                if (jdata.data != null) {
+                                                                    econCou = jdata.data.COU;
+                                                                }
+                                                            } else {
+                                                                MsgAlert({
+                                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                                    type: 'error'
+                                                                });
+                                                            }
+                                                        }
+                                                    });
+                                                }
+                                            }
+                                        } else {
+                                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                        }
+                                    }
+                                });
+
+                                if (econCou == 0) {
+                                    MsgAlert({content: "选的是需要经济评估，请先添加经济性价格表，再提交！", type: 'error'});
+                                    return;
+                                }
+
+                                //校验适用性分组是否存在
+                                var groupCou = 0;
+                                InitFuncCodeRequest_({
+                                    data: {evapkid: evapkid, FunctionCode: 'EM_FILE_CHECK_GROUP'},
+                                    async: false,
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            if (jdata.data != null) {
+                                                groupCou = jdata.data.COU;
+                                            }
+                                        } else {
+                                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                        }
+                                    }
+                                });
+
+                                if (groupCou == 0) {
+                                    MsgAlert({content: "还未添加适用性分组，不允许提交！", type: 'error'});
+                                    return;
+                                }
+                                //校验适用性适用范围是否存在
+                                var rangeCou = 0;
+                                InitFuncCodeRequest_({
+                                    data: {evapkid: evapkid, FunctionCode: 'EM_FILE_CHECK_RANGE'},
+                                    async: false,
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            if (jdata.data != null) {
+                                                rangeCou = jdata.data.COU;
+                                            }
+                                        } else {
+                                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                        }
+                                    }
+                                });
+
+                                if (rangeCou == 0) {
+                                    MsgAlert({content: "分组还未添加适用性范围，不允许提交！", type: 'error'});
+                                    return;
+                                }
+
+                                //校验至少要有一个分段，分段下至少要有一个任务，任务下至少要有一个执行文件
+                                var segCou = 0;
+                                InitFuncCodeRequest_({
+                                    data: {evapkid: evapkid, FunctionCode: 'EM_FILE_COMMIT_SEG'},
+                                    async: false,
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            if (jdata.data != null) {
+                                                segCou = jdata.data.COU;
+                                            }
+                                        } else {
+                                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                        }
+                                    }
+                                });
+                                if (segCou == 0) {
+                                    MsgAlert({content: "该评估单下没有增加分段，不允许提交！", type: 'error'});
+                                    return;
+                                }
+                                if (dataType.indexOf('SB') != -1 || dataType.indexOf('AD') != -1 || dataType.indexOf('MOD') != -1) {
+                                    checkSegSour(evapkid);
+                                    if (groupname != "") {
+                                        MsgAlert({content: "以下适用的分段没有分段源文件，不允许提交！【" + groupname + "】", type: 'error'});
+                                        return;
+                                    }
+                                    //校验分段源文件状态不能有失效的
+                                    checkSegSourSta(evapkid);
+                                    if (groupname != "") {
+                                        MsgAlert({content: "以下分段对应的源文件有失效的状态的文件，不允许提交！【" + groupname + "】", type: 'error'});
+                                        return;
+                                    }
+                                }
+                                checkSegTask(evapkid);
+                                if (groupname != "") {
+                                    MsgAlert({content: "以下适用的分段没有任务，不允许提交！【" + groupname + "】", type: 'error'});
+                                    return;
+                                }
+                                checkSegTaskZx(evapkid);
+                                if (groupname != "") {
+                                    MsgAlert({content: "以下任务没有执行文件，不允许提交！【" + groupname + "】", type: 'error'});
+                                    return;
+                                }
+
+                                var isTlShow = (dataType.indexOf("AD") != -1 || dataType.indexOf("CAD") != -1 || dataType.indexOf("AMOC") != -1) ? true : false;
+                                if (isTlShow) {
+                                    checkTl(evapkid);
+                                    if (groupname != "") {
+                                        MsgAlert({content: groupname, type: 'error'});
+                                        return;
+                                    }
+                                }
+
+
+
+                                //提交前校验适用性分配情况
+                                checkTask(rowData.PKID);
+                                if (groupname != "") {
+                                    MsgAlert({content: "适用性分组" + groupname + "未分配到任务上，不允许提交！", type: 'error'});
+                                    return;
+                                }
+                                checkTaskCfx(applyType, rowData.PKID);
+                                if (groupname != "") {
+                                    MsgAlert({
+                                        content: "重复性类型的任务有适用性未完全分配到顺丰执行文件上，不允许提交！【" + groupname + "】",
+                                        type: 'error'
+                                    });
+                                    return;
+                                }
+                                beforeSubmit(applyType, rowData.PKID);
+                                if (result != null && result != "") {
+                                    MsgAlert({content: "存在有未完全分配适用性的任务，请先处理再提交！" + result, type: 'error'});
+                                    return;
+                                }
+                                //其他类评估单不校验
+                                if (dataType.indexOf('SB') != -1 || dataType.indexOf('AD') != -1 || dataType.indexOf('MOD') != -1) {
+                                    checkTaskYcx(applyType,rowData.PKID);
+                                    if (groupname != "") {
+                                        MsgAlert({content: "针对一次性任务，同一个适用对象同时存在顺丰执行文件和前营运人执行文件中，不允许提交！【" + groupname + "】", type: 'error'});
+                                        return;
+                                    }
+                                }
+                                //校验上营运人执行文件适用性不允许为空
+                                checkTaskOp(applyType,rowData.PKID);
+                                if (groupname != "") {
+                                    MsgAlert({content: "前营运人执行文件中，有适用性为空的数据，不允许提交！【" + groupname + "】", type: 'error'});
+                                    return;
+                                }
+                                checkGz(rowData.PKID);
+                                if (groupname != "") {
+                                    MsgAlert({content: "针对SB/MOD的改装类任务对应的执行文件‘主改装’属性不能为空！【" + groupname + "】", type: 'error'});
+                                    return;
+                                }
+                            }
+                            checkzz(evapkid, applyType, applyModel, ata2);
+                            var tips = "";
+                            if (eflag != "ALL") {
+                                if (sflag == "NO") {
+                                    tips = "当前用户没有该评估单的资质，请提交给有资质的用户！";
+                                } else if (sflag == "PART") {
+                                    tips = "当前用户资质不全，请提交给其他有资质的用户进行联合评估！";
+                                }
+                                if (sflag == "NO" || sflag == "PART") {
+                                    $.messager.confirm('', tips, function (r) {
+                                        if (r) {
+                                            ShowWindowIframe({
+                                                width: 550,
+                                                height: 250,
+                                                title: "联合评估",
+                                                param: {
+                                                    accId: rowData.EVA_MAN_ID,
+                                                    pkid: rowData.PKID,
+                                                    cflag: "commit",
+                                                    fluflag: "list",
+                                                    accountId: accountId,
+                                                    eflag: eflag,
+                                                    sflag: sflag
+                                                },
+                                                url: '/views/em/emfileeval/emfileeva_filetrans.shtml'
+                                            });
+                                        }
+                                    });
+                                }
+                            }
+
+                            isCreateSvrApp(evapkid);
+
+                            var ret = isVerifyEeBaseInfo(evapkid);
+                            if(ret != ""){
+                                MsgAlert({content: ret , type: 'error'});
+                                return false;
+                            }
+
+                            var varRet = isVerifyEeParaInfo(evapkid);
+                            if (varRet != ""){
+                                MsgAlert({content: varRet , type: 'error'});
+                                return false;
+                            }
+
+                            if (sflag == "ALL" || eflag == "ALL") {
+                                datas = $.extend({}, {}, {FunctionCode: 'TD_EMFILEEVAL_STATUS', pkid: rowData.PKID});
+                                InitFuncCodeRequest_({
+                                    data: datas,
+                                    successCallBack: function (jdata) {
+                                        if (jdata.data != null) {
+                                            common_add_edit_({
+                                                identity: '',
+                                                isEdit: '',
+                                                width: 520,
+                                                height: 300,
+                                                title: $.i18n.t('选择处理人'),
+                                                param: {
+                                                    roleId: '',
+                                                    otherParam: rowData.PKID,
+                                                    FunctionCode_: 'TD_EMFILEEVAL_SUMBIT',
+                                                    successCallback: reload_,
+                                                    flowKey:"emFileEvaluateFlow"
+                                                },
+                                                url: "/views/em/emfileeval/emfileeva_flow_select.shtml"
+                                            });
+                                        } else {
+                                            MsgAlert({content: "该数据已被提交过了。", type: 'error'});
+                                        }
+                                    }
+                                });
+                            }
+
+                        }
+                    },
+                    {
+                        i18nText: "PDF预览", auth: "EE_LIST_PRINT",
+                        onclick: function () {
+                            var rowData = $("#dg").datagrid("getSelected");
+                            if (!rowData.PKID) {
+                                MsgAlert({content: "请选择数据！", type: 'error'});
+                                return;
+                            }
+                            var data = $.extend(toCamelCase(rowData), {FunctionCode: 'EM_FILE_EVA_PRINT'});
+                            ajaxLoading();
+                            InitFuncCodeRequest_({
+                                data: data, successCallBack: function (jdata) {
+                                    ajaxLoadEnd();
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        if (jdata.data.length > 0) {
+                                            var url = jdata.data;
+                                            eePreview(url);
+                                        }
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    },
+                    {
+                        i18nText: "流程退回", auth: "",//EE_LIST_TURN_ACTI
+                        onclick: function () {
+                            var row = $('#dg').datagrid('getSelected');
+                            var evapkid = row.PKID;
+                            if (row.EVA_MAN_ID != accountId && row.WRITE_MAN_ID != accountId) {
+                                MsgAlert({content: "您不是此条记录的OWNER或者处理人，不允许驳回！", type: 'error'});
+                                return;
+                            }
+                            //初始转发只能对状态为评估中且未有转发或转发已经转回的记录进行此操作
+                            if ('PGZ' == row.STATUS || 'ISSUED' == row.STATUS || 'ARCHIVE' == row.STATUS) {
+                                MsgAlert({content: '只有流程中状态的数据才能退回！', type: 'error'});
+                                return;
+                            }
+                            turnEvalAct(row);
+                        }
+                    },
+                ],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                    openDetai("view", value);
+                },
+                validAuth: function (row, items) {
+                    if (row.STATUS != "ISSUED") {
+                        items['再评估'].enable = false;
+                    }
+                    if (row.STATUS != "PGZ") {
+                        items['评估'].enable = false;
+                        items['转发'].enable = false;
+                        items['提交'].enable = false;
+                        items['驳回'].enable = false;
+                    }
+
+                    return items;
+                }
+            }
+        );
+    }
+
+
+    function eePreview(url) {
+        var title_ = $.i18n.t('工程文件评估预览');
+        ShowWindowIframe({
+            width: "850",
+            height: "650",
+            title: title_,
+            param: {url: url},
+            url: "/views/em/emfileeval/emfileeva_view_pdf.shtml"
+        });
+    }
+
+    function checkzz(evapkid, applyType, applyModel, ata2) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                evapkid: evapkid, applyType: applyType,
+                applyModel: applyModel, ata2: ata2, FunctionCode: "EM_FILE_CHECK_ZZ"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        sflag = jdata.data.sflag;
+                        eflag = jdata.data.eflag;
+                    }
+                } else {
+                    MsgAlert({content: '校验资质失败，请联系管理员！', type: 'error'});
+                }
+            }
+        });
+    }
+
+    /**
+     *  是否在老龄生成服务申请
+     *
+     *  @author 01377736 Tom
+     *  @date 2019-10-30 10:30
+     *
+     */
+    function isCreateSvrApp(id) {
+        var result = [];
+        $.ajax({
+            type: "get",
+            url: "/ee/emFileEmFileStructuralAttribute/selectEmFileStructuralAttributeByEvaId/?evaId="+id,
+            contentType: "application/json;charset=utf-8",
+            async:false,
+            success: function (obj) {
+                result = obj.data;
+            },
+            error: function (resultObj) {
+                alert("结构属性信息查询失败！");
+            }
+        });
+
+        if(result.length > 0){
+            var tmpInfo = null;
+            for (var i = 0; i < result.length; i++){
+                tmpInfo = "段落 " + result[i] + ",";
+            }
+            var info = tmpInfo + "结构属性判断为PTF，如需创建服务申请，请前往分段评估界面创建。";
+            confirm(info);
+        }
+    }
+
+    /**
+     *  校验结构信息必填
+     *
+     *  @author 01377736 Tom
+     *  @date 2019-12-10 17:16
+     *
+     */
+    function isVerifyEeBaseInfo(id){
+        var result = "";
+        $.ajax({
+            type: "get",
+            url: "/api/v1/ee/verifyAndDelete/verifyEeStructureBaseInfo/"+id,
+            contentType: "application/json;charset=utf-8",
+            async:false,
+            success: function (obj) {
+                result = obj.data;
+            },
+            error: function (resultObj) {
+                alert(resultObj.msg);
+            }
+        });
+
+        return result;
+    }
+
+    /**
+     *  校验分段措施类别必填
+     *
+     *  @author 01377736 Tom
+     *  @date 2019-12-10 17:16
+     *
+     */
+    function isVerifyEeParaInfo(id){
+        var result = "";
+        $.ajax({
+            type: "get",
+            url: "/api/v1/ee/verifyAndDelete/verifyEeStructureParaInfo/"+id,
+            contentType: "application/json;charset=utf-8",
+            async:false,
+            success: function (obj) {
+                result = obj.data;
+            },
+            error: function (resultObj) {
+                alert(resultObj.msg);
+            }
+        });
+
+        return result;
+    }
+
+    function checkTask(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                evaId: pkid,
+                FunctionCode: 'EM_FILE_CHECK_TASK'
+            }, async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        groupname = jdata.data.GROUPNAME;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkTaskCfx(applyType, pkid) {
+        var funcode = "EM_FILE_CHECK_TASK_CFX";
+        if (applyType == "ENG") {
+            funcode = "EM_FILE_CHECK_TASK_CFX_ENG";
+        }
+        groupname = "";
+        InitFuncCodeRequest_({
+            data: {evaId: pkid, FunctionCode: 'EM_FILE_GET_SEG'}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            if (segArray.length > 0 && segArray[0] != null) {
+                                for (var i = 0; i < segArray.length; i++) {
+                                    InitFuncCodeRequest_({
+                                        data: {segId: segArray[i].PKID, FunctionCode: 'EM_FILE_GET_SEG_TASK_CFX'},
+                                        async: false,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var taskArray = jdata.data;
+                                                    if (Array.isArray(taskArray)) {
+                                                        if (taskArray.length > 0 && taskArray[0] != null) {
+                                                            for (var j = 0; j < taskArray.length; j++) {
+                                                                InitFuncCodeRequest_({
+                                                                    data: {
+                                                                        groupId: taskArray[j].GROUPIDS,
+                                                                        taskId: taskArray[j].PKID,
+                                                                        FunctionCode: funcode
+                                                                    }, async: false, successCallBack: function (jdata) {
+                                                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                                            if (jdata.data != null) {
+                                                                                var objArray = jdata.data;
+                                                                                if (Array.isArray(objArray)) {
+                                                                                    if (objArray.length > 0 && objArray[0] != null) {
+                                                                                        for (var k = 0; k < objArray.length; k++) {
+                                                                                            groupname = groupname + "[" + segArray[i].SEG_SN + "-" + taskArray[j].TASK_NO + ":" + objArray[k].ACNO + "];";
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        } else {
+                                                                            MsgAlert({
+                                                                                content: jdata.msg ? jdata.msg : jdata.data,
+                                                                                type: 'error'
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+
+    function checkTaskYcx(applyType,pkid) {
+        var funcode = "EM_FILE_CHECK_TASK_YCX";
+        if (applyType == "ENG") {
+            funcode = "EM_FILE_CHECK_TASK_YCX_ENG";
+        }
+        groupname = "";
+        InitFuncCodeRequest_({
+            data: {evaId: pkid, FunctionCode: 'EM_FILE_GET_SEG'}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            if (segArray.length > 0 && segArray[0] != null) {
+                                for (var i = 0; i < segArray.length; i++) {
+                                    InitFuncCodeRequest_({
+                                        data: {segId: segArray[i].PKID, FunctionCode: 'EM_FILE_GET_SEG_TASK_YCX'},
+                                        async: false,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var taskArray = jdata.data;
+                                                    if (Array.isArray(taskArray)) {
+                                                        if (taskArray.length > 0 && taskArray[0] != null) {
+                                                            for (var j = 0; j < taskArray.length; j++) {
+                                                                InitFuncCodeRequest_({
+                                                                    data: {
+                                                                        taskId: taskArray[j].PKID,
+                                                                        FunctionCode: funcode
+                                                                    }, async: false, successCallBack: function (jdata) {
+                                                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                                            if (jdata.data != null) {
+                                                                                var objArray = jdata.data.APP;
+                                                                                if(objArray){
+                                                                                    groupname = groupname + "[分段" + segArray[i].SEG_SN + "-任务" + taskArray[j].TASK_NO + "-适用性" + objArray + "];";
+                                                                                }
+                                                                            }
+                                                                        } else {
+                                                                            MsgAlert({
+                                                                                content: jdata.msg ? jdata.msg : jdata.data,
+                                                                                type: 'error'
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function checkTaskOp(applyType,pkid) {
+        var funcode = "EM_FILE_CHECK_TASK_A";
+        var funcode1 = "EM_FILE_CHECK_TASK_OP";
+        if (applyType == "ENG") {
+            funcode = "EM_FILE_CHECK_TASK_E";
+            funcode1 = "EM_FILE_CHECK_TASK_OP_ENG";
+        }
+        groupname = "";
+        InitFuncCodeRequest_({
+            data: {evaId: pkid, FunctionCode: funcode}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            if (segArray.length > 0 && segArray[0] != null) {
+                                for (var i = 0; i < segArray.length; i++) {
+                                    InitFuncCodeRequest_({
+                                        data: {exePkid: segArray[i].PKID, FunctionCode: funcode1},
+                                        async: false,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var cou = jdata.data.COU;
+                                                    if(cou == 0){
+                                                        groupname = groupname + "[" + segArray[i].EXE_NO+" R"+segArray[i].EXE_VER + "];";
+                                                    }
+
+                                                }
+                                            } else {
+                                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkGz(pkid) {
+        var funcode = "EM_FILE_CHECK_TASK_GZ";
+        groupname = "";
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: funcode},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            for (var i = 0; i < segArray.length; i++) {
+                                groupname = groupname + "[" + segArray[i].EXENO+ "];";
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkSegSour(pkid) {
+        groupname = "";
+        InitFuncCodeRequest_({
+            data: {evaId: pkid, FunctionCode: 'EM_FILE_GET_SEG'}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            if (segArray.length > 0 && segArray[0] != null) {
+                                for (var i = 0; i < segArray.length; i++) {
+                                    InitFuncCodeRequest_({
+                                        data: {segId: segArray[i].PKID, FunctionCode: 'EM_FILE_GET_SEG_SFILE'},
+                                        async: false,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var zxArray = jdata.data;
+                                                    if (Array.isArray(zxArray)) {
+                                                        if (zxArray.length > 0 && zxArray[0] != null) {
+
+                                                        } else {
+                                                            groupname = groupname + "[分段 " + segArray[i].SEG_SN + "];";
+                                                        }
+                                                    }
+
+                                                }
+                                            } else {
+                                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkSegSourSta(pkid) {
+        groupname = "";
+        InitFuncCodeRequest_({
+            data: {evaId: pkid, FunctionCode: 'EM_FILE_GET_SEG_FILE_STA'}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            if (segArray.length > 0 && segArray[0] != null) {
+                                for (var i = 0; i < segArray.length; i++) {
+                                    groupname = groupname + "[分段 " + segArray[i].SEG_SN + " 文件："+segArray[i].DATANO+ "];";
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkSegTask(pkid) {
+        groupname = "";
+        InitFuncCodeRequest_({
+            data: {evaId: pkid, FunctionCode: 'EM_FILE_GET_SEG'}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            if (segArray.length > 0 && segArray[0] != null) {
+                                for (var i = 0; i < segArray.length; i++) {
+                                    InitFuncCodeRequest_({
+                                        data: {segId: segArray[i].PKID, FunctionCode: 'EM_FILE_GET_SEG_TASK'},
+                                        async: false,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var zxArray = jdata.data;
+                                                    if (Array.isArray(zxArray)) {
+                                                        if (zxArray.length > 0 && zxArray[0] != null) {
+
+                                                        } else {
+                                                            groupname = groupname + "[分段 " + segArray[i].SEG_SN + "];";
+                                                        }
+                                                    }
+
+                                                }
+                                            } else {
+                                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkSegTaskZx(pkid) {
+        groupname = "";
+        InitFuncCodeRequest_({
+            data: {evaId: pkid, FunctionCode: 'EM_FILE_GET_SEG'}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            if (segArray.length > 0 && segArray[0] != null) {
+                                for (var i = 0; i < segArray.length; i++) {
+                                    InitFuncCodeRequest_({
+                                        data: {segId: segArray[i].PKID, FunctionCode: 'EM_FILE_GET_SEG_TASK'},
+                                        async: false,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var taskArray = jdata.data;
+                                                    if (Array.isArray(taskArray)) {
+                                                        if (taskArray.length > 0 && taskArray[0] != null) {
+                                                            for (var j = 0; j < taskArray.length; j++) {
+                                                                InitFuncCodeRequest_({
+                                                                    data: {
+                                                                        taskId: taskArray[j].PKID,
+                                                                        FunctionCode: 'EM_FILE_GET_SEG_ZX'
+                                                                    },
+                                                                    async: false,
+                                                                    successCallBack: function (jdata) {
+                                                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                                            if (jdata.data != null) {
+                                                                                var zxArray = jdata.data;
+                                                                                if (Array.isArray(zxArray)) {
+                                                                                    if (zxArray.length > 0 && zxArray[0] != null) {
+
+                                                                                    } else {
+                                                                                        groupname = groupname + "[分段 " + segArray[i].SEG_SN + "下的任务 " + taskArray[j].TASK_NO + "];";
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        } else {
+                                                                            MsgAlert({
+                                                                                content: jdata.msg ? jdata.msg : jdata.data,
+                                                                                type: 'error'
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function checkTl(pkid) {
+        groupname = "";
+        InitFuncCodeRequest_({
+            data: {evaId: pkid, FunctionCode: 'EM_FILE_GET_SEG'}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            if (segArray.length > 0 && segArray[0] != null) {
+                                for (var i = 0; i < segArray.length; i++) {
+                                    InitFuncCodeRequest_({
+                                        data: {segId: segArray[i].PKID, FunctionCode: 'EM_FILE_GET_SEG_TASK'},
+                                        async: false,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var taskArray = jdata.data;
+                                                    if (Array.isArray(taskArray)) {
+                                                        if (taskArray.length > 0 && taskArray[0] != null) {
+                                                            for (var j = 0; j < taskArray.length; j++) {
+                                                                var taskNature = taskArray[j].TASK_NATURE;
+                                                                var fcNote = taskArray[j].FC_NOTE;
+                                                                var rcNote = taskArray[j].RC_NOTE;
+                                                                var fc = 0;
+                                                                var rc = 0;
+                                                                InitFuncCodeRequest_({
+                                                                    data: {
+                                                                        taskId: taskArray[j].PKID,
+                                                                        FunctionCode: 'EM_FILE_GET_SEG_TASK_FC'
+                                                                    },
+                                                                    async: false,
+                                                                    successCallBack: function (jdata) {
+                                                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                                            if (jdata.data != null) {
+                                                                                fc = jdata.data.COU;
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                });
+                                                                InitFuncCodeRequest_({
+                                                                    data: {
+                                                                        taskId: taskArray[j].PKID,
+                                                                        FunctionCode: 'EM_FILE_GET_SEG_TASK_RC'
+                                                                    },
+                                                                    async: false,
+                                                                    successCallBack: function (jdata) {
+                                                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                                            if (jdata.data != null) {
+                                                                                rc = jdata.data.COU;
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                });
+
+                                                                if (taskNature == 'YCX') {
+                                                                    //一次性任务（首检不可为空）
+                                                                    if (!fcNote && fc == 0) {
+                                                                        groupname = groupname + "[分段 " + segArray[i].SEG_SN + "下的任务 " + taskArray[j].TASK_NO + "首检不能为空];";
+                                                                    }
+                                                                } else if (taskNature == 'CFX') {
+                                                                    //重复性任务（首检/重检都不可为空）
+                                                                    if (!fcNote && fc == 0) {
+                                                                        groupname = groupname + "[分段 " + segArray[i].SEG_SN + "下的任务 " + taskArray[j].TASK_NO + "首检不能为空];";
+                                                                    }
+                                                                    if (!rcNote && rc == 0) {
+                                                                        groupname = groupname + "[分段 " + segArray[i].SEG_SN + "下的任务 " + taskArray[j].TASK_NO + "重检不能为空];";
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function deleteFile(pkid) {
+        $.messager.confirm('', '是否删除', function (r) {
+            if (r) {
+                MsgAlert({content: "已经发布的外来文件不能删除!", type: "error"});
+                return false;
+            }
+        });
+    }
+
+    //    状态改变时修改代接受人
+    function changeValue(a, b) {
+        if (a != "DJS") {
+            $("#recManName").val("");
+        } else {
+            $("#recManName").val(name)
+        }
+    }
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    //字符串转日期
+    function stringToDate(str) {
+        str = str.substr(0, 10);
+        var arr = str.split('-');
+        var date = new Date(arr[0], arr[1] - 1, arr[2]);
+        return date;
+    }
+
+    //计算当前日期和今天差的天数
+    function diffDays(evaDeadLine) {
+        var evaDate = stringToDate(evaDeadLine);
+        var nowDate = new Date();
+        var year = nowDate.getFullYear();
+        var month = nowDate.getMonth();
+        var day = nowDate.getDate();
+        var now = new Date(year, month, day);
+        var time_diff = evaDate.getTime() - now.getTime();
+        var days = Math.floor(time_diff / (24 * 3600 * 1000));
+        // alert('eva:'+evaDate+',now:'+now+',days:'+days);
+        return days;
+    }
+
+    /**
+     * 校验工作流是否已经存在
+     *
+     **/
+    function validWorkFlow(objKey, objNo) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {objKey: objKey, objNo: objNo, FunctionCode: 'VALID_WORK_FLOW'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        executionId = jdata.data.EXECUTION_ID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return executionId;
+    }
+
+    function openDetai(operation, row) {
+        var mpkid = row.PKID;
+        var title_ = $.i18n.t('工程文件评估页面');
+        ShowWindowIframe({
+            width: "1000",
+            height: "650",
+            param: {
+                operation: operation,
+                pkid: mpkid,
+                applyModel: row.APPLY_MODEL,
+                overdate: row.OVERDATE,
+                dataType: row.DATATYPE,
+                cou: row.COU,
+                ifClaim: row.IF_CLAIM,
+                couzh: row.COUZH
+            },
+            url: "/views/em/emfileeval/emfileeva_add_edit.shtml"
+        });
+    }
+
+    function tranHis(evapkid) {
+        var title_ = $.i18n.t('办理轨迹列表');
+        ShowWindowIframe({
+            width: "790",
+            height: "519",
+            title: title_,
+            param: {evapkid: evapkid},
+            url: "/views/em/emfileeval/emfileeva_tran_list.shtml"
+        });
+    }
+
+    function revsionEva(row) {
+        var revflag = "emFileEvaList";
+        InitFuncCodeRequest_({
+            data: {
+                mpkid:"1",
+                empkid: row.PKID,
+                revflag: revflag,
+                FunctionCode: 'EM_FILE_TASK_REVISION'
+            }, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    reload_();
+                    MsgAlert({content: '改版评估单成功。'});
+                } else {
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : jdata.data,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function beforeSubmit(applyType, pkid) {
+        var funcode = "EM_FILE_GET_SEG_TASK_OBJ";
+        if (applyType == "ENG") {
+            funcode = "EM_FILE_GET_SEG_TASK_OBJ_ENG";
+        }
+        result = "";
+        InitFuncCodeRequest_({
+            data: {evaId: pkid, FunctionCode: 'EM_FILE_GET_SEG'}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        var segArray = jdata.data;
+                        if (Array.isArray(segArray)) {
+                            if (segArray.length > 0 && segArray[0] != null) {
+                                for (var i = 0; i < segArray.length; i++) {
+                                    InitFuncCodeRequest_({
+                                        data: {segId: segArray[i].PKID, FunctionCode: 'EM_FILE_GET_SEG_TASK'},
+                                        async: false,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var taskArray = jdata.data;
+                                                    if (Array.isArray(taskArray)) {
+                                                        if (taskArray.length > 0 && taskArray[0] != null) {
+                                                            for (var j = 0; j < taskArray.length; j++) {
+                                                                InitFuncCodeRequest_({
+                                                                    data: {
+                                                                        taskId: taskArray[j].PKID,
+                                                                        FunctionCode: funcode
+                                                                    }, async: false, successCallBack: function (jdata) {
+                                                                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                                            if (jdata.data != null) {
+                                                                                var objArray = jdata.data;
+                                                                                if (Array.isArray(objArray)) {
+                                                                                    if (objArray.length > 0 && objArray[0] != null) {
+                                                                                        for (var k = 0; k < objArray.length; k++) {
+                                                                                            result = result + "[" + segArray[i].SEG_SN + "-" + taskArray[j].TASK_NO + ":" + objArray[k].ACNO + "];";
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        } else {
+                                                                            MsgAlert({
+                                                                                content: jdata.msg ? jdata.msg : jdata.data,
+                                                                                type: 'error'
+                                                                            });
+                                                                        }
+                                                                    }
+                                                                });
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function turnEval(row) {
+        var evaManId = row.EVA_MAN_ID;
+        var pkid = row.PKID;
+        var cflag = "turn";
+        ShowWindowIframe({
+            width: 550,
+            height: 250,
+            title: "驳回",
+            param: {accId: evaManId, pkid: pkid, cflag: cflag,fluflag:'list', accountId: accountId},
+            url: '/views/em/emfileeval/emfileeva_filetrans.shtml'
+        });
+    }
+
+
+    function reloadTo2() {
+        reload_();
+    }
+
+    function turnEvalAct(row) {
+        var pkid = row.PKID;
+        var objNo = pkid;
+        var objKey = "EM_FILE_EVALUATE";
+        var taskId = "";
+        var procInstId = "";
+        $.messager.confirm('提示?', "是否确认退回?", function (r) {
+            if (r) {
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: {
+                        FunctionCode: 'WS_FLOW_EXECUTION_QUERY',
+                        objNo: objNo,
+                        objKey: objKey
+                    },
+                    async: false,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            taskId = jdata.data["TASK_ID"];
+                            procInstId = jdata.data["PROC_INST_ID_"];
+                            InitFuncCodeRequest_({
+                                data: {pkid: pkid, procInstId: procInstId, FunctionCode: 'EM_FILE_TURN_ACT'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MaskUtil.unmask();
+                                        reload_();
+                                        MsgAlert({content: '操作成功。'});
+                                    } else {
+                                        MaskUtil.unmask();
+                                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

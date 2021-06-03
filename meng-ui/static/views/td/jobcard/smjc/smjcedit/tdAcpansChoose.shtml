@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>选择接近盖板值</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:120px;" align="right" id="accessNumberTh">Access Number：</th>
+                    <td style="padding: 3px;width: 100px;" id="accessNumberTd">
+                        <input class="easyui-textbox" id="accessNumber" name="accessNumber" data-options=""
+                               style="width: 100px"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">Description：</th>
+                    <td style="padding: 3px;width: 430px;">
+                        <input class="easyui-textbox" id="desc" name="desc" data-options="" style="width: 430px"/>
+                    </td>
+                    <td align="right" style="padding: 3px;">
+                        <input class="btn btn-primary" type="button" onclick="onSearch_();"
+                               style="float: left;margin-left: 8px;" value="查询"/>
+                        <input class="btn btn-primary" type="button" onclick="add();" value="确定"
+                               style="float: left;margin-left: 8px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var isEdit_;
+    var param = {};
+    var title;
+    var fleet;
+    var companyCode;
+    var acpanIds;
+    function i18nCallBack() {
+        param = getParentParam_();
+        title = param.title;
+        fleet = param.fleet;
+        companyCode = param.companyCode;
+        acpanIds = param.acpanIds;
+        if ("B737" == fleet) {
+            $("#accessNumberTh").hide();
+            $("#accessNumberTd").hide();
+        }
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: false,
+            queryParams: {fleet: fleet, companyCode: companyCode},
+            columns: {
+                param: {FunctionCode: 'CHOOSE_ZONES_ACPANS_DATA'},
+                alter: {}
+            },
+            onLoadSuccess: function (jdata) {
+                if (jdata) {
+                    var acpanIdArr = acpanIds.split(',');
+                    acpanIdArr = acpanIdArr.map(Number);//将字符串数组转为数值数组
+                    $.each(jdata.rows, function (index, row) {
+                        if (acpanIdArr.indexOf(row.PKID) > -1) {
+                            $("#dg").datagrid('checkRow', index);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    //添加
+    function add() {
+        var acpans = "";
+        var acpanIds = "";
+        var rowData = $('#dg').datagrid('getChecked');
+        if (rowData.length == 0) {
+            MsgAlert({content: '请至少选择一行数据', type: 'error'});
+            return false;
+        }
+        $.each(rowData, function (k, it) {
+            if (it.DOOR_NUMBER != undefined) {
+                acpans += acpans == "" ? it.DOOR_NUMBER : ',' + it.DOOR_NUMBER;
+                acpanIds += acpanIds == "" ? it.PKID : ',' + it.PKID;
+            }
+        });
+        param.OWindow.setAcpansFromMd(acpans, acpanIds);
+        CloseWindowIframe();
+    }
+
+</script>
+</html>

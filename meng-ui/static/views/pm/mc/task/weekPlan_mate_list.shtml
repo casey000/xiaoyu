@@ -1,0 +1,73 @@
+    <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+    <html>
+    <head id="i18n_" module="tm_hrarchive">
+        <!--#include virtual="/views/items/resource_.shtml"-->
+        <title>航材工具列表</title>
+        <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    </head>
+    <body class="ibody">
+    <table id="dg"></table>
+    <script type="text/javascript">
+        var param;
+        var identity = 'dg';
+        var PAGE_DATA = {};
+        var selectRow;
+        var taskNumber = '';
+        var cardId = '';
+        var cardNo = '';
+        var type = '';
+        function i18nCallBack() {
+            param = getParentParam_();
+            if (param.taskNumber) {
+                taskNumber = param.taskNumber;
+            }
+            if(param.cardId){
+                cardId = param.cardId;
+            }
+            if(param.cardNo){
+                cardNo = param.cardNo;
+            }
+            if(param.type){
+                type = param.type;
+            }
+            InitFuncCodeRequest_({
+                data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "PM_MC_POSITION"},
+                successCallBack: function (jdata) {
+                    PAGE_DATA['position'] = DomainCodeToMap_(jdata.data.PM_MC_POSITION);
+                    $('#position').combobox({
+                        panelHeight: '160px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.PM_MC_POSITION
+                    });
+                    InitDataGrid();
+                }
+            });
+        }
+        function InitDataGrid() {
+            $("#dg").GatewayDataGrid({
+                identity: identity,
+                path: "/hanaMaterial/aviationMaterialsMrp/getMrpByConditions",
+                queryParams: {tasknum: taskNumber, jcid: cardId, metype: type, jcno: cardNo},
+                columns: {
+                    param: {FunctionCode: 'PM_MC_TASK_MATE_LIST'},
+                    alter: {
+                        POSITION : { formatter: function(value,row,index){
+                                return PAGE_DATA['position'][row.POSITION];
+                            }}
+                    }
+                },
+                onLoadSuccess: function (data) {
+                    formatterUpperDataGrid(data,"dg")
+                }
+            });
+        }
+
+        /** 刷新列表数据 */
+        function reload_() {
+            $("#dg").datagrid("reload");
+        }
+
+    </script>
+    </body>
+    </html>

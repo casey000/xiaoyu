@@ -1,0 +1,446 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script src="/js/workflow/activiti_workflow.js" type="text/javascript"></script>
+    <script src="/js/workflow/formtemplet.js" type="text/javascript"></script>
+    <title></title>
+    <script type="text/javascript">
+        /**
+         *
+         * @param resource  业务数据
+         * @param execution 流程实例数据
+         * @param node 节点配置数据
+         * @constructor
+         */
+        var taskPropId;
+        var url;
+        var oaUrl;
+        var param = {};
+        var urlFormSap = [];
+
+        function InitLoadResource(resource, execution, node) {
+            param = getParentParam_();
+            ParseFormField_(resource, null, Constant.CAMEL_CASE);
+            taskPropId = node.taskPropId;
+            var DOC_NAME = resource.DOC_NAME;
+            var DOC_URL = resource.DOC_URL;
+            url = DOC_URL + DOC_NAME;
+            console.log(url);
+            if (!DOC_NAME) {
+                url = "";
+                MsgAlert({content: "业务信息PDF文件名为空", type: 'error'});
+            }
+            if (DOC_URL == '/') {
+                url = "";
+                MsgAlert({content: "业务信息PDF文件请求路径为空", type: 'error'});
+            }
+            if (url != '') {
+                $('#iframe0').attr('src', '/views/YWorkFlow/YWorkFlowPdf.shtml');
+            }
+            oaUrl = "/views/YWorkFlow/YWorkFlowOa.shtml?BUSINESS_KEY_=" + execution.businessKey;
+            $("#formUrl").val(oaUrl);
+            InitDataForm();
+
+            //选择审批常用语
+            $("#cyy").combobox({
+                onChange: function (value) {
+                    $("#notes").textbox("setValue", value);
+                }
+            });
+            $("#adopt").combobox({
+                onChange: function (value) {
+                    if (value == 'N') {
+                        document.getElementById("div_tdl").style.display = "";
+                        document.getElementById("div_tdr").style.display = "";
+                        $("#notes").textbox("setValue", "退回修改");
+                    } else {
+                        document.getElementById("div_tdl").style.display = "none";
+                        document.getElementById("div_tdr").style.display = "none";
+                        $("#notes").textbox("setValue", "");
+                    }
+                }
+            });
+        }
+
+        function initDataGrid(num, entity_type) {
+            var pageSize = Math.floor(($("#mlayout").height() - 40) / 30);
+            $("#r_dg").MyDataGrid({
+                identity: "dg3",
+                sortable: true,
+                singleSelect: true,
+                queryParams: {OBJNR: num, ENTITY_TYPE: entity_type},
+                pagination: false,
+                pageSize: pageSize, pageList: [pageSize],
+                resize: function () {
+                    return tabs_standard_resize($('#lay_right'), 0, 0, -45);
+                },
+                columns: {
+                    param: {FunctionCode: 'SAP_ZFTP_GET'}
+                },
+                contextMenus: [
+                    {
+                        id: "m-approvalProcess", i18nText: "查看附件", auth: "",
+                        onclick: function () {
+                            var row = $('#r_dg').datagrid('getSelected');
+                            if (!row) {
+                                return;
+                            }
+                            if (!row.DRE_URL || row.DRE_URL == '/') {
+                                MsgAlert({content: "文件请求路径为空", type: 'error'});
+                                return;
+                            }
+                            /*doPost(Constant.BASE_URL + "sysFtpDownFromSap", {
+                                myurl: row.DRE_URL,
+                                filename:row.FILENAME,
+                                down: 'Y'
+                            });*/
+
+                            /*var curPath=window.document.location.href;
+                            var url;
+                            if(curPath.indexOf('172.18.81.91') >= 0 || curPath.indexOf('172.18.81.93') >= 0 || curPath.indexOf('172.18.81.94') >= 0 || curPath.indexOf('cscsupplier.sichuanair.com') >= 0){//生产
+                                url = 'http://172.18.81.83:8089' + row.DRE_URL;
+                            }else{//测试、开发环境
+                                url = 'http://172.18.81.201:8089' + row.DRE_URL;
+                            }
+                            if(url.indexOf('.pdf') >= 0 || url.indexOf('.PDF') >= 0){
+                                window.open(url);
+                            }else{
+                                $('#iframe1').attr('src', url);
+                            }*/
+
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: '',
+                                    myurl: row.DRE_URL,
+                                    filename: row.FILENAME_YS,
+                                    FunctionCode: 'SYS_HTTP_FTP_DOWN'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        doPost(Constant.API_URL + "SYS_HTTP_FTP_DOWN", {
+                                            pkid: '',
+                                            myurl: row.DRE_URL,
+                                            filename: row.FILENAME_YS,
+                                            down: 'Y'
+                                        });
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                ]
+            })
+
+        }
+
+        function initDataGrid2() {
+            $("#r_dg").datagrid({
+                pagination: true,
+                showHeader: true,
+                url: Constant.API_URL + "SAP_ZFTP_GET",
+                queryParams: {OBJNR: '5105600827'},
+                resize: function () {
+                    return tabs_standard_resize($('#mlayout'), 0, 0, -45);
+                },
+                columns: [[
+                    {field: 'FILENAME_YS', title: '文件名', width: 200}
+                ]],
+                onDblClickRow: function (info, index, row) {
+                    InitFuncCodeRequest_({
+                        data: {
+                            myurl: row.DRE_URL,
+                            filename: row.FILENAME_YS,
+                            url: Constant.BASE_URL + "sysFtpDownFromSap"
+                        },
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                doPost(Constant.BASE_URL + "sysFtpDownFromSap", {
+                                    myurl: row.DRE_URL,
+                                    filename: row.FILENAME_YS,
+                                    down: 'Y'
+                                });
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        //查询办理人及启动人信息
+        function InitDataForm() {
+            InitFuncCodeRequest_({
+                data: {taskId: param.TASK_ID, FunctionCode: "Y_WORKFLOW_GET_DATA"}, successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                        initDataGrid(jdata.data.ENTITY_NUM, jdata.data.ENTITY_TYPE)
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+        }
+
+        function downFileFromSap_(num) {
+            InitFuncCodeRequest_({
+                data: {
+                    myurl: urlFormSap[num].DRE_URL,
+                    filename: urlFormSap[num].FILENAME_YS,
+                    url: Constant.BASE_URL + "sysFtpDownFromSap"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        doPost(Constant.BASE_URL + "sysFtpDownFromSap", {
+                            myurl: urlFormSap[num].DRE_URL,
+                            filename: urlFormSap[num].FILENAME_YS,
+                            down: 'Y'
+                        });
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+
+        function getZFTPDataFromSAP() {
+
+            InitSuspend_('#getFile', {
+                'onclick': function (thiz, event, callback) {
+                    InitFuncCodeRequest_({
+                        data: {
+                            OBJNR: '5105600827',
+                            FunctionCode: 'SAP_ZFTP_GET'
+                        },
+                        successCallBack: function (jdata) {
+                            urlFormSap = jdata.data;
+                            var html = "";
+                            for (var i = 0; i < jdata.data.length; i++) {
+                                html += '<li><a href="javascript:void(0)" onclick="downFileFromSap_(' + i + ')">' + jdata.data[i].FILENAME_YS + '</a></li>';
+                            }
+                            callback(html);
+                        }
+                    });
+                },
+                top: 30
+            });
+        }
+
+        function getQueryVariable(variable) {
+            var query = window.location.search.substring(1);
+            var vars = query.split("&");
+            for (var i = 0; i < vars.length; i++) {
+                var pair = vars[i].split("=");
+                if (pair[0] == variable) {
+                    return pair[1];
+                }
+            }
+            return (false);
+        }
+
+        //同意的时候，默认意见为“同意”，不同意的时候，意见必填
+        function getAdvice() {
+            var adopt = $("#adopt").textbox("getValue");
+            var notes = $("#notes").textbox("getValue").trim();
+            if (adopt == "Y") {
+                if (!notes)
+                    $("#notes").textbox({value: "同意"});
+            } else {
+                if (!notes) {
+                    MsgAlert({content: "请填写处理意见", type: 'error'});
+                    return;
+                }
+            }
+            doSubmit()
+        }
+
+    </script>
+    <script id="tempCombobox" type="text/html">
+        <tr>
+            <th class="tdl">{{d.titleName }} ：</th>
+            <td class="tdr">
+                <select name="{{d.fieldName}}" class="easyui-combobox"
+                        data-options="required:true, editable: false" panelHeight="120" style="width:180px">
+                    {{#
+                    for(var i = 0; i < d.options.length; i++){
+                    }}
+                    <option value="{{d.options[i]['value']}}">{{d.options[i]['text']}}</option>
+                    {{# } }}
+                </select>
+            </td>
+        </tr>
+    </script>
+    <script id="tempTextbox" type="text/html">
+        <tr>
+            <th class="tdl">{{d.titleName }} ：</th>
+            <td class="tdr">
+                <input name="{{d.fieldName}}" class="easyui-textbox"
+                       data-options="required:true, editable: true" style="width:180px"/>
+            </td>
+        </tr>
+    </script>
+</head>
+<body class="ibody">
+
+<div id="tabs" style="width: 100%; height: 100%;">
+    <div id="tab01" title="正文信息" style="">
+        <div class="ibox float-e-margins">
+            <div class="ibox-content">
+                <form class="form-horizontal m-t" id="mform" style="margin-top: 0px;">
+                    <!-- 业务数据展示 start-->
+                    <input type="hidden" name="key" id="key"/>
+                    <input type="hidden" name="entityNum" id="entityNum"/>
+                    <input type="hidden" name="money" id="money"/>
+                    <input type="hidden" name="entityType" id="entityType"/>
+                    <input type="hidden" name="stepName" id="stepName"/>
+                    <input type="hidden" name="no" id="no"/>
+                    <input type="hidden" name="name" id="name"/>
+                    <input type="hidden" name="phone" id="phone"/>
+                    <input type="hidden" name="dept" id="dept"/>
+                    <input type="hidden" name="formUrl" id="formUrl"/>
+                    <input type="hidden" name="creatPhone" id="creatPhone"/>
+                    <input type="hidden" name="creatTime" id="creatTime"/>
+                    <input type="hidden" name="creatNo" id="creatNo"/>
+                    <input type="hidden" name="creatName" id="creatName"/>
+                    <input type="hidden" name="creatDept" id="creatDept"/>
+                    <input type="hidden" name="projectName" id="projectName"/>
+                    <input type="hidden" name="instanceTitle" id="instanceTitle"/>
+                    <!--<input type="hidden" name="commitId" id="commitId"/>-->
+                    <input name="" id="taskId" type="hidden"/>
+                    <table class="table table-bordered table-info">
+                        <tbody id="custom_options"></tbody>
+                    </table>
+                    <div style="width: 100%; height: 500px;">
+                        <iframe class="J_iframe" id="iframe0" name="iframe0" width="100%" height="580px" src="#"
+                                frameborder="0"></iframe>
+                    </div>
+                    <div style="width: 100%; height: 500px;display: none">
+                        <iframe class="J_iframe" id="iframe1" name="iframe1" width="0%" height="0px" src="#"
+                                frameborder="0"></iframe>
+                    </div>
+                    <div id="mlayout" class="easyui-layout" style="height: 22%;">
+                        <div id="lay_left" data-options="region:'west',split:false" style="width: 60%;">
+                            <div>
+                                <tr>
+                                    <td>
+                                        <table class="table table-bordered table-info" id="mtable" style="width: 100%">
+                                            <tr>
+                                                <th class="tdl"> 是否通过：</th>
+                                                <td class="tdr">
+                                                    <select id="adopt" class="easyui-combobox easyui-validatebox"
+                                                            name="adopt" editable="false"
+                                                            data-options=" " style="width:80px;">
+                                                        <option value="Y">通过</option>
+                                                        <option value="N">不通过</option>
+                                                        <!--<creatTime value="N">不通过</creatTime>-->
+                                                    </select>
+                                                </td>
+                                                <th class="tdl" id="div_tdl" style="display: none;"> 审批不通过常用语：</th>
+                                                <td class="tdr" id="div_tdr" style="display: none;">
+                                                    <select class="easyui-combobox easyui-validatebox" id="cyy"
+                                                            name="cyy"
+                                                            data-options=" " style="width: 120px;">
+                                                        <option value="退回修改">退回修改</option>
+                                                        <option value="退回添加附件">退回添加附件</option>
+                                                    </select>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th class="tdl"> 处理意见：</th>
+                                                <td class="tdr" colspan="3">
+                                                    <input id="notes" class="easyui-textbox easyui-validatebox"
+                                                           name="notes"
+                                                           data-options="multiline:true, validType:['maxLength[200]'] "
+                                                           style="height:45px; width: 100%;"/>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="6" align="center">
+                                                    <!--<input id="getFile"   class="btn" disabled="disabled" type="button" onclick="" value="查看附件"/>-->
+                                                    <!--<input id="getFile"   class="btn"  type="button" onclick="javascript: getZFTPDataFromSAP();" value="查看附件"/>-->
+                                                    <input id="canSubmit" class="btn" disabled="disabled" type="button"
+                                                           onclick="getAdvice();" value="提交"/>
+                                                    <!--<input id="canTrunTo" class="btn" disabled="disabled" type="button" onclick="javascript: doTurnTo();" value="转办"/>-->
+                                                    <!--<input id="canReturn" class="btn" disabled="disabled" type="button" onclick="javascript: doReturn();"value="退回"/>-->
+                                                    <!--<input id="canTerminate" class="btn" disabled="disabled" type="button" onclick="javascript: ;"value="终止"/>-->
+                                                    <!--<input id="canHang Up" class="btn" disabled="disabled" type="button" onclick="javascript: ;"value="挂起"/>-->
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </div>
+                        </div>
+                        <div id="lay_right" data-options="region:'center'" style="width: 40%;">
+                            <td>
+                                <table id="r_dg"></table>
+                            </td>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div title="流程节点" style="">
+        <!--<table class="table table-bordered table-info" id="processInfo">
+            <tr>
+                <th class="tdl" style="width: 145px;">流程业务Key ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="businessKey"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程业务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="executionName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程创建时间 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="createTime"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程创建人 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="userName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="nodeName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">是否会签任务 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="isJoint"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr style="display: none;">
+                <th class="tdl" style="width: 145px;">流程任务-配置 ：</th>
+                <td class="tdr" colspan="3" style="vertical-align: middle;">
+                    <input type="checkbox" name="canReturn" value="" disabled/> 可退回
+                    <input type="checkbox" name="canTrunTo" value="" disabled/> 可转办
+                    <input type="checkbox" name="canTerminate" value="" disabled/> 可终止
+                    <input type="checkbox" name="canHangUp" value="" disabled/> 可挂起
+                </td>
+            </tr>
+        </table>-->
+        <div id="workflow" style="overflow-x: scroll;"></div>
+    </div>
+    <div id="tab02" title="批办过程" style="">
+        <table id="historyDg"></table>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js">
+
+
+</script>
+</body>
+</html>

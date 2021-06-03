@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">件号清单</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:50px;" align="right">件号：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-textbox" id="partno" name="partno" style="width:90px;"/>
+                    </td>
+                    <th class="th" align="right">描述：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-textbox" id="description" name="description" style="width:90px;"/>
+                    </td>
+                    <th class="th" align="right">机型：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-combobox" id="appcab" name="appcab" style="width:90px;"/>
+                    </td>
+                    <td align="right">
+                        <input id="searchBtn" class="btn btn-primary" type="button" onclick="searchData()" value="查询"
+                               style="width: 50px;margin:10px;"/>
+                        <input id="clearBtn" class="btn btn-primary" type="button" onclick="doClear_()" value="重置"
+                               style="width: 50px;margin:10px;"/>
+                        <input id="saveBtn" class="btn btn-primary" type="button" onclick="ok()" value="确定"
+                               style="width: 50px;margin:10px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var mtType;
+    var itemtype;
+
+    function i18nCallBack() {
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        mtType = param.mtType;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,IF_UDRO,IF_UDCO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['ifUdro'] = DomainCodeToMap_(jdata.data["IF_UDRO"]);
+                    PAGE_DATA['ifUdco'] = DomainCodeToMap_(jdata.data["IF_UDCO"]);
+                    //机队
+                    $('#appcab').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+
+    function InitDataGrid() {
+        if(mtType == 'MA'){
+            itemtype = 'NORMAL';
+        }else if(mtType == 'TEORDEVICE'){
+            itemtype = 'TOOL';
+        }else{
+            itemtype = '';
+        }
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {itemtype:itemtype},
+            pageSize: 10,
+            columns: {
+                param: {FunctionCode: "EM_EO_MT_PN_LIST"},
+                alter: {
+                    ITEMTYPE: {
+                        formatter: function (value) {
+                            if(value == 'NORMAL'){
+                                value = '航材';
+                            }else if(value == 'TOOL'){
+                                value = '工具';
+                            }
+                            return value;
+                        }
+                    },
+                    UDRO: {
+                        formatter: function (value) {
+                            return PAGE_DATA['ifUdro'][value];
+                        }
+                    },
+                    UDCO: {
+                        formatter: function (value) {
+                            return PAGE_DATA['ifUdco'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function ok() {
+        var rowData = getDG('dg').datagrid('getChecked');
+        var row;
+        if (rowData.length > 0) {
+            //如果已有片段，并且已选中，打开选中的片段
+            if (rowData.length != 1) {
+                MsgAlert({content: "只能选择一条数据!", type: 'error'});
+                return;
+            } else {
+                //选中一条数据
+                row = rowData[0];
+            }
+        } else {
+            MsgAlert({content: "请选择一条数据进行编辑!", type: 'error'});
+        }
+        param.OWindow.setPn(row.PARTNO, row.DESCRIPTION, row.ALTITEMNUM, row.ISSUEUNIT);
+        CloseWindowIframe();
+    }
+
+
+</script>
+</body>
+</html>

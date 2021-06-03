@@ -1,0 +1,436 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">发动机资料接收</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+                <tr>
+                    <th class="th" style="width:100px;" align="right">手册标题：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-textbox" id="dataTitle" name="dataTitle" style="width:100px;"/>
+                    </td>
+
+                    <th class="th" style="width:100px;" align="right">手册类型：</th>
+                    <td style="width:100px; padding: 3px; ">
+                        <input class="easyui-combobox" id="dataType" name="dataType" style="width:100px;"/>
+                    </td>
+
+                    <th class="th" style="width:100px;" align="right">手册状态：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="dataStatus" name="dataStatus" style="width:100px;"/>
+                    </td>
+
+                    <th class="th" style="width:100px;" align="right">手册来源：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="dataFrom" name="dataFrom" style="width:100px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:100px;" align="right">日期从：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="startDate" name="startDate" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">到：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="endDate" name="endDate" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">手册编号：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-textbox" id="dataNo" name="dataNo" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">适用性：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-textbox" id="applyModel" name="applyModel" style="width:100px;"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                    </td>
+
+                </tr>
+
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var companyCode;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        //数据字典初始化
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_REC_PRIVIDOR,DM_DATA_TYPE_ENG,YESORNO,DM_DATA_REC_STATUS,DM_DATA_LEVEL,DM_REC_VER_TYPE",//资料类型，是否，飞机资料注册状态
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['dataType'] = DomainCodeToMap_(jdata.data["DM_DATA_TYPE_ENG"]);
+                    PAGE_DATA['dataStatus'] = DomainCodeToMap_(jdata.data["DM_DATA_REC_STATUS"]);
+                    PAGE_DATA['dataFrom'] = DomainCodeToMap_(jdata.data["DM_REC_PRIVIDOR"]);
+                    PAGE_DATA['dataLevel'] = DomainCodeToMap_(jdata.data["DM_DATA_LEVEL"]);
+                    PAGE_DATA['ifUpload'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA['verType'] = DomainCodeToMap_(jdata.data["DM_REC_VER_TYPE"]);
+
+
+                    //资料类型
+                    $('#dataType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_DATA_TYPE_ENG,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //资料来源
+                    $('#dataFrom').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_REC_PRIVIDOR,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //状态
+                    $("#dataStatus").combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_DATA_REC_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams.companyCode = companyCode;
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: queryParams,
+            path: "/online-manual/engineManualReceive/listByPage",
+            pagination: true,
+            //pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'DM_DATA_REC_ENG_LIST'},
+                alter: {
+                    TEST_UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.TEST_UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    DATA_STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dataStatus'][value];
+                        }
+                    },
+                    IF_THIRD: {
+                        formatter: function (value) {
+                            return PAGE_DATA['ifThird'][value];
+                        }
+                    },
+                    DATA_LEVEL: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dataLevel'][value];
+                        }
+                    },
+                    IF_UPLOAD: {
+                        formatter: function (value) {
+                            return PAGE_DATA['ifUpload'][value];
+                        }
+                    },
+                    VER_TYPE: {
+                        formatter: function(value) {
+                            return PAGE_DATA['verType'][value];
+                        }
+                    },
+                    VER_DATE: {
+                        type: 'date'
+                    },
+                    RECEIVE_DATE: {
+                        type: 'date'
+                    },
+                    CREATE_DATE: {
+                        type: 'datetime'
+                    },
+                    MODIFY_DATE: {
+                        type: 'datetime'
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                changeTargetDateFormat(data,"dealwithDate");
+                formatterUpperDataGrid(data,"dg");
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "dmDataRecEngMag",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    //当资料状态为已发布时，不允许删除附件
+                                    if (row.DATA_STATUS == "04" || row.DATA_STATUS == "05") {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                    } else {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                    }
+
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            validAuth: function(row, items){
+                // if( row.DATA_STATUS == '04'){
+                //     items['编辑'].enable = false;
+                // }
+                if(row.DATA_STATUS != '00'){
+                    items['接收'].enable = false;
+                }
+                if(row.DATA_STATUS != '02') {
+                    items['上传附件'].enable = false;
+                }
+                if(row.DATA_STATUS != '03'){
+                    items['发布'].enable = false;
+                }
+                /*if(row.DATA_STATUS != '04' && row.DATA_STATUS != '05' && row.DATA_STATUS != '06' && row.DATA_STATUS != '07'){
+                    items['取消'].enable = false;
+                }*/
+                return items;
+            },
+            contextMenus: [
+                // {
+                //     id: "m-edit", i18nText: "编辑", auth: "",
+                //     onclick: function () {
+                //         var rowData = getDG('dg').datagrid('getSelected');
+                //         if (!rowData.PKID) {
+                //             MsgAlert({content: "请选择数据！", type: 'error'});
+                //             return;
+                //         }
+                //         openDetai('edit', rowData.PKID);
+                //     }
+                // },
+                {
+                    id: "", i18nText: "接收", auth: "DM_DATA_REC_ENG_RECEIVE",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('receive', rowData.PKID);
+                    }
+                },
+                {
+                    id: "", i18nText: "上传附件", auth: "DM_DATA_REC_ENG_UPLOAD",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        common_uploadFile({
+                            identity: 'dg',
+                            param: {
+                                cat: "dmDataRecEngMag",
+                                sourceId: rowData.PKID,
+                                successCellBack: "",
+                                fialCellBack: ""
+                            },
+                        });
+                        reload_();
+                    }
+                },
+                {
+                    id: "", i18nText: "发布", auth: "DM_DATA_REC_ENG_PUBLISH",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if(!confirm("确认发布?")){
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/online-manual/engineManualReceive/publishEngineManualReceive/" + rowData.PKID + "/" + rowData.REG_ID,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                        // InitFuncCodeRequest_({
+                        //     data:{pkid:rowData.PKID,regId:rowData.REG_ID,FunctionCode:'DM_DATA_REC_ENG_PUBLISH'},
+                        //     successCallBack: function(jdata){
+                        //         if(jdata.code == RESULT_CODE.SUCCESS_CODE){
+                        //             MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        //             reload_();
+                        //         }
+                        //     }
+                        // });
+                    }
+                }
+                // ,
+                // {
+                //     id: "", i18nText: "取消", auth: "",
+                //     onclick: function () {
+                //         var rowData = getDG('dg').datagrid('getSelected');
+                //         if (!rowData.PKID) {
+                //             MsgAlert({content: "请选择数据！", type: 'error'});
+                //             return;
+                //         }
+                //         if(!confirm("确认取消该条记录?")){
+                //             return;
+                //         }
+                //         InitFuncCodeRequest_({
+                //             data:{pkid:rowData.PKID,dataSort:'ENG',dataStatus:rowData.DATA_STATUS,FunctionCode: 'DM_DATA_REC_CANCLE'},
+                //             successCallBack: function(jdata){
+                //                 if(jdata.code == RESULT_CODE.SUCCESS_CODE){
+                //                     MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                //                     reload_();
+                //                 }
+                //             }
+                //         });
+                //     }
+                // }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+
+                }],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //打开详细页面
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('发动机资料接收详情');
+        ShowWindowIframe({
+            width: "980",
+            height: "500",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/data_manager/dm/eng/dmDataRecEngDetail.shtml"
+        });
+    }
+
+
+    //查询
+    function searchData() {
+        //onSearch_('dg', '#ffSearch');
+        onGateWaySearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //上传
+    function common_uploadFile(edopt) {
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        ShowWindowIframe({
+            width: 575,
+            height: 200,
+            title: title_,
+            param: $.extend({}, edopt.param),
+            url: "/views/data_manager/dm/upload/attachment_add.shtml"
+        });
+    }
+
+    // function deleteFile(pkid,status){
+    //    if(status == '04'){
+    //        MsgAlert({content: "该条记录已发布,附件不可删除!",type:"error"});
+    //        return;
+    //    }
+    //    if(!confirm("确认删除?")){
+    //        return;
+    //    }
+    //    InitFuncCodeRequest_({
+    //        data:{pkid:pkid,FunctionCode:'DM_DATA_UP_DELETE'},
+    //        successCallBack: function (jdata) {
+    //            if (jdata.code == 200) {
+    //                InitFuncCodeRequest_({
+    //                    data: {pkid: pkid, FunctionCode: 'ATTACHMENT_RSPL_DEL'},
+    //                    successCallBack: function(jdata){
+    //                        if(jdata.code == RESULT_CODE.SUCCESS_CODE){
+    //                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+    //                            reload_();
+    //                        }
+    //                    }
+    //                });
+    //
+    //            }
+    //        }
+    //    });
+    // }
+</script>
+</body>
+</html>

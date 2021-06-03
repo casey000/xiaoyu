@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>系统构型来源及适用性维护</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox float-e-margins" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <input type="hidden" id="configListId" name="configListId"/>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td id = 'btnSave' colspan="9" align="right">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                        <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                               style="margin-left:3px;margin-right: 18px;"/>
+                        <br/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 80px;">来源类型：</th>
+                    <td class="tdr" style="width: 120px;  padding: 3px">
+                        <input class="easyui-textbox"
+                               id="sourceType" name="sourceType" style="width: 100px" />
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 80px;">来源编号：</th>
+                    <td id="id_sourceNo" class="tdr" style="width: 120px;  padding: 3px">
+                        <input class="easyui-textbox"
+                               id="sourceNo" name="sourceNo" style="width: 260px" />
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 80px;">适用性：</th>
+                    <td class="tdr" style="width: 120px;  padding: 3px">
+                        <input class="easyui-textbox"
+                               id="applic" name="applic"
+                               style="width: 400px; height: 80px" />
+                        <input id="selectBtn" class="btn btn-primary" type="button" onclick="selectButton()" value="选择"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = getParentParam_(); // operation[add,edit,view],...
+    var operation = param.operation;
+    var subModel = param.subModel;
+    function i18nCallBack() {
+        $('#applic').textbox({
+            multiline: true,
+            readonly: true,
+            onlyview: true
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode:
+                    "EM_SYSCONFIG_SOURCE_TYPE," +
+                    "EM_SYSCONFIG_SOURCE_SB," +
+                    "EM_SYSCONFIG_SOURCE_STC"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    $('#sourceType').combobox({
+                        data: jdata.data.EM_SYSCONFIG_SOURCE_TYPE,
+                        valueField: "VALUE",
+                        textField: "TEXT",
+                        required: true,
+                        panelWidth: "120px",
+                        panelHeight: "100px",
+                        onSelect: function (item) {
+                            var v = item.VALUE;
+                            $('#sourceNo').textbox('destroy');
+                            $('#id_sourceNo').html("<input id='sourceNo' name='sourceNo' style='width: 260px' />");
+                            if (v == "SB" || v == "STC") {
+                                $('#sourceNo').combobox({
+                                    data: jdata.data["EM_SYSCONFIG_SOURCE_" + v],
+                                    valueField: "VALUE",
+                                    textField: "TEXT",
+                                    required: true,
+                                    panelHeight: "150px"
+                                });
+                            } else if (v == "BOEING") {
+                                $('#sourceNo').textbox({
+                                    value: "N/A",
+                                    required: true,
+                                    readonly: true,
+                                    onlyview: true
+                                });
+                            } else if (v == "OTHER") {
+                                $('#sourceNo').textbox({
+                                    required: true
+                                });
+                            }
+                        }
+                    });
+
+                    if (param.pkid) {
+                        InitDataForm(param.pkid);
+                    } else {
+                        ParseFormField_(param, $('#mform'));
+                    }
+                    if(operation == 'view'){
+                        $('#btnSave').hide();
+                        $('#selectBtn').hide();
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_SOURCE_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    $('#sourceType').combobox('select', jdata.data.SOURCE_TYPE);
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function save(flag) {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) return false;
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_SOURCE_ADD",
+                formData: formData
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    if (! $('#pkid').val()) {
+                        $('#pkid').val(jdata.data.pkid);
+                    }
+                    param.OWindow.reload_();
+                    if (flag) {
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function selectButton() {
+        if (! $('#pkid').val()) {
+            var isValidate = $("#mform").form('validate');
+            if (!isValidate) return false;
+            save("Y");
+        }
+
+        common_add_edit_({
+            url: "/views/em/emsysconfig/em_sysconfig_app_add.shtml?sourceId=" + $('#pkid').val() + "&configListId=" + $('#configListId').val()
+            +"&subModel="+subModel,
+            width: 350,
+            height: 500
+        });
+    }
+
+    function closeW() {
+        param.OWindow.reload_();
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

@@ -1,0 +1,394 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+    <style>
+        #mform table tr th {
+            width: 80px;
+        }
+    </style>
+    <script type="text/javascript">
+
+        var isEdit_;
+        var param = {};
+        var sjml = {};
+        var ifleps = [{TEXT: '是', VALUE: 'Y'}, {TEXT: '否', VALUE: 'N'}];
+
+        $(function () {
+            param = getParentParam_();
+            isEdit_ = param.pkid;
+            InitEditForm_();
+            /* //增加前置0
+             $("#directoryNum").textbox({
+                 "onChange":function(newValue,oldValue){
+                     var length = 4;
+                     newValue = parseInt(newValue.replace(/[^0-9]/ig,""))
+                     //alert((Array(length).join("0") + newValue).slice(-length))
+                     $("#directoryNum").textbox("setValue",(Array(length).join("0") + newValue).slice(-length));
+                 }
+             });*/
+        });
+
+        function i18nCallBack() {
+
+            InitFuncCodeRequest_({
+                data: {
+                    domainCode: "EM_CMP_STATE,EM_CMP_CAT_DATAFORMAT,EM_CMP_PAGE_NUMSTYLE,EM_CMP_ITEM_PRINTSTYLE,EM_CMP_OBJ_LINK",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+
+                        //数据形式
+                        $('#dataFormat').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data["EM_CMP_CAT_DATAFORMAT"],
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        //是否编号
+                        $('#ifNonum').combobox({
+                            panelHeight: '150px',
+                            data: ifleps,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        //编号形式
+                        $('#numStyle').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data["EM_CMP_PAGE_NUMSTYLE"],
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        //重新编号
+                        $('#ifNewnum').combobox({
+                            panelHeight: '150px',
+                            data: ifleps,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+
+                        //ATA编号
+                        $('#ifAtanum').combobox({
+                            panelHeight: '150px',
+                            data: ifleps,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        //项目清单打印格式
+                        $('#printStyle').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data["EM_CMP_ITEM_PRINTSTYLE"],
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        //目标链接
+                        $('#objLink').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data["EM_CMP_OBJ_LINK"],
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+
+                        //获取上级目录的数据
+                        InitFuncCodeRequest_({
+                            data: {
+                                cmpPkid: param.cmpPkid,
+                                FunctionCode: "EM_CMP_CAT_SJML"
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                                    sjml = DomainCodeToMap_(jdata.data);
+                                    //上级目录
+                                    $('#parentPkid').combobox({
+                                        panelHeight: '150px',
+                                        data: jdata.data,
+                                        valueField: 'VALUE',
+                                        textField: 'TEXT'
+                                    });
+
+                                    $('#cmpPkid').val(param.cmpPkid);
+                                    if (isEdit_) {
+                                        editVal();
+                                    }
+                                }
+                                else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+
+        //编辑赋值
+        function editVal() {
+            InitFuncCodeRequest_({
+                data: {pkid: param.pkid, FunctionCode: "EM_CMP_CAT_GETONE"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                        ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                        if (jdata.data.IF_LEP == 'Y') {
+                            $(':checkbox[name=ifLepCk]').prop('checked', true);
+                        }
+                        if (jdata.data.IF_LEP == 'N') {
+                            $(':checkbox[name=ifLepCk]').prop('checked', false);
+                        }
+                        // 编号形式
+                        //目录
+                        $('#numStyle').combobox('setValue', jdata.data.NUM_STYLE);
+                        $('#catalogNo').textbox({required: true, editable: false, onlyview: true});
+                        //$('#printStyle').combobox('setValue',jdata.data.PRINT_STYLE);
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+
+        }
+
+        //获取当前时间
+        function formatDates(date) {
+            var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+            var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+                + (date.getMonth() + 1);
+            var hor = date.getHours();
+            var min = date.getMinutes();
+            var sec = date.getSeconds();
+            return date.getFullYear() + '-' + month + '-' + day + " " + hor + ":" + min + ":" + sec;
+        }
+
+        function saveFunction() {
+            var isValidate = $("#mform").form('validate');
+            if (!isValidate)
+                return;
+
+            var catalogNoVal = $("#catalogNo").textbox("getValue");
+
+            if (isEdit_) {
+                addOrEdit();
+            } else {
+                InitFuncCodeRequest_({
+                    data: {catalogNo: catalogNoVal, cmpPkid: param.cmpPkid, FunctionCode: "EM_CMP_CAT_IFHAVE"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (jdata.data.length > 0) {
+                                MsgAlert({content: "该目录结构已存在", type: 'error'});
+                                return false;
+                            }
+                            addOrEdit();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        }
+
+        function addOrEdit() {
+            var $form = $("#mform");
+            //更新操作人，操作时间
+            var datas = $form.serializeObject();
+
+            var ifLepValue;
+            if (datas.ifLepCk == 'Y') {
+                ifLepValue = 'Y';
+            } else {
+                ifLepValue = 'N';
+            }
+            datas = $.extend({}, datas, {
+                FunctionCode: (isEdit_ ? 'EM_CMP_CAT_UPDATE' : 'EM_CMP_CAT_ADD'),
+                ifLep: ifLepValue
+            });
+            InitFuncCodeRequest_({
+                data: datas,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        param.OWindow.reload_();
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        /* $("#pkid").val(jdata.data.pkid);*/
+                        param.OWindow.reloadFym_();
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+
+                }
+            });
+        }
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({});
+        }
+
+        function changeNonum() {
+            var ifNonumVal = $("#ifNonum").combobox("getValue");
+            if (ifNonumVal == 'Y') {
+                $('#numStyle').combobox({required: true});
+                $('#ifNewnum').combobox({required: true});
+                $('#ifAtanum').combobox({required: true});
+            } else {
+                $('#numStyle').combobox({required: false});
+                $('#ifNewnum').combobox({required: false});
+                $('#ifAtanum').combobox({required: false});
+            }
+
+        }
+
+        function changeFormat() {
+            var dataFormatVal = $("#dataFormat").combobox("getValue");
+            /*if(dataFormatVal=='STR') {
+                $('#printStyle').combobox({required:true,editable:true,onlyview:false});
+
+            }else {
+                $('#printStyle').combobox({required:false,editable:false,onlyview:true});
+            }*/
+        }
+
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+
+                <input name="pkid" type="hidden" id="pkid"/>
+                <input name="cmpPkid" type="hidden" id="cmpPkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" onclick="saveFunction()" type="button" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                    <!-- <tr>
+                         <th class="tdl">目录编号 ：</th>
+                         <td class="tdr">
+                             <input class="easyui-textbox" name="directoryNum" id="directoryNum"
+                                    data-options=""
+                                    style="height:25px; width: 150px;"/>
+
+                         </td>
+                     </tr>-->
+                    <tr>
+                        <th class="tdl">目录名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="catalogNo" id="catalogNo"
+                                   data-options="required:true,validType:[]"
+                                   style="height:25px; width: 150px;"/>
+                        </td>
+                        <th class="tdl">上级目录名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="parentPkid" id="parentPkid"
+                                   data-options=""
+                                   style="height:25px; width:150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">中文标题 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="chnname" id="chnname"
+                                   data-options=""
+                                   style="height:25px; width: 150px;"/>
+                        </td>
+                        <th class="tdl">英文标题 ：</th>
+                        <td class="tdr" colspan="">
+                            <input class="easyui-textbox" name="engname" id="engname"
+                                   data-options=""
+                                   style="height:25px; width:150px"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <!--<th class="tdl">数据形式 ：</th>-->
+                        <!--<td class="tdr">-->
+                        <!--<input class="easyui-combobox" name="dataFormat" id="dataFormat"-->
+                        <!--data-options="onChange:changeFormat,required:true"-->
+                        <!--style="height:25px; width: 150px;"/>-->
+                        <!--</td>-->
+                        <th class="tdl">目标链接 ：</th>
+                        <td class="tdr" colspan="">
+                            <input class="easyui-combobox" name="objLink" id="objLink"
+                                   data-options="required:true"
+                                   style="height:25px; width:150px;"/>
+                        </td>
+                        <th class="tdl">显示顺序 ：</th>
+                        <td class="tdr" colspan="">
+                            <input class="easyui-textbox" name="sortno" id="sortno"
+                                   data-options="required:true" style="height:25px; width:150px;"/>
+                            &nbsp;&nbsp;
+
+                            <!--加入有效清单 ：-->
+                            <!--<input type="checkbox" value="Y" id="ifLep" name="ifLepCk" item="aa">-->
+
+                        </td>
+
+                    </tr>
+                    <!--<tr>-->
+                    <!--<th class="tdl">是否编号 ：</th>-->
+                    <!--<td class="tdr">-->
+                    <!--<input class="easyui-combobox" name="ifNonum" id="ifNonum"-->
+                    <!--data-options="onChange:changeNonum,required:true"-->
+                    <!--style="height:25px; width: 150px;"/>-->
+                    <!--</td>-->
+                    <!--<th class="tdl">编号形式 ：</th>-->
+                    <!--<td class="tdr" colspan="">-->
+                    <!--<input class="easyui-combobox" name="numStyle" id="numStyle"-->
+                    <!--data-options=""-->
+                    <!--style="height:25px; width:150px;"/>-->
+                    <!--</td>-->
+                    <!--</tr>-->
+                    <!--<tr>-->
+                    <!--<th class="tdl">重新编号 ：</th>-->
+                    <!--<td class="tdr">-->
+                    <!--<input class="easyui-combobox" name="ifNewnum" id="ifNewnum"-->
+                    <!--data-options=""-->
+                    <!--style="height:25px; width: 150px;"/>-->
+                    <!--</td>-->
+                    <!--<th class="tdl" style="width: 120px">是否按ATA编号 ：</th>-->
+                    <!--<td class="tdr" colspan="">-->
+                    <!--<input class="easyui-combobox" name="ifAtanum" id="ifAtanum"-->
+                    <!--data-options=""-->
+                    <!--style="height:25px; width:150px;"/>-->
+                    <!--</td>-->
+                    <!--</tr>-->
+                    <tr>
+                        <!--<th class="tdl">打印格式 ：</th>-->
+                        <!--<td class="tdr">-->
+                        <!--<input class="easyui-combobox" name="printStyle" id="printStyle"-->
+                        <!--data-options=""-->
+                        <!--style="height:25px; width: 150px;"/>-->
+
+                        <!--</td>-->
+
+
+                    </tr>
+                    <tr>
+                        <th class="tdl">备注 ：</th>
+                        <td class="tdr" colspan="5">
+                            <input class="easyui-textbox" name="memo" id="memo"
+                                   data-options=""
+                                   style="height:25px; width:490px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

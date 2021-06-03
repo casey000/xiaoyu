@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>TO列表</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend>搜索</legend>
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                    <tr>
+                        <th style="width: 80px;" align="right">编号：</th>
+                        <td>
+                            <input class="easyui-textbox" id="toNumber" name="toNumber" data-options=""
+                                   style="width:120px"/>
+                        </td>
+                        <th style="width: 80px;" align="right">机型：</th>
+                        <td>
+                            <input class="easyui-combobox" id="model" name="model" data-options="" style="width:120px"/>
+                        </td>
+                        <th style="width: 80px;" align="right">机号：</th>
+                        <td>
+                            <input class="easyui-combobox" id="acReg" name="acReg" data-options="" style="width:120px"/>
+                        </td>
+                        <th style="width: 80px;" align="right">类型：</th>
+                        <td>
+                            <input class="easyui-combobox" id="type" name="type" data-options="" style="width:150px"/>
+                        </td>
+                        <td width="800px">
+                            <a class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="onSearch_()"><span>查询</span></a>
+                            <a class="addBtn" data-options="iconCls:'icon-search'" onclick="save()"><span>确定</span></a>
+                        </td>
+                    </tr>
+
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_MP_ACTYPE,MSGRP,TO_TYPE,TO_EDIT_STATUS,TO_EXECUTION_STATUS"
+            },
+            successCallBack: function (jdata) {
+                PAGE_DATA['type'] = DomainCodeToMap_(jdata.data.TO_TYPE);
+                PAGE_DATA['editStatus'] = DomainCodeToMap_(jdata.data.TO_EDIT_STATUS);
+                PAGE_DATA['exeStatus'] = DomainCodeToMap_(jdata.data.TO_EXECUTION_STATUS);
+
+                $('#type').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.TO_TYPE
+                });
+                $('#model').combobox({
+                    panelHeight: '120px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data['DA_ACREG_MP_ACTYPE'],
+                    onSelect: function (item) {
+                        InitFuncCodeRequest_({
+                            data: {actype: item.VALUE, FunctionCode: "SELECT_ACNO_BY_ACTYPE"},
+                            successCallBack: function (jdata) {
+                                $('#acReg').combobox({
+                                    panelHeight: '160px',
+                                    valueField: 'VALUE',
+                                    textField: 'VALUE',
+                                    data: jdata.data
+                                });
+                            }
+                        })
+                    }
+                });
+                $('#acReg').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                InitDataGrid();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'SELECT_TO_LIST'},
+                alter: {
+                    TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['type'][value];
+                        }
+                    },
+                    EDIT_STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['editStatus'][value];
+                        }
+                    },
+                    EXECUTION_STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['exeStatus'][value];
+                        }
+                    },
+                }
+            },
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    //确定
+    function save() {
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: $.i18n.t('请至少选择一行数据'), type: 'error'});
+            return;
+        }
+        CloseWindowIframe();
+        param.OWindow.searchTos(rows);
+    }
+</script>
+</body>
+</html>

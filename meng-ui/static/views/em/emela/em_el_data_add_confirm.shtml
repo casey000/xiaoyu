@@ -1,0 +1,220 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">新增改变量</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="mform" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr id = 'comBtn'>
+                    <td colspan="4" align="right">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="save()"
+                           >确认</a>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="CloseWindowIframe()"
+                           >关闭</a>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 125px">飞机注册号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="acno" id="acno" data-options="onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 125px">EO/EA编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="eoNo" id="eoNo" data-options="onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 125px">EO/EA版次：</th>
+                    <td>
+                        <input class="easyui-textbox" name="eoVer" id="eoVer" data-options="onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <input type="hidden" id="eoPkid">
+                    <input type="hidden" id="pkid" name="pkid">
+                    <input type="hidden" id="initialDataPkid" name="initialDataPkid">
+                    <input type="hidden" id="loadUnit" name="loadUnit">
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 125px">负载/LOAD变化量：</th>
+                    <td>
+                        <input class="easyui-textbox" name="loadChange" id="loadChange"
+                               style="width:150px;" data-options="onlyview:true" />
+                    </td>
+                    <th data-i18n="" style="width: 125px">功率因数/Factor变化量：</th>
+                    <td>
+                        <input class="easyui-textbox" name="factorChange" id="factorChange"
+                               style="width:150px;" data-options="onlyview:true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 125px">确认人：</th>
+                    <td>
+                        <input class="easyui-textbox" name="confirmMan" id="confirmMan" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 125px">确认日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="confirmDate" id="confirmDate" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<script type="text/javascript">
+var acId;
+var param;
+var eoPkid;
+var recordId;
+var otherId;
+var operation;
+var msgpkid;
+
+
+function i18nCallBack() {
+    param = getParentParam_();
+    recordId = param.recordId;
+    otherId = param.otherId;
+    operation = param.operation;
+    msgpkid = param.msgpkid;
+    if(recordId){
+        eoPkid = recordId.split(',')[0];
+    }
+    if(operation == 'view'){
+        $('#comBtn').hide();
+    }
+    acId = param.acId;
+    $('#eoPkid').val(eoPkid);
+    var userName = getLoginInfo().userName;
+    $('#confirmMan').textbox('setValue', userName);
+    $('#confirmDate').datebox('setValue',formatterDate(new Date()));
+    //$('#confirmDate').datebox('setValue', new Date());
+    InitFuncCodeRequest_({
+        async: false,
+        data: {
+            domainCode: "YESORNO",
+            FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+        },
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                InitForm(acId, eoPkid);
+            }
+            else {
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+
+}
+
+function InitForm(acId, eoPkid) {
+    InitFuncCodeRequest_({
+        async: false,
+        data: {acId: acId, eoPkid: eoPkid,otherId:otherId, FunctionCode: 'EM_EL_DATA_CHANGE_PKID'},
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                //ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                $('#initialDataPkid').val(jdata.data.initialDataPkid);
+                $('#eoNo').textbox('setValue', jdata.data.eoNo);
+                $('#eoVer').textbox('setValue', jdata.data.eoVer);
+                $('#loadChange').textbox('setValue', jdata.data.loadChange);
+                $('#factorChange').textbox('setValue', jdata.data.factorChange);
+                $('#loadUnit').val(jdata.data.loadUnit);
+                $('#acno').textbox('setValue', jdata.data.acno);
+            }
+            else {
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+}
+
+function save() {
+    var isValidate = $("#mform").form('validate');
+    if (!isValidate) {
+        return false;
+    }
+    var data = $("#mform").serializeObject();
+    var eoVer = $('#eoVer').textbox('getValue');
+    var eoPkid = $('#eoPkid').val();
+    var initialDataPkid = $('#initialDataPkid').val();
+    var loadUnit = $('#loadUnit').val();
+    data.eoVer = eoVer;
+    data.initialDataPkid = initialDataPkid;
+    data.eoPkid = eoPkid;
+    data.loadUnit = loadUnit;
+    data.confirm = "Y";
+    data = $.extend({}, data, {acId:acId,msgpkid:msgpkid, FunctionCode: 'EM_ELA_CHANGE_ADD_EDIT'});
+    MaskUtil.mask("正在处理...");
+    InitFuncCodeRequest_({
+        data: data,
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                MaskUtil.unmask();
+                var isAlert = jdata.data;
+                if(isAlert == 1){
+                    MsgAlert({content: '当前负载改变量超过预警值',type: 'warn'});
+                }else{
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                }
+                param.OWindow.reload_();
+                //$("#mform").form('clear');
+                CloseWindowIframe();
+            }
+            else {
+                MaskUtil.unmask();
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+}
+
+formatterDate = function(date) {
+    var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+    var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+        + (date.getMonth() + 1);
+    return date.getFullYear() + '-' + month + '-' + day;
+};
+
+$.extend($.fn.validatebox.defaults.rules, {
+    intOrFloat: {// 验证正整数或小数
+        validator: function (value) {
+            return /^(0\.0*[1-9]+[0-9]*$|[1-9]+[0-9]*\.[0-9]*[0-9]$|[1-9]+[0-9]*$)/.test(value);
+        },
+        message: '请输入大于0的数字'
+    },
+    maxValue: {
+        validator: function (value) {
+            return value <= 9999999999;
+        },
+        message: '请输入0~9999999999范围的数字'
+    },
+    comboBoxEditvalid: { //校验下拉菜单
+        validator: function (value, param) {
+            var $combobox = $("#" + param[0]);
+            if (value) {
+                if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                    return false;
+                return true;
+            }
+            return false;
+
+        },
+        message: '请选择下拉框选项，不要直接使用输入内容'
+    },
+
+});
+
+</script>
+</body>
+</html>

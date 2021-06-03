@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>新发动机引进--标准非例行工卡重评</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">发动机型号：</th>
+                    <td style="padding: 3px;width: 106px">
+                        <input class="easyui-combobox" id="model" name="model" data-options=""
+                               style="width: 106px"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">发动机件号(序号)：</th>
+                    <td style="padding: 3px;width: 120px;">
+                        <input class="easyui-textbox" id="pnSn" name="pnSn" data-options=""
+                               style="width: 120px"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">章节：</th>
+                    <td style="padding: 3px;width: 106px">
+                        <input class="easyui-combobox" id="ata" name="ata" data-options=""
+                               style="width: 106px"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">状态：</th>
+                    <td style="padding: 3px;width: 120px;">
+                        <input class="easyui-combobox" id="status" name="status" data-options=""
+                               style="width: 120px"/>
+                    </td>
+                    <td align="left" style="padding: 3px;">
+                        <a class="searchBtn" type="button" onclick="onSearch_('dg','#ffSearch')"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param = {};
+    var title;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        title = param.title;
+
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_('dg', '#ffSearch')
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_ACREG_ENG_MODEL,TD_NSJC_ATA,TD_JC_EVAL_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //发动机型号
+                    $('#model').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DA_ACREG_ENG_MODEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //章节
+                    $("#ata").combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.TD_NSJC_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //状态
+                    $('#status').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.TD_JC_EVAL_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //工卡测评状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_JC_EVAL_STATUS"]);
+
+                    //工卡重评列表
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: false,
+            columns: {
+                param: {FunctionCode: 'TD_NSJC_ENG_EVAL_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    EVAL_DATE: {
+                        type: 'date'
+                    },
+                    CHECK_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "评估",
+//                    auth: "TD_NSJC_EVAL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.EVAL_NO) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openEval('edit', rowData.EVAL_NO, rowData.MODEL, rowData.STATUS, 'NSJC');
+                    }
+                }
+            ],
+            onDblClickRow: function (index, field, value) {
+                openEval('view', value.EVAL_NO, value.MODEL, value.STATUS, 'NSJC');
+            },
+            validAuth: function (row, items) {
+                if (row.STATUS != "EVALING") {
+                    items['评估'].enable = false;
+                }
+            }
+        })
+    }
+
+    //打开工卡重评页面
+    function openEval(operation, evalNo, model, status, jcType) {
+        ShowWindowIframe({
+            width: "960",
+            height: "600",
+            title: "新发动机引进--NSJC重评",
+            param: {evalNo: evalNo, operation: operation, jcType: jcType, model: model, status: status},
+            url: "/views/td/jobcard/nrcjc/tdNrcjcEngEvalDetail.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid('reload');
+    }
+
+</script>
+</html>

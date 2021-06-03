@@ -1,0 +1,286 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <!-- <script type="text/javascript" src="http://10.88.15.51:8080/js/jquery/lhgdialog/lhgdialog.js"></script> -->
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <style type="text/css">
+        .table-cell {
+            text-align: center;
+            padding: 0;
+            margin: 0;
+        }
+
+        .cell-normal {
+            height: 40px;
+        }
+    </style>
+</head>
+<body>
+<table class="table table-bordered table-info" id="toList" style="padding-top:10px" width="100%">
+    <tr>
+        <th class="table-cell cell-normal">Operation</th>
+        <th class="table-cell cell-normal">TO No</th>
+        <th class="table-cell cell-normal">A/C</th>
+        <th class="table-cell cell-normal">Description</th>
+        <th class="table-cell cell-normal">Owner</th>
+        <th class="table-cell cell-normal">Create Date</th>
+        <th class="table-cell cell-normal">DM</th>
+    </tr>
+</table>
+<div id="defectNos"></div>
+<script type="text/javascript">
+
+    function viewTO(obj) {
+        let url_ = "/views/mccdoc/view/view_fault_isolate_to.shtml";
+        let parameters = {
+            "toType": "1",
+            "pageType": "view",
+            "id": $(obj).attr("id")
+        };
+        let dialog_param = {
+            title: 'View TO',
+            width: '1050px',
+            height: '650px',
+            top: '35%',
+            esc: true,
+            cache: false,
+            max: false,
+            lock: true,
+            min: false,
+            parent: this,
+            content: 'url:' + url_,
+            data: parameters
+        };
+        if(P) {
+            P.$.dialog(dialog_param);
+        } else {
+            $.dialog(dialog_param);
+        }
+    }
+
+    //编辑TO
+    function editTo(obj) {
+        let url_ = "/views/mccdoc/edit/edit_fault_isolate_to.shtml";
+        let parameters = {
+            "toType": "1",
+            "pageType": "edit",
+            "id": $(obj).attr("id")
+        };
+        let dialog_param = {
+            title: 'View TO',
+            width: '1050px',
+            height: '650px',
+            top: '35%',
+            esc: true,
+            cache: false,
+            max: false,
+            lock: true,
+            min: false,
+            parent: this,
+            content: 'url:' + url_,
+            data: parameters,
+            close: function () {
+                location.reload();
+            }
+        };
+        if(P) {
+            P.$.dialog(dialog_param);
+        } else {
+            $.dialog(dialog_param);
+        }
+    }
+
+    //提示删除
+    function confirmDel(obj) {
+        if(!obj.id) {
+            $.dialog.alert("Please select Date!");
+            return false;
+        }
+        let params = {
+            "id": obj.id
+        };
+
+        if(confirm('你确定要删除当前TO吗 ?')) {
+            let dialog_param = {
+                id: "toDelRemark",
+                title: "删除TO",
+                width: 300,
+                lock: true,
+                esc: true,
+                height: 240,
+                top: "15%",
+                cache: false,
+                parent: this,
+                data: params,
+                content: "url:" + basePath + "/views/mccdoc/to_del_remark.shtml",
+                close: function () {
+                    location.reload();
+                }
+            };
+            if(P) {
+                P.$.dialog(dialog_param);
+            } else {
+                $.dialog(dialog_param);
+            }
+        }
+    }
+
+    $(function () {
+        let currentUser;
+
+        /** 获取列表数据 **/
+        function get_list_data() {
+            let defectId = parent.get_defectId();
+            let url = "/api/v1/mccdoc/to_base_info/findByDefectId?defectId=" + defectId;
+            axios.get(url).then(response => {
+                if(response.data.code == 200) {
+                    load_list_data(response.data.data)
+                } else {
+                    throw new Error(response.data.msg)
+                }
+            }).catch(err => {
+                load_list_data();
+                MsgAlert({type: "error", content: err.message})
+            })
+        }
+
+        function load_list_data(data) {
+            let toVoList = data.toVoList;
+            currentUser = data.currentUser;
+            if(toVoList) {
+                for (let i = 0, len = toVoList.length; i < len; i++) {
+                    $("#toList").append(each_table_row(i, toVoList[i]))
+                }
+            } else {
+                let html = [];
+                html.push('<tr>');
+                html.push('<td class="table-cell cell-normal" colspan="7">N/A</td>');
+                html.push('</tr>');
+                $("#toList").append(html.join("").toString());
+            }
+            let defectNos = data.defectNos;
+            let lists = data.lists;
+            if(defectNos) {
+                for (let i = 0, len = defectNos.length; i < len; i++) {
+                    $("#defectNos").replaceWith(generate_table_row(i, defectNos[i], lists))
+                }
+            }
+        }
+
+        function each_table_row(index, row_data) {
+            if(!row_data) {
+                return
+            }
+            let html = [];
+            let toNumber = row_data.toNumber ? row_data.toNumber : "";
+            let acReg = row_data.acReg ? row_data.acReg : "";
+            let description = row_data.description ? row_data.description : "";
+            let createTime = row_data.createTime ? row_data.createTime : "";
+            let dmType = row_data.dmType ? row_data.dmType : "";
+            let type = row_data.type ? row_data.type : "";
+            let id = row_data.id ? row_data.id : "";
+
+            let creatorInfo = "";
+            if(row_data.creatorName && row_data.creatorSn) {
+                creatorInfo = `${row_data.creatorName}(${row_data.creatorSn})`;
+            }
+            if(dmType == "DM") {
+                dmType = "是";
+            } else if(dmType == 'n') {
+                dmType = "否";
+            }
+            html.push('<tr>');
+            html.push('<td class="table-cell cell-normal">');
+            if(row_data.editStatus == 1 && row_data.submitterSn == currentUser.accountNumber) {
+                html.push('<div style="width:100px;margin: 0 auto;">');
+                html.push('<div style="float:left;width:20px;margin: 0 auto;padding-left: 30px;">');
+                html.push('<a href="javascript:void(0);" onclick="editTo(this);" type="' + type + '" id="' + id + '"><span class="ui-icon ui-icon-pencil"></span></a>');
+                html.push('</div>');
+                html.push('<div style="float:left;width:50px;margin: 0 auto;">');
+                html.push('<a href="javascript:void(0);" onclick="confirmDel(this);" id="' + id + '"><span class="ui-icon ui-icon-close"></span></a>');
+                html.push('</div>');
+                html.push('</div>');
+
+            }
+            html.push('</td>');
+            html.push('<td>');
+            html.push('<div align="center">');
+            if(toNumber) {
+                html.push('<a href="javascript:void(0);" id="' + id + '" type="' + type + '" onclick="viewTO(this)" style="color:#f60">' + toNumber + '</a>');
+            } else {
+                html.push('<a href="javascript:void(0);" id="' + id + '" type="' + type + '" onclick="viewTO(this)" style="color:#f60">view</a>');
+            }
+            html.push('</div>');
+            html.push('</td>');
+            html.push('<td>');
+            html.push('<div align="center">' + acReg + '</div>');
+            html.push('</td>');
+            html.push('<td>');
+            html.push('<div align="center" style="width:140px;word-break:break-all;">' + description + '</div>');
+            html.push('</td>');
+            html.push('<td>');
+            html.push('<div>' + creatorInfo + '</div>');
+            html.push('</td>');
+            html.push('<td>');
+            html.push('<div align="center">' + createTime + '</div>');
+            html.push('</td>');
+            html.push('<td>');
+            html.push('<div align="center">' + dmType + '</div>');
+            html.push('</td>');
+            html.push('</tr>');
+            return html.join("").toString();
+        }
+
+        function generate_table_row(index, defectNo, lists) {
+            if(!defectNo) {
+                return;
+            }
+            let html = [];
+            html.push('<table class="table table-bordered table-info" style="padding-top:10px" width="100%">');
+            html.push('<tr>');
+            html.push('<th colspan="9" class="table-cell cell-normal"><div align="left">Relation Defect To Defect No:' + defectNo + '</div></th>');
+            html.push('</tr>');
+            html.push('<tr>');
+            html.push('<th class="table-cell cell-normal"><div align="center">TO No</div></th>');
+            html.push('<th class="table-cell cell-normal"><div align="center">A/C</div></th>');
+            html.push('<th class="table-cell cell-normal"><div align="center">Description</div></th>');
+            html.push('<th class="table-cell cell-normal"><div align="center">Owner</div></th>');
+            html.push('<th class="table-cell cell-normal"><div align="center">Create Date</div></th>');
+            html.push('</tr>');
+            if(lists) {
+                $.each(lists, function (i, v) {
+                    if(defectNo == v.defectNo) {
+                        let creatorInfo = "";
+                        if(v.creatorName && v.creatorSn) {
+                            creatorInfo = `${v.creatorName}(${v.creatorSn})`;
+                        }
+                        html.push('<tr>');
+                        if(v.toNumber) {
+                            html.push('<td class="table-cell cell-normal"><div style="width:100px;margin: 0 auto;">' + v.toNumber + '</td>');
+                        } else {
+                            html.push('<td class="table-cell cell-normal"><div style="width:100px;margin: 0 auto;"></td>');
+                        }
+                        html.push('<td><div align="center">' + v.acReg + '</td>');
+                        html.push('<td><div align="center">' + v.description + '</td>');
+                        html.push('<td><div align="center">' + creatorInfo + '</td>');
+                        html.push('<td><div align="center">' + v.createTime + '</td>');
+                        html.push('</tr>');
+                    }
+                });
+            } else {
+                html.push('<tr><td colspan="5"><div align="center">N/A</div></td></tr>');
+            }
+            html.push('</table>');
+            return html.join("").toString();
+        }
+
+        get_list_data();
+    })
+
+</script>
+</body>
+</html>

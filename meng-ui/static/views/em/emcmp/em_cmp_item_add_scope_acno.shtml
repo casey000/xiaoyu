@@ -1,0 +1,200 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_ceimp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ACEOEXEC_AC_EXE_ONCE.TITLE">机队范围取值</title>
+</head>
+<!--<body class="ibody">
+<table id="dg"></table>-->
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var isScope;
+    var param = {};
+    var function_code;
+    var fleet;
+    var conFleet;
+    var PKID;
+    var isEdit_;
+    var op;
+    var rangeData;
+
+    function i18nCallBack() {
+        InitDataGridF();
+        $("#saveScope").click(function () {
+            saveScope(1);//飞机
+        });
+        $("#saveScope1").click(function () {
+            saveScope(2);//msn
+        });
+        $("#closeWindow").click(function () {
+            CloseWindowIframe();
+        })
+    }
+
+    function InitDataGridF() {
+        param = getParentParam_();
+        console.log(param);
+        isScope = param.rangeData;
+        PKID = param.PKID;
+        isEdit_ = param.isEdit;
+        op = param.op;
+        if (isScope == "JX" && op == "except") {
+            InitFuncCodeRequest_({
+                data: {PKID: PKID, FunctionCode: "EM_CMP_JX_GET_JH"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        console.log(jdata.data.length);
+                        if (!isEdit_) {
+                            if (jdata.data[0] == null) {
+                                MsgAlert({content: '请先增加一个机型非EXCEPT值', type: 'error'});
+                                return false;
+                            }
+                            if (jdata.data.length > 1) {
+                                MsgAlert({content: '增加该范围类型的值只能有一个机型值加一个except类型值', type: 'error'});
+                                return false;
+                            }
+                            if (jdata.data.length == 1 && jdata.data[0] != null) {
+                                if (jdata.data[0].OP == 'except') {
+                                    MsgAlert({content: '请先增加一个机型非EXCEPT值', type: 'error'});
+                                    return false;
+                                } else {
+                                    InitDataGrid(jdata.data[0].RANGE_VALUE);
+                                }
+                            }
+                        } else {
+                            if (jdata.data.length == 1 && op == 'except') {
+                                MsgAlert({content: '请先增加一个机型非EXCEPT值', type: 'error'});
+                                return false;
+                            }
+                            if (jdata.data.length == 2 && jdata.data[0] != null) {
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    if (jdata.data[i].OP == 'eq' || jdata.data[i].OP == 'neq') {
+                                        InitDataGrid(jdata.data[i].RANGE_VALUE);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    function InitDataGrid(conFleet) {
+        param = getParentParam_();
+        isScope = param.rangeData;
+        fleet = param.fleet;
+        op = param.op;
+        if (isScope == 'JX') {
+            function_code = 'EM_MPD_JX_ADD_ACNO' //EM_MPD_ITEM_ADD_ACNO_SCOPE
+        }
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            singleSelect: false,
+            queryParams: {fleet: fleet, conFleet: conFleet},
+            columns: {
+                param: {
+                    FunctionCode: function_code
+                },
+                onLoadSuccess: function (data) {
+                    if (data) {
+                        $.each(data.rows, function (index, item) {
+                        });
+                    }
+                },
+                resize: function () {
+                    return {width: $("#dg").width(), height: 502};
+                }
+
+            },
+            toolbar: [
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ]
+        })
+    }
+
+    function saveScope(a) {
+        param = getParentParam_();
+        var rows = $('#dg').datagrid('getChecked');
+        var rangeData = '';
+        if (rows.length == 0) {
+            MsgAlert({content: '请选择数据项', type: 'error'});
+            return false;
+        }
+        if (rows.length > 10) {
+            MsgAlert({content: $.i18n.t('数量过多！'), type: 'error'});
+            return false;
+        }
+        if (a == 1) {
+            for (var i = 0; i < rows.length; i++) {
+                if (isScope == 'JX') {
+                    if (op == "except") {
+                        rangeData += rows[i].ACNO + ","
+                    } else {
+                        rangeData += rows[i].CONF_ACTYPE + ","
+                    }
+                }
+
+            }
+        } else {
+            for (var i = 0; i < rows.length; i++) {
+                if (isScope == 'JX') {
+                    if (op == "except") {
+                        rangeData += rows[i].MSN + ","
+                    } else {
+                        rangeData += rows[i].CONF_ACTYPE + ","
+                    }
+                }
+
+            }
+        }
+
+        if (isScope == 'JX' && op == "except") {
+            rangeData = 'EXCEPT ' + rangeData;
+        }
+        param.OWindow.insertRangeData(rangeData);
+        CloseWindowIframe();
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+</script>
+</body>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" id="saveScope" value="选中机号"
+                                   style="margin:5px;"/>
+                            <input class="btn btn-primary" type="button" id="saveScope1" value="选中MSN"
+                                   style="margin:5px;"/>
+                            <input class="btn btn-primary" type="button" id="closeWindow" value="关闭"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table class="" id="dg" style="height:500px;">
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

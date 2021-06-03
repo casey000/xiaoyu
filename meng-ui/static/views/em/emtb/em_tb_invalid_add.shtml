@@ -1,0 +1,244 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>TB失效维护</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%; height: 280px">
+    <div class="ibox-content">
+        <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <input type="hidden" id="ifInvalid" name="ifInvalid"/>
+            <input type="hidden" id="tbClassification2" name="tbClassification2"/>
+            <table class="table table-bordered table-info">
+                <tr id="id_btn_row">
+                    <td colspan="9" align="right">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                        <input class="btn btn-primary" type="button" id="submitBtn" onclick="submitTb()" value="提交"
+                               style="margin-left:3px;margin-right: 18px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">TB编号：</th>
+                    <td style="width: 80px;  padding: 3px">
+                        <input class="easyui-textbox" style="width: 150px;"
+                               id="tbNo" name="tbNo" readonly/>
+                    </td>
+                    <th class="th" align="right" style="width: 80px;">TB版本：</th>
+                    <td style="width: 80px;  padding: 3px">
+                        <input class="easyui-textbox" style="width: 150px;"
+                               id="tbVer" name="tbVer" readonly/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">失效原因：</th>
+                    <td colspan="3" style="padding: 3px;">
+                        <input class="easyui-textbox" style="width: 430px;height:80px"
+                               id="invalidReason" name="invalidReason"
+                               data-options="required:true,multiline:true" />
+                    </td>
+                </tr>
+                <tr id="id_attachment">
+                    <th class="th" align="right" style="width: 100px;">上传附件：</th>
+                    <td colspan="3" style="padding: 3px;">
+                        <input id="fileToUpload" name="file"
+                               class="easyui-filebox" style="width: 430px">
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">附件：</th>
+                    <td colspan="3" style="padding: 3px;">
+                        <ul id="imageBlock"></ul>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param;
+    var op = null;// operation[add,edit,view,flow]
+    var pkid = null;//主表PKID
+    var taskPropId = null;
+    var status = null;
+    var sfPkid = null;
+    var flag = null;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        op = param.operation;
+        pkid = param.pkid;
+        taskPropId = param.taskPropId;
+        status = param.status;
+        sfPkid = param.sfPkid;
+        flag = param.flag;
+
+        if (op == "flow") {
+            $('#id_btn_row').hide();
+
+            if (taskPropId != "taskEmTbInvalid2") {
+                $('#id_attachment').hide();
+            }
+        }
+        if(status == 'RETURNED'){
+            $('#submitBtn').attr('disabled','true');
+        }
+
+        InitDataForm(pkid);
+        initAttachment(pkid);
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_TB_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function initAttachment(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ATTACHMENT_LIST",
+                category: "emtbinvalid",
+                sourceId: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    var attachments = jdata.data;
+                    $('#imageBlock').empty();
+                    for (var i = 0; i < attachments.length; i++) {
+                        var fileId = attachments[i].FILE_ID;
+                        var filename = attachments[i].ORG_NAME;
+                        var strs = [
+                            '<li>',
+                            i + 1,
+                            '--<a onclick="downFile(' + fileId + ')" href="javascript:void(0);">' + filename + '</a>',
+                        ];
+                        if (op == "add" || op == "edit" || taskPropId == "taskEmTbInvalid2") {
+                            strs.push('&nbsp;');
+                            strs.push('<span onclick="deleteFile(' + fileId + '); initAttachment(' + pkid + '); return false;" class="icon-cross">&nbsp;&nbsp;&nbsp;&nbsp;</span>');
+                        }
+                        strs.push('</li>');
+                        $('#imageBlock').append(strs.join(''));
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function save() {
+        var isValidate = $('#mform').form('validate');
+        if (! isValidate) {
+            return;
+        }
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_TB_INVALID",
+                formData: formData,
+                operation: op
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"));
+                    op = "edit";
+                    pkid = "" + jdata.data.pkid;
+
+                    if (!! $('#fileToUpload').filebox('getValue')) {
+                        upload(pkid);
+                    } else {
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')})
+                    }
+
+                    if(flag != 'evaAgain'){
+                        param.OWindow.reload_();
+                    }
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function submitTb() {
+        var flowKey = "emTbInvalidFlow";
+        $.messager.confirm("", "是否已经保存并确认提交？", function (r) {
+            if (r) {
+                common_add_edit_({
+                    url: "/views/em/workflow/work_flow_account_select.shtml",
+                    param: {
+                        FunctionCode_: 'EM_TB_INVALID_SUBMIT',
+                        otherParam: pkid,
+                        PKID: sfPkid,
+                        successCallback: closeW,
+                        flowKey: flowKey
+                    },
+                    title: $.i18n.t('选择审批人'),
+                    width: 520,
+                    height: 300
+                });
+            }
+        });
+    }
+
+    function upload(pkid) {
+        $.ajaxFileUpload({
+            url: Constant.API_URL + "ATTACHMENT_UPLOAD",
+            secureuri: false,
+            fileElementId: "filebox_file_id_1",
+            dataType: "json",
+            type: "post",
+            data: {
+                "fileCategory": "emtbinvalid",
+                "sourceId": pkid
+            },
+            success: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#fileToUpload').filebox('clear');
+                    initAttachment(pkid);
+                } else {
+                    MsgAlert({
+                        content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_FAILED') + jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        if(sfPkid){
+            param.OWindow.reload_("#dg2");
+        }else if(flag == 'evaAgain'){
+            param.OWindow.closeMsg();
+            param.OWindow.reload2();
+        }else{
+            param.OWindow.reload_()
+        }
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

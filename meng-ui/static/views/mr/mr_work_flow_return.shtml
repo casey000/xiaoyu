@@ -1,0 +1,449 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_work_flow">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+<!--    <script src="/js/lhgdialog/lhgdialog.js"></script>-->
+    <script src="/views/defect/pnSelect.js" type="text/javascript"></script>
+    <script src="/js/workflow/activiti_workflow.js" type="text/javascript"></script>
+    <script src="/js/workflow/formtemplet.js" type="text/javascript"></script>
+    <script src="/js/datagrid_utils.js" type="text/javascript"></script>
+    <link href="/css/plugins/dialog/dialog_default.css" rel="stylesheet">
+    <script src="/js/pnrequest/pn_request.js" type="text/javascript"></script>
+    <script src="/views/common/select_store_mr.js" type="text/javascript"></script>
+    <title></title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+        #process {
+            width: 100%;
+            height: 99%;
+        }
+
+        #process_table {
+            background: #F5F8F8;
+            width: 100%;
+            height: 100%;
+            /*table-layout: fixed;*/
+            border-width: 1px;
+            display: table;
+            border-collapse: collapse;
+        }
+
+        #process_table td {
+            background-color: #f2f2f2;
+            height: 30px;
+            border: 0.5px solid #ccc;
+            word-break: break-all;
+            width: 120px;
+        }
+
+        #process_table td .key {
+            text-align: right;
+            padding: 8px;
+            font-size: 13px;
+        }
+
+        .td_input {
+            width: 95%;
+        }
+
+        tr.tlb {
+            display: none;
+        }
+
+        /*tr.tlb input{*/
+        /*    display: inline-block;*/
+        /*}*/
+        #process_table .val {
+            background-color: #ffffff;
+        }
+
+        #process_table td textarea {
+            width: 98%;
+            height: 110px;
+            display: inline-block;
+            margin: 5px 0 5px 5px;
+        }
+
+        #buttom a {
+            display: inline-block;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px 20px;
+            border: none;
+            font-size: 14px;
+            margin-right: 12px;
+        }
+
+        #buttom {
+           margin-top: 50px;
+        }
+
+        .ccconfig {
+            margin-left: 5px;
+            color: sandybrown;
+        }
+
+        .ccconfig span {
+            margin-left: 5px;
+            color: sandybrown;
+        }
+        #troubleShootingHtml td {
+            width: auto;
+            text-align: center;
+            border-bottom: none;
+        }
+
+        .td-line30-center {
+            height: 30px;
+            text-align: center;
+            vertical-align: middle;
+            width: auto !important;
+        }
+
+        #process_table .td-line30-center txtarea {
+            height: auto !important;
+        }
+
+        #trouble_shooting_table {
+            border: none;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: center;
+            padding: 0;
+            margin: 0;
+            /*height: 40px;*/
+        }
+    </style>
+
+
+</head>
+<body class="ibody">
+
+<div id="tabs" style="width: 100%; height: 100%;">
+    <div id="tab01" style="" title="业务表单数据">
+        <div class="ibox float-e-margins">
+            <div class="ibox-content">
+                <form class="form-horizontal m-t" id="mform" style="margin-top: 0px;">
+                    <input id="isFirstNode" name="isFirstNode" type="hidden">
+                    <input id="pkid" name="pkid" type="hidden"/>
+                    <input id="approvedBy" name="approvedBy" type="hidden"/>
+
+                    <div style="min-height: 100px;">
+<!--                        <iframe frameborder="0" id="iframe01" scrolling="auto" src=""-->
+<!--                                style="width:100%;height:100%;"></iframe>-->
+                        <div id="process">
+                            <table id="process_table">
+                                <tbody>
+                                <tr>
+                                    <td align="right" colspan="3" style="text-align: right;color: #f60;padding-right: 10px;cursor: pointer"><span onclick="toDet()">View Detail</span></td>
+                                </tr>
+                                <tr class="access">
+                                    <td>
+                                        <div class="key">Reject Reason:</div>
+                                    </td>
+                                    <td class="val" colspan="2">
+                                        <div id="reason"></div>
+                                    </td>
+                                </tr>
+
+
+
+                                </tbody>
+                            </table>
+
+                        </div>
+                    </div>
+
+                    <!-- 业务数据展示end-->
+
+                    <h5 style="margin-bottom: 4px;">流程处理：</h5>
+                    <input name="taskId" type="hidden"/>
+                    <table class="table table-bordered table-info">
+                        <tbody id="custom_options"></tbody>
+                    </table>
+                    <table class="table table-bordered table-info" id="mtable">
+                        <tr>
+                            <th class="tdl" style="width: 100px;">处理意见：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox easyui-validatebox"
+                                       data-options="multiline:true,validType:['maxLength[200]']" id="notes"
+                                       name="notes"
+                                       style="height:55px; width: 100%;"/>
+                            </td>
+                            <!--<th class="tdl xmclass" style="width: 100px">下一级办理人：</th>
+                            <td class="tdr xmclass">
+                                <input class="easyui-textbox easyui-validatebox"
+                                       data-options="validType:['maxLength[20]'] " id="authId"
+                                       name="authId" style="height:25px; width:150px;"/>
+                            </td>-->
+                        </tr>
+                        <tr>
+                            <td align="center" colspan="6">
+                                <input class="btn" disabled="disabled" id="canSubmit" onclick="doSubmit();"
+                                       type="button" value="提交"/>
+                                <input class="btn" disabled="disabled" id="canReturn" onclick="doReturn();"
+                                       type="button" value="终止"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div style="" title="流程信息">
+        <table class="table table-bordered table-info" id="processInfo">
+            <tr>
+                <th class="tdl" style="width: 145px;">流程业务Key ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" data-options="multiline:true, onlyview: true "
+                           name="businessKey" style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程业务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" data-options="multiline:true, onlyview: true "
+                           name="executionName" style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程创建时间 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" data-options="multiline:true, onlyview: true "
+                           name="createTime" style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程创建人 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" data-options="multiline:true, onlyview: true "
+                           name="userName" style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" data-options="multiline:true, onlyview: true "
+                           name="nodeName" style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">是否会签任务 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" data-options="multiline:true, onlyview: true "
+                           name="isJoint" style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务-配置 ：</th>
+                <td class="tdr" colspan="3" style="vertical-align: middle;">
+                    <input disabled name="canReturn" type="checkbox" value=""/> 可退回
+                    <input disabled name="canTrunTo" type="checkbox" value=""/> 可转办
+                    <input disabled name="canTerminate" type="checkbox" value=""/> 可终止
+                    <input disabled name="canHangUp" type="checkbox" value=""/> 可挂起
+                </td>
+            </tr>
+        </table>
+        <div id="workflow" style="overflow-x: scroll;"></div>
+    </div>
+    <div id="tab02" style="" title="历史任务信息">
+        <table id="historyDg"></table>
+    </div>
+</div>
+
+<script type="text/javascript">
+    /**
+     *
+     * @param resource  业务数据
+     * @param execution 流程实例数据
+     * @param node 节点配置数据
+     * @constructor
+     */
+    var MR_WORK_FLOW_APPROVING_NODE = 'task1559387724558';
+    var MR_WORK_FLOW_REJECT_NODE = 'task1559387728333';
+    function undefineFilter(value) {
+        return typeof (value) == "undefined" || value == null ? "" : value;
+    }
+
+    var mrNo, sapTaskId, rev, executionId;
+    function InitLoadResource(resource, execution, node) {
+        console.log(resource,'resource');
+        let pkid = resource.mrNum;
+        $("#pkid").val(pkid);
+        mrNo = resource.mrNum || '';
+        rev = resource.mrRevisionNum || '';
+        executionId = execution.executionId || '';
+        sapTaskId = resource.sapTaskId || '';
+        data = $.extend({}, {sapTaskId: sapTaskId}, {FunctionCode: "MR_ITEM_SYN_DETAILS"});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    var respon = jdata.data;
+                    var html = '';
+                    var time = new Date().getTime();
+                    if(respon.length < 1){
+                        html ="<tr class='mrItem'><td align='center' colspan='3'>N/A</td></tr>";
+                    }else{
+                        $.each(respon,function (index,value) {
+                            console.log(value);
+                            var ind = index + 1;
+                            html += "<tr>"+
+                                "<td class=\"td-line30-center\"><span class=\"viNo\">" + ind + "</span><input name=\"itemnum[" + value.serialNumber + "]\"   id=\" " + index + "\"   type=\"hidden\" value=" + undefineFilter(value.itemNum) + "></td>" +
+                                "<td class=\"td-line30-center\" style=\"text-align: center\"><input   id=\"pn_" + index + "\"  style=\"width: 94%\" type=\"text\" value=" + undefineFilter(value.partNo) + "></td>" +
+                                "<td class=\"td-line30-center\" style=\"text-align: center\"><input  readonly style=\"width: 85%\" type=\"text\" value="+undefineFilter(value.originalPartNo)+"><img id=\"station_sel\" name=\"station_sel\" onclick=\"selPn(" + index + ")\" src=\"/images/ico_search_16.gif\" style=\"vertical-align: -10%;margin-left: 5px;\"></td>"+
+                                "</tr>"
+                        });
+                    }
+                    $("#trouble_shooting_table").append(html);
+
+                } else {
+
+                    MsgAlert({content: jdata.msgData[0] ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+        datas = $.extend({}, {procInstId:executionId}, {FunctionCode: "WS_FLOW_HIS_TASK_LIST"});
+        InitFuncCodeRequest_({
+            data: datas,
+            successCallBack: function (jdata) {
+                console.info(jdata);
+                $('#reason').text(jdata.data[1].TASK_NOTES)
+            }
+        });
+        let iFrame01Url = "/views/mr/approveMr.shtml?sapTaskId=" + sapTaskId;
+
+        $("#iframe01").attr("src", iFrame01Url);
+
+        if(MR_WORK_FLOW_REJECT_NODE == node.taskPropId) {
+            // $("#canReturn").hide();
+            $("#isFirstNode").val('N');
+
+        } else if(MR_WORK_FLOW_APPROVING_NODE == node.taskPropId) {
+            $("#isFirstNode").val('Y');
+        }
+    }
+    function toDet() {
+        if( rev == "undefined"){
+            rev = 0;
+        }
+        ShowWindowIframe({
+            width: 1200,
+            height: 700,
+            title: '',
+            param: {
+                mrNo: mrNo,
+                rev:rev,
+            },
+            url: "/views/mr/viewMr.shtml"
+        });
+    }
+    function selPn(time) {
+        $.pnSelect({
+            success: function (data) {
+                // $(`input[name=pn_${time}]`).val(data.partno);
+                // $(`input[name=List[${time}].PARTNO]`).val(data.partno);
+                $(`#pn_${time}`).val(data.partno);
+                $(`#itNo_${time}`).val(data.itemnum);
+
+
+            }
+        })
+    }
+
+    $("#checkyes").click(function(){
+        if(this.checked){
+            $("#checkno").attr("checked",false);
+        }else{
+            $("#checkno").attr("checked",true);
+        }
+    });
+
+
+    function doReturn() {
+        $.messager.confirm('提示?', "是否进行退回?", function (r) {
+            if (r) {
+                var notes = $("#notes").textbox('getValue');
+                if ($.trim(notes) == '') {
+                    MsgAlert({content: '请输入您的退回意见', type: 'error'});
+                    return;
+                }
+                var $form = $("#mform");
+                var data = $form.serializeObject();
+                data = $.extend({}, data, {
+                    FunctionCode: 'WS_FLOW_TURNBACK', reSelect: "top",
+                    taskId: param.TASK_ID, procDefId: param.PROC_DEF_ID, notes: notes
+                });
+                if (!PAGE_EVENTS.beforeTurnBack(data)) {
+                    return;
+                }
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        MaskUtil.unmask();
+                        PAGE_EVENTS.afterTurnBack(jdata);
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (typeof (param.OWindow.reload_ == 'function')) {
+                                param.OWindow.reload_();
+                            }
+                            param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
+
+
+<script id="tempCombobox" type="text/html">
+    <tr>
+        <th class="tdl">{{d.titleName }} ：</th>
+        <td class="tdr">
+            <select name="{{d.fieldName}}" class="easyui-combobox"
+                    data-options="required:true, editable: false" panelHeight="120" style="width:180px">
+                {{#
+                for(var i = 0; i < d.options.length; i++){
+                }}
+                <option value="{{d.options[i]['value']}}">{{d.options[i]['text']}}</option>
+                {{# } }}
+            </select>
+        </td>
+    </tr>
+</script>
+<script id="tempTextbox" type="text/html">
+    <tr>
+        <th class="tdl">{{d.titleName }} ：</th>
+        <td class="tdr">
+            <input name="{{d.fieldName}}" class="easyui-textbox"
+                   data-options="required:true, editable: true" style="width:180px"/>
+        </td>
+    </tr>
+</script>
+
+</body>
+</html>

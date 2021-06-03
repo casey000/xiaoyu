@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <!--<script type="text/javascript" src="/js/hr/common_hr.js"></script>-->
+    <title></title>
+</head>
+<body class="ibody" id="tt">
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform" action="" method="POST" enctype="multipart/form-data">
+                <input type="hidden" id="reviewedBy" name="reviewedBy"/>
+                <input type="hidden" id="reviewedDate" name="reviewedDate"/>
+                <input type="hidden" id="approvedBy" name="approvedBy"/>
+                <input type="hidden" id="approvedDate" name="approvedDate"/>
+                <input type="hidden" id="publicBy" name="publicBy"/>
+                <input type="hidden" id="publicDate" name="publicDate"/>
+                <table class="table table-bordered table-info" id="mtable">
+                    <tr>
+                        <th class="tdl" style="width: 100px;">处理意见：</th>
+                        <td class="tdr">
+                            <input id="notes" name="notes" class="easyui-textbox easyui-validatebox" required="true"
+                                   data-options="multiline:true,validType:['maxLength[200]']"
+                                   style="height:55px; width: 100%;"/>
+                        </td>
+                    </tr>
+                    <tr id="nextDealUserRow">
+                        <th class="tdl xmclass" style="width: 100px">下一级办理人：</th>
+                        <td class="tdr xmclass">
+                            <input id="authId" name="authId" class="easyui-textbox easyui-validatebox"
+                                   data-options="validType:['maxLength[20]'] " style="height:25px; width:150px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center">
+                            <input id="canSubmit" class="addBtn" type="button" onclick="doBatchSubmit();" value="提交"/>
+                            <!--<input id="canTrunTo" class="addBtn" type="button" onclick="doBatchTurnTo();" value="转办"/>-->
+                            <input id="canReturn" class="addBtn" type="button" onclick="doBatchReturn();" value="退回"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript">
+    var param;
+    var selectRow;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        var submitType = param.submitType;
+        if (submitType == 'doSubmit') {
+            $("#canReturn").hide();
+            if (param.processNode == 'RATIFY') {
+                $("#nextDealUserRow").hide();
+            } else {
+                $("#nextDealUserRow").show();
+            }
+        } else if (submitType == 'doReturn') {
+            $("#nextDealUserRow").hide();
+            $("#canSubmit").hide();
+        }
+
+        $("#authId").MyComboGrid({
+            idField: 'ACCOUNT_ID',  //实际选择值
+            textField: 'USER_NAME', //文本显示值
+            panelHeight: '220px',
+            width: 200,
+            params: {roleId: param.roleId, FunctionCode: 'FLOW_WORK_ACCOUNT'},
+            columns: [[
+                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                {field: 'USER_NAME', title: '审核人', width: 50}
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                    alert('请选择，不要直接输入！');
+                    $(this).combogrid({value: ''});
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+            }
+        });
+
+    }
+
+    // 批量提交
+    function doBatchSubmit() {
+        var $form = $("#mform");
+        var isValidate = $form.form('validate');
+        if (!isValidate) {
+            return false;
+        }
+
+        if (!param.pkIds) {
+            MsgAlert({content: '未获得业务主键集', type: 'warn'});
+            return;
+        }
+
+        var processNode = param.processNode;
+        var authId = $("#authId").combogrid('getValue');
+        if (processNode != 'RATIFY') {
+            if (!authId) {
+                MsgAlert({content: '请选择处理人', type: 'warn'});
+                return;
+            }
+        }
+
+        if (processNode == 'PROOF') {
+            $("#approvedBy").val(authId);
+        } else if (processNode == 'AUDIT') {
+            $("#publicBy").val(authId);
+        }
+
+        var data = $form.serializeObject();
+        data = $.extend({_return: "N"}, data, {
+            FunctionCode: 'TD_JC_ALL_SMJC_BATCH_SUBMIT',
+            pkIds: param.pkIds
+        });
+
+        MaskUtil.mask("请求处理中...");
+
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                MaskUtil.unmask();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (typeof(param.OWindow.reload_ == 'function')) {
+                        param.OWindow.reload_();
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 批量退回
+    function doBatchReturn() {
+        $.messager.confirm('提示',
+            '您确定要退回吗?<br/> <input name="rdo_return" type="radio" value="up" checked="checked"/> 退回到上一级 <br/> <input name="rdo_return" type="radio" value="top"/> 退回到开始',
+            function (r) {
+                if (r) {
+                    if (!param.pkIds) {
+                        MsgAlert({content: '未获得业务主键集', type: 'error'});
+                        return;
+                    }
+
+                    var notes = $("#notes").textbox('getValue');
+                    if ($.trim(notes) == '') {
+                        MsgAlert({content: '请输入您的退回意见', type: 'error'});
+                        return;
+                    }
+                    var dore = $("input[name='rdo_return']:checked").val();
+                    if ($.trim(dore) == '') {
+                        MsgAlert({content: '请选择退回项', type: 'error'});
+                        return;
+                    }
+
+                    var data = {
+                        FunctionCode: 'TD_JC_ALL_SMJC_BATCH_RETURN',
+                        pkIds: param.pkIds,
+                        reSelect: dore,
+                        notes: notes
+                    };
+
+                    MaskUtil.mask("请求处理中...");
+
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            MaskUtil.unmask();
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                if (typeof(param.OWindow.reload_ == 'function')) {
+                                    param.OWindow.reload_();
+                                }
+                                param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+            });
+    }
+</script>
+</html>

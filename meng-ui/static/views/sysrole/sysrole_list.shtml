@@ -1,0 +1,169 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>角色管理</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="RES.SYS_ROLE_LIST.QY_ROLE_NAME" style="width: 120px;">角色名称(模糊)：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="roleName"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="searchBtn" auth="WS_ROLE_QUERY" onclick="onSearch_()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="clearBtn" auth="WS_ROLE_QUERY" onclick="onClear_()"><span
+                                data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+    function i18nCallBack() {
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg01';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            //url: "/api/v1/sysrole/list",
+            //title: $.i18n.t('角色管理'),
+            columns: {param: {FunctionCode: 'SYS_ROLE_LIST'}},
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "WS_ROLE_EDIT",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 600, height: 280,
+                            url: "/views/sysrole/sysrole_add_edit.shtml"
+                        });
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "WS_ROLE_DELETE",
+                    onclick: function () {
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {pkid: "PKID"},
+                            FunctionCode: "WS_SYSROLE_DEL"
+                        });
+                    }
+                }
+                , {
+                    id: "m-menu-auth",
+                    i18nText: "common:RES.COMMON.MENU_AUTH_EDIT",
+                    auth: "WS_ROLE_MENU_AUTH", /*ROLE_MENU_SET*/
+                    onclick: function () {
+                        menuAuthEdit_()
+                    }
+                }
+                , {
+                    id: "m-operate-auth",
+                    i18nText: "common:RES.COMMON.OPT_AUTH_EDIT",
+                    auth: "WS_ROLE_OPERATE_AUTH", /*ROLE_PERM_SET*/
+                    onclick: function () {
+                        operateAuthEdit_()
+                    }
+                }
+                , {
+                    id: "m-domain-auth",
+                    i18nText: "common:RES.COMMON.DOMAIN_AUTH_EDIT",
+                    auth: "WS_ROLE_AREA_AUTH", /*ROLE_PERM_SET*/
+                    onclick: function () {
+                        domainAuthEdit_()
+                    }
+                }
+            ],//[#ROLE_EDIT#] || [#ROLE_DEL#]
+            validAuth: function (row, items) {
+                if (row.PKID == 1) {
+                    items['common:COMMON_OPERATION.DEL'].enable = false;
+                }
+                if (row.PKID == 2) {
+                    items['common:COMMON_OPERATION.DEL'].display = false;
+                }
+                return items;
+            },
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth: "WS_ROLE_ADD",
+                    handler: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 600, height: 280,
+                            url: "/views/sysrole/sysrole_add_edit.shtml"
+                        });
+                    }
+                }, '-',
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ]
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    /** 编辑菜单权限 */
+    function menuAuthEdit_() {
+        var rowData = $("#dg").datagrid('getSelected');
+        if (rowData) {
+            ShowWindowIframe({
+                width: 450,
+                height: 550,
+                title: $.i18n.t('common:RES.COMMON.MENU_AUTH_EDIT'),
+                param: rowData,
+                url: '/views/sysrole/sysrole_menu_auth_edit.shtml'
+            });
+        }
+    }
+
+    /** 编辑操作权限 */
+    function operateAuthEdit_() {
+        var rowData = $("#dg").datagrid('getSelected');
+        if (rowData) {
+            ShowWindowIframe({
+                width: 800,
+                height: 450,
+                title: $.i18n.t('common:RES.COMMON.OPT_AUTH_EDIT'),
+                param: rowData,
+                url: '/views/sysrole/sysrole_operate_auth_edit.shtml'
+            });
+        }
+    }
+
+    /** 编辑数据域操作权限 */
+    function domainAuthEdit_() {
+        var rowData = $("#dg").datagrid('getSelected');
+        if (rowData) {
+            ShowWindowIframe({
+                width: 1050,
+                height: 460,
+                title: $.i18n.t('common:RES.COMMON.DOMAIN_AUTH_EDIT'),
+                param: rowData,
+                url: '/views/sysrole/sysrole_domain_auth_edit.shtml'
+            });
+        }
+    }
+</script>
+
+</body>
+</html>

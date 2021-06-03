@@ -1,0 +1,313 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <h5>适用性：</h5>
+    <ul id="tt"></ul>
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="orgName" name="orgName"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <input style="display:none;" name="pkid" id="pkid"/>
+                    <input style="display:none;" name="eoPkid" id="eoPkid"/>
+
+                    <tr>
+                        <th style="width: 10%;">送修要求:</th>
+                        <td colspan="8">
+                            <textarea id="repairDes" name="repairDes" placeholder="送修要求必填"
+                                      style="width: 90%;height:230px;"></textarea>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td colspan="8" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript">
+
+    var param = {};
+    var eoMhourCoeff;
+    var orgId;
+    var state;
+    var accountType;
+    var datan;
+    var otherData;
+    var otherDatan = [];
+    var pkid;
+
+    function i18nCallBack() {
+        window.resizeTo("700", "500");
+        window.moveTo(200, 150);
+        param = getParentParam_();
+        pkid = param.pkid;
+        initData();
+        if (param.pkid) {
+            InitDataForm(param.pkid);
+        }
+
+    }
+
+    /**
+     * 初始化数据
+     * @param pkid
+     * @constructor
+     */
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {pkid: pkid, FunctionCode: "EM_EO_PNR_REPAIR_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#repairDes').val(jdata.data.REPAIR_DES);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitSaveForm_() {
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var repairDes = $('#repairDes').val();
+                if(!repairDes){
+                    MsgAlert({content:'送修要求必填', type:'error'});
+                    return;
+                }
+                var res = repairDes.replace(/[^\x00-\xff]/g, 'xxx').length;
+                if(res > 4000){
+                    MsgAlert({content:'送修要求长度限制1333个汉字或者4000个字符！', type:'error'});
+                    return;
+                }
+                var data = $form.serializeObject();
+                data = $.extend(data, {eoPkid: param.eoPkid}, {FunctionCode: "EM_EO_PN_REPAIR_REQ_ADD"});
+                InitFuncCodeRequest_({
+                    async: false,
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            pkid = jdata.data.pkid;
+                            $('#pkid').val(pkid);
+                            saveApp();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+
+    //适用性--start
+    function initData() {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: param.pkid? param.pkid : -1,
+                eoPkid: param.eoPkid,
+                FunctionCode: 'EM_EO_PNR_REPAIR_APP_GROUP_LIST'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitTreegrid(jdata.data);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitTreegrid(data) {
+        if (!data) return;
+        let otherDatan1 = [];
+        //查询其他送修要求的适用性
+        queryOtherPnrSelect(param.eoPkid, param.pkid);
+        if(otherData){
+            for (let i = 0; i < data.length; i++) {
+                otherDatan.push(toCamelCase(otherData[i]));
+                if (otherDatan[i].checked == 1) {
+                    otherDatan[i].checked = true;
+                }
+
+            }
+
+            for (let i = 0; i < otherDatan.length; i++) {
+                if (!otherDatan[i].appConfig) {
+
+                    let id = otherDatan[i].id;
+                    for (let l = 0; l < otherDatan.length; l++) {
+                        if (otherDatan[l].appGroupPkid == id && otherDatan[l].appConfig) {
+                            if (!otherDatan[i].children) {
+                                let children = [];
+                                otherDatan[i].children = children;
+                            }
+                            otherDatan[i].children.push(otherDatan[l])
+                        }
+                    }
+                    otherDatan1.push(otherDatan[i]);
+                }
+            }
+
+        }
+
+
+        //找出已选中的适用性
+        let selectedIds = [];
+        if(otherDatan1.length > 0){
+            for(let i = 0; i<otherDatan1.length; i++){
+                if(otherDatan1[i].checked){ //父级被选中
+                    selectedIds.push(otherDatan1[i].id);
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            selectedIds.push(otherDatan1[i].children[j].id);
+                        }
+                    }
+                }else{//父级未选中
+                    let isChildren = false; //标识子级是否被选中
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            if(otherDatan1[i].children[j].checked){
+                                isChildren = true;
+                                selectedIds.push(otherDatan1[i].children[j].id);
+                            }
+                        }
+                        if(isChildren){//子级至少有一个选中时
+                            selectedIds.push(otherDatan1[i].id);
+                        }
+
+                    }
+                }
+            }
+        }
+
+        datan = [];
+        for (let i = 0; i < data.length; i++) {
+            datan.push(toCamelCase(data[i]));
+            if (datan[i].checked == 1) {
+                datan[i].checked = true;
+            }
+
+        }
+        let datan1 = [];
+        for (let i = 0; i < datan.length; i++) {
+            if (!datan[i].appConfig) {
+
+                let id = datan[i].id;
+                for (let l = 0; l < datan.length; l++) {
+                    if (datan[l].appGroupPkid == id && datan[l].appConfig) {
+                        if (!datan[i].children) {
+                            let children = [];
+                            datan[i].children = children;
+                        }
+                        datan[i].children.push(datan[l])
+                    }
+                }
+                datan1.push(datan[i]);
+            }
+        }
+        console.log(datan1);
+        console.log(otherDatan1);
+        console.log(selectedIds);
+
+
+        $('#tt').tree({
+            data: datan1,
+            checkbox: true,
+            idField: 'id',
+            treeField: 'groupName',
+            columns: [[
+                {title: 'Task Name', field: 'groupName', width: 180},
+                {field: 'persons', title: 'Persons', width: 60, align: 'right'},
+                {field: 'begin', title: 'Begin Date', width: 80},
+                {field: 'end', title: 'End Date', width: 80}
+            ]],
+            onCheck:function(node, checked){
+                console.log(node);
+                if (checked) {
+                    /*if(node.id == 2218 || node.id == '2218_Config2'){
+                        $('#tt').tree('uncheck', node.target);
+                    }*/
+                    if(selectedIds.length != 0 && selectedIds.indexOf(node.id) > -1){
+                        $('#tt').tree('uncheck', node.target);
+                    }
+                }
+            }
+        });
+
+    }
+
+    function saveApp() {
+        var data = {};
+        var node = $('#tt').tree('getChecked');
+        var appGroup = JSON.stringify(node);
+        data = $.extend(data, {
+            pkid: pkid,
+            eoPkid: param.eoPkid,
+            appGroup: appGroup
+        }, {FunctionCode: 'EM_EO_PN_REPAIR_APP_GROUP_ADD'});
+
+        InitFuncCodeRequest_({
+            async: false,
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //查询其他送修要求选中的适用性
+    function queryOtherPnrSelect(eoPkid, pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: pkid? pkid : -1,
+                eoPkid: eoPkid,
+                FunctionCode: "EM_EO_PNR_OTHER_APP_LIST"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    otherData = jdata.data;
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    //适用性end----
+
+</script>
+</html>

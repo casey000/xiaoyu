@@ -1,0 +1,153 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>选择反馈人</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td align="right" style="padding: 3px;" colspan="6">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearch_('dg','#ffSearch')"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <input class="btn btn-primary" type="button" onclick="add();" value="确定"/>
+                        <input class="btn btn-primary" type="button" id="closeBtn" onclick="CloseWindowIframe();"
+                               value="关闭" style=""/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 60px;" id="jobNoTitle">工号：</th>
+                    <td style="padding:3px;width: 100px;" id="jobNoInput">
+                        <input class="easyui-textbox" id="jobNo" name="jobNo" style="width: 220px;"/>
+                    </td>
+                    <th class="th" align="right" style="width: 60px;" id="nameTitle">姓名：</th>
+                    <td style="padding:3px;width: 100px;" id="nameInput">
+                        <input class="easyui-textbox" id="name" name="name" style="width: 220px;"/>
+                    </td>
+                    <th class="th" align="right" style="width: 40px;" id="roleNameTitle">群组名称：</th>
+                    <td style="padding:3px;width: 100px;" id="roleNameInput">
+                        <input class="easyui-textbox" id="roleName" name="roleName" style="width: 220px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var title;
+    var exeObjIdInfo;
+    var flag;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        title = param.title;
+        exeObjIdInfo = param.exeObjIdInfo;
+        flag = param.flag;
+        if (flag == "USER") {
+            $("#roleNameTitle").hide();
+            $("#roleNameInput").hide();
+            //初始化反馈人列表(用户)
+            InitDataGrid();
+        } else if (flag = "GROUP") {
+            $("#jobNoTitle").hide();
+            $("#jobNoInput").hide();
+            $("#nameTitle").hide();
+            $("#nameInput").hide();
+            //初始化反馈人列表(群组)
+            InitDataGrid1();
+        }
+
+    }
+
+    //用户列表
+    function InitDataGrid() {
+        var jobNo = $("#jobNo").textbox('getValue');
+        var name = $("#name").textbox('getValue');
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            idField: 'PKID',
+            sortable: true,
+            singleSelect: false,
+            checkbox: true,
+            queryParams: {jobNo: jobNo, name: name},
+            columns: {
+                param: {FunctionCode: 'GET_EXE_FB_EMAIL'},
+            },
+            onLoadSuccess: function (jdata) {
+                if (jdata) {
+                    var exeObj = exeObjIdInfo.split(',');
+                    $.each(jdata.rows, function (index, row) {
+                        if (exeObj.indexOf(row.PKID) > -1) {
+                            $("#dg").datagrid('checkRow', index);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    //群组列表
+    function InitDataGrid1() {
+        var roleName = $("#roleName").textbox('getValue');
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            idField: 'PKID',
+            sortable: true,
+            singleSelect: false,
+            checkbox: true,
+            queryParams: {roleName: roleName},
+            columns: {
+                param: {FunctionCode: 'GET_EXE_FB_EMAIL_FROM_GROUP'},
+            },
+            onLoadSuccess: function (jdata1) {
+                if (jdata1) {
+                    var exeObj1 = exeObjIdInfo.split(',');
+                    $.each(jdata1.rows, function (index, row) {
+                        exeObj1 = exeObj1.map(Number);
+                        if (exeObj1.indexOf(row.PKID) > -1) {
+                            $("#dg").datagrid('checkRow', index);
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    /*批量添加*/
+    function add() {
+        var rows = $('#dg').datagrid('getChecked');
+        var exeObjs = "";
+        var exeObjIds = "";
+        if (rows.length == 0) {
+            MsgAlert({content: '请至少选择一行数据', type: 'error'});
+            return false;
+        }
+        if (flag == "USER") {
+            $.each(rows, function (k, it) {
+                exeObjs = exeObjs + it.NAME + "(" + it.JOB_NO + ")" + ",";
+                exeObjIds = exeObjIds + it.PKID + ",";
+            });
+        } else if (flag == "GROUP") {
+            $.each(rows, function (k, it) {
+                exeObjs = exeObjs + it.ROLE_NAME + ",";
+                exeObjIds = exeObjIds + it.PKID + ",";
+            });
+        }
+        exeObjs = exeObjs.substring(0, exeObjs.lastIndexOf(","));
+        exeObjIds = exeObjIds.substring(0, exeObjIds.lastIndexOf(","));
+        param.OWindow.setOtherExeObjValue(exeObjs, exeObjIds);
+        CloseWindowIframe();
+    }
+</script>
+</html>

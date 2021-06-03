@@ -1,0 +1,444 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">SBI列表</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+        <form id="ffSearch" class="form-horizontal">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">机队：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="fleet" name="fleet" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:85px;" align="right">SBI号：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-textbox" id="sbiNo" name="sbiNo" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">状态：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="excelBtn" type="button"
+                           onclick="exportList('PART');"><span>部分导出</span></a>
+                        <a class="excelBtn" type="button"
+                           onclick="exportList('Y');"><span>全部导出</span></a>
+                    </td>
+
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript" src="/js/FileSaver.js"></script>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var companyCode;
+    var accountId;
+    function i18nCallBack() {
+        param = getParentParam_();
+        accountId = getLoginInfo().accountId;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,TD_MANUAL_SBI_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //型号
+                    PAGE_DATA['acengModel'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+                    $('#fleet').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    $('#status').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.TD_MANUAL_SBI_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_MANUAL_SBI_STATUS"]);
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid(jdata);
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams["companyCode"] = companyCode;
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: queryParams,
+            pagination: true,
+            path: "/online-manual/tdManualSbi/queryPageManualList",
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_SBI_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            onLoadSuccess: function (row) {
+                formatterUpperDataGrid(row,"dg");
+            },
+            validAuth: function (row, items) {
+                if (row.STATUS != "BXZ") {
+                    items['编辑'].enable = false;
+                    items['提交'].enable = false;
+                }
+                if (row.STATUS == "BXZ") {
+                    items['办理轨迹'].enable = false;
+                    items['流程图'].enable = false;
+                }
+                if (row.STATUS != "YWC") {
+                    items['改版'].enable = false;
+                }
+                if (row.STATUS == "SHZ" || row.STATUS == "ZLYTJZ") {
+                    items['流程退回'].enable = true;
+                } else {
+                    items['流程退回'].enable = false;
+                }
+                return items;
+            },
+            contextMenus: [
+
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+
+                    }
+                },
+                {
+                    id: "m-submit", i18nText: "提交", auth: "",
+                    onclick: function () {
+
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认提交该记录？")) {
+                            return;
+                        }
+                        datas = $.extend({}, {}, {FunctionCode: 'TD_MANUAL_SBI_STATUS', pkid: rowData.PKID});
+                        var flowKey = "tdManualSbiFlow";
+                        InitFuncCodeRequest_({
+                            data: datas, successCallBack: function (jdata) {
+                                if (jdata.data != null) {
+                                    common_add_edit_({
+                                        identity: '', isEdit: '', width: 520, height: 300, title: $.i18n.t('选择审批人'),
+                                        param: {
+                                            roleId: '',
+                                            otherParam: rowData.PKID,
+                                            FunctionCode_: 'TD_MANUAL_SBI_SUMBIT',
+                                            successCallback: reload_,
+                                            flowKey: flowKey
+                                        },
+                                        url: "/views/flow/work_flow_account_select.shtml"
+                                    });
+                                } else {
+                                    MsgAlert({content: "该数据已被提交过了。", type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+                ,
+                {
+                    id: "m-rev",
+                    i18nText: "改版",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        var ver = Number(rowData.VER) + 1;
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        } else {
+                            if (!confirm("确认改版该记录？")) {
+                                return;
+                            }
+                            InitFuncCodeRequest_({
+                                data: {
+                                    ver: ver, sbiNo: rowData.SBI_NO,
+                                    FunctionCode: 'TD_MANUAL_SBI_SB_VER'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        if (jdata.data.length > 0) {
+                                            MsgAlert({content: "SBI该版本已经存在，改版失败", type: 'error'});
+                                        } else {
+                                            revSbi(rowData.PKID);
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+                ,
+                {
+                    id: "m-flowReturn",
+                    i18nText: "流程退回", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var crearter = rowData.CREATE_BY;
+                        if (accountId != crearter) {
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        wfDoReturn(rowData.PKID, "TD_MANUAL_SBI", "#dg");
+
+                    }
+                }
+                ,
+                {
+                    id: "m-flowTjt",
+                    i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "TD_MANUAL_SBI"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+
+                    }
+                }
+                , {
+                    id: "m-flowChart",
+                    i18nText: "流程图", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        var userInfo = getLoginInfo();
+
+                        if (rowData.STATUS == "ZLYTJZ" || rowData.STATUS == "BXZ" || rowData.STATUS == "SHZ") {
+                            //获取当前在流程中的流程图，需要使用 pkid进行关联
+                            InitFuncCodeRequest_({
+                                data: {
+                                    FunctionCode: 'TD_FLOW_PROCESS',
+                                    objNo: rowData.PKID,
+                                    objKey: "TD_MANUAL_SBI"
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        ShowWindowIframe({
+                                            width: "850",
+                                            height: "650",
+                                            title: "查看流程图",
+                                            param: {
+                                                PROC_DEF_ID: jdata.data.PROC_DEF_ID,
+                                                PROC_INST_ID: jdata.data.PROC_INST_ID,
+                                                BUSINESS_KEY: jdata.data.BUSINESS_KEY
+                                            },
+                                            url: "/views/ws/work_flow/flow_definition/flow_diagram_view.shtml"
+                                        });
+                                    }
+                                }
+                            });
+                        } else if (rowData.STATUS == "YWC") {
+                            //获取整个流程最新的流程图有多个流程实例，使用最新的流程
+                            InitFuncCodeRequest_({
+                                data: {
+                                    FunctionCode: 'TD_FLOW_GET_PROC_DEF_ID',
+                                    flow_key: "tdManualSbiFlow",//流程定义Key/流程Key
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        ShowWindowIframe({
+                                            width: "850",
+                                            height: "650",
+                                            title: "查看流程图",
+                                            param: {PROC_DEF_ID: jdata.data.PROC_DEF_ID},
+                                            url: "/views/ws/work_flow/flow_definition/flow_definition_diagram_view.shtml"
+                                        });
+                                    }
+                                }
+                            });
+                        }
+
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD",
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    handler: function () {
+                        openDetai("save", "");//打开新增页面
+                    }
+                },
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+    //自定义导出清单
+    function exportList(type) {
+        var rows = $('#dg').datagrid('getChecked');
+        if(rows.length==0){
+            MsgAlert({content: "请先选择数据", type: 'error'});
+            return;
+        }
+        ajaxLoading();
+        //获取选中的数据
+        var ids=[];
+
+        for (i = 0; i < rows.length; i++) {
+            ids[i]=rows[i].PKID;
+            rows[i] = toCamelCase(rows[i]);
+        }
+        var detailData = JSON.stringify(rows);
+        var url = "/api/v1/plugins/TD_MANUAL_SBI_EXPORT";
+        var xhr = new XMLHttpRequest();//创建新的XHR对象
+        xhr.open('post', url);//指定获取数据的方式和url地址
+        // xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded;");
+        xhr.responseType = 'blob';//以blob的形式接收数据，一般文件内容比较大
+        xhr.send("ids="+ids+"&type="+type);
+        xhr.onload = function (e) {
+            var blob = this.response;//Blob数据
+            if (this.status == 200) {
+                ajaxLoadEnd();
+                if (blob.size < 200) {
+                    MsgAlert({content: "导出失败", type: 'error'});
+                } else {
+                    if (blob && blob.size > 0) {
+                        saveAs(blob, "导出清单.xlsx");//处理二进制数据，让浏览器认识它
+
+                    }
+                }
+
+            }
+        };
+        var weekValue = $("input[type='radio'][name='thisWeekAndNextWeek1']:checked").val();
+        xhr.send("weekValue=" + weekValue); //post请求传的参数
+    }
+    //打开资料类型详细页面
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('SBI详情');
+        ShowWindowIframe({
+            width: "880",
+            height: "550",
+            title: title_,
+            param: {operation: operation, pkid: pkid, companyCode: companyCode},
+            url: "/views/td/sbi/tdManualSbiDetail.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onGateWaySearch_('dg', '#ffSearch');
+    }
+
+
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function revSbi(pkid){
+        InitFuncCodeRequest_({
+            data: {pkid:pkid, FunctionCode: 'TD_MANUAL_SBI_REV'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

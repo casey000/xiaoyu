@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">整本维修方案</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">状态：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="status" name="status" data-options="editable:false" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">修改标记：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="revCode" name="revCode" m style="width:100px;"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var companyCode;
+    var fleet;
+    var accountId;
+    function i18nCallBack() {
+        param = getParentParam_();
+        accountId = getLoginInfo().accountId;
+        fleet = param.fleet;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_MPD_IF_REVISE,EM_REV_CODE,EM_MPD_REFERS,EM_CMP_APPROVAL_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#revCode').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_REV_CODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_CMP_APPROVAL_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['revCode'] = DomainCodeToMap_(jdata.data["EM_REV_CODE"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_CMP_APPROVAL_STATUS"]);
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {fleet: fleet},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_CMP_APPROVAL_FORM_LIST'},
+                alter: {
+                    REV_CODE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['revCode'][value];
+                        }
+                    },
+                    WRITE_DATE: {
+                        type: 'datetime'
+                    },
+                    CHECK_DATE: {
+                        type: 'datetime'
+                    },
+                    AUDIT_DATE: {
+                        type: 'datetime'
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            console.info(value)
+                            console.info(PAGE_DATA['status'])
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            validAuth: function (row, items) {
+                if (row.STATUS != "BXZ"&&row.STATUS != "TURNBACK") {
+                    items['编辑'].enable = false;
+                }
+                if (row.STATUS != "BXZ") {
+                    items['删除'].enable = false;
+                }
+                if (row.STATUS == "BXZ") {
+                    items['办理轨迹'].enable = false;
+                    items['流程图'].enable = false;
+                } else {
+                    items['办理轨迹'].enable = true;
+                    items['流程图'].enable = true;
+                }
+                if(row.STATUS == "JDZ"||row.STATUS == "SPZ"||row.STATUS == "KKWSPZ"){
+                    items['流程退回'].enable = true;
+                }else{
+                    items['流程退回'].enable = false;
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+
+                    }
+                }, {
+                    id: "m-delete",
+                    i18nText: "删除",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (confirm("是否确认删除？")) {
+                            InitFuncCodeRequest_({
+                                data: {FunctionCode: 'EM_CMP_APPROVAL_FORM_DELETE', pkid: rowData.PKID},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    }
+                                }
+                            });
+                        }
+
+                    }
+                },
+                {
+                    id: "m-flowReturn",
+                    i18nText: "流程退回", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var evalByid = rowData.WRITE_BYID;
+                        if(accountId !=evalByid){
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        wfDoReturn(rowData.PKID,"EM_CMP_APPROVAL_FORM","#dg");
+
+                    }
+                }
+                ,
+                {
+                    id: "m-flowTjt",
+                    i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "EM_CMP_APPROVAL_FORM"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+
+                    }
+                }
+                , {
+                    id: "m-flowChart",
+                    i18nText: "流程图", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var userInfo = getLoginInfo();
+                        if (rowData.STATUS == "JDZ" || rowData.STATUS == "SPZ" || rowData.STATUS == "KKWSPZ") {
+                            //获取当前在流程中的流程图，需要使用 pkid进行关联
+                            InitFuncCodeRequest_({
+                                data: {
+                                    FunctionCode: 'TD_FLOW_PROCESS',
+                                    objNo: rowData.PKID,
+                                    objKey: "EM_CMP_APPROVAL_FORM"
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        ShowWindowIframe({
+                                            width: "850",
+                                            height: "650",
+                                            title: "查看流程图",
+                                            param: {
+                                                PROC_DEF_ID: jdata.data.PROC_DEF_ID,
+                                                PROC_INST_ID: jdata.data.PROC_INST_ID,
+                                                BUSINESS_KEY: jdata.data.BUSINESS_KEY
+                                            },
+                                            url: "/views/ws/work_flow/flow_definition/flow_diagram_view.shtml"
+                                        });
+                                    }
+                                }
+                            });
+                        } else if (rowData.STATUS == "YWC") {
+                            //获取整个流程最新的流程图有多个流程实例，使用最新的流程
+                            InitFuncCodeRequest_({
+                                data: {
+                                    FunctionCode: 'TD_FLOW_GET_PROC_DEF_ID',
+                                    flow_key: "EmCmpApprovalFromService",//流程定义Key/流程Key
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        ShowWindowIframe({
+                                            width: "850",
+                                            height: "650",
+                                            title: "查看流程图",
+                                            param: {PROC_DEF_ID: jdata.data.PROC_DEF_ID},
+                                            url: "/views/ws/work_flow/flow_definition/flow_definition_diagram_view.shtml"
+                                        });
+                                    }
+                                }
+                            });
+                        }
+
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD",
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    handler: function () {
+                        openDetai("save", "");//打开新增页面
+                    }
+                },
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('前言附录审批详情');
+        ShowWindowIframe({
+            width: "1270",
+            height: "700",
+            title: title_,
+            param: {operation: operation, pkid: pkid, companyCode: companyCode, fleet: fleet},
+            url: "/views/em/emcmp/em_cmp_approval_form_add.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

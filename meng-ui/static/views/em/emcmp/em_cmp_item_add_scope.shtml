@@ -1,0 +1,187 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_ceimp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ACEOEXEC_AC_EXE_ONCE.TITLE">机队范围取值</title>
+</head>
+<!--<body class="ibody">
+<table id="dg"></table>-->
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var isScope;
+    var param = {};
+    var function_code;
+    var fleet;
+    var type;
+    var rangeData;
+    param = getParentParam_();
+    isScope = param.rangeData;
+    fleet = param.fleet;
+    var op = param.op;
+
+    function i18nCallBack() {
+        InitDataGrid();
+
+        $("#saveScope").click(function () {
+            saveScope();
+        });
+        $("#closeWindow").click(function () {
+            CloseWindowIframe();
+        })
+
+    }
+
+    function InitDataGrid() {
+        if (isScope == 'JX') {
+            function_code = 'EM_MPD_ITEM_ADD_JX_SCOPE'
+        }
+        else if (isScope == 'ACNO') {
+            function_code = 'EM_MPD_ITEM_ADD_ACNO_SCOPE'
+        }
+        else if (isScope == 'ENG') {
+            function_code = 'EM_MPD_ITEM_ADD_ENG_SCOPE'
+        }
+        else if (isScope == 'APU') {
+            function_code = 'EM_MPD_ITEM_ADD_APU_SCOPE'
+        }
+        else if (isScope == 'ALL') {
+            function_code = 'EM_MPD_ITEM_ADD_ACNO_SCOPE'
+        }
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            singleSelect: false,
+            queryParams: {fleet: fleet},
+            columns: {
+                param: {
+                    FunctionCode: function_code
+                },
+                onLoadSuccess: function (data) {
+                    alert(111);
+                    if (data) {
+                        console(data);
+                        $.each(data.rows, function (index, item) {
+                        });
+                    }
+                },
+                resize: function () {
+                    return {width: $("#dg").width(), height: 502};
+                }
+
+            }
+            ,
+
+
+            toolbar: [
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ]
+        })
+    }
+
+    function saveScope() {
+        param = getParentParam_();
+        var rows = $('#dg').datagrid('getChecked');
+        var rangeData = '';
+        if (rows.length == 0) {
+            MsgAlert({content: '请选择数据项', type: 'error'});
+            return false;
+        }
+        if (rows.length > 10) {
+            MsgAlert({content: $.i18n.t('数量过多！'), type: 'error'});
+            return false;
+        }
+        var total;
+        if (isScope == 'ALL') {
+            InitFuncCodeRequest_({
+                data: {
+                    fleet: fleet,
+                    FunctionCode: "EM_MPD_ITEM_ADD_ACNO_SCOPE",
+                },
+                async: false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        total = jdata.total
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                        return false;
+                    }
+                }
+            });
+            if (rows.length == total) {
+
+                MsgAlert({content: "不能except所有飞机", type: 'error'});
+                return false;
+            }
+
+        }
+        for (var i = 0; i < rows.length; i++) {
+            if (isScope == 'JX') {
+                if (op == "except") {
+                    rangeData += rows[i].ACNO + ","
+                } else {
+                    rangeData += rows[i].CONF_ACTYPE + ","
+                }
+            }
+            else if (isScope == 'ACNO') {
+                rangeData += rows[i].ACNO + ","
+            }
+            else if (isScope == 'ENG') {
+                rangeData += rows[i].ENG_TYPE + ","
+            }
+            else if (isScope == 'APU') {
+                rangeData += rows[i].APU_TYPE + ","
+            }
+            else if (isScope == 'ALL') {
+                rangeData += rows[i].ACNO + ","
+            }
+        }
+        if (isScope == 'ALL') {
+            rangeData = 'ALLEXCEPT ' + rangeData;
+        }
+        param.OWindow.insertRangeData(rangeData);
+        CloseWindowIframe();
+    }
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+</script>
+</body>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" id="saveScope" value="保存" style="margin:5px;"/>
+                            <input class="btn btn-primary" type="button" id="closeWindow" value="关闭"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table class="" id="dg" style="height:500px;">
+
+                            </table>
+
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

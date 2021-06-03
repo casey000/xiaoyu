@@ -1,0 +1,195 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>附件资料编辑</title>
+</head>
+<body>
+<script src="/js/plugins/ajaxfileupload/ajaxfileupload.js" type="text/javascript"></script>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <table class="table table-bordered table-info">
+                <form id="mform" method="post">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">手册标题：</th>
+                        <td class="td5" colspan="3">
+                            <input class="easyui-textbox" id="dataTitle"
+                                   data-options="multiline:true,events:{blur:upper}" style="width:100%;height:80px"
+                                   name="dataTitle"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="left">适用性类型：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="effectType" name="effectType"
+                                   data-options="editable:true,required:false,onChange:effectTypeChange"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="left">适用性：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="effect" name="effect"
+                                   data-options="editable:false,onlyview:true"/>
+                            <input id="chooseBtn" class="btn btn-primary" type="button" onclick="chooseApply()"
+                                   value="选取"
+                                   style="width: 50px;margin:10px;"/>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <td colspan="4" align="center">
+                            <div id="sc"><input class="btn btn-primary" type="button" onclick="save()" id="buttonSubmit"
+                                                value="保存"/></div>
+                        </td>
+                    </tr>
+                </form>
+            </table>
+        </div>
+    </div>
+    <div id="textboxDiv"></div>
+</div>
+</body>
+<script type="text/javascript">
+    var successCallBack;
+    var param = {};
+    param = getParentParam_();
+    var pkid;
+    var effect;
+    var dataTitle;
+    var fleet;
+    var effectType;
+    function i18nCallBack() {
+        pkid = param.pkid;
+        // effect = param.effect;
+        dataTitle = param.dataTitle;
+        fleet = param.fleet;
+        effectType = param.effectType;
+        // $("#effect").textbox("setValue", effect);
+        $("#dataTitle").textbox("setValue", dataTitle);
+
+        InitFuncCodeRequest_({
+            data: {domainCode: "TD_EFFECT_TYPE", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#effectType").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.TD_EFFECT_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    //
+                    InitFuncCodeRequest_({
+                        data: {
+                            // applyModel: applyModel,
+                            // companyCode: param.companyCode,
+                            FunctionCode: "TD_REVSUG_FLEET_LIST2"
+                        },
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                $('#effect').combobox({
+                                    panelHeight: '135px',
+                                    data: jdata.data,
+                                    multiple: true,
+                                    // editable: false,
+                                    // onlyview: true,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT'
+                                });
+                                InitDataForm(pkid)
+                                // $("#effect").combobox({value: effect});
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    //
+
+                    $("#effectType").combobox("setValue", effectType);
+                }
+            }
+        })
+    }
+
+    function effectTypeChange() {
+        var effectType = $("#effectType").combobox('getValue');
+        //选择ALL的时候清空适用性
+        if (effectType == "0") {
+            //清空适用性
+            $("#effect").combobox('setValue', '');
+        }
+    }
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_SUPPLEMENT_DETAIL_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $("#effect").combobox({value: jdata.data.EFFECT});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    function save() {
+        var effect = $("#effect").combobox('getValues');
+        if (Array.isArray(effect)) {
+            effect = effect.join(',');
+        }
+        InitFuncCodeRequest_({
+            data: {
+                pkid: pkid,
+                dataTitle: $("#dataTitle").textbox('getValue'),
+                effect: effect,
+                effectType: $("#effectType").combobox('getValue'),
+                FunctionCode: 'TD_SUPPLEMENT_EDITEFFECT'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    // getParentParam_().OWindow.reload_();
+                    getParentParam_().OWindow.afterUploadFile();
+                    window.close();
+                }
+            }
+        });
+    }
+
+    function upper() {
+        var title = $(this).val();
+        title = title.toUpperCase();
+        $("#dataTitle").textbox('setValue', title);
+    }
+
+    function chooseApply() {
+        //获取适用性类型
+        var effectType = $("#effectType").combobox('getValue');
+        if (effectType == "0") {
+            MsgAlert({content: "ALL无需选择适用性.", type: 'error'});
+            return;
+        }
+
+        var title_ = $.i18n.t('选取适用性');
+        var acIds = $("#effect").combobox("getValues");
+        var acId;
+        if (Array.isArray(acIds)) {
+            acId = acIds.join(',');
+        } else {
+            acId = acIds;
+        }
+        ShowWindowIframe({
+            width: 644,
+            height: 506,
+            title: title_,
+            param: {
+                // applyModel: applyModel,
+                // companyCode: companyCode,
+                fleet: fleet,
+                acId: acId
+                // pkid: pkid,
+                // spkid: spkid
+            },
+            url: "/views/td/rev/fleetList.shtml"
+        });
+    }
+</script>
+</html>

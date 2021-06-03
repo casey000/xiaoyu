@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">手册章节主数据维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">机型：</th>
+                    <td>
+                        <input class="easyui-textbox" name="fleet" id="fleet" data-options=""
+                               style="width:70px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">手册类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="manualType" id="manualType" data-options=""
+                               style="width:70px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">CHAPTER：</th>
+                    <td>
+                        <input class="easyui-textbox" name="chapter" id="chapter" data-options=""
+                               style="width:70px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">SECTION：</th>
+                    <td>
+                        <input class="easyui-textbox" name="section" id="section" data-options=""
+                               style="width:70px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">SUBJECT：</th>
+                    <td>
+                        <input class="easyui-textbox" name="subject" id="subject" data-options=""
+                               style="width:70px;"/>
+                    </td>
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="searchData()"
+                           >查询</a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "WS_USER,DM_DATA_TYPE_AC"
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['wsUser'] = DomainCodeToMap_(jdata.data.WS_USER);
+                    //手册类型
+                    $("#manualType").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_DATA_TYPE_AC,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (data) {
+                            changeFleet(data.VALUE);
+                        }
+                    });
+                }
+            }
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            queryParams:queryParams,
+            path: "/online-manual/chapterHostData/listByPage",
+            pagination: true,
+            columns: {
+                param: {FunctionCode: 'BM_MANUAL_ATA_LIST'},
+                alter: {
+                    CREATE_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['wsUser'][value];
+                        }
+                    },
+                    MODIFY_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['wsUser'][value];
+                        }
+                    },
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    DUAL_MAINTENANCE:{
+                          formatter: function (value) {
+                              if(value=="1"){
+                                  return "是";
+                              }else if(value=="0"){
+                                  return "否";
+                              }else{
+                                  return "";
+                              }
+                          }
+                        },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            onLoadSuccess: function(data) {
+                formatterUpperDataGrid(data,"dg");
+            },
+            toolbar: [
+                {
+                    id: 'btnAdd',
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    auth: "BM_MANUAL_ATA_ADD",
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        openModifyWeb('add');
+                    }
+                },
+                '-',
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "common:COMMON_OPERATION.EDIT",
+                    auth: "BM_MANUAL_ATA_EDIT",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        openModifyWeb('edit', rowdata.PKID);
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "common:COMMON_OPERATION.DEL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/online-manual/chapterHostData/delete/" + rowData.PKID,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: '操作失敗', type: 'error'})
+                                }
+                            }
+                        });
+                    }
+                }
+            ]
+
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        //onSearch_('dg', '#ffSearch');
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function openModifyWeb(op, pkid) {
+        var str = pkid ? "&pkid=" + pkid : "";
+        ShowWindowIframe({
+            url: "/views/main_data_manager/bm_manual_ata/bm_manual_ata_add.shtml?operation=" + op + str,
+            title: "新增章节主数据维护",
+            width: 600,
+            height: 400
+        });
+    }
+</script>
+</body>
+</html>

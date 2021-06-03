@@ -1,0 +1,466 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">方案改版队列</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+            <tr>
+                <th data-i18n="" class="td5" align="right" style="width: 126px">改版标识：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="revCode" name="revCode" data-options="editable:false"
+                           style="width:110px"/>
+                </td>
+                <th data-i18n="" style="width:75px;" align="right">队列类型：</th>
+                <td>
+                    <input class="easyui-textbox" id="applyType" name="applyType" style="width:110px"/>
+                </td>
+                <th data-i18n="" style="width:75px;" align="right">加入方案：</th>
+                <td>
+                    <input id="ifAdd" name="ifAdd" class="easyui-combobox" data-options="editable:false"
+                           style="width:100px"/>
+                </td>
+            </tr>
+            <tr>
+                <th data-i18n="" style="width:75px;" align="right">MP号：</th>
+                <td>
+                    <input class="easyui-textbox" id="cmpNo" name="cmpNo"
+                           style="width:110px"/>
+                </td>
+
+                <th data-i18n="" style="width:75px;" align="right">修订说明：</th>
+                <td>
+                    <input class="easyui-textbox" id="revDesc" name="revDesc"
+                           style="width:110px"/>
+                </td>
+                <td colspan="2">
+                    <a class="addBtn" data-options=""  onclick="addItemToCmp()"><span data-i18n="">加入</span></a>&nbsp;&nbsp;
+                    <a class="searchBtn" data-options=""  onclick="doSearch_()"><span
+                            data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                    <a class="ridoBtn" data-options=""
+                       onclick="helpQuery('dg', 'ffSearch', function(){onSearch_(); });"><span
+                            data-i18n="">高级查询</span></a>&nbsp;&nbsp;
+                    <a class="excelBtn" data-options=""
+                       onclick="excelExport('dg','MP项目');"><span>导出Excel</span></a>
+                </td>
+            </tr>
+        </table>
+    </form>
+</fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var identity = 'dg';
+    var param = {};
+
+    var thisURL = document.URL;
+    var geturlvalue = thisURL.split('?')[1];
+    var fleet = geturlvalue.split("=")[1];
+
+    var ifAdd = {};
+    var revCode = {};
+    var cmpStatus;
+    //草稿
+    var cmpStatus_cg = 'DRAFT';
+    //报批
+    var cmpStatus_bp = 'REPORT';
+    var pkidStr;
+
+    $(document).ready(function (e) {
+        $(this).keydown(function (e) {
+            if (e.which == "13") {
+                doSearch_();//触发该事件
+            }
+        })
+    });
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO,EM_REV_CODE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    ifAdd = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    revCode = DomainCodeToMap_(jdata.data["EM_REV_CODE"]);
+
+                    $('#ifAdd').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#revCode').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_REV_CODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ifAdd').combobox("setValue", "N");
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        param = getParentParam_();
+        $("#dg").MyDataGrid({
+            identity: identity,
+            // fit: true,
+            sortable: true,
+            queryParams: {fleet: fleet, ifAdd: $('#ifAdd').combobox("getValue")},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_REV_QUEUE_LIST'},
+                alter: {
+                    EVAL_NO: {
+                        formatter: function (value, row, index) {
+                            return '<a href="javascript:void(0);" onclick="viewPointImgrTab(\'' + value + '\');">' + value + '</a>';
+                        }
+                    },
+                    IF_ADD: {
+                        formatter: function (value, row, index) {
+                            return ifAdd[value];
+                        }
+                    },
+                    REV_CODE: {
+                        formatter: function (value, row, index) {
+                            return revCode[value];
+                        }
+                    },
+                    REV_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            onLoadSuccess: function (data) {//加载完毕后获取所有的checkbox遍历
+                if (data.rows.length > 0) {
+                    //循环判断操作为新增的不能选择
+                    for (var i = 0; i < data.rows.length; i++) {
+                        //根据ifAdd让某些行不可选
+                        if (data.rows[i].ifAdd == "Y") {//已加入队列的不可以选
+                            $("input[type='checkbox']")[i + 1].disabled = true;
+                        }
+                    }
+                }
+            },
+            onClickRow: function (rowIndex, rowData) {
+                //加载完毕后获取所有的checkbox遍历
+                $("input[type='checkbox']").each(function (index, el) {
+                    //如果当前的复选框不可选，则不让其选中
+                    if (el.disabled == true) {
+                        POSStockHeadTable.datagrid('unselectRow', index - 1);
+                    }
+                })
+            }
+        });
+    }
+
+    function checkIsAdd() {
+        //TODO 选择的数据
+        var rows = $('#dg').datagrid('getSelections');
+        for (var i = 0; i < rows.length; i++) {
+
+            var ifadd = rows[i].IF_ADD;
+            if (ifadd == "Y") {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    //执行加入操作
+    function addItemToCmp() {
+        var panduan = 1;
+
+        var rows = $('#dg').datagrid('getChecked');
+        if (!rows.length) {
+            alert("请选择数据！");
+            return false;
+        }
+        //TODO 校验依据文件版本
+        if (checkIsAdd()) {
+            alert("已经加入方案的项目不可重复加入！");
+            //document.getElementById("dialogUnderlay").style.display = "none";
+            return false;
+        }
+        //判断是否有方案，如果有生效版本则提示
+        var str_pkid = '';
+        for (var i = 0; i < rows.length; i++) {
+            var tpkid = rows[i].PKID;
+            str_pkid += tpkid + ",";
+        }
+        pkidStr = str_pkid;
+
+        //检查是否有报批的维修方案
+        $.ajax({
+            type: 'post',
+            url: '/api/v1/plugins/' + 'EM_CMP_CHECKCMPSTATUS',
+            data: {
+                fleet: fleet
+            },
+            dataType: 'json',
+            async: false,
+            success: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    var hasCmp = jdata.data;
+                    if (hasCmp.length) {
+                        alert("当前维修方案存在【报批】状态，不可以执行项目加入操作。");
+                        panduan = 0;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        if (panduan == 0) {
+            return false;
+        }
+
+        //检查是否有草稿版本的维修方案
+        var edt = hasEditCmp(fleet);
+        //检查是否有生效版本的维修方案
+        var vad = hasValidCmp(fleet);
+        //若没有草稿版本执行
+        //alert(edt);
+        if (!edt) {
+
+            //然后判断是否有生效版本的方案，没有则创建，有则修改
+            if (!vad) {
+                if (confirm("没有草稿版维修方案，是否直接创建？")) {
+                    //直接转到创建界面
+                    common_add_edit_({
+                        width: 800,
+                        height: 400,
+                        title: '维修方案新增',
+                        url: "/views/em/emcmp/em_cmp_wxfa_add.shtml"
+                    });
+                }
+            } else {
+                MsgAlert({content: "当前存在生效版没有临时版，请手动进行改版，", type: 'error'});
+                /* if (confirm("存在生效版维修方案，是否进行改版？")) {
+                 var oid = vad.PKID;
+                 var gbType_ls = "ls";
+                 //alert(oid);
+                 //直接转到改版界面
+                 common_add_edit_({
+                 width: 800,
+                 height: 400,
+                 title: '临时改版',
+                 url: "/views/em/emcmp/em_cmp_wxfa_add.shtml",
+                 param: {pkid: oid, type: gbType_ls},
+                 });
+                 }*/
+            }
+        } else {
+            if (confirm("直接加入当前草稿版维修方案？")) {
+
+                var cgcmppkid = edt.PKID;
+                //判断是否有自定义项目
+                var edt = hasEditCmpHaveItem(fleet);
+                if (!edt) {
+                    MsgAlert({content: "请先维护方案目录结构再执行加入", type: 'error'});
+                    return false;
+                }
+                MaskUtil.mask("正在加入");
+                InitFuncCodeRequest_({
+                    data: {
+                        pkids: pkidStr,
+                        fleet: fleet,
+                        cgcmppkid: cgcmppkid,
+                        FunctionCode: "EM_CMP_FAGBDL_JR"
+                    },
+                    successCallBack: function (jdata) {
+                        MaskUtil.unmask();
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            reload_();
+                        }
+                        else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    function reloadFym_() {
+        parent.shaxintree();
+    }
+
+    /*
+     *   检查当前营运人当前机队是否有生效版的维修方案  ：VALID
+     * */
+    function hasValidCmp(fleet) {
+        var returnValue;
+        $.ajax({
+            type: 'post',
+            url: '/api/v1/plugins/' + 'EM_CMP_JIANCHA_SXCMP',
+            data: {
+                fleet: fleet
+            },
+            dataType: 'json',
+            async: false,
+            success: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    var hasCmp = jdata.data;
+
+                    if (!hasCmp.length) {
+                        returnValue = false;
+                    } else {
+                        returnValue = hasCmp[0];
+                    }
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+
+        });
+        return returnValue;
+    }
+    /*
+     *   检查当前营运人当前机队是否有草稿版的维修方案
+     * */
+    function hasEditCmp(fleet) {
+
+        var returnValue;
+        $.ajax({
+            type: 'post',
+            url: '/api/v1/plugins/' + 'EM_CMP_JIANCHA_CGCMP',
+            data: {
+                fleet: fleet
+            },
+            dataType: 'json',
+            async: false,
+            success: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    var hasCmp = jdata.data;
+
+                    if (!hasCmp.length) {
+                        returnValue = false;
+                    } else {
+                        returnValue = hasCmp[0];
+                    }
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+
+        });
+        return returnValue;
+    }
+
+    /*
+     *  检查是否有目录
+     * */
+    function hasEditCmpHaveItem(fleet) {
+
+        var returnValue;
+        $.ajax({
+            type: 'post',
+            url: '/api/v1/plugins/' + 'EM_CMP_HAVE_CATITEM',
+            data: {
+                fleet: fleet
+            },
+            dataType: 'json',
+            async: false,
+            success: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    var hasCmp = jdata.data;
+
+                    if (!hasCmp.length) {
+                        returnValue = false;
+                    } else {
+                        //alert('有草稿版本');
+                        returnValue = hasCmp[0];
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return returnValue;
+
+    }
+
+    function getCmpOne() {
+        InitFuncCodeRequest_({
+            data: {
+                pkid: cmpPkid,
+                FunctionCode: "EM_CMP_GETONE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    cmpStatus = jdata.data.STATUS;
+                    fleet = jdata.data.FLEET;
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /*doSearch_查询*/
+    function doSearch_() {
+        var $form = $("#ffSearch");
+        var data = $form.serializeObject();
+        data = $.extend({}, data, {fleet: fleet});
+        var dgopt = getDgOpts('dg');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: data
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    function parentSearch_(data) {
+        var dgopt = getDgOpts('dg');
+
+        var datas = data;
+        datas = $.extend({}, datas, {fleet: fleet});
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: datas
+        });
+    }
+
+    function viewPointImgrTab(evalNo) {
+        ShowWindowIframe({
+            width: 1300,
+            height: 550,
+            param: {evalNo: evalNo},
+            title: "查看",
+            url: "/views/em/emmpdeval/workflow/evalNoteView.shtml"
+        });
+    }
+
+</script>
+</body>
+</html>

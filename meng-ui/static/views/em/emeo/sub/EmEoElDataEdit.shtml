@@ -1,0 +1,401 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <h5>适用性：</h5>
+    <ul id="tt"></ul>
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="orgName" name="orgName"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+                    <input style="display:none;" name="pkid" id="pkid"/>
+                    <input style="display:none;" name="eoPkid" id="eoPkid"/>
+                    <tr>
+
+
+                        <th class="tdl">来源:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="source" id="source" value="GEN1"
+                                   data-options=" required:true"/>
+                        </td>
+                        <th class="tdl">负载变化:</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" type="text"
+                                   data-options="min:-9999999.999,max:9999999.999,precision:3 ,required:true"
+                                   name="changeValue" id="changeValue" value="0"
+                            />
+                        </td>
+
+                    </tr>
+                    <tr>
+
+
+                        <th class="tdl">单位:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="unit" disabled="disabled" id="unit" value="千伏安/KVA"
+                                   data-options="required:true"/>
+                        </td>
+
+
+                        <th class="tdl">功率因数:</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" name="factor" id="factor"
+                                   data-options="min:-1,max:1,precision:3 ,required:true"/>
+                        </td>
+
+                    </tr>
+
+
+                    <!--    <tr>
+                            <th class="tdl">适用性分组:</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" name="appGroup" id="appGroup"
+                                />
+                            </td>
+                        </tr>-->
+                    <tr>
+                        <td colspan="8" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript">
+
+    var param = {};
+    var datan;
+    var otherData;
+    var otherDatan = [];
+    var pkid;
+    var saveFlag;
+    function i18nCallBack() {
+        window.resizeTo("700", "450");
+        window.moveTo(400, 150);
+        param = getParentParam_();
+        pkid = param.pkid;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EO_EL_DATA_SOURCE,WS_SYS_ACCOUNT_STATE,WS_SYS_ACCOUNT_TYPE,HR_SEX,HR_ORG",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //来源
+                    $('#source').combobox({
+                        panelHeight: "150px",
+                        data: jdata.data.EM_EO_EL_DATA_SOURCE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (data) {
+                            setUnit(data.VALUE);
+                            initData();
+                        }
+                    });
+                    initData();
+                    if (param.pkid) {
+                        InitDataForm(param.pkid);
+                    }
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        //InitSaveForm_();
+    }
+
+    /**
+     * 初始化数据
+     * @param pkid
+     * @constructor
+     */
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {pkid: pkid, FunctionCode: "EM_EO_EL_DATA_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitSaveForm_() {
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                queryOtherEldSelect();
+                if(saveFlag == 1){
+                    MsgAlert({content: '适用性分组重复', type: 'error'});
+                    return;
+                }
+                var data = $form.serializeObject();
+                data.unit = $("#unit").val();
+                data = $.extend(data, {eoPkid: param.eoPkid},
+                    {FunctionCode: "EM_EO_EL_DATA_ADD"});
+                InitFuncCodeRequest_({
+                    async : false,
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            //param.OWindow.addReloadOne_('dg2');
+                            //MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                            //$form.form('clear');
+                            pkid = jdata.data.pkid;
+                            $('#pkid').val(pkid);
+                            saveApp();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+    /*
+    0: {TEXT: "GEN 1", VALUE: "GEN1"}
+1: {TEXT: "GEN 2", VALUE: "GEN2"}
+2: {TEXT: "GEN 3", VALUE: "GEN3"}
+3: {TEXT: "GEN 4", VALUE: "GEN4"}
+4: {TEXT: "TR 1", VALUE: "TR1"}
+5: {TEXT: "TR 2", VALUE: "TR2"}
+6: {TEXT: "TR 3", VALUE: "TR3"}
+7: {TEXT: "TR 4", VALUE: "TR4"}
+8: {TEXT: "Standby Continuous Load", VALUE: "SCL"}
+     */
+    //设置单位
+    function setUnit(source) {
+        if (source == "GEN1" || source == "GEN2" || source == "GEN3" || source == "GEN4") {
+            $("#unit").textbox('setValue', "千伏安/KVA");
+            $("#factor").numberbox({"disabled": false});
+
+        } else {
+            $("#unit").textbox('setValue', "安培/AMPS");
+            $("#factor").numberbox('setValue', "");
+            $("#factor").numberbox({"disabled": true});
+        }
+    }
+    //设置拼音码
+    function setPym() {
+        var name = $("#name").textbox('getValue');
+        var pym = window.pinyinUtil.getFirstLetter(name, false);
+        $("#pym").textbox('setValue', pym);
+    }
+
+    //适用性--start
+    function initData() {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: param.pkid? param.pkid: -1,
+                eoPkid: param.eoPkid,
+                FunctionCode: 'EM_EO_EL_DATA_APP_LIST'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    InitTreegrid(jdata.data);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitTreegrid(data) {
+        if (!data) return;
+        let otherDatan1 = [];
+        if(otherData){
+            for (let i = 0; i < data.length; i++) {
+                otherDatan.push(toCamelCase(otherData[i]));
+                if (otherDatan[i].checked == 1) {
+                    otherDatan[i].checked = true;
+                }
+
+            }
+
+            for (let i = 0; i < otherDatan.length; i++) {
+                if (!otherDatan[i].appConfig) {
+
+                    let id = otherDatan[i].id;
+                    for (let l = 0; l < otherDatan.length; l++) {
+                        if (otherDatan[l].appGroupPkid == id && otherDatan[l].appConfig) {
+                            if (!otherDatan[i].children) {
+                                let children = [];
+                                otherDatan[i].children = children;
+                            }
+                            otherDatan[i].children.push(otherDatan[l])
+                        }
+                    }
+                    otherDatan1.push(otherDatan[i]);
+                }
+            }
+
+        }
+
+
+        //找出已选中的适用性
+        let selectedIds = [];
+        if(otherDatan1.length > 0){
+            for(let i = 0; i<otherDatan1.length; i++){
+                if(otherDatan1[i].checked){ //父级被选中
+                    selectedIds.push(otherDatan1[i].id);
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            selectedIds.push(otherDatan1[i].children[j].id);
+                        }
+                    }
+                }else{//父级未选中
+                    let isChildren = false; //标识子级是否被选中
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            if(otherDatan1[i].children[j].checked){
+                                isChildren = true;
+                                selectedIds.push(otherDatan1[i].children[j].id);
+                            }
+                        }
+                        if(isChildren){//子级至少有一个选中时
+                            selectedIds.push(otherDatan1[i].id);
+                        }
+
+                    }
+                }
+            }
+        }
+
+        datan = [];
+        for (let i = 0; i < data.length; i++) {
+            datan.push(toCamelCase(data[i]));
+            if (datan[i].checked == 1) {
+                datan[i].checked = true;
+            }
+
+        }
+        let datan1 = [];
+        for (let i = 0; i < datan.length; i++) {
+            if (!datan[i].appConfig) {
+
+                let id = datan[i].id;
+                for (let l = 0; l < datan.length; l++) {
+                    if (datan[l].appGroupPkid == id && datan[l].appConfig) {
+                        if (!datan[i].children) {
+                            let children = [];
+                            datan[i].children = children;
+                        }
+                        datan[i].children.push(datan[l])
+                    }
+                }
+                datan1.push(datan[i]);
+            }
+        }
+        console.log(datan1);
+        console.log(otherDatan1);
+        console.log(selectedIds);
+
+
+        $('#tt').tree({
+            data: datan1,
+            checkbox: true,
+            idField: 'id',
+            treeField: 'groupName',
+            columns: [[
+                {title: 'Task Name', field: 'groupName', width: 180},
+                {field: 'persons', title: 'Persons', width: 60, align: 'right'},
+                {field: 'begin', title: 'Begin Date', width: 80},
+                {field: 'end', title: 'End Date', width: 80}
+            ]],
+            onCheck:function(node, checked){
+                console.log(node);
+                if (checked) {
+                    /*if(node.id == 2218 || node.id == '2218_Config2'){
+                        $('#tt').tree('uncheck', node.target);
+                    }*/
+                    if(selectedIds.length != 0 && selectedIds.indexOf(node.id) > -1){
+                        $('#tt').tree('uncheck', node.target);
+                    }
+                }
+            }
+        });
+
+    }
+
+    function saveApp() {
+        var data = {};
+        var node = $('#tt').tree('getChecked');
+        var appGroup = JSON.stringify(node);
+        data = $.extend(data, {
+            pkid: pkid,
+            eoPkid: param.eoPkid,
+            appGroup: appGroup
+        },
+        {FunctionCode: 'EM_EO_EL_DATA_APP_ADD'});
+
+        InitFuncCodeRequest_({
+            async: false,
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.addReloadOne_('dg2');
+                    //CloseWindowIframe();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //查询其他电气负载变化量选中的适用性
+    function queryOtherEldSelect() {
+        var node = $('#tt').tree('getChecked');
+        var appGroup = JSON.stringify(node);
+        var source = $('#source').combobox('getValue');
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                source: source,
+                eoPkid: param.eoPkid,
+                appGroup: appGroup,
+                pkid : param.pkid,
+                FunctionCode: "EM_EO_ELD_OTHER_APP_CHECK"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    saveFlag = jdata.data;
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</html>

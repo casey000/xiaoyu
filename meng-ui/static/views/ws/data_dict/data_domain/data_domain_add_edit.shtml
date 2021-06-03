@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_data_dict">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <script type="text/javascript" src="/js/extra/domain_enum_datagrid.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        var isEdit_;
+        var param = {};
+        $(function () {
+            param = getParentParam_();
+            isEdit_ = param && param.CODE;
+
+            InitFuncCodeRequest_({
+                data: {domainCode: param.CODE || '', FunctionCode: "DATA_DOMAIN_GET"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        ParseFormField_(jdata.data.DataDomain.data, null, Constant.CAMEL_CASE);
+                        InitEditForm_();
+                        InitEnumDataGrid(jdata.data.EnumDataList);
+                        if (!isEdit_) {
+                            $("#domainType").combobox({value: '1'});
+                        } else {
+//                            $("#code").textbox({ editable: false });
+                        }
+                        onDomainTypeSelect();
+
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+
+            $("#domainType").combobox({
+                onSelect: function (record) {
+                    onDomainTypeSelect();
+                }
+            });
+        });
+
+        function onDomainTypeSelect() {
+            var value = $("#domainType").combobox('getValue');
+            $("#area1,#area2").hide();
+            if (value == '1') {
+                $("#area1").show();
+            } else {
+                $("#area2").show();
+            }
+        }
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'DATA_DOMAIN_EDIT' : 'DATA_DOMAIN_ADD')
+                    });
+                    var enumsData = getEnumDgRowsData_();
+                    data.enumJson = JSON.stringify(enumsData);
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl" style="wdith:150px;">数据域编号 ：</th>
+                        <td class="tdr">
+                            <input id="code" class="easyui-textbox easyui-validatebox" name="code"
+                                   data-options="required:true, validType:['ucode[2,30]','maxLength[30]'] "
+                                   style="height:25px; "/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">描述 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="description"
+                                   data-options="required:true ,validType:['maxLength[200]']" style="height:25px; "/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">长度 ：</th>
+                        <td class="tdr">
+
+                            <input class="easyui-numberbox easyui-validatebox" missingMessage="请输入数字"
+                                   invalidMessage="只允许数字类型" id="length" name="length"
+                                   data-options="required:true,validType:['maxLength[10]']" style="height:25px; "/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">小数位 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox easyui-validatebox" missingMessage="请输入数字"
+                                   invalidMessage="只允许10位小数" id="prec" name="prec"
+                                   data-options="required:true,validType:['maxLength[10]']" style="height:25px; "/>
+                        </td>
+                    </tr>
+
+
+                    <tr>
+                        <th class="tdl">数据类型 ：</th>
+                        <td class="tdr">
+
+                            <select name="dataType" id="dataType" class="easyui-combobox easyui-validatebox"
+                                    data-options="required:true, editable: false, onlyview: true"
+                                    panelHeight="100">
+                                <option value="NVARCHAR2">NVARCHAR2</option>
+                                <option value="NUMBER">NUMBER</option>
+                                <option value="DATE">DATE</option>
+                                <option value="TIMESTAMP">TIMESTAMP</option>
+                                <option value="CLOB">CLOB</option>
+                                <option value="NCLOB">NCLOB</option>
+                                <option value="BLOB">BLOB</option>
+                                <option value="BINARY_FLOAT">BINARY_FLOAT</option>
+                                <option value="BINARY_DOUBLE">BINARY_DOUBLE</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">数据域类型：</th>
+                        <td class="tdr">
+                            <select id="domainType" name="type" class="easyui-combobox"
+                                    data-options="required:true, editable: false" panelHeight="120"
+                                    style="width:180px">
+                                <option value="1">VALUE</option>
+                                <option value="2">SQL</option>
+                                <!--<option value="3">JAVASCRIPT</option>-->
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl" style="wdith:150px;">数据值 ：</th>
+                        <td class="tdr">
+                            <div id="area1" style="height: 350px; width: 500px;">
+                                <table id="dgenum"></table>
+                            </div>
+                            <div id="area2" style="">
+                                <input class="easyui-textbox" name="value"
+                                       data-options="multiline:true , validType:['maxLength[2000]']"
+                                       style="height:80px; width: 500px;"/>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="searchBtn" type="submit" value="提交"
+                                                              style="cursor: pointer;border: none;"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

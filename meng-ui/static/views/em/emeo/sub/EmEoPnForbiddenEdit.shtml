@@ -1,0 +1,641 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--<link rel="stylesheet" href="/css/table.css">-->
+
+    <script type="text/javascript" src="/views/ws/dict/pinyin_dict_firstletter.js"></script>
+    <script type="text/javascript" src="/views/ws/dict/pinyinUtil.js"></script>
+
+</head>
+<body>
+
+<div style="">
+    <h5>适用性：</h5>
+    <ul id="tt"></ul>
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="orgName" name="orgName"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+
+                    <input style="display:none;" name="pkid" id="pkid"/>
+                    <input style="display:none;" name="eoPkid" id="eoPkid"/>
+                    <tr>
+
+                    </tr>
+                    <tr>
+                        <th align="right" style="width: 100px;">采购要求：</th>
+                        <td class="tdr" colspan="2">
+                             <textarea id="liDes" name="liDes"
+
+                                       style="width: 98%;height:250px"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th align="right" style="width: 100px;">安装要求：</th>
+                        <td class="tdr" colspan="2">
+                                 <textarea id="piDes" name="piDes"
+                                           style="width: 98%;height:250px"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right">手册插页要求：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="ifInsetReq" name="ifInsetReq"
+                                   data-options="required:true,editable:true,validType:'comboBoxEditvalid[\'ifInsetReq\']'"/>
+                            <input id="addPageBtn" class="btn btn-primary" onclick="addPage()" style="width: 50px;" type="button"
+                                   value="增加"/>
+                        </td>
+                        <td class="tdr">
+                            <p style="font-size: 14px;color: #cd0a0a">注意部分新飞机的手册暂未合并至顺丰手册中，可能需要<br>对波音网的上个营运人进行插页提醒</p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right">插页要求：</th>
+                        <td class="tdr"  colspan="2">
+                            <table id="dg"></table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" align="center">
+                            <input class="btn btn-primary" id="save" onclick="InitSaveForm_();" type="submit" value="保存"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+    var param = {};
+    var datan;
+    var otherData;
+    var otherDatan = [];
+    var pkid;
+    var operation;
+    var pnfPkid = "";
+    var PAGE_DATA = {};
+    var selectRow=null;
+
+    function i18nCallBack() {
+
+        window.resizeTo("1100", "800");
+        window.moveTo(200, 50);
+        param = getParentParam_();
+        pkid = param.pkid;
+        operation = param.operation;
+        if("view" == operation){
+            $('#addPageBtn').attr('disabled', true);
+            $('#save').attr('disabled', true);
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "WS_SYS_ACCOUNT_STATE,WS_SYS_ACCOUNT_TYPE,HR_SEX,HR_ORG,YESORNO,EM_INSERT_MANUAL" +
+                ",EM_INSERT_MANUAL_NO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['insertManual'] = DomainCodeToMap_(jdata.data["EM_INSERT_MANUAL"]);
+                    $('#ifInsetReq').combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            var temp = item.VALUE;
+                            if(temp == 'N'){
+                                delInsert();
+                            }
+                        }
+                    });
+                    initData();
+                    pnfPkid = param.pkid? param.pkid : -1;
+                    InitDataGrid(pnfPkid);
+                    if (param.pkid) {
+                        InitDataForm(param.pkid);
+                    }
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        InitSaveForm_();
+    }
+
+    /**
+     * 初始化数据
+     * @param pkid
+     * @constructor
+     */
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_EO_PN_FORBIDDEN_BYPKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+
+                    //设置子页面数据
+                    //  setSubData(jdata.data)
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid(pnfPkid) {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            firstLoad: true,
+            singleSelect: true,
+            pagination: false,
+            enableLineEdit: true,
+            enableCellEdit: false,
+            resize: function () {
+                return {
+                    height: 100,
+                    width: 815
+                };
+            },
+            queryParams: {pnfPkid: pnfPkid},
+            columns: {
+                param: {FunctionCode: 'EM_EO_INSET_LIST'},
+                alter: {
+                    INSET_MANUAL: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                editable: false,
+                                panelHeight: '150px',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                queryParams: {domainCode: "EM_INSERT_MANUAL"},
+                                url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                                required: true,
+                                loadFilter: function (jdata) {
+                                    var v = eval("jdata.data." + "EM_INSERT_MANUAL");
+                                    return v;
+                                },
+                                tipPosition: 'top'
+                            }
+                        }, formatter: function (value) {
+                            return PAGE_DATA['insertManual'][value];
+                        }
+                    },
+                    MANUAL_NO: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                editable: true,
+                                panelHeight: '150px',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                queryParams: {domainCode: "EM_INSERT_MANUAL_NO"},
+                                url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                                required: true,
+                                loadFilter: function (jdata) {
+                                    var v = eval("jdata.data." + "EM_INSERT_MANUAL_NO");
+                                    return v;
+                                },
+                                onHidePanel: function () {
+                                    var t = $(this).combobox('getValue');
+                                    if (selectRow==null || t!=selectRow.VALUE) {//没有选择或者选项不相等时清除内容
+                                        alert('请选择手册编号，不要直接输入！');
+                                        $(this).combobox({value: ''});
+                                    }
+                                },
+                                onSelect: function (obj) {
+                                    selectRow = obj;
+                                },
+                                tipPosition: 'top'
+                            }
+                        }, formatter: function (value) {
+                            return value;
+                        }
+                    },
+                    INSET_POSITION: {
+                        editor: {
+                            type: 'textbox',
+                            options:{required:true}
+                        }
+                    },
+                    INSET_MEMO: {
+                        editor: {
+                            type: 'textbox'
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-delete",
+                    i18nText: "删除",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = $('#dg').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: "EM_EO_INSET_DEL",
+                                pkid : rowdata.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    $('#dg').datagrid('reload');
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            onLoadSuccess: function (data) {
+                $("#dg").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+            },
+            onEndEdit: function (index, row, changes) {
+                if('view' == operation){
+                    InitDataGrid(pkid);
+                    return;
+                }
+                row = $.extend({
+                    pnfPkid: pkid,
+                    FunctionCode: "EM_EO_INSET_SAVE"
+                }, row);
+                InitFuncCodeRequest_({
+                    data: row,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            InitDataGrid(pkid);
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            },
+            validAuth: function (row, items) {
+                if(operation == 'view'){
+                    items['删除'].display = false;
+                }
+                return items;
+            },
+        });
+    }
+
+    function reload_(pnfPkid) {
+        $('dg').datagrid('reload',{pnfPkid:pnfPkid});
+    }
+    //保存
+    function InitSaveForm_() {
+        $('#eoPkid').val(param.eoPkid);
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+
+                /*var pn = $("#piPn").textbox('getValue');
+                if (pn == "") {
+                    MsgAlert({content: "请先选择件号", type: 'error'});
+                    return;
+                }*/
+
+                var data = $form.serializeObject();
+
+                data = $.extend({}, data, {FunctionCode: "EM_EO_PN_FORBIDDEN_ADD"});
+                InitFuncCodeRequest_({
+                    async: false,
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            //param.OWindow.reload_();
+                            //MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                            //ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                            pkid = jdata.data.pkid;
+                            $('#pkid').val(pkid);
+                            saveApp();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+    //插入分页表格 新增数据
+    function addPage() {
+        //var pkid = param.pkid;
+
+        if (pkid == -1 || pkid == "") {
+            MsgAlert({content: '请先创建保存数据', type: 'error'});
+            return;
+        }
+
+        var ifInsetReq = $('#ifInsetReq').combobox('getValue');
+        if (!ifInsetReq || ifInsetReq == "N") {
+            MsgAlert({content: '插页要求为是才可增加', type: 'error'});
+            return;
+        }
+
+        $('#dg').datagrid('appendRow', {});
+    }
+
+    function choose() {
+        var title_ = $.i18n.t('选取件号');
+        ShowWindowIframe({
+            width: 774,
+            height: 412,
+            title: title_,
+            param: {},
+            url: "/views/em/emeo/sub/PN_LIST.shtml"
+        });
+    }
+
+    function setPn(obj) {
+        $("#piPn").textbox('setValue', obj);
+    }
+
+    function psChoose() {
+        var title_ = $.i18n.t('选取序号');
+        let pn = $("#piPn").textbox('getValue');
+
+        if (pn == "") {
+            MsgAlert({content: "请先选择件号", type: 'error'});
+            return;
+        }
+        ShowWindowIframe({
+            width: 774,
+            height: 412,
+            title: title_,
+            param: {pn: pn},
+            url: "/views/em/emeo/sub/SN_LIST.shtml"
+        });
+    }
+
+    function setSn(obj) {
+        $("#piSn").textbox('setValue', obj);
+    }
+
+    //设置拼音码
+    function setPym() {
+        var name = $("#name").textbox('getValue');
+        var pym = window.pinyinUtil.getFirstLetter(name, false);
+        $("#pym").textbox('setValue', pym);
+    }
+
+
+    //适用性--start
+    function initData() {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: param.pkid? param.pkid : -1,
+                eoPkid: param.eoPkid,
+                FunctionCode: 'EM_EO_PNF_APP_GROUP_LIST'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitTreegrid(jdata.data);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitTreegrid(data) {
+        if (!data) return;
+        let otherDatan1 = [];
+        queryOtherPnfSelect(param.eoPkid, param.pkid)
+        if(otherData){
+            for (let i = 0; i < data.length; i++) {
+                otherDatan.push(toCamelCase(otherData[i]));
+                if (otherDatan[i].checked == 1) {
+                    otherDatan[i].checked = true;
+                }
+
+            }
+
+            for (let i = 0; i < otherDatan.length; i++) {
+                if (!otherDatan[i].appConfig) {
+
+                    let id = otherDatan[i].id;
+                    for (let l = 0; l < otherDatan.length; l++) {
+                        if (otherDatan[l].appGroupPkid == id && otherDatan[l].appConfig) {
+                            if (!otherDatan[i].children) {
+                                let children = [];
+                                otherDatan[i].children = children;
+                            }
+                            otherDatan[i].children.push(otherDatan[l])
+                        }
+                    }
+                    otherDatan1.push(otherDatan[i]);
+                }
+            }
+
+        }
+
+
+        //找出已选中的适用性
+        let selectedIds = [];
+        if(otherDatan1.length > 0){
+            for(let i = 0; i<otherDatan1.length; i++){
+                if(otherDatan1[i].checked){ //父级被选中
+                    selectedIds.push(otherDatan1[i].id);
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            selectedIds.push(otherDatan1[i].children[j].id);
+                        }
+                    }
+                }else{//父级未选中
+                    let isChildren = false; //标识子级是否被选中
+                    if(otherDatan1[i].children && otherDatan1[i].children.length > 0){
+                        for(let j = 0; j<otherDatan1[i].children.length; j++){
+                            if(otherDatan1[i].children[j].checked){
+                                isChildren = true;
+                                selectedIds.push(otherDatan1[i].children[j].id);
+                            }
+                        }
+                        if(isChildren){//子级至少有一个选中时
+                            selectedIds.push(otherDatan1[i].id);
+                        }
+
+                    }
+                }
+            }
+        }
+
+        datan = [];
+        for (let i = 0; i < data.length; i++) {
+            datan.push(toCamelCase(data[i]));
+            if (datan[i].checked == 1) {
+                datan[i].checked = true;
+            }
+
+        }
+        let datan1 = [];
+        for (let i = 0; i < datan.length; i++) {
+            if (!datan[i].appConfig) {
+
+                let id = datan[i].id;
+                for (let l = 0; l < datan.length; l++) {
+                    if (datan[l].appGroupPkid == id && datan[l].appConfig) {
+                        if (!datan[i].children) {
+                            let children = [];
+                            datan[i].children = children;
+                        }
+                        datan[i].children.push(datan[l])
+                    }
+                }
+                datan1.push(datan[i]);
+            }
+        }
+        console.log(datan1);
+        console.log(otherDatan1);
+        console.log(selectedIds);
+
+
+        $('#tt').tree({
+            data: datan1,
+            checkbox: true,
+            idField: 'id',
+            treeField: 'groupName',
+            columns: [[
+                {title: 'Task Name', field: 'groupName', width: 180},
+                {field: 'persons', title: 'Persons', width: 60, align: 'right'},
+                {field: 'begin', title: 'Begin Date', width: 80},
+                {field: 'end', title: 'End Date', width: 80}
+            ]],
+            onCheck:function(node, checked){
+                console.log(node);
+                if (checked) {
+                    /*if(node.id == 2218 || node.id == '2218_Config2'){
+                        $('#tt').tree('uncheck', node.target);
+                    }*/
+                    if(selectedIds.length != 0 && selectedIds.indexOf(node.id) > -1){
+                        $('#tt').tree('uncheck', node.target);
+                    }
+                }
+            }
+        });
+
+    }
+
+    function saveApp() {
+        var data = {};
+        var node = $('#tt').tree('getChecked');
+        var appGroup = JSON.stringify(node);
+        data = $.extend(data, {
+            pkid: pkid,
+            eoPkid: param.eoPkid,
+            appGroup: appGroup
+        }, {FunctionCode: 'EM_EO_PNF_APP_GROUP_ADD'});
+
+        InitFuncCodeRequest_({
+            async: false,
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                    //CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //查询其他禁限装选中的适用性
+    function queryOtherPnfSelect(eoPkid, pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {
+                pkid: pkid? pkid : -1,
+                eoPkid: eoPkid,
+                FunctionCode: "EM_EO_PNF_OTHER_APP_LIST"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    otherData = jdata.data;
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //适用性end----
+
+    //下拉框校验
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    /*if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;*/
+                    var result = true;
+                    var allData = $combobox.combobox('getData');
+                    for(var i = 0; i< allData.length; i++){
+                        if(value == allData[i].TEXT){
+                            result = false;
+                            break;
+                        }
+                    }
+                    if(result){
+                        return false;
+                    }else{
+                        return true;
+                    }
+
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        }
+    });
+
+
+    function delInsert(){
+        if (confirm("切换后将删除插页要求列表数据，是否确认？")) {
+            InitFuncCodeRequest_({
+                data: {pnfPkid: pnfPkid, FunctionCode: "EMEO_INSET_DEL"},async:false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        $('#dg').datagrid('reload');
+                        MsgAlert({content: "操作成功"});
+                    }
+                }
+            });
+        }else{
+            $("#ifInsetReq").combobox("setValue", "Y");
+        }
+    }
+</script>
+</html>

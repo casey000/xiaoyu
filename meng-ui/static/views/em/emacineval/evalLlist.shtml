@@ -1,0 +1,276 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="emmpdeval">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">新飞机引进管理</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">机队：</th>
+                    <td>
+                        <input class="easyui-comboxbox" name="fleet" id="fleet" data-options="editable: true"
+                               style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">新飞机：</th>
+                    <td>
+                        <input class="easyui-comboxbox" name="acid" id="acid" data-options="editable: true"
+                               style="width:80px"/>
+                    </td>
+
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">章节：</th>
+                    <td>
+                        <input class="easyui-comboxbox" name="ata" id="ata" data-options="editable: true"
+                               style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">状态：</th>
+                    <td>
+                        <input class="easyui-comboxbox" name="wfStatus" id="wfStatus" data-options="editable: true"
+                               style="width:80px"/>
+                    </td>
+                    <td style="right: auto" colspan="2">&nbsp;&nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+
+                    </td>
+
+
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+
+<table id="dg"></table>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var evalNo;
+    var FLEET;
+    var PKID;
+    var flag = true;
+    var userName;
+    var accountId;
+    var PAGE_DATA = {};
+    var acnoArr = {};
+    var executionId = ""; //流程实例ID
+    function i18nCallBack() {
+        userName = getLoginInfo().userName;
+        accountId = getLoginInfo().accountId;
+        //机号
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "EM_AC_IN_EVAL_FOR_ACNO"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    acnoArr = jdata.data;
+                }
+            }
+        });
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_FLEET,EM_MPD_ATA,EM_AC_IN_EVAL_STATUS"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA ["wfStatus"] = DomainCodeToMap_(jdata.data["EM_AC_IN_EVAL_STATUS"]);
+                    $('#fleet').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    $('#acid').combobox({
+                        panelHeight: '150px',
+                        data: acnoArr,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    $('#ata').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data["EM_MPD_ATA"],
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    $('#wfStatus').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data["EM_AC_IN_EVAL_STATUS"],
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    $(document).ready(function (e) {
+        $(this).keydown(function (e) {
+            if (e.which == "13") {
+                searchData();//触发该事件
+            }
+        })
+    });
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'EM_AC_IN_EVAL_LIST'},
+                alter: {
+                    WF_STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['wfStatus'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+            },
+            contextMenus: [
+                {
+                    id: "m-evalItem", i18nText: "评估",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        var evalNo = rowdata.EVAL_NO;
+                        ShowWindowIframe({
+                            width: 1250,
+                            height: 620,
+                            param: {
+                                evalNo: evalNo,
+                                type: "EDIT"
+                            },
+                            title: "评估条目",
+                            url: "/views/em/emacineval/evalItem.shtml"
+                        });
+
+                    }
+                },
+                {
+                    id: "m-flowReturn",
+                    i18nText: "流程退回", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.EVAL_NO) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var evalByid = rowData.EVAL_BY;
+                        if(accountId !=evalByid){
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        wfDoReturn(rowData.EVAL_NO,"EM_AC_IN_EVAL","#dg");
+
+                    }
+                },
+                {
+                    id: "m-view", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        var execid = validWorkFlow("EM_AC_IN_EVAL", rowData.EVAL_NO);
+                        if (execid != null && execid != "") {
+                            ShowWindowIframe({
+                                width: 1100,
+                                height: 600,
+                                title: $.i18n.t('审批轨迹'),
+                                param: {objNo: rowData.EVAL_NO, objKey: "EM_AC_IN_EVAL"},
+                                url: '/views/em/workflow/work_flow_history_task_list.shtml'
+                            });
+                        } else {
+                            MsgAlert({content: '尚未产生流程', type: 'warn'});
+                            return false;
+                        }
+                    }
+                }
+
+            ],
+            validAuth: function (row, items) {
+
+                if (row.WF_STATUS == "PGZ" || row.WF_STATUS == "YCJ" || row.WF_STATUS == "TURNBACK") {
+                    items['评估'].enable = true;
+                } else {
+                    items['评估'].enable = false;
+                }
+                if(row.WF_STATUS == "JDZ"||row.WF_STATUS == "SHZ"){
+                    items['流程退回'].enable = true;
+                }else{
+                    items['流程退回'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                ShowWindowIframe({
+                    width: 1250,
+                    height: 620,
+                    param: {
+                        evalNo: value.EVAL_NO,
+                        type: "VIEM"
+                    },
+                    title: "评估条目",
+                    url: "/views/em/emacineval/evalItem.shtml"
+                });
+            }
+
+        });
+
+    }
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    /**
+     * 校验工作流是否已经存在
+     *
+     **/
+    function validWorkFlow(objKey, objNo) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {objKey: objKey, objNo: objNo, FunctionCode: 'VALID_WORK_FLOW'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        executionId = jdata.data.EXECUTION_ID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return executionId;
+    }
+</script>
+</body>
+
+</html>

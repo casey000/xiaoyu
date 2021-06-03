@@ -1,0 +1,531 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_SWCONFIG_REG.TITLE">软件构型</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">构型编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="configNo" id="configNo" style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">构型名称：</th>
+                    <td>
+                        <input class="easyui-textbox" name="configName" id="configName" style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">机队：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fleet" id="fleet" style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">章节：</th>
+                    <td>
+                        <input class="easyui-combobox" name="ata" id="ata" style="width:120px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 70px">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="status" id="status" style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">软件件号：</th>
+                    <td>
+                        <input class="easyui-combobox" name="swPn" id="swPn" style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">软件版本：</th>
+                    <td>
+                        <input class="easyui-combobox" name="swVer" id="swVer" style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">磁盘件号：</th>
+                    <td>
+                        <input class="easyui-combobox" name="diskPn" id="diskPn" style="width:120px;"/>
+                    </td>
+                    <td colspan="2">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()" >查询</a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var accountId;
+    function i18nCallBack() {
+        accountId = getLoginInfo().accountId;
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_FLEET," +
+                    "BM_ATA_CHAP_SECT," +
+                    "EM_SWCONFIG_STATUS," +
+                    "EM_SWCONFIG_SW_PN," +
+                    "EM_SWCONFIG_VER," +
+                    "EM_SWCONFIG_DISK_PN," +
+                    "WS_USER"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_SWCONFIG_STATUS"]);
+                    PAGE_DATA['userName'] = DomainCodeToMap_(jdata.data["WS_USER"]);
+
+                    $('#swPn').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_SWCONFIG_SW_PN,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#swVer').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_SWCONFIG_VER,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#diskPn').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_SWCONFIG_DISK_PN,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#fleet').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ata').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.BM_ATA_CHAP_SECT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_SWCONFIG_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+                InitDataGrid();
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_SWCONFIG_REG_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    CREATE_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['userName'][value];
+                        }
+                    },
+                    APPROVED_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['userName'][value];
+                        }
+                    },
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    APPROVED_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            toolbar: [
+                {
+                    id: 'btnAdd',
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    auth: "EM_SWCONFIG_ADD",
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        ShowWindowIframe({
+                            url: "/views/em/emswconfig/em_swconfig_add.shtml?operation=add",
+                            title: "新增构型数据维护",
+                            width: 800,
+                            height: 600
+                        });
+                    }
+                },
+                '-',
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-view",
+                    i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/emswconfig/em_swconfig_add.shtml?operation=view&pkid=" + rowdata.PKID,
+                            identity: identity,
+                            isEdit: 0,
+                            width: 800,
+                            height: 600
+                        });
+                    }
+                },
+                {
+                    id: "m-edit",
+                    i18nText: "common:COMMON_OPERATION.EDIT",
+                    auth: "EM_SWCONFIG_EDIT",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            url: "/views/em/emswconfig/em_swconfig_add.shtml?operation=edit&pkid=" + rowdata.PKID,
+                            identity: identity,
+                            isEdit: 1,
+                            width: 800,
+                            height: 600
+                        });
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "common:COMMON_OPERATION.DEL",
+                    auth: "EM_SWCONFIG_DELETE",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (! confirm("确认删除该记录，将同时删除附件及适用性？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_SWCONFIG_REG_DEL',
+                                pkid: rowData.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-sub",
+                    i18nText: "提交",
+                    auth: "EM_SWCONFIG_SUBMIT",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: "EM_SWCONFIG_UNDEAL_AC_NUM",
+                                configId: rowdata.PKID,
+                                fleet: rowdata.FLEET
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.data.UNDEAL_NUM > 0) {
+                                    MsgAlert({
+                                        content: "还有" + jdata.data.UNDEAL_NUM + "架飞机未处理，不能提交！",
+                                        type: "warn"
+                                    });
+                                    return;
+                                }
+                                var flowKey = "emSwconfigFlow";
+                                $.messager.confirm("", "是否确认提交？", function (r) {
+                                    if (r) {
+                                        common_add_edit_({
+                                            url: "/views/em/workflow/work_flow_account_select.shtml",
+                                            param: {
+                                                FunctionCode_: "EM_SWCONFIG_SUBMIT",
+                                                otherParam: rowdata.PKID,
+                                                successCallBack: reload_(),
+                                                flowKey: flowKey
+
+                                            },
+                                            title: $.i18n.t("选择审批人"),
+                                            width: 520,
+                                            height: 300
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-flowReturn",
+                    i18nText: "流程退回", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var crearter = rowData.CREATE_BY;
+                        if (accountId != crearter) {
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        turnEvalAct(rowData);
+
+                    }
+                }
+                ,
+                {
+                    id: "m-flow-track",
+                    i18nText: "办理轨迹",
+                    onclick: function () {
+                        var row = $('#dg').datagrid('getSelected');
+                        if (!row.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        ShowWindowIframe({
+                            url: "/views/em/workflow/work_flow_history_task_list.shtml",
+                            param: {
+                                objKey: "EM_SWCONFIG_REG",
+                                objNo: row.PKID
+                            },
+                            title: $.i18n.t("办理轨迹"),
+                            width: 1100,
+                            height: 400
+                        });
+                    }
+                },
+                {
+                    id: "m-rev",
+                    i18nText: "改版",
+                    auth: "EM_SWCONFIG_REVISE",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: "EM_SWCONFIG_REVISE_CHECK",
+                                configNo: rowdata.CONFIG_NO,
+                                ver: rowdata.VER + 1
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    if (jdata.data.length > 0) {
+                                        MsgAlert({content: '已存在改版数据，不能进行改版！', type: 'error'});
+                                    } else {
+                                        $.messager.confirm("", "是否确认改版？", function (r) {
+                                            if (r) {
+                                                InitFuncCodeRequest_({
+                                                    data: {
+                                                        FunctionCode: "EM_SWCONFIG_REVISE",
+                                                        pkid: rowdata.PKID
+                                                    },
+                                                    successCallBack: function (jdata) {
+                                                        if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                                            MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                                            reload_();
+                                                        } else {
+                                                            MsgAlert({content: jdata.msg, type: 'error'});
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                        });
+                                    }
+
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-invalid",
+                    i18nText: "失效",
+                    auth: "EM_SWCONFIG_INVALID",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        $.messager.confirm("", "是否确认失效？", function (r) {
+                            if (r) {
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        FunctionCode: "EM_SWCONFIG_STATUS_MODIFY",
+                                        pkid: rowdata.PKID,
+                                        status: "INVALID"
+
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                            MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                            reload_();
+                                        } else {
+                                            MsgAlert({content: jdata.msg, type: 'error'});
+                                        }
+                                    }
+                                });
+                            }
+                        });
+
+                    }
+                },
+                {
+                    id: "m-active",
+                    i18nText: "生效",
+                    auth: "EM_SWCONFIG_ACTIVE",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        $.messager.confirm("", "是否确认生效？", function (r) {
+                            InitFuncCodeRequest_({
+                                data: {
+                                    FunctionCode: "EM_SWCONFIG_STATUS_MODIFY",
+                                    formData: JSON.stringify({
+                                        pkid: rowdata.PKID,
+                                        status: "ACTIVE"
+                                    })
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                var status = row.STATUS; // WRITING, AUDIT, ACTIVE, RETURNED, INVALID
+                items['提交'].enable = status == "WRITING";
+                items['改版'].enable = status == "ACTIVE";
+                items['common:COMMON_OPERATION.EDIT'].enable = status == "WRITING" || status == "RETURNED";
+                items['common:COMMON_OPERATION.DEL'].enable = status == "WRITING";
+                items['失效'].enable = status == "ACTIVE";
+                items['生效'].enable = status == "INVALID";
+                if (row.STATUS == "AUDIT") {
+                    items['流程退回'].enable = true;
+                } else {
+                    items['流程退回'].enable = false;
+                }
+                return items;
+            }
+
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function turnEvalAct(row) {
+        var pkid = row.PKID;
+        var objNo = pkid;
+        var objKey = "EM_SWCONFIG_REG";
+        var taskId = "";
+        var procInstId = "";
+        $.messager.confirm('提示?', "是否确认退回?", function (r) {
+            if (r) {
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: {
+                        FunctionCode: 'WS_FLOW_EXECUTION_QUERY',
+                        objNo: objNo,
+                        objKey: objKey
+                    },
+                    async: false,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            taskId = jdata.data["TASK_ID"];
+                            procInstId = jdata.data["PROC_INST_ID_"];
+                            InitFuncCodeRequest_({
+                                data: {pkid: pkid, procInstId: procInstId, FunctionCode: 'EM_SWCONFIG_REG_TURN_ACT'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MaskUtil.unmask();
+                                        reload_();
+                                        MsgAlert({content: '操作成功。'});
+                                    } else {
+                                        MaskUtil.unmask();
+                                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
+</body>
+</html>

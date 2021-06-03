@@ -1,0 +1,204 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>流程定义管理</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th>流程名称:</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="defname"/>
+                    </td>
+                    <th>流程定义KEY:</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="defkey"/>
+                    </td>
+
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="searchBtn"
+                           onclick="onSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="clearBtn"
+                           onclick="onClear_()"><span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_()
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#" + identity).MyDataGrid({
+            identity: identity,
+            url: Constant.API_V1_URL + "/flow/definition/list",
+            //title: $.i18n.t('page:PAGE.FLOW_DEFINITION_LIST.TITLE'),
+            columns: {
+                param: {FunctionCode: 'FLOW_DEFINITION_LIST'},
+                alter: {}
+            },
+            validAuth: function (row, items) {
+                if (row.IS_DEPLOY == 'Y') {
+                    items['部署流程'].enable = false;
+                    items['删除流程'].enable = false;
+                } else {
+                    items['删除(已部署)流程'].enable = false;
+                    items['查看流程实例'].enable = false;
+                    items['查看流程图'].enable = false;
+                }
+                return items;
+            },
+            contextMenus: [
+                {
+                    i18nText: "查看流程实例", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_page_({
+                            identity: identity, checkRowData: true, width: '90%', height: '90%',
+                            param: {
+                                processDefinitionId: rowData.PROC_DEF_ID || "", processName: rowData.FLOW_NAME
+                            },
+                            title: $.i18n.t("RES.PROCESS_DEFINITION_LIST.PROC_INSTANCE_LIST") + "[" + rowData.FLOW_NAME + "]",
+                            url: "/views/ws/work_flow/flow_definition/flow_instance_list.shtml"
+                        });
+                    }
+                },
+                {
+                    i18nText: "查看流程图", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_page_({
+                            identity: identity, checkRowData: true, width: '80%', height: '80%',
+                            param: {PROC_DEF_ID: rowData.PROC_DEF_ID},
+                            title: '查看流程图',
+                            url: "/views/ws/work_flow/flow_definition/flow_definition_diagram_view.shtml"
+                        });
+                    }
+                },
+                {
+                    i18nText: "流程设计", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var t = function () {
+                            common_add_edit_({
+                                identity: identity, isEdit: 1, width: '90%', height: '90%',
+                                param: {ID: rowData.ID || ""},
+                                title: $.i18n.t("RES.PROCESS_DEFINITION_LIST.PROC_DEF_EDIT") + "[" + rowData.FLOW_NAME + "]",
+                                url: "/views/ws/work_flow/designer/index.shtml"
+                            });
+                        };
+                        if (rowData && rowData.IS_DEPLOY == 'Y') {
+                            layerConfirm_({
+                                content: "该流程已部署，是否编辑该流程副本？",
+                                yesFunc: function () {
+                                    t();
+                                }
+                            });
+                        } else {
+                            t();
+                        }
+                    }
+                },
+                {
+                    i18nText: "部署流程", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        if (!rowData) {
+                            layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.NO_SELECT_ROW_ERROR'), {icon: 5});
+                            return;
+                        }
+                        layerConfirm_({
+                            content: $.i18n.t("page:RES.PROCESS_DEFINITION_LIST.PROC_DEF_DEPLOY_CONFIRM"),
+                            yesFunc: function (index) {
+                                var data = {FunctionCode: 'PROCESS_DEFINITION_DEPLOY', id: rowData.ID};
+                                var load = parent.layer.msg('处理中...', {time: 0, shade: [0.3, '#393D49'], icon: 16});
+                                InitFuncCodeRequest_({
+                                    data: data,
+                                    successCallBack: function (jdata) {
+                                        parent.layer.close(load);
+                                        layerStandardMsg_(jdata, null, function () {
+                                            common_reload_({identity: identity});
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除流程", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_confirm_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {data: {id: rowData.ID}},
+                            FunctionCode: "WS_FLOW_DEF_DEL"
+                        });
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除(已部署)流程", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_confirm_({
+                            identity: identity,
+                            cfmI18next: "<span style='color:red'>删除警告：此操作将会删除已部署的流程及相关流程数据！</span>",
+                            param: {data: {id: rowData.ID}},
+                            FunctionCode: "WS_FLOW_DEF_FORCE_DEL"
+                        });
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    iconCls: 'icon-application_side_list', text: '新建流程', auth: "",
+                    handler: function () {
+                        common_add_edit_({
+                            title: "流程定义设计",
+                            identity: identity, isEdit: 0, width: '96%', height: '94%',
+                            url: "/views/ws/work_flow/designer/index.shtml"
+                        });
+                    }
+                }, '-',
+                /* {    iconCls: 'icon-application_side_list',text: $.i18n.t('page:PAGE.PROCESS_DEFINITION_LIST.XMLPROCESS'),
+                     handler: function () {
+                         common_add_edit_({identity:identity, isEdit: 0, width: 600, height : 320,
+                             url: '/views/ws/work_flow/processDefinition/flow_deploy_process.shtml'
+                         });
+                     }
+                 },*/
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ]
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

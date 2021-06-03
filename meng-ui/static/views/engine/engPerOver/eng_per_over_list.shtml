@@ -1,0 +1,340 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">超限报文</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:60px;" align="right">机型：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acType" name="acType" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">机号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="an" name="an" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">发动机型号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="applyModel" name="applyModel" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">件号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="esn" name="esn" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn"  data-options="iconCls:'icon-search'" onclick="searchData();"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width:100px;">报文日期从：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="msgDateS" name="msgDateS" data-options="editable:false" style="width: 108px;"/>
+                    </td>
+                    <th class="th" align="right" style="width:20px;">至：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="msgDateE" name="msgDateE" data-options="editable:false" style="width: 108px;"/>
+                    </td>
+                    <th data-i18n="" align="right">状态：</th>
+                    <td style="width:100px">
+                        <input class="easyui-combobox" id="status" name="status" style="width:110px"/>
+                    </td>
+                    <th data-i18n="" align="right">超限原因：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" id="reason" name="reason" style="width:100px"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var loginUser;
+    var loginName;
+    var acno = '';
+    var sourceType='5';
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData();
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_OIL_DEAL_TYPE,ENG_OIL_TREND_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['dealType'] = DomainCodeToMap_(jdata.data["ENG_OIL_DEAL_TYPE"]);
+                    //状态
+                    $("#status").combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.ENG_OIL_TREND_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/basTypeMapper/getEngtypesAll",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#applyModel').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '100px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#epn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+
+                    InitGatewayRequest_({
+                        async: false,
+                        data:{},
+                        path: "/meng-engine/baseOwn/getEngByType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#esn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/engBsiReport/getMpActypes",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#acType').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取机型列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    var datas =  {};
+                    InitGatewayRequest_({
+                        async: false,
+                        data: datas,
+                        path: "/meng-engine/engBsiReport/getAcnos",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#an').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                    onSelect: function (item) {
+                                        acno = item.text;
+                                    }
+                                });
+                            } else {
+                                MsgAlert({content: '获取机号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        var acid = $('#an').combobox('getValue');
+        if(acid != '' && acid != null){
+            queryParams.an = acno;
+        }else{
+            queryParams.an = '';
+        }
+        $('#dg').GatewayDataGrid({
+            path: "/meng-engine/engPerOver/listByPage",
+            async: false,
+            queryParams: queryParams,
+            identity: 'dg',
+            idField: "pkid",
+            pagination: true,
+            columns: {
+                param: {FunctionCode: 'ENG_PER_OVER_LIST'},
+                alter: {
+                    dealType:{
+                        formatter: function (value) {
+                            return PAGE_DATA['dealType'][value];
+                        }
+                    },
+                    msgDate: {
+                        type: 'datetime'
+                    },
+                    dealDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "处置",
+                    auth: "ENG_PER_OVER1",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        dealPerOver(rowData);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "合并/取消合并",
+                    auth: "ENG_PER_OVER2",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        mergePerOver(rowData);
+                    }
+                },
+            ],
+            validAuth: function (row, items) {
+                if(row.dealType != '' && row.dealType != null){
+                    items['处置'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                view(value.pkid);
+            }
+        });
+    }
+
+    function dealPerOver(rowData){
+        var pkid = rowData.pkid;
+        var esn = rowData.esn;
+        var title_ = $.i18n.t('处置');
+        ShowWindowIframe({
+            width: "620",
+            height: "400",
+            title: title_,
+            param: {pkid:pkid,esn:esn,sourceType:sourceType},
+            url: "/views/engine/engPerOver/eng_per_over_deal.shtml"
+        });
+    }
+
+
+    function mergePerOver(rowData){
+        var pkid = rowData.pkid;
+        var esn = rowData.esn;
+        var msgDate = rowData.msgDate;
+        var reason = rowData.reason;
+        var title_ = $.i18n.t('');
+        ShowWindowIframe({
+            width: "857",
+            height: "610",
+            title: title_,
+            param: {pkid:pkid,esn:esn,msgDate:msgDate,reason:reason},
+            url: "/views/engine/engPerOver/eng_per_over_merge.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        InitDataGrid();
+    }
+
+    //刷新列表
+    function reload_(){
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    function view(pkid){
+        var title_ = $.i18n.t('详情');
+        ShowWindowIframe({
+            width: "857",
+            height: "610",
+            title: title_,
+            param: {pkid:pkid},
+            url: "/views/engine/engPerOver/eng_per_over_view.shtml"
+        });
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+</script>
+</body>
+</html>

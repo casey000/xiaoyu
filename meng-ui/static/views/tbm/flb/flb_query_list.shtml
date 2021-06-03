@@ -1,0 +1,309 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">FLB Initialization</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right:110px;
+        }
+
+        #btnSyncPlan {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 111px;
+        }
+
+        #btnSync {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<div class="easyui-tabs" id="tt" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="ffSearch">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th align="right" class="th" style="width:50px;">FLB号：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" id="ser_flbNo" name="ser_flbNo" style="width:180px;"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">飞机号：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" id="ser_acReg" name="ser_acReg" style="width:180px;"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">飞行日期：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-datebox" id="ser_flightDate" name="ser_flightDate" style="width:180px;"/>
+                    </td>
+                    <td style="width: 120px; padding:3px;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()"
+                           type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script src="/js/date_format.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+
+    function i18nCallBack() {
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitDataGrid();
+    }
+    var url_ac = "/api/v1/plugins/FLB_AC_LIST";
+
+    $("#ser_acReg").combobox({
+        valueField: 'tail',
+        textField: 'tail',
+        url: url_ac,
+        prompt: '请选择',
+        loadFilter: function (data) {
+
+            if (data.data) {
+                return data.data;
+            } else {
+                return data;
+            }
+        },
+        onSelect: function (val) {
+            $('#ser_acReg').combobox('setValue', val.acReg);
+
+        }
+    });
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            // pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'FLB_QUERY'},
+                alter: {
+                    flightDate: {
+                        type: 'datetime'
+                    },
+                    flbNo:{
+                        formatter: function (cellValue, rowObj) {
+                            if(cellValue){
+                                var ele = '<div id="delete_ner' + rowObj.id + '"  style="color: #FF6600;cursor: pointer;">'+ cellValue +'</div>';
+                                $('body').on('click','#delete_ner' + rowObj.id, function () {
+                                    openDetail(rowObj);
+                                });
+                                // $('#delete_ner' + cellValue).die().live('click', function () {
+                                //     openDetail(rowObj);
+                                // });
+                                return ele;
+                            }
+
+
+                        }
+                    },
+                    fhTotal: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    blockTime: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    airTime: {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    flightNo:{
+                      formatter:function (value,rowData) {
+                          if(rowData.flgVr){
+                              return value + "(" + rowData.flgVr + ")"
+                          }else{
+                              return value
+                          }
+                      }
+                    },
+
+                }
+            },
+            onLoadSuccess: function () {
+                // var rows = $("#dg").datagrid("getRows");
+                // for (var i = 0; i < rows.length; i++) {
+                //     if (rows[i].flightType == "I") {
+                //         $('#dg').datagrid('deleteRow', i);
+                //
+                //     }
+                // }
+            },
+            contextMenus: [
+                // {
+                //     id: "m-view",
+                //     i18nText: "查看",
+                //     onclick: function () {
+                //         var rowData = getDG('dg').datagrid('getSelected');
+                //         if (!rowData.id) {
+                //             MsgAlert({content: "请选择数据！", type: 'error'});
+                //             return;
+                //         }
+                //         openDetail('view', rowData.flbId);
+                //     }
+                // }
+            ], toolbar: [
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                },
+                {
+                    id: 'btnExport',
+                    text: $.i18n.t(' Export '),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        exportFlbQuery();
+                    }
+                },
+                // {
+                //     id: 'btnSyncPlan',
+                //     text: $.i18n.t(' Sync Plan FLB '),
+                //     iconCls: 'icon-application_side_list',
+                //     handler: function () {
+                //         syncFLB(60);
+                //     }
+                // },
+                {
+                    id: 'btnSync',
+                    text: $.i18n.t(' Sync FLB '),
+                    iconCls: 'icon-ok',
+                    handler: function () {
+                        syncFLB(2);
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                // openDetail("view", value.flbId);
+            }
+        });
+    }
+
+    //同步flb数据
+    function syncFLB(days) {
+        ajaxLoading();
+        if (!days) {
+            days = 2;
+        }
+
+        var url = "/flb/sync/syncFlb?count=" + days;
+        $.ajax({
+            url: url,
+            type: "get",
+            dataType: "json",
+            success: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                }else{
+                    MsgAlert({content: jdata.msgData[0] ? jdata.msgData[0] : jdata.msg, type: 'error'});
+
+                }
+            },
+            error:function () {
+                ajaxLoadEnd();
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //打开资料类型详细页面
+    function openDetail(obj) {
+        console.log(obj);
+        var title_ = $.i18n.t('FLB Detail');
+        ShowWindowIframe({
+            width: "1170",
+            height: "650",
+            title: title_,
+            param: {flbObj: obj},
+            url: "/views/tbm/flb/flb_query_detail.shtml"
+        });
+    }
+
+    function exportFlbQuery() {
+
+        var con = "<form id='_f0_rm' method='post' action='/api/v1/plugins/EXPORT_FLB_QUERY'></form>";
+        $("#_f0_rm").remove();
+        $("body").append(con);
+
+        var ac = $("<input type='hidden' name='ser_acReg' />");
+        ac.val($("#ser_acReg").textbox('getValue'));
+        $("#_f0_rm").append(ac);
+
+        var no = $("<input type='hidden' name='ser_flbNo' />");
+        no.val($("#ser_flbNo").textbox('getValue'));
+        $("#_f0_rm").append(no);
+
+        var fd = $("<input type='hidden' name='ser_flightDate' />");
+        fd.val($("#ser_flightDate").textbox('getValue'));
+        $("#_f0_rm").append(fd);
+
+        $("#_f0_rm").submit();
+
+    }
+</script>
+</html>

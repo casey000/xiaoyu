@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <title></title>
+    <script type="text/javascript">
+        $(function () {
+            $.extend($.fn.validatebox.defaults.rules, {
+                equalsPwd: {
+                    validator: function (value, param) {
+                        return value == $(param[0]).val();
+                    },
+                    message: '两次输入密码不一致!'
+                }
+            });
+        });
+
+        $.extend($.fn.validatebox.defaults.rules, {
+            passwordVerification : {// 验证用户名
+                validator : function(value) {
+                    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[$@$!%*?&])[A-Za-z\d$@$!%*?&]{8,20}/gi.test(value);
+                },
+                message : '密码长度8到20位，必须包含大小写字母、数字和字符!'
+            }
+        });
+
+    </script>
+    <script type="text/javascript">
+        var index = parent.layer.getFrameIndex(window.name);
+        var param = {};
+        $(function () {
+            param = getParentParam_();
+            $("input[name='pkid']").val(param.pkid);
+            InitEditForm_();
+        });
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    //var rows = $("#mform").datagrid("getRows");
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {FunctionCode: "WS_SYS_ACCOUNT_EDITPWD"});
+                    InitFuncCodeRequest_({
+                        //url: Constant.API_V1_URL + "sysuser/modifyPwd",
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                if (param.OWindow.reload_) {
+                                    param.OWindow.reload_();
+                                }
+                                param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" name="pkid" value=""/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">原密码：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="userPassword" name="userPassword"
+                                   type="password"
+                                   data-options="required:true, validType:['length[1,20]']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">新密码：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="newPassword" name="newPassword"
+                                   type="password" data-options="required:true, validType:['passwordVerification[\'#newPassword\']']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">新密码：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="newPassword2" type="password"
+                                   data-options="required:true, validType:['passwordVerification[\'#newPassword\']','equalsPwd[\'#newPassword\']']"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="bcBtn" type="submit" value="提交"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

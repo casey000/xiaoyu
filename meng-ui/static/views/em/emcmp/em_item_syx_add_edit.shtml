@@ -1,0 +1,359 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        var isEdit_;
+        var param = {};
+        param = getParentParam_();
+        var pkid = param.pkid;
+        var type;
+        type = param.type;
+        var aplRange_all = 'ALL';
+        isEdit_ = param.isEdit;
+        //item
+        var itemPkid = param.itemPkid;
+        //用来判断获取范围值得类型
+        var type_;
+
+
+        var fleet;
+
+        function i18nCallBack() {
+            InitFuncCodeRequest_({
+                data: {domainCode: "EM_CEIMP_APL_RANGE,EM_CEIMP_RANGE_TYPE", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                        //适用范围
+                        $('#aplRange').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_CEIMP_APL_RANGE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function () {
+                                var aplRange = $(this).combobox('getValue');
+                                if (aplRange != aplRange_all) {
+                                    $('#rangeType').combobox({required: true});
+                                }
+                            }
+                        });
+                        //范围类型
+                        $('#rangeType').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_CEIMP_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function () {
+                                var rangeType = $(this).combobox('getValue');
+                                if (rangeType) {
+                                    $('#rangeData').textbox({required: true});
+                                }
+                            }
+
+                        });
+
+                        InitFuncCodeRequest_({
+
+                            data: {
+                                pkid: param.itemPkid,
+                                FunctionCode: "EM_CMP_ITEM_GETONE"
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    fleet = jdata.data.FLEET;
+
+                                    if (isEdit_) {
+                                        InitFuncCodeRequest_({
+                                            data: {
+                                                pkid: param.pkid,
+                                                FunctionCode: "EM_CMP_ITEM_RANGEDATA_EDIT"
+                                            },
+                                            successCallBack: function (jdata2) {
+                                                if (jdata2.code == RESULT_CODE.SUCCESS_CODE) {
+                                                    InitEditForm_();
+                                                    ParseFormField_(jdata2.data, null, Constant.CAMEL_CASE);
+                                                    $('#itemIntervalId').val(pkid);
+                                                    InitDataGrid();
+
+                                                } else {
+                                                    MsgAlert({content: jdata2.msg, type: 'error'});
+                                                }
+                                            }
+                                        });
+                                    }
+                                    else {
+                                        InitEditForm_();
+                                        $('#itemIntervalId').val(pkid);
+                                        InitDataGrid();
+                                    }
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+
+
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+
+
+        }
+
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+
+
+                    /*     data = $.extend({}, data, {
+                     FunctionCode: (isEdit_? 'EM_CMP_ITEM_RANGEDATA_UPDATE' : 'EM_CMP_ITEM_RANGEDATA_ADD' )
+                     });*/
+
+
+                    //ycl
+                    if (type == 1) {
+                        data = $.extend({}, data, {
+
+                            FunctionCode: 'EM_BUTONGTI_BIANJI',
+                        });
+
+
+                    } else {
+                        data = $.extend({}, data, {
+                            FunctionCode: (param.VENDOR_ID ? 'MM_VENDOR_BASE_UPDATE' : 'EM_CMP_ITEM_RANGEDATA_ADD')
+                        });
+                    }
+
+                    /*$("input:checkbox:checked").each(function(){
+
+                     });*/
+//                    console.log(data);
+//                    return false;
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                                //param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+
+                            } else {
+
+                                MsgAlert({content: "信息错误", type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="itemIntervalId" name="itemIntervalId" style="width: 100px;"/>
+                <input type="hidden" id="rangedataPkid" name="rangedataPkid" style="width: 100px;"/>
+                <table class="table table-bordered table-info">
+                    <caption style="padding-bottom: 7px;font-weight:bold;">增加适用性</caption>
+                    <tr>
+                        <td align="right" style="padding-top: 6px;padding-right: 4px" colspan="7">
+                            <input class="btn btn-primary" type="submit" id="submit" value="保存"/>&nbsp;&nbsp;
+                            <input class="btn btn-primary" type="button" onclick="ch();" value="关闭"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:80px" align="right">适用范围：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="aplRange" name="aplRange"
+                                   data-options="required:true" style="width: 100px;"/>
+                        </td>
+                        <th class="td5" style="width:80px" align="right">范围类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="rangeType" name="rangeType" data-options=""
+                                   style="width: 100px;"/>
+                        </td>
+                        <th class="td5" style="width:80px" align="right">范围值：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="rangeData" name="rangeData"
+                                   data-options="" style="width: 100px;"/>
+                        </td>
+                        <td class="td5" style="width:15%;" align="center">
+                            <a class="easyui-linkbutton" type="button" id="getFw" onclick="getRangeData();">
+                                <span data-i18n="mm_wendor:PINVOIC_OPERATION.ADD">获取范围值</span>
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<div id="tab-tools" align="right" style="margin: 4px">
+    <a class="easyui-linkbutton" type="button" id="add" style="margin-right: 15px;" onclick="addsb_();">
+        <span data-i18n="mm_wendor:PINVOIC_OPERATION.ADD">增加后之条件</span>
+    </a>
+    <a class="easyui-linkbutton" type="button" id="edit" style="" onclick="add_();">
+        <span data-i18n="mm_wendor:PINVOIC_OPERATION.ADD">编辑</span>
+    </a>
+</div>
+<div id="tt" class="easyui-tabs" style="width:1350px;height:380px;font-weight:bold;">
+
+    <div title="间隔-适用性-前后置条件" style="display:none;">
+        <table id="emCmpEvalAplCon"></table>
+    </div>
+</div>
+
+<script type="text/javascript">
+
+
+    function addsb_() {
+        var rangedataPkid = $('#rangedataPkid').val();
+        var itemIntervalId = $('#itemIntervalId').val();
+        if (!itemIntervalId) {
+            MsgAlert({content: "请先保存主数据", type: 'error'});
+            return false
+        }
+        //rangedataPkid
+        ShowWindowIframe({
+            width: "60%",
+            height: "60%",
+            title: "增加后置条件",
+            param: {itemIntervalId: itemIntervalId},
+            url: "/views/em/emcmp/em_item_syxqz_add_edit.shtml"
+        });
+    }
+
+    //获取范围值
+    function getRangeData() {
+
+        //获取类型进行判断
+        var rangeType = $("#rangeType").combobox("getValue");
+        type_ = rangeType;
+        ShowWindowIframe({
+            width: "60%",
+            height: "60%",
+            title: "获取范围值",
+            param: {fleet: fleet, type: type_},
+            url: "/views/em/emcmp/em_item_get_rangeData.shtml"
+        });
+    }
+
+    function getData(datas) {
+        $("#rangeData").textbox("setValue", datas);
+    }
+
+    function InitDataGrid() {
+        var aplPkid = $('#itemIntervalId').val();
+        if (!aplPkid) {
+            aplPkid = '-'
+        }
+
+        var identity = 'emCmpEvalAplCon';
+        $("#emCmpEvalAplCon").MyDataGrid({
+            identity: identity,
+            fit: true,
+            sortable: true,
+            title: $.i18n.t(''),
+            queryParams: {aplPkid: aplPkid},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_EVAL_APL_CON_LIST'},
+                alter: {}
+            },
+            contextMenus: [
+                {
+                    id: "m-add", i18nText: "common:COMMON_OPERATION.EDIT", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        ShowWindowIframe({
+                            width: "60%",
+                            height: "60%",
+                            title: "编辑后置条件",
+                            param: {pkid: rowdata.PKID},
+                            url: "/views/em/emcmp/em_item_syxqz_add_edit.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-add", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        InitFuncCodeRequest_({
+
+                            data: {
+                                pkid: rowdata.PKID,
+                                aplPkid: rowdata.APL_PKID,
+                                FunctionCode: "EM_CMP_EVAL_APL_CON_DEL"
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    doSearch_();
+                                } else {
+                                    MsgAlert({content: "信息错误", type: 'error'});
+                                }
+                            }
+                        });
+
+                    }
+                }],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:RES.COMMON.CREATE'), auth: "",//创建
+                    handler: function () {
+
+                        addsb_();
+                    }
+                }
+            ]
+        });
+    }
+
+
+    function doSearch_() {
+        var aplPkid = $('#itemIntervalId').val();
+        var dgopt = getDgOpts('emCmpEvalAplCon');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: {aplPkid: aplPkid},
+        });
+    }
+
+
+    function parentSearch_(date, id) {
+        var dgopt = getDgOpts(id);
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: date
+        });
+    }
+
+    /** 刷新列表数据 */
+
+
+</script>
+
+</body>
+</html>

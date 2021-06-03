@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">波音手册版本管理</title>
+</head>
+<body class="ibody">
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:true,collapsible:true" style="width: 23%;">
+        <ul id="locTree" class="easyui-tree"></ul>
+    </div>
+    <div id="lay_right" data-options="region:'center'" style="-webkit-overflow-scrolling:touch">
+        <table id="dg"> </table>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var queryParams;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "TD_MANUAL_PROCESS_STATUS"
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA["status"] = DomainCodeToMap_(jdata.data.TD_MANUAL_PROCESS_STATUS);
+                }
+            }
+        });
+
+        getTreeTemp();
+        InitDataGrid();
+    }
+
+
+    function getTreeTemp() {
+        getTreeData();
+        debugger;
+        $("#locTree").tree({
+            data:data,
+            lines: true,
+            animate: true,
+            loadFilter: function (jdata) {
+                debugger;
+                return jdata;
+            },
+            onSelect: function (node) {
+                var id = node.id;
+                var idSplice = id.split('-');
+                if (idSplice.length == 3) {
+                    queryParams = {"queryParam": [{"companyCode":idSplice[0], "fleet":idSplice[1],"manualType":idSplice[2]}]};
+                    $('#dg').datagrid('load', queryParams);
+                }
+            }
+        }).css({padding: '5px'});
+    }
+
+    function InitDataGrid() {
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            firstLoad: false,
+            queryParams: queryParams,
+            singleSelect: true,
+            pagination: true,
+            path: "/online-manual/tdVersionManagement/queryTdVersionManagement",
+            resize: function () {
+                return tabs_standard_resize($('#mlayout'), 0, 0.23, -42, 10);
+            },
+
+            columns: {
+                param: {FunctionCode: 'TD_VERSION_LIST'},
+                alter: {
+                    MANUAL_NAME: {
+                        formatter: function (value, row, index) {
+                            var str = row.COMPANY_CODE + ";" + row.FLEET + ";" + row.MANUAL_TYPE + ";" + row.REV_DATE + ";" + row.MANUAL_NAME;
+
+                            return "<a href='javascript:void(0)' onclick='openWeb(\"" + str + "\")'>" + row.MANUAL_NAME + "</a>";
+                        }
+                    },
+                    MANUAL_STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA["status"][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (row) {
+                debugger;
+                formatterUpperDataGrid(row, "dg");
+            }
+        });
+    }
+    var data="";
+    function getTreeData(){
+        //验证网关查询接口
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            path: "/online-manual/tdVersionManagement/selectTree",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    debugger;
+                    data = jdata.obj;
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+    function openWeb(str) {
+        var params = str.split(";");
+        common_add_edit_({
+            url: "/views/td/version/td_version_management_splice.shtml",
+            param: {
+                companyCode: params[0],
+                fleet: params[1],
+                manualType: params[2],
+                oemRev: params[3],
+                manualName: params[4]
+            },
+            title: "手册片段信息",
+            width: 800,
+            height: 600
+        });
+    }
+</script>
+</body>
+</html>

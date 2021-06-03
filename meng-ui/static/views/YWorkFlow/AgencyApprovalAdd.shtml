@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">新增</title>
+</head>
+<body class="ibody">
+
+<div id="tt" style="width:100%; height: 100%">
+    <form id="mform" class="form-horizontal">
+        <table class="table table-bordered table-info">
+            <!--<input type="hidden" id="crtdate" name="crtdate" />-->
+            <!--<input type="hidden" id="crtby" name="crtby" />-->
+            <!--<input type="hidden" id="modby" name="modby" />-->
+            <!--<input type="hidden" id="moddate" name="moddate" />-->
+            <caption id="cap" style="padding-bottom: 7px;font-weight:bold;font-size: 16px;">新增</caption>
+            <tr>
+                <td align="right" colspan="4" style="padding: 3px 0px;">
+                    <input class="btn btn-primary" type="button" onclick="submitData();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" align="right" style="">流程办理人：</th>
+                <td class="tdr" colspan="">
+                    <input class="easyui-combogrid" id="userId" name="userId"
+                           data-options="required:true,validType:['maxLength[160]']"
+                           style="width: 190px"/>
+                </td>
+                <th class="td5" align="right" style="">流程代理人：</th>
+                <td class="tdr" colspan="">
+                    <input class="easyui-combogrid" id="agentId" name="agentId"
+                           data-options="required:true,validType:['maxLength[160]']"
+                           style="width: 190px"/>
+                </td>
+            <tr>
+            <tr>
+                <th class="td5" align="right" style="">开始时间：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="fromDate" name="fromDate"
+                           data-options="required:true,validType:['maxLength[160]']"
+                           style="width: 190px"/>
+                <th class="td5" align="right" style="">结束时间：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="toDate" name="toDate"
+                           data-options="required:true,validType:['maxLength[160]']"
+                           style="width: 190px"/>
+                </td>
+            <tr>
+            <tr>
+                <th class="td5" align="right" style="">备注：</th>
+                <td class="tdr" colspan="3">
+                    <input class="easyui-textbox" id="memo" name="memo"
+                           data-options=""
+                           style="width: 535px"/>
+                </td>
+            <tr>
+        </table>
+    </form>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        $("#userId").MyComboGrid({
+            idField: 'ACCOUNT_ID',  //实际选择值
+            textField: 'USER_NAME', //文本显示值
+            panelHeight: '220px',
+            width: 190,
+            params: {roleId: param.roleId, FunctionCode: 'FLOW_WORK_ACCOUNT'},
+            columns: [[
+                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                {field: 'USER_NAME', title: '审核人', width: 50}
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                    //alert('请选择，不要直接输入！');
+                    $(this).combogrid({value: ''});
+                }
+                var agentId = $("#agentId").combogrid('getValue');
+                if (agentId != "" && t == agentId) {//
+                    alert('办理人与代理人不能相同！');
+                    $(this).combogrid({value: ''});
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+            }
+        });
+
+        $("#agentId").MyComboGrid({
+            idField: 'ACCOUNT_ID',  //实际选择值
+            textField: 'USER_NAME', //文本显示值
+            panelHeight: '220px',
+            width: 190,
+            params: {roleId: param.roleId, FunctionCode: 'FLOW_WORK_ACCOUNT'},
+            columns: [[
+                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                {field: 'USER_NAME', title: '审核人', width: 50}
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                    //alert('请选择，不要直接输入！');
+                    $(this).combogrid({value: ''});
+                }
+                var userId = $("#userId").combogrid('getValue');
+                if (userId != "" && t == userId) {//
+                    alert('办理人与代理人不能相同！');
+                    $(this).combogrid({value: ''});
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+            }
+        });
+    }
+
+    function submitData() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return false;
+        var data = $("#mform").serializeObject();
+        data = $.extend({}, data, {FunctionCode: 'AGENT_APPRO_ADD'});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: "error"});
+                }
+            }
+        });
+        return false;
+    }
+</script>
+</body>
+</html>

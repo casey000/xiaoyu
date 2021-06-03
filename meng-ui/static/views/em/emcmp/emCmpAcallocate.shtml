@@ -1,0 +1,205 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>MPD文件管理</title>
+</head>
+<body>
+<table id="dg"></table>
+<div id="tt" class="" style="width:1030px;">
+    <form id="ffSearch" method="post">
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="tdl" style="width: 60px">项目号：</th>
+                <td class="tdr" colspan="7">
+                    <input class="easyui-textbox" name="itemNumber" id="itemNumber"
+                           data-options="multiline:true,required:false,editable:true"
+                           style="height:25px; width:150px;"/>
+                </td>
+                <th class="tdl" style="width: 60px">章节：</th>
+                <td class="tdr" colspan="7">
+                    <input class="easyui-combobox" name="ata" id="ata"
+                           data-options="multiline:true,required:false,editable:true"
+                           style="height:25px; width:120px;"/>
+                </td>
+
+                <td>
+                    <a class="searchBtn" data-options="iconCls:'icon-search'"
+                       data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()" >查询</a>
+                    <a class="addBtn" data-options="iconCls:'icon-add'"
+                       onclick="tijiao()" data-i18n="" >确认分发</a>
+                </td>
+
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 60px">修订标识：</th>
+                <td class="tdr" colspan="7">
+                    <input class="easyui-textbox" name="revCode" id="revCode"
+                           data-options="multiline:true,required:false,editable:true"
+                           style="height:25px; width:140px;"/>
+                </td>
+                <th class="tdl" style="width: 60px">分配给：</th>
+                <td class="tdr" colspan="7">
+                    <input class="easyui-combogrid" id="distributeTo" name="distributeTo"
+                           data-options="required: true,validType:['maxLength[30]']" style="width:150px;"/>
+                </td>
+            </tr>
+        </table>
+        <fieldset class="fieldset_eui" style="float:left;width:98%; margin-right:5px">
+            <table id="wxxm"></table>
+        </fieldset>
+    </form>
+</div>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = '';
+    var itemType = {};
+    param = getParentParam_();
+    var row = param.rowData;
+    var recordCode = row.RECORD_ID;
+    var recordCodes = recordCode.split("#");
+    var PKID = recordCodes[0];
+    var engeerId = recordCodes[1];
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_MPD_ATA",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                $('#ata').combobox({
+                    panelHeight: '180',
+                    editable: false,
+                    data: jdata.data.EM_MPD_ATA,
+                    multiple: true,
+                    valueField: 'VALUE',
+                    textField: 'VALUE'
+                });
+
+                $("#distributeTo").MyComboGrid({
+                    idField: 'ACCOUNT_ID',  //实际选择值
+                    textField: 'USER_NAME', //文本显示值
+                    panelHeight: '180px',
+                    width: 150,
+                    editable: true,
+                    params: {FunctionCode: 'EM_NAME_HELP'},
+                    columns: [[
+                        {field: 'USER_NAME', title: '责任工程师', width: 100},
+                        {field: 'ACCOUNT_NUMBER', title: '工号', width: 100},
+                        {field: 'ORG_NAME', title: '部门', width: 100}
+                    ]],
+                    onHidePanel: function () {
+                        var t = $(this).combogrid('getValue');
+                        if (selectRow2 == null || t != selectRow2.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                            alert('请选择，不要直接输入！');
+                            $(this).combogrid('setValue', '');
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        $("#distributeTo").val(row.ACCOUNT_ID);
+                        selectRow2 = row;
+                    }
+                });
+            }
+        });
+
+        InitDataGrid1();
+    }
+
+    function InitDataGrid1() {
+        var identity = 'wxxm';
+        $("#wxxm").MyDataGrid({
+            identity: identity,
+            queryParams: {PKID: PKID, engeerId},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_ALLOCATE_LIST_DISTRIBUTE'},
+                alter: {}
+            },
+            resize: function () {
+                return {width: 1010, height: 505};
+            },
+            contextMenus: []
+        });
+    }
+
+    function tijiao() {
+
+        var $form = $("#ffSearch");
+        var data = $form.serializeObject();
+        if (data.distributeTo == null || data.distributeTo == "") {
+            alert("请选择分配工程师。");
+            return;
+        }
+        var checkedItems = $('#wxxm').datagrid('getChecked');
+        var pkids = [];
+        $.each(checkedItems, function (index, item) {
+            pkids.push(item.PKID);
+        });
+        if (pkids.length == 0) {
+            alert("请选择需要分配的条目。");
+            return;
+        }
+        MaskUtil.mask("请求处理中...");
+        data = $.extend({distributeTo: data.distributeTo, pkids: pkids.join(","), PKID: PKID}, data, {
+            FunctionCode: ('EM_CMP_ALLOCATE_LIST_DISTRIBUTE_TO')
+        });
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    // param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    //CloseWindowIframe();
+                    MaskUtil.unmask();
+                    reload_();
+                } else {
+                    MaskUtil.unmask();
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return false;
+
+    }
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#wxxm").datagrid("reload");
+    }
+
+    function onSearch_(identity, fromId, breforSearch) {
+        var data = $("#ffSearch").serializeObject();
+        var ata = '';
+        if (data.ata && Object.prototype.toString.call(data.ata) == '[object Array]') {
+            $.each(data.ata, function (k, v) {
+                ata += v + ',';
+            });
+            ata = ata.substring(0, ata.length - 1);
+            data.ata = ata;
+        }
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams.ata = data.ata;
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+</script>
+</body>
+</html>

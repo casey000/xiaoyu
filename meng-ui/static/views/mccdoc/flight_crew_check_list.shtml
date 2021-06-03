@@ -1,0 +1,352 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <title data-i18n="">FLB Initialization</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        .table-bordered {
+            border: none;
+        }
+
+        #btnSyncPlan {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 4px;
+            right: 30px;
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<div class="easyui-tabs" id="tt" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="ffSearch">
+            <table class="table table-bordered table-info">
+<!--搜索第一行-->
+                <tr>
+                    <th align="right" class="th" style="width:70px;">航班计划起始时间：</th>
+                    <td style="width:100px; padding:3px;">
+                        <input class="easyui-datetimebox" data-options="editable:false" id="startFlightDate"
+                               style="width:180px;" type="text" validType="lateNow" value="" name="startFlightDate">
+                    </td>
+                    <th align="right" class="th" style="width:70px;">航班计划结束时间：</th>
+                    <td style="width: 100px;padding:3px;">
+                        <input class="easyui-datetimebox" data-options="editable:false" id="endFlightDate"
+                               style="width:180px;" type="text" validType="lateNow" value="" name="endFlightDate">
+                    </td>
+
+                    <th align="right" class="th" style="width:70px;">起始站：</th>
+                    <td style="width: 100px;padding:3px;">
+                        <input class="easyui-combogrid" id="fromStation" name="fromStation" data-options=""
+                               style="width:180px"/>
+                    </td>
+                    <th align="right" class="th" style="width:70px;">落地站：</th>
+                    <td style="width: 100px;padding:3px;">
+                        <input class="easyui-combogrid" id="toStation" name="toStation" data-options=""
+                               style="width:180px"/>
+                    </td>
+                    <td style="width: 100px;padding:3px;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                    </td>
+                </tr>
+<!--搜索第二行-->
+                <tr>
+                    <th align="right" class="th" style="width:50px;">航班号：</th>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" id="flightNo" name="flightNo" style="width:180px;"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">跟机准备状态：</th>
+                    <td style="width: 120px;padding:3px;">
+                        <input class="easyui-textbox" data-options="editable:false" id="followReadyStatus"
+                               style="width:180px;" type="text"  value=""  name="extStatus">
+                    </td>
+                    <th align="right" class="th" style="width:50px;">跟机人：</th>
+                    <td style="width: 120px;padding:3px;">
+                        <input class="easyui-textbox" id="crew_name" style="width: 180px"/>
+                        <input id="crew_sn" name="crewSn" type="hidden"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">跟机状态：</th>
+                    <td style="width: 120px;padding:3px;">
+                        <input class="easyui-textbox" data-options="editable:false" id="followStatus"
+                               style="width:180px;" type="text"  value=""  name="status">
+
+                    </td>
+                    <td style="width: 100px;padding:3px;">
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script src="/js/date_format.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+    var PAGE_DATA = {}
+
+    function i18nCallBack() {
+        //初始基础数据
+        initReadyData();
+
+        //绑定回车查询事件2
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        //初始化网格数据
+        InitDataGrid();
+
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {status: 'NORMAL'},
+            pageSize: 15,
+            fitColumns:false,
+            columns: {
+                param: {
+                    FunctionCode: 'FLIGHT_CREW_CHECK_LIST'
+                },
+                alter: {
+                //     'MRREPORTEDBYNAME': {
+                //         formatter: function (value, row, index) {
+                //             if(row.MRREPORTEDBYSN){
+                //                 return value + row.MRREPORTEDBYSN;
+                //             }else{
+                //                 return  value
+                //             }
+                //         }
+                //     },
+                    'extStatus':{
+                        formatter:function (value,row) {
+                            if(value == "UNFINISHED"){
+                                return "未完成";
+                            }else{
+                                return `<div style="color: #00B83F">已完成</div>`;
+                            }
+
+                        }
+                    },
+                    'status':{
+                        formatter:function (value,row) {
+                            if(value == "NORMAL"){
+                                // return "正常";
+                                return  `<div style="color: #00B83F">正常</div>`
+                            }else{
+                                return '取消';
+                            }
+
+                        }
+                    },
+                    'personalitems':{
+                        // align:center,
+                        formatter: function (value, row, index) {
+                            //如果有值:I标识国际，R标识港澳台
+                            if((row.dorI == "I" || row.dorI == "R" )&& row.checkContentId){
+                                return `<a style = "color: dodgerblue" href="javascript:;" onclick="viewDet('${row.checkContentId}','${row.MRREVISIONNUM}','${row.REQUIREDDATE}')">已申报</a>`
+                            }else if((row.dorI == "I" || row.dorI == "R" ) && !row.checkContentId){
+                                return `<a style = "color: #8D8D8D" href="javascript:;" onclick="viewDet('${row.checkContentId}','${row.MRREVISIONNUM}','${row.REQUIREDDATE}')">未申报</a>`
+                            }else{
+                                return '— —'
+                            }
+
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+
+//导出所在行
+            toolbar: [
+                {},
+                {
+                    id:"btnSyncPlan",
+                    text: $.i18n.t(' Export '),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        // exportFlbSummary();
+                        //导出Excel
+                        var data = $('#ffSearch').serializeObject();
+                        // console.log(data)
+                        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/mcc/flightCrewCheck/base/export_flight_crew_check'></form>");
+                        form.append($("<input name='fileType' value = 'excel'/>"));
+                        $.each(data, function (key, val) {
+                            if (typeof (val) == "object") {
+                                $.each(val, function (k1, v1) {
+                                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                                });
+                            } else {
+                                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                            }
+                        });
+                        $(this).parent().append(form);
+                        form.submit();
+                        form.remove();
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    };
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    };
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    };
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    };
+
+    //打开个人信息
+    function viewDet(id,rev,REQUIREDDATE) {
+        if( rev == "undefined"){
+            rev = 0;
+        }
+        // var curWidth = ($(window).width() * 0.8).toString();
+        // var curheight = $(window).height().toString();
+        ShowWindowIframe({
+            width: 500,
+            height: 500,
+            title: '',
+            //传入下级页面参数
+            param: {
+                id:id
+            },
+            url: "/views/mccdoc/view_personal_items.shtml"
+        });
+    };
+
+    function initReadyData(){
+        //    选择人名或工号
+        $("#crew_name").textbox({
+            // value: `${userInfo.userName}(${userInfo.accountNumber})`,
+            editable: false,
+            icons: [{
+                iconCls: 'icon-search',
+                handler: function (e) {
+                    $.dialog.setting.extendDrag = true;
+                    UserUtils.showDialog({
+                        callback: function (data) {
+                            let user_info = data[0];
+                            $("#crew_name").textbox("setValue", user_info.userName + "(" + user_info.sn + ")");
+                            $("#crew_sn").val(user_info.sn)
+                        }
+                    });
+                }
+            }, {
+                iconCls: 'icon-cross',
+                handler: function (e) {
+                    $("#crew_name").textbox("setValue", "");
+                    $("#crew_sn").val("");
+                }
+            }]
+        });
+
+//    航站信息
+        $("#fromStation").MyComboGrid({
+            idField: 'STATION',  //实际选择值
+            textField: 'STATION', //文本显示值
+            panelHeight: '180px',
+            params: {FunctionCode: 'SELECT_STATION'},
+            columns: [[
+                {field: 'STATION', title: '航站三字码', width: 50},
+                {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                {field: 'FULLNAME_CN', title: '中文全称', width: 50},
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (t != null && t != '' & t != undefined) {
+                    if (selectRow == null || t != selectRow.STATION) {//没有选择或者选项不相等时清除内容
+                        alert('请选择，不要直接输入！');
+                        $(this).combogrid({value: ''});
+                    }
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+            }
+        });
+
+        $("#toStation").MyComboGrid({
+            idField: 'STATION',  //实际选择值
+            textField: 'STATION', //文本显示值
+            panelHeight: '180px',
+            params: {FunctionCode: 'SELECT_STATION'},
+            columns: [[
+                {field: 'STATION', title: '航站三字码', width: 50},
+                {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                {field: 'FULLNAME_CN', title: '中文全称', width: 50},
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (t != null && t != '' & t != undefined) {
+                    if (selectRow == null || t != selectRow.STATION) {//没有选择或者选项不相等时清除内容
+                        alert('请选择，不要直接输入！');
+                        $(this).combogrid({value: ''});
+                    }
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+            }
+        });
+
+        $('#followStatus').combobox({
+            panelHeight: '135px',
+            data:  [{'VALUE':'','TEXT':'所有'},{'VALUE':'NORMAL','TEXT':'正常','selected':true},{'VALUE':'CANCEL','TEXT':'取消'}],
+            valueField: 'VALUE',
+            textField: 'TEXT'
+        });
+
+
+        $('#followReadyStatus').combobox({
+            panelHeight: '135px',
+            data:  [{'VALUE':'','TEXT':'所有'},{'VALUE':'COMPLETED','TEXT':'已完成'},{'VALUE':'UNFINISHED','TEXT':'未完成'}],
+            valueField: 'VALUE',
+            textField: 'TEXT'
+        });
+        // $("#followStatus").combobox('setValue', 'NORMAL');
+    };
+
+
+
+
+</script>
+</html>

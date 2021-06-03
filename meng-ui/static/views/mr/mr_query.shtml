@@ -1,0 +1,571 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <title data-i18n="">FLB Initialization</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        .table-bordered {
+            border: none;
+        }
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            /*position: absolute;*/
+            top: 0px;
+            margin-left: 5px;
+            /*right: 111px;*/
+        }
+        #pnRequest{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 110px;
+        }
+        #Pdf{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 205px;
+        }
+
+        #btnSyncPlan {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 30px;
+        }
+
+        #btnDel {
+            position: absolute;
+            top: 0px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<div class="easyui-tabs" id="tt" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="ffSearch">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th align="right" class="th" style="width:50px;">MR No：</th>
+                    <td style="width:80px; padding:3px;">
+
+                        <input class="easyui-textbox" id="mrNumber" name="mrNum" style="width:180px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th align="right" class="th" style="width:50px;">Card Type：</th>
+                    <td style="width:80px; padding:3px;">
+
+                        <input class="easyui-combobox" id="cardType" name="workType" style="width:180px;"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">Card No：</th>
+                    <td style="width: 120px;padding:3px;">
+                        <select class="easyui-textbox" id="cardNo"
+                                name="cardNum" panelHeight="160"
+                                style="width:180px;display: inline-block;">
+                        </select>
+                    </td>
+                    <td style="width: 120px; padding:3px;border: none;text-align: right;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="ridoBtn" data-options="iconCls:'icon-filter'" href="javascript:void(0)"
+                           onclick="helpQuery('dg', 'ffSearch', function(){onSearch_(); });"><span>高级查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script src="/js/date_format.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+    function addPart() {
+        common_add_edit_({
+            identity: 'dg', isEdit: 0, width: 800, height: 400,
+            url: "/views/mm/pnApply/mm_pn_apply_add_edit.shtml"
+        });
+    }
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+
+        //绑定回车查询事件2
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "MR_CARD_TYPE,MR_CARD_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#cardType').combobox({
+                        panelHeight: '140px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.MR_CARD_TYPE,
+                    });
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+        InitDataGrid();
+
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            fitColumns:false,
+            columns: {
+                param: {
+                    FunctionCode: 'MR_SYN_LIST'
+                },
+                alter: {
+                    'mrReportedBy': {
+                        formatter: function (value, row, index) {
+                            if(row.mrReportedBy) {
+                                return value;
+                            }else{
+                                return  value
+                            }
+                        }
+                    },
+                    'cardNum': {
+                      formatter:function (value,row) {
+                          if(value){
+                              if(row.workType == "PCO" || row.workType == "LM") {
+                                  return value;
+                              }else{
+                                  return `<a style = "color: #FF6600" href="javascript:;" onclick="viewCardnum('${value}','${row.workType}','${row.cardId}')">${value}</a>`
+                              }
+                          }else{
+                              return ''
+                          }
+
+                      }
+                    },
+                    'aog': {
+                        formatter: function (value, row, index) {
+                            if(value == '1'){
+                                return 'YES';
+                            }else if(value == '0'){
+                                return  'NO'
+                            }
+                        }
+                    },
+                    'mrNum': {
+                        formatter: function (value, row, index) {
+                            if(value){
+                                let mrNum = "MR"+value.substring(1,value.length);
+                                return `<a style = "color: #FF6600" href="javascript:;" onclick="viewDet('${value}','${row.mrRevisionNum}','${row.requiredDate}')">${mrNum}</a>`
+                            }else{
+                                return ''
+                            }
+                        }
+                    },
+                    'mrCreatedDate': {
+                        formatter:function (value,row) {
+                            if(value){
+                                return value.substr(0,10)
+                            }else{
+                                return value
+                            }
+                        },
+                        type: 'date'
+                    },
+                    'requiredDate': {
+                        formatter:function (value,row) {
+                            if(value){
+                                return value.substr(0,10)
+                            }else{
+                                return value
+                            }
+                        },
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            toolbar: [
+                {
+                    id:"pnRequest",
+                    text:"P/N Request",
+                    handler: function () {
+                        addPart()
+                    }
+                },
+                {
+                    id:"Pdf",
+                    text:"Export Pdf",
+                    handler: function () {
+                        var data = $('#ffSearch').serializeObject();
+                        // console.log(data)
+                        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/mr/mr/export'></form>");
+                        form.append($("<input name='fileType' value = 'pdf'/>"));
+                        $.each(data, function (key, val) {
+                            if (typeof (val) == "object") {
+                                $.each(val, function (k1, v1) {
+                                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                                });
+                            } else {
+                                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                            }
+                        });
+                        $(this).parent().append(form);
+                        form.submit();
+                        form.remove();
+                    }
+                },
+                {
+                    id:"btnExport",
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth: "",
+                    handler: function () {
+                        let url = "/views/mr/add_mr.shtml";
+                        let parameters = {
+                            "tdWorkType": "LM"
+                        };
+                        let title = "add mr";
+                        ShowWindowIframe({
+                            width: "1200",
+                            height: "700",
+                            title: title,
+                            param: parameters,
+                            url: url
+                        });
+                    }
+                },
+                {
+                    id:"btnSyncPlan",
+                    text: $.i18n.t(' Export '),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        // exportFlbSummary();
+                        //导出Excel
+                        var data = $('#ffSearch').serializeObject();
+                        // console.log(data)
+                        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/mr/mr/export'></form>");
+                        form.append($("<input name='fileType' value = 'excel'/>"));
+                        $.each(data, function (key, val) {
+                            if (typeof (val) == "object") {
+                                $.each(val, function (k1, v1) {
+                                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                                });
+                            } else {
+                                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                            }
+                        });
+                        $(this).parent().append(form);
+                        form.submit();
+                        form.remove();
+
+
+                    }
+                }
+            ],
+            // contextMenus: [{
+            //     id: "m-view",
+            //     i18nText: "查看",
+            //     onclick: function () {
+            //         var rowData = getDG('dg').datagrid('getSelected');
+            //         if (!rowData.id) {
+            //             MsgAlert({
+            //                 content: "请选择数据！",
+            //                 type: 'error'
+            //             });
+            //             return;
+            //         }
+            //         openDetail('view', rowData.flbId);
+            //     }
+            // }],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    }
+
+    //同步flb数据
+    function syncFLB(days) {
+        if (!days) {
+            days = 2;
+        }
+        var url = "/flb/sync/syncFlb?count=" + days;
+        $.ajax({
+            url: url,
+            type: "get",
+            dataType: "json",
+            success: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+                    reload_();
+                }
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //打开资料类型详细页面
+    function viewDet(mrNo,rev,REQUIREDDATE) {
+        if( rev == "undefined"){
+            rev = 0;
+        }
+        var curWidth = ($(window).width() * 0.8).toString();
+        var curheight = $(window).height().toString();
+        ShowWindowIframe({
+            width: 1200,
+            height: 700,
+            title: '',
+            param: {
+                mrNo: mrNo,
+                rev:rev,
+                REQUIREDDATE:REQUIREDDATE,
+            },
+            url: "/views/mr/viewMr.shtml"
+        });
+    }
+
+    function viewCardnum(num,type,cardId){
+        var curWidth = ($(window).width() * 0.8).toString();
+        var curheight = $(window).height().toString();
+        if(type == 'LM'){
+            MsgAlert({content: 'LM类型MR没有详情',type:'error'});
+            return;
+        }
+        if(num == 'undefined' || cardId == 'undefined'){
+            MsgAlert({content: '此条数据有误，无法打开详情',type:'error'});
+            return;
+        }
+        if( type == "DEFECT"){
+            ShowWindowIframe({
+                width: curWidth,
+                height: curheight,
+                title: '',
+                param: {defectId: cardId, defectNo: num},
+                url: "/views/defect/defectDetails.shtml"
+            });
+        }else if(type == "NRC"){
+            $.ajax({
+                type: "GET",
+                url: "/api/v1/tbm/nrc/nrc/query_nrc_by_id?nrcId=" + cardId,
+                contentType: "application/json;charset=utf-8",
+                dataType: "json",
+                beforeSend:function(){
+                    ajaxLoading();
+                },
+                success: function (data) {
+                    ajaxLoadEnd();
+                    if(data.code =='200'){
+                        let type = data.data.nrcBase.itemCat;
+                        if (type == "4") {
+
+                            ShowWindowIframe({
+                                width: curWidth,
+                                height: curheight,
+                                title: "",
+                                param: {nrcid: cardId},
+                                url: "/views/nrc/nrc_seecm.shtml"
+                            });
+                        } else {
+
+                            ShowWindowIframe({
+                                width: curWidth,
+                                height: curheight,
+                                title: "",
+                                param: {nrcid: cardId, unCurAssignee: "see"},
+                                url: "/views/nrc/see_nrc.shtml"
+                            });
+                        }
+                    }else{
+                        MsgAlert({content:data.msgData ? data.msgData[0] : data.msg,type:'error'});
+
+                    }
+
+                }
+            })
+        }else if(type == "NRCT"){
+            ShowWindowIframe({
+                width: curWidth,
+                height: curheight,
+                title: "",
+                param: {
+                    taskid: cardId,
+                    type: "view"
+                },
+                url: "/views/nrc/task_revision.shtml"
+            });
+        }else if(type == "TO"){
+            var actionUrl = basePath + "/api/v1/mccdoc/to_base_info/editOrView";
+            var params = {
+                "id": cardId
+            };
+            $.ajax({
+                url: actionUrl,
+                type: "get",
+                data: params,
+                dataType: "json",
+                async: false,
+                cache: false,
+                beforeSend:function(){
+                    ajaxLoading();
+                },
+                success: function (data) {
+                    ajaxLoadEnd();
+                    if(data.code == '200'){
+                        var toType = data.data.toBaseInfoVO.type;
+                        var url_ = "";
+                        if (toType == '1') {
+                            url_ = "/views/mccdoc/view/view_fault_isolate_to.shtml";
+                        } else if (toType == '2') {
+                            url_ = "/views/mccdoc/view/view_general_survey_to.shtml";
+                        } else if (toType == '3') {
+                            url_ = "/views/mccdoc/view/view_other_to.shtml";
+                        } else if (toType == '4') {
+                            url_ = "/views/mccdoc/view/view_other_to.shtml";
+                        }
+                        var parameters = {
+                            "toType": toType,
+                            "pageType": "view",
+                            "id": cardId
+                        };
+                        var dialog_top = '15%';
+                        var dialog_param = {
+                            title: 'View TO',
+                            width: '1050px',
+                            height: '650px',
+                            top: dialog_top,
+                            esc: true,
+                            cache: false,
+                            max: false,
+                            lock: true,
+                            min: false,
+                            parent: this,
+                            close: function () {
+                                $(document).sfaQuery().reloadQueryGrid();
+                            },
+                            content: 'url:' + url_,
+                            data: parameters
+                        };
+                        if (P) {
+                            P.$.dialog(dialog_param);
+                        } else {
+                            $.dialog(dialog_param);
+                        }
+                    }else{
+                        MsgAlert({content:data.msg,type:'error'});
+
+                    }
+                },
+                error:function () {
+                    ajaxLoadEnd();
+                }
+            });
+        }else if(type == "JC"){
+            let funCode = "TD_JC_ALL_CMJC_PKID";
+            // if(num.indexOf('MP') != '-1'){
+            //     funCode = 'TD_JC_SMJC_BY_PKID';
+            // }
+            InitFuncCodeRequest_({
+                data: {pkid: cardId, jcNo: num, FunctionCode: funCode}, successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (!jdata.data) {
+                            MsgAlert({content: '请求信息有误，请联系管理员', type: 'error'});
+                            return;
+                        }
+                        // openEdit("view", cardId, jdata.data.JC_NO,jdata.data.JC_TYPE);
+                        var title_ = $.i18n.t('工卡处理');
+                        let url = "";
+                        let jcType = jdata.data.JC_TYPE;
+                        let jcNo = jdata.data.JC_NO;
+                        let param = {
+                            operation: 'view',
+                            pkid: cardId,
+                            from: "CUS",
+                            jcNo: jcNo,
+                            eoJcNo: jcNo,
+                            jcType: jcType
+                        };
+                        if(jcType == "SMJC"){
+                            url = "/views/td/jobcard/smjc/smjcedit/tdSmjcEditDetail.shtml";
+                        }else if(jcType == "EOJC" || jcType == "EAJC" ){
+                            url = "/views/td/jobcard/eojc/tdEojcDetail.shtml"
+                        }else if(jcType == "CMJC" ){
+                            url = "/views/td/jobcard/cmjc/tdCmjcDetail.shtml"
+                        }else if(jcType == "NSJC" ){
+                            url = "/views/td/jobcard/nrcjc/tdNrcjcEditDetail.shtml"
+                        }else{
+                            MsgAlert({content:"未知JC类型",type:'error'});
+                            return;
+                        }
+                        ShowWindowIframe({
+                            width: "1000",
+                            height: "650",
+                            title: title_,
+                            param: param,
+                            url: url
+                        });
+                    }else{
+                        MsgAlert({content:data.msg,type:'error'});
+                    }
+                }
+            })
+        }
+
+
+    }
+
+</script>
+</html>

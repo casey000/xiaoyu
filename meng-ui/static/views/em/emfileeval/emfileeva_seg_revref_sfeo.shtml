@@ -1,0 +1,349 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>生效【03】EO列表</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <input type="hidden" id="selectType" name="selectType">
+                <tr>
+                    <th data-i18n="" style="width:70px;" align="right">EO编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="eoNo" id="eoNo" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">EO版次：</th>
+                    <td>
+                        <input class="easyui-textbox" name="eoVer" id="eoVer" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">工作性质：</th>
+                    <td>
+                        <input class="easyui-combobox" name="jobCategory" id="jobCategory" style="width:100px"/>
+                    </td>
+
+                    <td>
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchFor()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                        <a class="addBtn" onclick="save()">
+                            <span data-i18n="">确定</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width:70px;" align="right">中文标题：</th>
+                    <td>
+                        <input class="easyui-textbox" name="cnTitle" id="cnTitle" style="width:100px"/>
+                    </td>
+                    <th data-i18n="" style="width:70px;" align="right">英文标题：</th>
+                    <td>
+                        <input class="easyui-textbox" name="enTitle" id="enTitle" style="width:100px"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg">
+</table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var dealOpinion;
+    var dealMeasure;
+    var taskId;
+    var exeFlag;
+    var applyType;
+    var evaId;
+    var segpkid;
+    var taskNature;
+    var workType;
+    var flag = true;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        dealOpinion = param.dealOpinion;
+        dealMeasure = param.dealMeasure;
+        taskId = param.taskId;
+        exeFlag = param.exeFlag;
+        applyType = param.applyType;
+        evaId = param.evaId;
+        segpkid = param.segpkid;
+        taskNature = param.taskNature;
+        workType = param.workType;
+
+        if (applyType == "APL") {
+            appType = "APL,PART";
+        } else if (applyType == "ENG") {
+            appType = "ENG,PART";
+        } else {
+            appType = applyType;
+        }
+        if (workType == 'PN') {
+            appType = 'PART';
+        }
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearchFor()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EVALUATE_STATUS,EM_APPLY_TYPE,EM_EO_CHECK_TYPE,EM_EO_NUMBER_WORK_TYPE,EM_EO_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_EVALUATE_STATUS"]);
+                    PAGE_DATA['jobCategory'] = DomainCodeToMap_(jdata.data["EM_EO_NUMBER_WORK_TYPE"]);
+                    PAGE_DATA['applyType'] = DomainCodeToMap_(jdata.data["EM_APPLY_TYPE"]);
+                    PAGE_DATA['eoStatus'] = DomainCodeToMap_(jdata.data["EM_EO_STATUS"]);
+
+
+                    //检验等级
+                    $('#inspectionLevel').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_EO_CHECK_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //工作性质
+                    $('#jobCategory').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_EO_NUMBER_WORK_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+
+    function setApplyModel(applyType) {
+        var datas2 = $.extend({applyType: applyType}, {FunctionCode: 'EMEVAL_APPLY_MODEL'});
+        InitFuncCodeRequest_({
+            data: datas2, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#applyModel').combobox({
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var job = '';
+        if (taskNature == 'YCX') {
+            job = 'YC';
+        } else if (taskNature == 'CFX') {
+            job = 'CF';
+        }
+        var applyModel = "";
+        var ata = "";
+        InitFuncCodeRequest_({
+            data: {evaId: evaId, FunctionCode: 'EM_FILE_GET_MODEL'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        applyModel = jdata.data.APPLY_MODEL;
+                        ata = jdata.data.EVA_ATA;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+            queryParams: {
+                workType: workType,
+                eoEa: dealOpinion,
+                applyModel: applyModel,
+                ata: ata,
+                evaId: evaId,
+                appType: appType,
+                job: job
+            },
+                columns: {
+                    param: {FunctionCode: 'EM_FILE_ISSUE_EO_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['eoStatus'] [value];
+                            }
+                        },
+                        APPLY_TYPE: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['applyType'] [value];
+                            }
+                        },
+                        JOB_CATEGORY: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['jobCategory'] [value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                    if (flag) {
+                        onSearchFor();
+                        flag = false;
+                    }
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                }
+            }
+        );
+    }
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    //合并评估单
+    function save() {
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: '请先选择要关联的数据', type: 'error'});
+            return false;
+        }
+        /* var result = '';
+         if (dealOpinion == 'EO') {//EO是符合性文件，目前只校验EO
+             for (var i = 0; i < rows.length; i++) {
+                 var eoId = rows[i].PKID;
+                 var appcou = 0;
+                 InitFuncCodeRequest_({
+                     data: {eoId: eoId, taskId: taskId, FunctionCode: 'EM_FILE_CHECK_APPL'},
+                     async: false,
+                     successCallBack: function (jdata) {
+                         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                             if (jdata.data != null) {
+                                 appcou = jdata.data.COU;
+                             }
+                         } else {
+                             MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                         }
+                     }
+                 });
+
+                 if (appcou != 0) {
+                     result = result + rows[i].EO_NO + "R" + rows[i].EO_VER + "适用性与任务适用性不一致，不允许关联；";
+                 }
+             }
+         }
+         if (result != '') {
+             MsgAlert({content: result, type: 'error'});
+             return;
+         }*/
+
+        if (dealMeasure == "REV") {
+            if (rows.length > 1) {
+                MsgAlert({content: '请至多选择一行数据', type: 'error'});
+                return false;
+            }
+            InitFuncCodeRequest_({
+                data: {
+                    eopkid: rows[0].PKID,
+                    dealOpinion: dealOpinion,
+                    dealMeasure: dealMeasure,
+                    taskId: taskId,
+                    FunctionCode: 'EM_FILE_TASK_SF_REV'
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (exeFlag == "OTHERS") {
+                            param.OWindow.reload_7();
+                        } else {
+                            param.OWindow.reload_("#dg2");
+                        }
+                        param.OWindow.MsgAlert({content: '改版EO成功。'});
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+        } else if (dealMeasure == "REF") {
+            var detailData = JSON.stringify(rows);
+            InitFuncCodeRequest_({
+                data: {
+                    dealOpinion: dealOpinion,
+                    dealMeasure: dealMeasure,
+                    taskId: taskId,
+                    evaId: evaId,
+                    segpkid: segpkid,
+                    detailData: detailData,
+                    FunctionCode: 'EM_FILE_TASK_SF_REF'
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (exeFlag == "OTHERS") {
+                            param.OWindow.reload_7();
+                        } else {
+                            param.OWindow.reload_("#dg2");
+                        }
+                        param.OWindow.MsgAlert({content: '关联EO成功。'});
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+</script>
+</body>
+</html>

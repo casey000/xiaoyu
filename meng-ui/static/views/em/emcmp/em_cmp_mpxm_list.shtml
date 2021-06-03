@@ -1,0 +1,397 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">MP项目查询</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+            <tr>
+                <td colspan="6" align="right">
+                    &nbsp;&nbsp;
+                    <a class="addBtn" data-options="" id="more" onclick="yinCang()" ><span
+                            data-i18n="">更多</span></a>&nbsp;&nbsp;
+                    <a class="searchBtn" data-options="" onclick="doSearch_()" ><span
+                            data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                    <a class="ridoBtn" data-options=""
+                       onclick="helpQuery('dg', 'ffSearch', function(){onSearch_();});"><span
+                            data-i18n="">高级查询</span></a>
+                    <a class="excelBtn" data-options=""
+                       onclick="excelExport('dg','MP项目'); "><span>导出Excel</span></a>&nbsp;&nbsp;
+                </td>
+            </tr>
+            <tr>
+                <th data-i18n="" class="td5" align="right" style="width: 126px">MP号：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="itemNo" name="itemNo"
+                           style="width:150px"/>
+                </td>
+                <th data-i18n="" class="td5" align="right" style="width: 126px">方案版次：</th>
+                <td class="tdr">
+                    <input class="easyui-combogrid" id="itemVer" name="itemVer"
+                           style="width:150px"/>
+                </td>
+                <th data-i18n="" class="td5" align="right" style="width: 126px">改版标识：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="revCode" name="revCode" data-options="editable: false"
+                           style="width:150px"/>
+                </td>
+            </tr>
+            <tr id="tr2">
+                <th class="td5" align="right">区域：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="zone" name="zone" data-options=""
+                           style="width: 150px;"/>
+                </td>
+                <th style="width:126px;" align="right">中文描述：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="chnDesc" name="chnDesc" style="width: 150px;"/>
+                </td>
+                <th class="td5" align="right">ATA：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="ata" name="ata"  data-options="editable: false" style="width: 150px;"/>
+                </td>
+            </tr>
+            <tr id="tr1">
+                <th class="td5" align="right">机号：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="acno" name="acno" style="width: 150px"/>
+                </td>
+                <th class="td5" align="right">控制类型：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="ctlType" name="ctlType" data-options="editable: false"
+                           style="width: 150px"/>
+                </td>
+                <th class="td5" align="right">适用类别：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="applType" name="applType" data-options="editable: false" style="width: 150px"/>
+                </td>
+            </tr>
+            <!--<tr id="tr4">
+                <th class="td5" align="right">首检：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="tFc" name="tFc" style="width: 150px"/>
+                </td>
+                <th class="td5" align="right">首检单位：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="tCalUnit" name="tCalUnit" style="width: 150px"/>
+                </td>
+                <th class="td5" align="right">重检：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="ivFh" name="ivFh" style="width: 150px"/>
+                </td>
+            </tr>-->
+            <tr id="tr3">
+                <!--<th class="td5" align="right">重检单位：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="ivCalUnit" name="ivCalUnit" data-options=""
+                           style="width: 150px;"/>
+                </td>-->
+                <!--<th data-i18n="" class="td5" align="right" style="width: 126px">检验等级：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="chkLevel" name="chkLevel"
+                           style="width:150px"/>
+                </td>-->
+                <th class="td5" align="right">SOURCE：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="source" name="source" style="width: 150px"/>
+                </td>
+            </tr>
+        </table>
+    </form>
+</fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var identity = 'dg';
+    var param = {};
+
+    var thisURL = document.URL;
+    var geturlvalue = thisURL.split('?')[1];
+    var fleet = geturlvalue.split("=")[1];
+
+    var itemType = {};
+    var ctrlType = {};
+    var yesorno = {};
+    var applType = {};
+    var revCode = {};
+
+    $(document).ready(function (e) {
+        $(this).keydown(function (e) {
+            if (e.which == "13") {
+                doSearch_();//触发该事件
+            }
+        })
+    });
+    function i18nCallBack() {
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_APPL_TYPE,EM_REV_CODE,EM_CMP_STATE,EM_MPD_ITEM_TYPE,EM_MPD_CTL_TYPE,EM_MPD_CTL_TYPE,YESORNO,EM_APPL_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#tr1").hide();
+                    $("#tr2").hide();
+                    $("#tr3").hide();
+                    $("#tr4").hide();
+                    itemType = DomainCodeToMap_(jdata.data["EM_MPD_ITEM_TYPE"]);
+                    ctrlType = DomainCodeToMap_(jdata.data["EM_MPD_CTL_TYPE"]);
+                    yesorno = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    applType = DomainCodeToMap_(jdata.data["EM_APPL_TYPE"]);
+                    revCode = DomainCodeToMap_(jdata.data["EM_REV_CODE"]);
+                    /*$('#chkLevel').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MP_CHK_LEVEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });*/
+                    InitFuncCodeRequest_({
+                        data: {fleet: fleet, FunctionCode: "EM_MPD_GET_VER"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                $('#itemVer').combobox({
+                                    panelHeight: '110px',
+                                    data: jdata.data,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                });
+                            }
+                        }
+                    });
+                    // $("#itemVer").MyComboGrid({
+                    //     idField: 'VALUE',  //实际选择值
+                    //     textField: 'VALUE', //文本显示值
+                    //     panelHeight: '180px',
+                    //     width: 120,
+                    //     onHidePanel: function () {
+                    //         var t = $(this).combogrid('getValue');
+                    //     },
+                    //     queryParams: {fleet: fleet},
+                    //     params: {FunctionCode: 'EM_CMP_MPVER'},
+                    //     columns: [[
+                    //         {field: 'VALUE', title: '版次', width: 50},
+                    //     ]],
+                    // });
+                    //项目分类
+                    $('#itemType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MPD_ITEM_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //适用类别
+                    $('#applType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_APPL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //首检单位
+                    /* $('#tCalUnit').combobox({
+                         panelHeight: '150px',
+                         data: jdata.data.EM_MP_TICHK_UNIT,
+                         valueField: 'VALUE',
+                         textField: 'TEXT'
+                     });
+
+                     //重检单位
+                     $('#ivCalUnit').combobox({
+                         panelHeight: '150px',
+                         data: jdata.data.EM_MP_TICHK_UNIT,
+                         valueField: 'VALUE',
+                         textField: 'TEXT'
+                     });*/
+                    //控制类型
+                    $('#ctlType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MPD_CTL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    $('#revCode').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.EM_REV_CODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    $('#status').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_CMP_STATE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //检验等级
+                    /*$('#chkLevel').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MP_CHK_LEVEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });*/
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function DomainCodeToMap_(list) {
+        var d = {};
+        $.each(list, function (k, it) {
+            d[it.VALUE] = it.TEXT;
+        });
+        return d;
+    }
+
+    function moreSelect() {
+        common_add_edit_({
+            width: 850,
+            height: 300,
+            title: 'MP查询',
+            url: "/views/em/emcmp/em_cmp_mpxm_more.shtml"
+        });
+    }
+
+    function InitDataGrid() {
+        param = getParentParam_();
+
+        $("#dg").MyDataGrid({
+            identity: identity,
+            // fit: true,
+            sortable: true,
+            queryParams: {fleet: fleet},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_ITEM_LIST'},
+                alter: {
+                    REV_DATE: {
+                        type: 'date'
+                    },
+                    ITEM_TYPE: {
+                        formatter: function (value, row, index) {
+                            return itemType[value];
+                        }
+                    },
+                    CTL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return ctrlType[value];
+                        }
+                    },
+                    IF_TMP: {
+                        formatter: function (value, row, index) {
+                            return yesorno[value];
+                        }
+                    },
+                    IF_MULT_INTERVAL: {
+                        formatter: function (value, row, index) {
+                            return yesorno[value];
+                        }
+                    },
+                    APPL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return applType[value];
+                        }
+                    },
+                    REV_CODE: {
+                        formatter: function (value, row, index) {
+                            return revCode[value];
+                        }
+                    }
+
+
+                }
+            }
+        });
+    }
+
+    /*doSearch_查询*/
+    function doSearch_() {
+        // var tfc = $("#tFc").textbox("getValue");
+        // var ivfh = $("#ivFh").textbox("getValue");
+        // if (tfc != "") {
+        //     var tc = $("#tCalUnit").combobox("getValue");
+        //     if (tc == null || tc == "") {
+        //         MsgAlert({content: '请输入首检单位', type: 'error'});
+        //         return false;
+        //     }
+        // }
+        // if (ivfh != "") {
+        //     var ic = $("#ivCalUnit").combobox("getValue");
+        //     if (ic == null || ic == "") {
+        //         MsgAlert({content: '请输入重检单位', type: 'error'});
+        //         return false;
+        //     }
+        // }
+        var $form = $("#ffSearch");
+        var data = $form.serializeObject();
+        data = $.extend({}, data, {fleet: fleet});
+        var dgopt = getDgOpts('dg');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: data
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    function parentSearch_(date) {
+        var dgopt = getDgOpts('dg');
+
+        var datas = date;
+        datas = $.extend({}, datas, {fleet: fleet});
+        console.log(datas);
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: datas
+        });
+    }
+
+    /**隐藏搜索项**/
+    var flag = 1;
+    function yinCang() {
+        if (flag == 1) {
+            $("#tr1").show();
+            $("#tr2").show();
+            $("#tr3").show();
+            $("#tr4").show();
+            flag = 2;
+        } else {
+            $("#tr1").hide();
+            $("#tr2").hide();
+            $("#tr3").hide();
+            $("#tr4").hide();
+            $("#zone").textbox("setValue", "");
+            $("#xxx").textbox("setValue", "");
+            $("#accesses").textbox("setValue", "");
+            $("#chnDesc").textbox("setValue", "");
+            $("#ata").combobox("setValue", "");
+            $("#applType").combobox("setValue", "");
+            $("#operatorCode").textbox("setValue", "");
+            $("#acno").textbox("setValue", "");
+            $("#tFc").textbox("setValue", "");
+            //$("#tCalUnit").combobox("setValue","");
+            $("#ivFh").textbox("setValue", "");
+            //$("#ivCalUnit").combobox("setValue","");
+            $("#ctlType").combobox("setValue", "");
+            $("#attachOption").textbox("setValue", "");
+            flag = 1;
+        }
+    }
+</script>
+</body>
+</html>

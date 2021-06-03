@@ -1,0 +1,277 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">机型主管编写</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:65px;" align="right">机队：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="fleet" name="fleet" style="width:100px;"/>
+                    </td>
+
+                    <th class="th" style="width:100px;" align="right">部门：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <!--<input class="easyui-combobox" id="department" name="department" style="width:100px;"/>-->
+                        <input id="department" name="department" class="easyui-textbox easyui-validatebox" data-options="validType:['maxLength[20]'] " style="width:100px;"/>
+                    </td>
+
+                    <th class="th" style="width:100px;" align="right">主管：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="manager" name="manager" style="width:100px;"/>
+                    </td>
+
+                    <td colspan="2">
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY" >查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                    </td>
+
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var selectRow=null;
+    var companyCode;
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,GET_ORG_NAME",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['department'] = DomainCodeToMap_(jdata.data["GET_ORG_NAME"]);
+                    //机队
+                    $('#fleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //初始化部门机构
+                    $("#department").MyComboGrid({
+                        idField: 'ORG_ID',  //实际选择值
+                        textField: 'ORG_NAME', //文本显示值
+                        panelHeight: '180px',
+                        required: false,
+                        width: 100,
+                        params: {FunctionCode: 'GET_WS_ORG'},
+                        columns: [[
+                            {field: 'ORG_ID', title: '机构ID', width: 50},
+                            {field: 'ORG_NO', title: '机构编号', width: 50},
+                            {field: 'ORG_NAME', title: '机构名称', width: 50}
+                        ]],
+                        onHidePanel: function () {
+                            var t = $(this).combogrid('getValue');
+                            if(t != null && t != '' & t != undefined){
+                                if (selectRow == null || t != selectRow.ORG_ID) {//没有选择或者选项不相等时清除内容
+                                    alert('请选择，不要直接输入！');
+                                    $(this).combogrid({value:''});
+                                }
+                            }
+                        },
+                        onSelect: function (index, row) {
+                            selectRow = row;
+
+                            InitFuncCodeRequest_({
+                                data: {orgId: row.ORG_ID, FunctionCode: "GET_ACOUNT_BY_ORG_ID"}, successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        $('#manager').combobox({
+                                            panelHeight: '80px',
+                                            data: jdata.data,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT'
+                                        });
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams["companyCode"] = companyCode;
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: queryParams,
+            pagination: true,
+            path: "/online-manual/tdManualFleetManager/listByPage",
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_FLEET_MANAGER_LIST'},
+                alter: {
+                    CREATE_TIME: {
+                        type: 'date'
+                    },
+                    MODIFY_TIME: {
+                        type: 'date'
+                    },
+                    DEPARTMENT: {
+                        formatter: function (value) {
+                            return PAGE_DATA['department'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (row) {
+                formatterUpperDataGrid(row,"dg");
+            },
+            // validAuth: function (row, items) {
+            //     items['编辑'].enable = true;
+            //     items['删除'].enable = true;
+            //     return items;
+            // },
+            toolbar: [
+                {
+                    id: 'btnAdd',
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    auth: "TD_MANUAL_FLEET_MANAGER_ADD",
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        openModifyWeb('add');
+                    }
+                },
+                '-',
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "common:COMMON_OPERATION.EDIT",
+                    auth: "TD_MANUAL_FLEET_MANAGER_EDIT",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        openModifyWeb('edit', rowdata.PKID);
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "common:COMMON_OPERATION.DEL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/online-manual/tdManualFleetManager/deleteTdManualFleetManager/" + rowData.PKID,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: '操作失敗', type: 'error'})
+                                }
+                            }
+                        });
+                    }
+                }
+            ]
+            // onClickRow: function (rowIndex, rowData) {
+            // },
+            // onDblClickRow: function (index, field, value) {
+            //     openDetai("view", value.PKID);
+            // }
+        });
+    }
+    function openModifyWeb(op, pkid) {
+        var str = pkid ? "&pkid=" + pkid : "";
+        ShowWindowIframe({
+            url: "/views/td/supmanual/tdManualFleetManager_add_edit.shtml?operation=" + op + str ,
+            param: {operation: op, pkid: pkid},
+            title: "新增或编辑责任人定义",
+            width: 600,
+            height: 400
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        // onSearch_('dg', '#ffSearch');
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

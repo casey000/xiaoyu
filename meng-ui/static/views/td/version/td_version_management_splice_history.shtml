@@ -1,0 +1,126 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册片段信息</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="">基本信息</legend>
+    <table class="table table-bordered table-info">
+        <tr>
+            <td style="width: 600px">
+            文件描述： <span id="manualFileName"></span>
+            <br />
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            机队： <span id="fleet"></span>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            厂家版本： <span id="oemRev"></span>
+            </td>
+            <td>
+                <input class="btn btn-info" type="button" onclick="compareXml()" value="对比"/>
+                <input class="btn btn-info" type="button" onclick="viewXml();" value="XML预览" style="margin-left:3px;margin-right: 18px;"/>
+            </td>
+        </tr>
+    </table>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = [];
+    var param = null;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        $('#manualFileName').text(param.manualFileName);
+        $('#fleet').text(param.fleet);
+        $('#oemRev').text(param.oemRev);
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "WS_USER"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['wsUser'] = DomainCodeToMap_(jdata.data.WS_USER);
+                    InitDataGrid();
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").GatewayDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pagination: true,
+            path: "/online-manual/tdOemRevDiff/queryTdVersionHistoryByPage",
+            resize: function() {
+                return {width: 800, height: 555}
+            },
+            queryParams: {
+                companyCode: param.companyCode,
+                fleet: param.fleet,
+                manualType: param.manualType,
+                oemTaskcode: param.oemTaskcode
+            },
+            columns: {
+                param: {FunctionCode: 'TD_VERSION_HISTORY_LIST'},
+                alter: {
+                    CREATE_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['wsUser'][value];
+                        }
+                    },
+                    CREATE_DATE:{
+                        type : 'datetime'
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                formatterUpperDataGrid(data,"dg")
+            },
+        });
+    }
+
+    function compareXml() {
+        var selectRows = $('#dg').datagrid('getChecked');
+        if (selectRows.length != 2) {
+            MsgAlert({content: "必须且只能选择两条数据", type: "error"});
+            return;
+        }
+        var path1 = selectRows[0].MANUAL_FILE_PATH.replace(/\\/g, "\\\\");
+        var path2 = selectRows[1].MANUAL_FILE_PATH.replace(/\\/g, "\\\\");
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "TD_JC_ALL_GET_DIFF_URL"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        window.open(jdata.data + "/diff/diff-ui/index.html?difffirstdoc=" + path1 + "&diffseconddoc=" + path2);
+                    }
+                }
+            }
+        })
+    }
+
+    function viewXml() {
+        var selectRows = $('#dg').datagrid('getChecked');
+        if (selectRows.length == 0) {
+            MsgAlert({content: "请选择数据", type: "error"});
+            return;
+        } else if (selectRows.length > 1) {
+            MsgAlert({content: "预览时只能选择一条数据", type: "error"});
+            return;
+        }
+
+        window.open(selectRows[0].MANUAL_FILE_PATH);
+    }
+</script>
+</body>
+</html>

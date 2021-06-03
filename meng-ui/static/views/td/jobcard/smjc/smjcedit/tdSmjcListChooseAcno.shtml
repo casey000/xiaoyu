@@ -1,0 +1,104 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">软件分配</title>
+</head>
+<body class="ibody">
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th data-i18n="" class="td5" style="width: 100px" align="right">机号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="acno" id="acno" data-options="" style="width:150px;"/>
+                        </td>
+                        <td class="tdr" style="width: 100px">
+                            &nbsp;<a class="addBtn" onclick="preview_();">预览</a>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var fleet;
+    var pkid;
+    var jcType;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        fleet = param.fleet;
+        pkid = param.pkid;
+        jcType = param.jcType;
+        InitFuncCodeRequest_({
+            data: {fleet: fleet, FunctionCode: 'TD_SMJC_GET_ACNO_BYFLEET'},
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    // 机号
+                    $('#acno').combobox({
+                        panelHeight: '120px',
+                        valueField: 'VALUE',
+                        textField: 'VALUE',
+                        data: jdata.data
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 单机预览
+    /*    function preview_() {
+            var acno = $("#acno").textbox("getValue");
+            InitFuncCodeRequest_({
+                data: {acno: acno, pkid: pkid,  FunctionCode: 'TD_SMJC_SINGLE_PREVIEW'},
+                successCallBack: function (jdata) {
+                    if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                        // 打开PDF文件
+                        var title_ = $.i18n.t('定检工卡单机预览');
+                        ShowWindowIframe({
+                            width: "850",
+                            height: "650",
+                            title: title_,
+                            param: {url: jdata.data},
+                            url: "/views/td/jobcard/smjc/smjcedit/jobcardPreview.shtml"
+                        });
+                    }else{
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }*/
+    function preview_() {
+        var acno = $("#acno").textbox("getValue");
+        InitFuncCodeRequest_({
+            data: {pkids: pkid, acno: acno, fleet: fleet, jcType: jcType, FunctionCode: 'TD_SMJC_INSTANCE_PREVIEW'},
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    // 打开PDF文件
+                    alert("打印成功在监控页面查看。路径为[" + jdata.data + "]");
+                    var title_ = $.i18n.t('定检工卡单机预览');
+                    ShowWindowIframe({
+                        width: "850",
+                        height: "650",
+                        title: title_,
+                        param: {url: jdata.data},
+                        url: "/views/td/jobcard/smjc/smjcedit/jobcardPreview.shtml"
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

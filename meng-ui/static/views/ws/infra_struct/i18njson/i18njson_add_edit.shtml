@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        var param = {};
+        var isEdit_;
+        $(function () {
+            param = getParentParam_();
+            isEdit_ = param && param.I18N_TEXT && param.FILE_NAME;
+            if (isEdit_) {
+                InitFuncCodeRequest_({
+                    data: {i18nText: param.I18N_TEXT, fileName: param.FILE_NAME, FunctionCode: "I18NJSON_GET"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                            InitEditForm_();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                })
+            } else {
+                InitEditForm_();
+            }
+        });
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        oi18nText: param.I18N_TEXT,
+                        ofileName: param.FILE_NAME,
+                        FunctionCode: (isEdit_ ? 'I18NJSON_EDIT' : 'I18NJSON_ADD')
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" name="pkid" value=""/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">国际化Text：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="i18nText"
+                                   data-options="multiline:true, validType:['maxLength[200]']"
+                                   style="height:60px; width: 99%;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="tdl">国际化名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="i18nName"
+                                   data-options="required:true,length:[1,300]"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">国际化EN名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="i18nEnName"
+                                   data-options="length:[1,300]"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">所属文件名：</th>
+                        <td class="tdr">
+                            <select name="fileName" class="easyui-combobox" data-options="required:true"
+                                    panelHeight="120" style="width:180px">
+
+                                <option value="page.json">page.json</option>
+                                <option value="common.json">common.json</option>
+                                <option value="msg_err.json">msg_err.json</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="searchBtn" type="submit" value="提交"
+                                                              style="cursor: pointer;cursor: pointer;"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

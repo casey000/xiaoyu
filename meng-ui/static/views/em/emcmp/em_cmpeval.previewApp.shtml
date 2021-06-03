@@ -1,0 +1,237 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <legend data-i18n="">飞机适用性</legend>
+            </fieldset>
+            <fieldset class="fieldset_eui" style="float:left;width:48%;margin-right:1px">
+                <legend data-i18n="">适用性说明</legend>
+                <table cellspacing="0" cellpadding="2">
+                    <tr>
+                        <input type="hidden" id="rangeDate" name="rangeDate">
+                        <td>
+                            <input class="easyui-textbox" id="applDesc" name="applDesc"
+                                   style="width: 380px ;height:370px"
+                                   data-options="multiline:true"/>
+                        </td>
+                </table>
+                <table id="dg1"></table>
+            </fieldset>
+
+
+            <fieldset class="fieldset_eui" style="float:right;width:48%;margin-right:5px">
+                <legend data-i18n="">适用飞机</legend>
+                <table cellspacing="0" cellpadding="2">
+                </table>
+                <table id="dg2"></table>
+            </fieldset>
+
+
+            <fieldset class="fieldset_eui" style="float:left;width:48%;">
+                <legend data-i18n="">飞机SB情况</legend>
+                <table cellspacing="0" cellpadding="2">
+                </table>
+                <table id="dg3"></table>
+            </fieldset>
+
+
+            <fieldset class="fieldset_eui" style="float:left;width:48%; margin-right:5px">
+                <legend data-i18n="">飞机MOD情况</legend>
+                <table cellspacing="0" cellpadding="2">
+                </table>
+                <table id="dg4"></table>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var PKID;
+    var isRD;
+    var rangeDate;
+    var fleet;
+    var appltype;
+    var itemPkid;
+    var op;
+    var applDesc;
+    var rangeType;
+    var PAGE_DATA = {};
+    param = getParentParam_();
+    itemPkid = param.itemPkid;//评估单号
+    appltype = param.appltype;
+    fleet = param.fleet;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {domainCode: "EM_RANGE_TYPE", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //  PAGE_DATA['rangeType'] = DomainCodeToMap_(jdata.data["EM_RANGE_TYPE"]);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        setTimeout("setRangeType()", 50);
+        //setTimeout("InitDataGrid()",100);
+        InitDataGrid1();
+        InitDataGrid2();
+    }
+
+    function setRangeType() {
+        InitFuncCodeRequest_({
+            data: {itemPkid: itemPkid, appltype: appltype, FunctionCode: "EM_CMP_EVAL_INTERVAL_VIEW"},
+            successCallBack: function (jdata) {
+
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    var i = 0;
+                    var arr = [];//放查询结果
+                    arr = jdata.data;
+                    console.log(arr);
+                    var rows = JSON.stringify(toCamelCaseArray(arr));
+                    // var rows = JSON.stringify(toCamelCase(arr));
+                    if (arr == null || arr == "") {
+                        InitDataGrid(-1, rows);//为了无值时初始化适用性表格
+                    } else {
+                        InitDataGrid(arr[0].RANGE_VALUE, rows);
+                    }
+
+                    var strs = [];//用于存放切割字符串
+                    var v = '';
+                    for (; i < jdata.data.length; i++) {
+                        if (i == 0) {//i==0时第一条数据的加入，机型只需要加入一次，在此处理防止重复加入
+
+                            v = arr[i].RANGE_VALUE + "\r\n";
+                            // v += arr[i].RANGE_DATA + "\r\n";
+                            if (arr[i].MOD == undefined) {
+                                if (arr[i].SB == undefined) {
+                                    $('#applDesc').textbox({value: v});
+                                } else {
+                                    v += arr[i].PRE_POST + "\r\n";
+                                }
+                            } else {
+                                v += arr[i].PRE_POST + ' ' + arr[i].MOD + "\r\n";
+                            }
+                            if (arr[i].SB == undefined) {//没有sb的时候
+                                $('#applDesc').textbox({value: v});
+                            }
+                            if (arr[i].SB != undefined) {//有sb的时候
+                                if (arr[i].SB.indexOf(",") == -1) {//只有一个Sb的时候
+                                    v += "(" + arr[i].SB + ")" + "\r\n";
+                                    $('#applDesc').textbox({value: v});
+                                }
+                            }
+                        }
+                        if (i > 0) {
+                            if (arr[i].RANGE_VALUE != arr[i - 1].RANGE_VALUE) {
+                                v += '[AND]' + "\r\n";
+                                v += arr[i].RANGE_VALUE + "\r\n";
+                            }
+                            if (arr[i].LOGIC_OPERATOR != undefined) {
+                                v += "[" + arr[i].LOGIC_OPERATOR + "]" + "\r\n";
+                            }
+                            if (arr[i].MOD == undefined) {
+                                if (arr[i].SB != undefined) {
+                                    v += arr[i].PRE_POST + "\r\n";
+                                }
+                                else {
+                                    v += "\r\n";
+                                }
+
+                            }
+                            else {
+                                v += arr[i].PRE_POST + ' ' + arr[i].MOD + "\r\n";
+                            }
+                            if (arr[i].SB != undefined) {//有sb的时候
+                                if (arr[i].SB.indexOf(",") == -1) {//只有一个Sb的时候
+                                    v += "(" + arr[i].SB + ")" + "\r\n";
+                                    $('#applDesc').textbox({value: v});
+                                }
+                            }
+                            $('#applDesc').textbox({value: v});
+
+                        }
+                    }
+                }
+                ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+            }
+        });
+    }
+
+    function InitDataGrid(rangeData, arr) {
+        var identity = 'dg2';
+        console.log(arr);
+        $("#dg2").MyDataGrid({
+            identity: identity,
+            queryParams: {arr: arr, fleet: fleet},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_SYFJ'},
+            },
+            resize: function () {
+                return {width: 380, height: 370};
+            },
+        });
+
+    }
+
+    function InitDataGrid1() {
+        var identity = 'dg3';
+        $("#dg3").MyDataGrid({
+            identity: identity,
+            queryParams: {itemPkid: itemPkid},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_SB_LIST'},
+            },
+            resize: function () {
+                return {width: 380, height: 370};
+            }
+        });
+    }
+
+
+    function InitDataGrid2() {
+        var identity = 'dg4';
+        $("#dg4").MyDataGrid({
+            identity: identity,
+            queryParams: {itemPkid: itemPkid},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_MOD_LIST'},
+            },
+            resize: function () {
+                return {width: 380, height: 370};
+            }
+        });
+    }
+
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#dg").form('clear');
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+</script>
+</html>

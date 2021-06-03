@@ -1,0 +1,243 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">超限报文列表</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <div  title="可合并记录">
+        <fieldset class="fieldset_eui">
+            <form id="ffSearch" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td style="width: 120px; padding:3px;">
+                            <a href="javascript:void(0)" class="addBtn"
+                               onclick="save('M')"><span>合并</span></a>&nbsp;
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </fieldset>
+        <table id="dg"></table>
+    </div>
+    <div title="已合并记录" style="display:none;" id="searchBar2">
+        <fieldset class="fieldset_eui">
+            <form id="ffSearch2" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td style="width: 120px; padding:3px;">
+                            <a href="javascript:void(0)" class="addBtn"
+                               onclick="save('C')"><span>取消</span></a>&nbsp;
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </fieldset>
+        <table id="dg2"></table>
+    </div>
+</div>
+<script>
+    var rangValues = [];
+    var rangValues1 = [];
+    var param = {};
+    var PAGE_DATA = {};
+    var pkid;
+    var esn;
+    var msgDate;
+    var reason;
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        esn = param.esn;
+        msgDate = param.msgDate;
+        reason = param.reason;
+        var userLogin = getLoginInfo();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["ENG_BSI_STATUS"]);
+
+                    var datas =  {"mpActype":""};
+                    InitGatewayRequest_({
+                        async: false,
+                        data: datas,
+                        path: "/meng-engine/engBsiReport/getAcnos",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#acId').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取机号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+
+                    InitDataGrid();
+                    /**实现tab切换后保存，并刷新*/
+                    $('#tt').tabs({
+                        onSelect: function (title) {
+                            if (title == '可合并记录') {
+                                InitDataGrid();
+                                rangValues.length = 0;
+                            }else if(title == '已合并记录'){
+                                InitDataGrid2();
+                                rangValues.length = 0;
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams.flag = 'M';
+        initgrid(queryParams,'dg');
+
+    }
+
+    function InitDataGrid2() {
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams.flag = 'C';
+        initgrid(queryParams,'dg2');
+    }
+
+    function initgrid(queryParams,identity){
+        queryParams.esn = esn;
+        queryParams.msgDate = msgDate;
+        queryParams.pkid = pkid;
+        queryParams.reason = reason;
+        $('#'+identity).GatewayDataGrid({
+            path: "/meng-engine/engPerOver/listMergeOrCancel",
+            async: false,
+            queryParams: queryParams,
+            identity: identity,
+            idField: "pkid",
+            pagination: true,
+            title: $.i18n.t(''),
+            resize: function () {
+                return {width: '100%', height: '90%'};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_PER_OVER_MERGE_CANCEL'},
+                alter: {
+                    msgDate: {
+                        type: 'datetime'
+                    },
+                    dealDate: {
+                        type: 'date'
+                    },
+                }
+            },
+            contextMenus: [
+
+            ],
+            onLoadSuccess: function (data) {
+                $('#'+identity).datagrid('uncheckAll');
+            },
+            onCheck: function (rowIndex, rowData) {
+                rangValues.push(rowData.pkid);
+            },
+            onUncheck: function (rowIndex, rowData) {
+                rangValues.remove(rowData.pkid);
+            },
+            onCheckAll: function (rowIndex, rowData) {
+                var rows = $('#'+identity).datagrid('getRows');
+                for (i = 0; i < rows.length; i++) {
+                    rangValues.push(rows[i].pkid);
+                }
+            },
+            onUncheckAll: function (rowIndex, rowData) {
+                var rows = $('#'+identity).datagrid('getRows');
+                for (i = 0; i < rows.length; i++) {
+                    rangValues.remove(rows[i].pkid);
+                }
+            }
+        });
+    }
+
+
+
+    Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+        }
+    };
+
+    function unique(arr){
+        return Array.from(new Set(arr));
+    }
+
+
+    function save(flag){
+        var cou = 0;
+        if(rangValues.length == 0 || rangValues == null){
+            MsgAlert({content: "请选择数据！", type: 'error'});
+            return;
+        }
+        var pkids = rangValues.join();
+        var datas = {"pkids":pkids,"flag":flag,"pkid":pkid};
+        InitGatewayRequest_({
+            async: false,
+            data:datas,
+            path: "/meng-engine/engPerOver/mergePerOver",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    cou = jdata.obj;
+                    if(cou > 0){
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        if(flag == 'M'){
+                            reload_("#dg");
+                        }else if(flag == 'C'){
+                            reload_("#dg2");
+                        }
+                        param.OWindow.reload_();
+                    }
+                } else {
+                    MsgAlert({content: "a操作失败!", type: 'error'});
+                }
+            }
+        });
+        param.OWindow.MsgAlert({content:$.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+    }
+
+    //刷新主页面
+    function reload_(dg) {
+        $(dg).datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

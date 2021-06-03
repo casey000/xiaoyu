@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>送修计划编辑</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="送修计划编辑" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <input type="hidden" id="modifyName" name="modifyName"/>
+                <input type="hidden" id="modifyDate" name="modifyDate"/>
+
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="8" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">计划编号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="planNo" name="planNo" data-options="onlyview: true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">版本号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="revNo" name="revNo" data-options="onlyview: true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">机队：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="fleet" name="fleet"
+                                   data-options="onlyview: true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">发动机型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="engType" name="engType" data-options="onlyview: true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">备注：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" name="memo" id="memo"
+                                   data-options="multiline:true " style="width: 490px;height:50px"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var user;
+    var pkid;
+    var param = {};
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        user = getLoginInfo();
+
+        InitDataForm(pkid);
+
+
+        $("#modifyUser").val(user.accountId);
+        $("#modifyName").val(user.userName);
+        $("#modifyDate").val(new Date().Format("yyyy-MM-dd"));
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        savePlan();
+    }
+
+    function savePlan() {
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/rxRepairPlan/updatePlan",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.onSearchClick();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/rxRepairPlan/selectByPrimaryKey/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

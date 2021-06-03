@@ -1,0 +1,193 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>ELT任务反馈</title>
+
+</head>
+<body class="ibody">
+
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" class="form-horizontal">
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="th" style="width:100px;" align="right">机号：</th>
+                <td style="padding: 3px;width: 100px">
+                    <input class="easyui-textbox" id="ac_reg" name="ac_reg" data-options=""
+                           style="width: 100px"/>
+                </td>
+                <th class="th" style="width:100px;" align="right">工卡号：</th>
+                <td style="padding: 3px;width: 150px;">
+                    <input class="easyui-textbox" id="card_no" name="card_no" data-options=""
+                           style="width: 100px"/>
+                </td>
+                <th align="right" class="th" style="width:100px;">完工日期开始：</th>
+                <td style="width:80px; padding:3px;">
+
+                    <input class="easyui-datebox" id="complete_date_start" name="complete_date_start" style="width:180px;"/>
+                </td>
+                <th align="right" class="th" style="width:100px;">完工日期结束：</th>
+                <td style="width:80px; padding:3px;">
+
+                    <input class="easyui-datebox" id="complete_date_end" name="complete_date_end" style="width:180px;"/>
+                </td>
+
+                <td align="left" style="padding: 3px;">
+                    <a class="searchBtn" type="button" onclick="onSearch_('dg','#ffSearch')"
+                       data-options="iconCls:'icon-search'">
+                        <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                    <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                        <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                </td>
+            </tr>
+        </table>
+    </form>
+</fieldset>
+
+<table id="dg"></table>
+<div class="easyui-window" data-options="closed:true" id="checkUpload" style="width:600px;height:300px;display: none;"
+     title="查看文件">
+    <div style="padding-left: 10px;font-size: 14px;line-height: 30px;border-bottom: 1px solid #ddd">
+        <span style="margin-right: 20px;display: inline-block;width: 50%;">飞机号：<span id="acReg"></span></span>
+        <span style="margin-right: 20px">工卡类型：<span id="workType"></span></span>
+    </div>
+    <div style="padding-left: 10px;font-size: 14px;line-height: 30px;border-bottom: 1px solid #ddd">
+        <span style="margin-right: 20px; display: inline-block;width: 50%;">工卡号：<span id="cardNo"></span></span>
+        <span style="margin-right: 20px">控制文件号：<span id="docNo"></span></span>
+    </div>
+    <div style="padding-left: 10px;font-size: 14px;line-height: 30px;border-bottom: 1px solid #ddd">
+        <span style="margin-right: 20px; display: inline-block;width: 50%;">完工时间：<span id="completeDate"></span></span>
+        <span style="margin-right: 20px">完工人：<span id="mechanic"></span></span>
+    </div>
+    <div style="padding-left: 10px;margin-top: 15px">附件：</div>
+    <div id="uploadList" style="color:#FF6600"></div>
+
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var functionCode = 'ELT_FEEDBACK_LIST';
+    var queryParams = {};
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitDataGrid();
+    }
+
+    /** 重置搜索*/
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    };
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 20,
+            queryParams: queryParams,
+            columns: {
+                param: {FunctionCode: functionCode},
+                alter:{
+                    FEEDBACK_BTN:{
+                        formatter: function (value, row) {
+                            if(value){
+                                var rowObj = JSON.stringify(row)
+                                return "<span onclick = 'feedback(" + rowObj + ")' style='color: #f60; cursor: pointer;'>待确认</span>";
+                            }
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return $.trim(value)=="FEEDBACKED"?"已确认":"未确认"
+                        }
+                    },
+                    NUM_OF_FILES:{
+                        formatter: function (value, row) {
+                            if (value && value > 0) {
+                                var rowObj = JSON.stringify(row)
+                                return "<span onclick = 'attachDetail(" + rowObj + ")' style='color: #f60; cursor: pointer;'>有(" + value + ")</span>";
+                            }else{
+                                return "<span  style='color: #f60;'>无(0)</span>";
+
+                            }
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+
+            },
+            contextMenus: [
+
+            ]
+
+        });
+    }
+
+    function attachDetail(obj) {
+        $("#uploadList").empty();
+        $('#acReg').text(obj.AC_REG ||'')
+        $('#workType').text(obj.WORK_TYPE ||'')
+        $('#cardNo').text(obj.CARD_NO ||'')
+        $('#docNo').text(obj.DOC_NO ||'')
+        $('#completeDate').text(obj.COMPLETE_DATE ||'')
+        $('#mechanic').text(obj.MECHANIC_NAME+'('+obj.MECHANIC_SN+')' ||'')
+        var feedbackFiles ;
+        InitFuncCodeRequest_({
+            data: {
+                category: "feedback",
+                sourceId: obj.WORKORDER_ID,
+                FunctionCode: 'ATTACHMENT_LIST',
+            },
+            async:false,
+            successCallBack: function (jdata) {
+                if(jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    feedbackFiles = jdata.data;
+                } else {
+                    MsgAlert({content: jdata.msgData[0] ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+
+            }
+        });
+        for (var i = 0; i < feedbackFiles.length; i++) {
+            var trHTML = '<tr><td class="td5"><a style="min-height: 20px;line-height: 20px;display: block;padding-left: 10px" target="_blank" onclick="downFile(' + feedbackFiles[i].PKID + ',' + feedbackFiles[i].PKID + ')">' + feedbackFiles[i].ORG_NAME + '</a></td></tr>';
+            $("#uploadList").append(trHTML);//在table最后面添加一行
+            // downFile(jdata.data[i].PKID,jdata.data[i].PKID);
+        }
+        $('#checkUpload').window('open');
+    }
+
+
+    function feedback(obj){
+        $.messager.confirm("提示","请确认已更新局方网站信息，可取消或确认，点确认后状态变为已确认状态", function(r) {
+            if (!r) {
+                return;
+            }
+            $.ajax({
+                url: basePath + "/api/v1/eltfeedbacks/"+obj.ID,
+                type: "post",
+                cache: false,
+                success: function (obj, textStatus) {
+                    if (obj.msg.indexOf("SUCCESS") != -1) {
+                        MsgAlert({content: "SUCCESS", type: 'info'});
+                        reload_();
+                    } else {
+                        MsgAlert({content: obj&&obj.msgData&&obj.msgData[0], type: 'error'});
+                    }
+                }
+            });
+        });
+    }
+
+</script>
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="PAGE.ENG_UNITS_MANAGE_LIST.TITLE">发动机单元体维护</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th align="right">件号：</th>
+                    <td style="width:110px">
+                        <input class="easyui-combobox" id="modName" name="modName"/>
+                    </td>
+                    <td colspan="6">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="searchBtn" onclick="doSearch_()"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <!--<a href="javascript:void(0)" class="addBtn" auth="ENG_UNITS_MANAGE1"
+                           onclick="addParentEngUnits('add')"><span>增加</span></a>-->
+                        <a href="javascript:void(0)" class="addBtn" auth="ENG_UNITS_MANAGE1"
+                           onclick="doSync()"><span>同步SAP数据</span></a>&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+
+
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left">
+        <div>
+
+            <table id="l_dg"></table>
+
+    </div>
+    </div>
+</div>
+
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var FuncCode_ = 'ENG_UNITS_MANAGE_LIST';
+    var loginUser;
+    var loginName;
+    var PAGE_DATA = {};
+
+
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#modName').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px'
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_MODUEL_XLJB",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['xljb'] = DomainCodeToMap_(jdata.data["ENG_MODUEL_XLJB"]);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        InitLeftDataGrid();
+    }
+
+    function doSearch_() {
+        InitLeftDataGrid();
+    }
+
+    function doSync() {
+        MaskUtil.mask('正在同步...');
+        InitGatewayRequest_({
+            path: "/meng-engine/EngUnitsManage/syncModule",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    InitLeftDataGrid();
+                    MaskUtil.unmask();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        doSearch_();
+    }
+
+    function InitLeftDataGrid() {
+       var data="";
+        var $form = $("#ffSearch");
+        var datas = $form.serializeObject();
+        //验证网关查询接口
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            path: "/meng-engine/EngUnitsManage/selectSysMenuListBy",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    data = jdata.obj;
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+       var tdata_ = WarpTreeGridData_(data, "0", ['PKID', 'PARENT_ID']);
+        var identity = 'l_dg';
+        $("#l_dg").MyDataGrid({
+            identity: identity,
+            idField: "PKID",
+            treeField: "KEY_MOD",
+            data: tdata_,
+            pagination: false,
+           // title: $.i18n.t('发动机单元体维护'),
+            columns: {
+                param: {FunctionCode: FuncCode_},
+                alter: {
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                    PROOF_DATE: {
+                        type: 'date'
+                    },
+                    XLJB: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['xljb'] [value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                /*{
+                    i18nText: "添加子项",
+                    auth:'ENG_UNITS_MANAGE5',
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_add_edit_({
+                            width: 400,
+                            height: 220,
+                            param: {pkid: rowData.PKID, modName: rowData.MOD_NAME, operation: "add"},
+                            url: "/views/engine/engUnitsManage/eng_units_manage_add_edit_son_menu.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth:'ENG_UNITS_MANAGE2',
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var title_ = "单元体维护";
+                        if (rowData.PARENT_ID == 0) {
+                            ShowWindowIframe({
+                                width: "400",
+                                height: "180",
+                                title: title_,
+                                param: {operation: "edit", pkid: rowData.PKID},
+                                url: "/views/engine/engUnitsManage/eng_units_manage_add_edit_parent_menu.shtml"
+                            });
+                        } else {
+                            ShowWindowIframe({
+                                width: "400",
+                                height: "220",
+                                title: title_,
+                                param: {operation: "edit", pkid: rowData.PKID},
+                                url: "/views/engine/engUnitsManage/eng_units_manage_add_edit_son_menu.shtml"
+                            });
+                        }
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "删除",
+                    auth:'ENG_UNITS_MANAGE3',
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var pkid = rowData.PKID;
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/EngUnitsManage/deleteEngBaseModuleById/" + pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+                , {
+                    id: "m-profAudit", i18nText: "校核",
+                    auth:'ENG_UNITS_MANAGE4',
+                    onclick: function () {
+                        var subFlag = 'N';
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var pkid = rowData.PKID;
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/EngUnitsManage/checkBeforeProof/" + pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    if (jdata.obj > 0) {
+                                        if (confirm("当前数据存在下级子项，是否同时校核？")) {
+                                            subFlag = 'Y';
+                                        }
+                                    }
+                                    checkMenus(rowData.PKID, loginUser, loginName,subFlag);
+                                } else {
+                                    MsgAlert({content: jdata.errorMsg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }*/
+            ],
+            /*validAuth: function (row, items) {
+                if (row.PROOF_NAME != null && row.PROOF_DATE != null) {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                    items['校核'].enable = false;
+                }
+                if(loginUser != row.CREATE_USER){
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                }else{
+                    items['校核'].enable = false;
+                }
+                return items;
+            },*/
+            resize: function () {
+                return {
+                    height: $(document.body).height() - $("fieldset").height() - 30,
+                    width: $("#lay_left").width()
+                };
+            }
+        });
+    }
+
+    //添加或编辑单元体(父)
+    function addParentEngUnits(operation) {
+        var title_ = $.i18n.t('单元体维护');
+        ShowWindowIframe({
+            width: "400",
+            height: "180",
+            title: title_,
+            param: {operation: operation},
+            url: "/views/engine/engUnitsManage/eng_units_manage_add_edit_parent_menu.shtml"
+        });
+    }
+
+    //校核
+    function checkMenus(pkid, loginUser, loginName,subFlag) {
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/EngUnitsManage/proofEngBaseModule/" + pkid + "/" + loginUser + "/" + loginName+ "/" + subFlag,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //刷新列表
+    function reload_() {
+        InitLeftDataGrid();
+    }
+
+</script>
+</body>
+</html>

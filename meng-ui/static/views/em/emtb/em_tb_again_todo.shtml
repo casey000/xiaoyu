@@ -1,0 +1,180 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>TB重评估</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" class="easyui-textbox" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr id="evan">
+                        <th class="th" align="right" style="width: 80px">处理方式：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="dealType" data-options="required:true"
+                                   name="dealType"
+                                   style="width:110px;"/>
+                        </td>
+                        <td>
+                            <input class="btn btn-primary" type="button" onclick="save()" value="处理任务"
+                                   style="width: 80px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                                   style="width: 50px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var recordId;
+    var msgpkid;
+    var flag;
+    var invasta;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        recordId = param.recordId;//存的TB主键
+        msgpkid = param.msgpkid;
+        flag = param.flag;
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_TB_AGAIN_EVAL",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#dealType").combobox({
+                        panelHeight: '100px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EM_TB_AGAIN_EVAL
+                    });
+
+                    InitFuncCodeRequest_({
+                        data: {
+                            FunctionCode: "EMTB_PKID",
+                            pkid: recordId
+                        },async:false,
+                        successCallBack: function (jdata) {
+                            if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                invasta = jdata.data.INVALID_STATUS;
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                }
+            }
+        })
+    }
+
+    function save() {
+        var revflag = "emTbEvaAgain";
+        var deal = $("#dealType").combobox("getValue");
+        var lczCou = 0;
+        InitFuncCodeRequest_({
+            data: {pkid: recordId, FunctionCode: 'EM_TB_LCZ_COU'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        lczCou = jdata.data.COU;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+        if (deal == "S") {//终结
+            if (lczCou > 0) {
+                MsgAlert({content: "该编号的TB最高版为【非已生效】，不允许终结！", type: 'error'});
+                return;
+            }else{
+                if(invasta != '' && invasta != null){
+                    if (!confirm("该改版的TB已经在走失效流程，不允许重复终结，此操作将直接关闭任务，不做任何处理！")) {
+                        return;
+                    }else{
+                        closeMsg();
+                        reload2();
+                    }
+                }else{
+                    common_add_edit_({
+                        url: "/views/em/emtb/em_tb_invalid_add.shtml?operation=add&pkid=" + recordId+"&flag="+"evaAgain",
+                        identity: '',
+                        isEdit: 0,
+                        width: 600,
+                        height: 400
+                    });
+                }
+            }
+        } else if (deal == "R") {//改版
+            if (lczCou > 0) {
+                if (!confirm("该编号的TB最高版为【非已生效】，此操作将直接关闭任务，不做任何处理！")) {
+                    return;
+                }else{
+                    closeMsg();
+                    reload2();
+                }
+            }else{
+                InitFuncCodeRequest_({
+                    data: {
+                        pkid: recordId,
+                        revflag: revflag,
+                        msgpkid: msgpkid,
+                        flag: flag,
+                        FunctionCode: 'EM_TB_COPY'
+                    }, successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            reload2();
+                            MsgAlert({content: '改版TB成功。'});
+                        } else {
+                            MsgAlert({
+                                content: jdata.msg ? jdata.msg : jdata.data,
+                                type: 'error'
+                            });
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    function closeMsg(){
+        //目前只关闭任务，后续会加逻辑
+        InitFuncCodeRequest_({
+            data: {
+                msgpkid: msgpkid,
+                FunctionCode: 'EM_FILE_CLOSE_MSG'
+            },async:false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: '操作成功。'});
+                } else {
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : jdata.data,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function reload2() {
+        param.OWindow.reloadTodo();
+        CloseWindowIframe();
+    }
+
+
+</script>
+</html>

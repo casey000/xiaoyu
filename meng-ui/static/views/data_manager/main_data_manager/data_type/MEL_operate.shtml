@@ -1,0 +1,425 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="zh">
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">MEL Operate</title>
+    <link href="/css/common_qc.css" rel="stylesheet" type="text/css"/>
+    <style type="text/css">
+        input {
+            border: none;
+            overflow: hidden;
+        }
+        .submit,
+        .log
+        {
+            padding: 3px 20px;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+        }
+
+        .cancel {
+            padding: 3px 20px;
+            background: #ce3c3c;
+            color: #fff;
+            border-radius: 4px;
+            margin-left: 16px;
+            margin-right: 10px;
+        }
+
+        .table-zi {
+            width: 100%;
+            padding-top: 20px;
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+
+        .table-zi td, .dwTable td, .dwTable th {
+            padding: 3px;
+            border: 1px solid #ccc;
+        }
+
+        .disabledClass{
+            background-color: #adadad;
+            padding: 3px 20px;
+            color: #fff;
+            border-radius: 4px;
+            margin-left: 16px;
+            margin-right: 10px;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        img {
+            cursor: pointer;
+        }
+
+        input {
+            margin: 0;
+            padding: 0;
+        }
+
+        .table-zi td {
+            text-align: center;
+            height: 30px;
+        }
+
+        .list_btn_row .right_button {
+            list-style: none;
+            float: right;
+            margin-left: 5px;
+            padding-right: 5px;
+        }
+
+        .list_btn_row .left_button {
+            list-style: none;
+            float: right;
+            margin-left: 5px;
+            padding-right: 5px;
+        }
+
+        .addOrDelNodeClass input{
+            width: 40px;
+            height: 20px;
+            border: 1px solid #ccc;
+        }
+
+        #addOrDelNode div{
+            display: inline-block;
+        }
+
+    </style>
+
+</head>
+<body class="ibody">
+<form action="" id="addWorkOrderForm" method="get">
+    <table class="table-zi">
+        <tr>
+            <td>
+                <div align="center">机型<span style="color: red;">*</span></div>
+            </td>
+            <td class="td5" colspan="12" style="height: 25px;width :85%;text-align: left;" >
+                &nbsp;<input class="easyui-combobox" id="acModel" name="addWo.acModel"
+                             style="width:30%; height: 25px;"/>
+            </td>
+        </tr>
+        <tr >
+            <td>
+                <div align="center">类型<span style="color: red;">*</span></div>
+            </td>
+            <td class="td5" colspan="12" style="height: 25px;width :85%;text-align: left;" >
+                &nbsp;<input class="easyui-combobox" id="acType" name="addWo.workType"
+                             style="width:30%; height: 25px;"/>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div>章节<span style="color: red;">*</span></div>
+            </td>
+            <td class="td5 addOrDelNodeClass " colspan="12"  style="text-align: left;">
+                <div id="addOrDelNode" style="display: inline-block;">
+                    <div class="atta_input_fliecss"><input id="chapter1" onKeyUp="value=value.toUpperCase().replace(/[\W]/g,'')" /></div><div class="atta_input_fliecss">&#8197;——&#8197;<input id="chapter2" onKeyUp="value=value.toUpperCase().replace(/[\W]/g,'')"/></div>
+                </div>
+                <div class="qc_btns" style="margin-top: 3px;">
+                    <span class="qc_btn_add" onclick="addNode();"></span>
+                    <span class="qc_btn_del" onclick="deleteNode();"></span>
+                </div>
+            </td>
+        </tr>
+        <!-- 备注 -->
+        <tr>
+            <td>
+                <div align="center">中文标题<span style="color: red;">*</span></div>
+            </td>
+            <td colspan="12">
+                <input id="melETitle" size="50" style="width: 100%;border: 1px solid #ccc;height: 20px;" type="text">
+                <div class="errorMessage"></div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div align="center">英文标题<span style="color: red;">*</span></div>
+            </td>
+            <td colspan="12">
+                <input id="melCTitle" size="50" style="width: 100%;border: 1px solid #ccc;height: 20px;" type="text">
+                <div class="errorMessage"></div>
+            </td>
+        </tr>
+        <tr align="right">
+            <td colspan="12" style="text-align: right;">
+                <input id="melSubmitBnt" class="submit" onclick="melSubmit()" type="button"
+                       value="Submit">
+                <input id="btn_cancel" class="cancel" onclick="close_window()" type="button"
+                       value="Cancel">
+<!--                <input id="btn_log" class="log" onclick="openLog(param.id)" type="button"-->
+<!--                       value="Log">-->
+            </td>
+        </tr>
+    </table>
+</form>
+<!--<script type="text/javascript" src="/js/datagrid_utils.js"></script>-->
+<script type="text/javascript">
+    var param;
+    var operation;
+    var PAGE_DATA = {};
+
+//立即执行函数
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_MP_ACTYPE"
+            },
+            successCallBack: function (jdata) {
+                    //机型
+                    PAGE_DATA['acModel'] = DomainCodeToMap_(jdata.data.DA_ACREG_MP_ACTYPE);
+                    $('#acModel').combobox({
+                        panelHeight: '120px',
+                        data: jdata.data.DA_ACREG_MP_ACTYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        editable: false, // 是否可编辑
+                        multiple: false, //是否可多选
+                        require: true, //是否必须
+                        onLoadSuccess: function () {
+                            $('#acModel').combobox('setValue', jdata.data.DA_ACREG_MP_ACTYPE[0].VALUE);
+                        }
+                    });
+                    downSelect();
+                isAddOrEdit();
+            }
+        });
+    };
+
+//    转接判断添加、编辑
+    function isAddOrEdit() {
+      if(!!param.id){
+       //  如果有ID就是编辑
+          //初始化赋值
+          getOneData();
+          $("#acModel").combobox('disable');
+          $("#acType").combobox('disable');
+          // $("#btn_log").show();
+      }else {
+      //  没有ID就是新增
+          $("#acModel").combobox('enable');
+          $("#acType").combobox('enable');
+          // $("#btn_log").hide();
+      }
+    };
+
+//提交按钮
+    function melSubmit() {
+    //    获取值
+        var getPostData = getValue();
+    //    校验值
+        var checkData = mustFill(getPostData);
+        if(!checkData){
+            return false;
+        };
+        //    禁用按钮
+        $("#melSubmitBnt").attr({"disabled":"disabled"});
+        $("#btn_cancel").attr({"disabled":"disabled"});
+        $("#melSubmitBnt").attr("class","disabledClass");
+        $("#btn_cancel").attr("class","disabledClass");
+    //接口提交
+        var postData = {};
+    //判断编辑或新增
+        var postUrl ="";
+        if(!!param.id){
+            //如果有ID表示编辑
+            postUrl = "/api/v1/mel/update";
+            postData =  {
+                id:param.id,
+                type:getPostData.type,
+                melNumber:getPostData.melNumber,
+                model:getPostData.model,
+                melCTitle:getPostData.melCTitle,
+                melETitle:getPostData.melETitle
+            };
+        }else {
+            //如果没有ID表示新增
+            postUrl = "/api/v1/mel/add";
+            postData =  {
+                // id:param.id,
+                type:getPostData.type,
+                melNumber:getPostData.melNumber,
+                model:getPostData.model,
+                melCTitle:getPostData.melCTitle,
+                melETitle:getPostData.melETitle
+            };
+        };
+        $.ajax({
+            type: "POST",
+            url:postUrl,
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify(postData),
+            dataType: "json",
+            success: function (data) {
+                if(data.code == 200){
+                    param.OWindow.reload_();
+                    MsgAlert({content: "提交成功"});
+                    setTimeout(function () {
+                        window.close()
+                    }, 500);
+                }else {
+                    MsgAlert({content: data.msg, type: 'error'});
+                };
+                //    按钮启用
+                $("#melSubmitBnt").removeAttr("disabled");
+                $("#btn_cancel").removeAttr("disabled");
+                $("#melSubmitBnt").attr("class","submit");
+                $("#btn_cancel").attr("class","cancel");
+            },
+            error: function () {
+                window.alert("查询失败！");
+            //    按钮启用
+                $("#melSubmitBnt").removeAttr("disabled");
+                $("#btn_cancel").removeAttr("disabled");
+                $("#melSubmitBnt").attr("class","submit");
+                $("#btn_cancel").attr("class","cancel");
+            }
+        });
+    };
+
+//窗口关闭
+    function close_window(){
+        window.close();
+    };
+
+//打开日志
+    function openLog(id) {
+        var title_ = $.i18n.t('定检工卡预览');
+        ShowWindowIframe({
+            width: "850",
+            height: "650",
+            title: title_,
+            param: {id: id},
+            url:"/views/data_manager/main_data_manager/data_type/MEL_log_list.shtml"
+        });
+    };
+
+//    查询赋值
+    function getOneData() {
+        $.ajax({
+            url: "/api/v1/mel/get",
+            type: "get",
+            data: {'id': param.id},
+            dataType: "json",
+            cache: false,
+            success: function (data) {
+                if (data.code == 200) {
+                    var getAllData = data.data;
+                    $('#acModel').combobox('setValue', getAllData.model);
+                    $('#acType').combobox('setValue', getAllData.type);
+                    $('#melETitle').val(getAllData.melETitle);
+                    $('#melCTitle').val(getAllData.melCTitle);
+                    var melNumberArray = getAllData.melNumber.split("-");
+                    for (var i=1;i<melNumberArray.length+1;i++){
+                        if(i>2){
+                            //添加节点
+                            addNode();
+                        };
+                        //赋值
+                        var chapterNode = "#chapter"+i;
+                        $(chapterNode).val(melNumberArray[i-1]);
+                    };
+                }
+            },
+            error: function () {
+            window.alert("数据查询失败！");
+        }
+        });
+    };
+
+//    获取值
+    function getValue() {
+      var allValue = {};
+      allValue.model = $('#acModel').combobox('getValue')||"";
+      allValue.type = $('#acType').combobox('getValue')||"";
+      allValue.melETitle = $('#melETitle').val()||"";
+      allValue.melCTitle = $('#melCTitle').val()||"";
+      var chapter = $('#chapter1').val();
+      for (var i = 1 ;i < document.getElementsByClassName('atta_input_fliecss').length;i++){
+          var num = 1+i;
+          var chapterNode = "#chapter"+num;
+          chapter = chapter + '-'+ $(chapterNode).val();
+      };
+      allValue.melNumber = chapter.toUpperCase();
+      return allValue;
+    };
+
+//    必填校验
+    function mustFill(value) {
+      var flag = true;
+      if(value.model == ""){
+        flag = false;
+          MsgAlert({content: "机型必选！", type: 'error'});
+      }else if(value.type == ""){
+          flag = false;
+          MsgAlert({content: "类型必选！", type: 'error'});
+      }else if(value.melETitle == ""){
+          flag = false;
+          MsgAlert({content: "中文标题必填！", type: 'error'});
+      }else if(value.melCTitle == ""){
+          flag = false;
+          MsgAlert({content: "英文标题必填！", type: 'error'});
+      };
+        for (var i = 1 ;i < document.getElementsByClassName('atta_input_fliecss').length+1;i++){
+            var chapterNode = "#chapter"+i;
+            if($(chapterNode).val() == "" ){
+                flag = false;
+                MsgAlert({content: "章节全部必填！", type: 'error'});
+                break;
+            }
+        };
+        return flag;
+    };
+
+//    下拉选择设置
+    function downSelect() {
+        $('#acType').combobox({
+            panelHeight: '50px',
+            data: [
+                {TEXT: 'MEL', VALUE: 'MEL'},
+                {TEXT: 'CDL', VALUE: 'CDL'}
+            ],
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            editable: false, // 是否可编辑
+            multiple: false, //是否可多选
+            require: true, //是否必须
+            onLoadSuccess: function () {
+                $('#acType').combobox('setValue', 'MEL')
+            }
+        });
+    };
+
+// 章节添加操作
+    function addNode() {
+        var number = document.getElementsByClassName('atta_input_fliecss').length+1 ;
+        let fileNode = "<div class=\'atta_input_fliecss\'>&#8197;——&#8197;<input id='chapter"+ number +"'  onKeyUp='value=value.toUpperCase().replace(/[\\W]/g,\"\")'  /></div>";
+        $("#addOrDelNode").append(fileNode);
+    };
+
+//章节删除操作
+    function deleteNode() {
+        let geshu = document.getElementsByClassName('atta_input_fliecss');
+        if (geshu.length <= 2) {
+            return
+        }else {
+            $("#addOrDelNode").children("div:last-child").remove();
+        };
+    };
+
+
+</script>
+</body>
+</html>

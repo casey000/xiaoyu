@@ -1,0 +1,136 @@
+<table class="table table-bordered table-info" style="padding-top:10px" id="worklogList">
+    <tr>
+        <th class="table-cell cell-normal">TLB No</th>
+        <th class="table-cell cell-normal">Found Date</th>
+        <th class="table-cell cell-normal">Report By</th>
+        <th class="table-cell cell-normal">Action Date</th>
+        <th class="table-cell cell-normal">A/C Reg.No</th>
+    </tr>
+    
+</table>
+    
+<script type="text/javascript">
+
+    function openTLB(id){
+        let title = "add worklog";
+        let param = {
+            defectId: parent.get_defectId(),
+            operation: "edit",
+            id: id
+        }
+        ShowWindowIframe({
+            width: "1200",
+            height: "700",
+            title: title,
+            param: param,
+            url: "/views/defect/worklog/addWorklog.shtml"
+        });
+        return
+    }
+
+    function viewTLB(id){
+        let title = "view worklog";
+        let param = {
+            defectId: parent.get_defectId(),
+            operation: "edit",
+            id: id
+        }
+        ShowWindowIframe({
+            width: "1200",
+            height: "700",
+            title: title,
+            param: param,
+            url: "/views/defect/worklog/viewWorklog.shtml"
+        });
+        return
+    }
+
+    $(function(){
+        /** 获取列表数据 **/
+        function get_list_data(){
+            let defectId = parent.get_defectId()
+            let defectNo = parent.get_defectNo()
+            let url = "/worklog/findWorkLogByDefect";
+            let form_data = new FormData();
+            form_data.append("id", defectId)
+            axios.post(url, form_data).then(response=>{
+                if(response.data.msg.toUpperCase().indexOf("SUCCESS") != -1){
+                    console.log("response.worklog.data")
+                    console.log(response.data.data)
+                    let devide_dict = devide_list_data(response.data.data.workLogList);
+                    //先显示自己的worklog，不带标题
+                    load_list_data(devide_dict[defectNo])
+                    //再显示关联的worklog，带标题
+                    if(response.data.data.defectNos && Array.isArray(response.data.data.defectNos)){
+                        response.data.data.defectNos.forEach(key=>{
+                            load_list_data(devide_dict, key)
+                        })
+                    }
+                }else if(response.data.msg.toUpperCase().indexOf("ERROR") != -1){
+                    throw new Error("worklog列表获取失败")
+                }
+            }).catch(err=>{
+                load_list_data()
+                MsgAlert({type: "error", content: err.message})
+            })
+        }
+
+        function load_list_data(data, key){
+            let header = `<tr>
+                            <th class="table-cell cell-normal">TLB No</th>
+                            <th class="table-cell cell-normal">Found Date</th>
+                            <th class="table-cell cell-normal">Report By</th>
+                            <th class="table-cell cell-normal">Action Date</th>
+                            <th class="table-cell cell-normal">A/C Reg.No</th>
+                        </tr>`
+            if(key){
+                //关联的，带标题
+                let title = `<tr>
+                                <th style="text-align:left; height:40px; padding-left: 10px;" colspan="99">Relation Defect WorkLog Defect No:${key}</th>
+                            </tr>`
+                $("#worklogList").append(title)
+                $("#worklogList").append(header)
+            }else{
+                //自己的，不带标题
+                $("#worklogList").append(header)
+            }
+
+            if(!data || !Array.isArray(data) || data.length < 1){
+                //没有数据
+                $("#worklogList").append(`<tr>\r\n \
+                                    <td class="table-cell cell-normal" colspan="99">N/A</td>\r\n \
+                                </tr>\r\n`)
+            }else{
+                //显示数据
+                for(let i = 0, len = data.length; i < len; i++){
+                    $("#worklogList").append(each_table_row(i, data[i]))
+                }
+            }
+        }
+
+        function each_table_row(index, row_data){
+            if(!row_data){
+                return ""
+            }
+            let html = "";
+            let createTime = row_data.creatTime ? formatterDate(new Date(row_data.creatTime)) : "";
+            html = `<tr>
+                        <td class="table-cell cell-normal"><a style="color: #f60" onclick="openWorklog(${row_data.id})">edit</a></td>
+                        <td class="table-cell cell-normal"><a style="color: #f60" onclick="viewWorklog(${row_data.id})">view</a></td>
+                        <td class="table-cell cell-normal">${createTime}</td>
+                        <td class="table-cell cell-normal">${row_data.station||""}</td>
+                        <td class="table-cell cell-normal">${row_data.section||""}</td>
+                        <td class="table-cell cell-normal">${row_data.workLog||""}</td>
+                        <td class="table-cell cell-normal">${row_data.analysis||""}</td>
+                        <td class="table-cell cell-normal">${row_data.status||""}</td>
+                        <td class="table-cell cell-normal">${row_data.creator||""}</td>
+                        <td class="table-cell cell-normal">${row_data.remark||""}</td>
+                    </tr>`
+            return html;
+
+        }
+        
+        // get_list_data();
+    })
+    
+</script>

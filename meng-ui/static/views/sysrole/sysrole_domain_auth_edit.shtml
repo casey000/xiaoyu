@@ -1,0 +1,366 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>数据域设置</title>
+    <script type="text/javascript">
+        var param = {};
+        var roleId;
+        var menuId;
+        var domainCode;
+        var type;
+
+        function i18nCallBack() {
+            InitPageInfo();
+        }
+
+        function InitPageInfo() {
+            param = getParentParam_();
+            roleId = param.PKID;
+            if (!param || !param.PKID) {
+                layerErrorPage($.i18n.t('msg_err:ERRMSG.COMMON.REQ_PARAM_ERROR'), "500");
+                return;
+            }
+            InitFuncCodeRequest_({
+                data: {pkid: param.PKID, FunctionCode: "SYS_ROLE_LIST_DOMAIN"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        var menuData = jdata.data['menuLv12'];
+                        var tdata_ = [];
+                        $.each(menuData['0'], function (k1, v1) {
+                            var r_ = _WarpTreeMenu(menuData, (v1.id + ''), (v1.pid + ''), ['id', "pid"]);
+                            if (r_)
+                                tdata_.push(r_);
+                        });
+                        if (!tdata_) {
+                            return;
+                        }
+                        $("#menuTree").tree({
+                            data: tdata_,
+                            lines: true, animate: true, checkbox: false,
+                            formatter: function (node) {
+                                return node.text;//@todo node.attributes.i18nText ? $.i18n.t("common:" + node.attributes.i18nText) : node.text;
+                            },
+                            onSelect: function (node) {
+                                selectMenu(node.id);
+                            }
+                        }).css({padding: '5px'});
+
+                    } else {
+                        layer.msg(jdata.msg, {icon: 5});
+                    }
+                }
+            });
+            $("#table2").hide();
+            $("#table1").show();
+            $("input[name='type']").bind("click", displaySelect);
+
+        }
+
+        var radio = 0;
+        var domainValue = 0;
+        var uids = [];
+
+        function selectMenu(mid) {
+            menuId = mid;
+            InitFuncCodeRequest_({
+                data: {menuId: mid, FunctionCode: "WS_TABLE_NAME_LIST"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        $("#centerArea").datalist({
+                            data: jdata.data,
+                            title: '数据域',
+                            fit: true,
+                            border: true,
+                            plain: false,
+                            lines: true,
+                            valueField: 'DOMAIN_CODE',
+                            textField: 'DOMAIN_NAME',
+                            onClickRow: function (index, row) {
+                                $("#save").show();
+                                $("#cright1").show();
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        roleId: roleId,
+                                        domainCode: row.DOMAIN_CODE,
+                                        FunctionCode: "WS_REL_ROLE_MENU_CONF"
+                                    },
+                                    successCallBack: function (ddata) {
+                                        if (ddata.code == RESULT_CODE.SUCCESS_CODE) {
+                                            domainCode = row.DOMAIN_CODE;
+                                            radio = ddata.data.DOMAIN_CONF["TYPE"];
+                                            domainValue = ddata.data.DOMAIN_CONF["VALUE"];
+                                            if (radio == "1") {
+                                                $("#radio1").prop("checked", true);
+                                                displaySelect();
+                                                parseValue1(domainValue);
+                                            } else {
+                                                $("#radio2").prop("checked", true);
+                                                displaySelect();
+                                                parseValue2(domainValue);
+                                            }
+                                            $("#rightArea").datalist({
+                                                data: ddata.data.DOMAIN[row.DOMAIN_CODE],
+                                                title: '数据域设置',
+                                                fit: true,
+                                                border: true,
+                                                plain: false,
+                                                lines: true,
+                                                singleSelect: false,
+                                                valueField: 'VALUE',
+                                                textField: 'VALUE',
+                                                onLoadSuccess: function () {
+                                                    var rows = $("#rightArea").datalist("getRows");
+                                                    for (var i = 0; i < rows.length; i++) {
+                                                        if (radio == "1") {
+                                                            eval("var arr = " + domainValue + ";");
+                                                            $.each(arr, function (k, it) {
+                                                                if (rows[i]["VALUE"] == it) {
+                                                                    uids.push(rows[i]["VALUE"]);
+                                                                    $("#rightArea").datalist('selectRow', i);
+                                                                }
+                                                            });
+                                                        }
+                                                    }
+                                                }
+                                            });
+                                        }
+                                    }
+                                });
+                            }
+                        });
+
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+
+        function displaySelect() {
+            var jQ = $("input:radio[name='type']:checked");
+            $("#table1,#table2").hide();
+            if (jQ.val() == 2) {
+                $("#table2").show();
+                $("#cright1").hide();
+            } else {
+                $("#table1").show();
+                $("#cright1").show();
+            }
+        }
+
+
+        var value;
+
+        function selectRow() {
+            $("#table1").html("");
+            uids = [];
+            var data = $("#rightArea").datalist('getSelections');
+            for (var key in data) {
+                uids.push(data[key]["VALUE"]);
+                $("#table1").append('<tr class="tdr"><td>' + data[key]["VALUE"] + '</td></tr>');
+            }
+        }
+
+        function deleteRow(r) {
+            var i = r.parentNode.parentNode.rowIndex;
+            document.getElementById('table2').deleteRow(i);
+        }
+
+
+        function appendSelect() {
+            var a = $('<tr class="tdr"><td>' +
+                '<select class="easyui-combobox" sign_="cbox" name="s1" style="width: 55px;" data-options="required:true,editable:false,panelHeight: \'auto\'" >' +
+                '<option value="&">AND</option> <option value="|">OR</option></select>&nbsp;' +
+                '<select class="easyui-combobox" sign_="cbox" name="s1" style="width: 45px;" data-options="required:true,editable:false,panelHeight: \'auto\'" >' +
+                '<option value="{"> &gt;</option> <option value="["> &ge;</option></select>&nbsp;' +
+                '<input sign_="ctxt" class="easyui-textbox easyui-numberbox" name="var1" style="height:25px; width: 45px;">&nbsp;' +
+                '<input sign_="ctxt" class="easyui-textbox easyui-numberbox" name="var2" style="height:25px; width: 45px;">&nbsp;' +
+                '<select class="easyui-combobox" sign_="cbox" name="s2" style="width: 45px;" data-options="required:true,editable:false,panelHeight: \'auto\'"  >' +
+                '<option value="}"> &lt;</option><option value="]"> &le;</option> </select>&nbsp;&nbsp;<a href="javascript:void(0)" onclick="deleteRow(this)">删除</a></td></tr>').insertAfter("#appendSelect");
+            $.parser.parse(a);
+        }
+
+        function doSubmit_() {
+            var jQ = $("input:radio[name='type']:checked");
+            if (jQ.val() == 2) {
+                type = 2;
+                value = appendValue();
+            } else {
+                type = 1;
+                value = JSON.stringify(uids);
+            }
+
+            if (value != '' && value != '[]') {
+                InitFuncCodeRequest_({
+                    data: {
+                        roleId: roleId,
+                        menuId: menuId,
+                        domainCode: domainCode,
+                        type: type,
+                        value: value,
+                        FunctionCode: "WS_REL_ROLE_DOMAIN_ADD"
+                    },
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            } else if (value == '[]') {
+                alert("保存值不能为空")
+            }
+        }
+
+        function appendValue() {
+            var items = $("*[sign_]");
+            var str = "";
+            var im = 0;
+            var bool = false;
+            $.each(items, function (k, it) {
+                var sign = $(it).attr("sign_");
+                var value = "";
+                if (sign == 'cbox') {
+                    value = $(it).combobox('getValue');
+                } else {
+                    im++;
+                    if (im % 2 == 0) {
+                        value = ",";
+                    }
+                    value += $(it).textbox('getValue');
+                }
+                if (value == "" || value == ',') {
+                    bool = true;
+                    return false;
+                }
+                str += value;
+            });
+            if (bool) {
+                alert("请输入内容！")
+                return '';
+            }
+            return str;
+        }
+
+        function parseValue1(str) {
+            $("#table1").html("");
+            eval("var arr = " + str + ";");
+            $.each(arr, function (k, it) {
+                $("#table1").append('<tr class="tdr"><td>' + it + '</td></tr>');
+            });
+        }
+
+        function parseValue2(str) {
+            $("#table2  tr:not(:first)").html("");
+            var reg = new RegExp("[&\\|]{0,}[\\{\\[].[^&\\|]*[\\}\\]]", "g");
+            var arr = str.match(reg);
+            var marry = [];
+            $.each(arr, function (k, it) {
+                if (k != 0) {
+
+                }
+                var h = it.substring(0, 1);
+                if (h == "&" || h == "|") {
+                    marry.push(h);
+                    it = it.replace(h, "");
+                    appendSelect();
+                }
+                var f = it.substring(0, 1);
+                var l = it.substring(it.length - 1);
+                var v = it.replace(f, "").replace(l, "").split(",");
+                marry.push(f);
+                marry.push(v[0]);
+                marry.push(v[1]);
+                marry.push(l);
+            });
+            var items = $("*[sign_]");
+            $.each(items, function (k, it) {
+                var sign = $(it).attr("sign_");
+                if (sign == 'cbox') {
+                    $(it).combobox({value: marry[k]});
+                } else {
+                    $(it).textbox({value: marry[k]});
+                }
+            });
+        }
+
+        function selectItem_(menuId) {
+            var $menuTree = $('#menuTree');
+            var node = $menuTree.tree('find', menuId);
+            $menuTree.tree("select", node.target);
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+
+    <div id="mlayout" class="easyui-layout" style="height: 360px;">
+        <div id="lay_left" data-options="region:'west',split:false" style="width: 240px;">
+            <ul id="menuTree" class="easyui-tree"></ul>
+        </div>
+        <div id="lay_center" data-options="region:'center'" style="width: 480px;">
+            <div class="cleft" style="width: 215px; height: 100%; float: left;">
+                <ul id="centerArea">
+                </ul>
+            </div>
+            <div class="cright" style="width: 215px; height: 100%; float: left;">
+                <ul id="rightArea">
+                </ul>
+            </div>
+            <div class="cright1" id="cright1" style="display:none;width: 35px; height: 100%; float: right;">
+                <a href="javascript:void(0)" style="margin: 118px 0px 0px 0px;" class="easyui-linkbutton"
+                   data-options="iconCls:'icon-arrow_right'" onclick="selectRow()"></a>
+            </div>
+
+        </div>
+
+        <div id="lay_right" data-options="region:'east'" style="width: 30%;">
+            <div id="save" style="display: none;">
+                <span>保存设置</span>
+                <table class="table table-bordered table-info">
+                    <tr id="selectType">
+                        <td class="tdr">
+                            <input type="radio" name="type" id="radio1" value="1" checked="checked">选择数据域&nbsp;&nbsp;&nbsp;&nbsp;
+                            <input type="radio" name="type" id="radio2" value="2">自定义数据域
+                        </td>
+                    </tr>
+                </table>
+                <table id="table1" class="table table-bordered table-info">
+
+                </table>
+                <table id="table2" class="table table-bordered table-info">
+                    <tr id="appendSelect">
+                        <td class="tdr">
+                            <select class="easyui-combobox" sign_="cbox" name="s1" id="s1" style="width: 45px;"
+                                    data-options="required:true,editable:false,panelHeight:'auto'">
+                                <option value="{"> &gt;</option>
+                                <option value="["> &ge;</option>
+                            </select>
+                            <input class="easyui-textbox easyui-numberbox" sign_="ctxt" name="var1" id="var1"
+                                   style="height:25px; width: 45px;">
+                            <input class="easyui-textbox easyui-numberbox" sign_="ctxt" name="var2" id="var2"
+                                   style="height:25px; width: 45px;">
+                            <select class="easyui-combobox" sign_="cbox" name="s2" id="s2" style="width: 45px;"
+                                    data-options="required:true,editable:false,panelHeight:'auto'">
+                                <option value="}"> &lt;</option>
+                                <option value="]"> &le;</option>
+                            </select>&nbsp;&nbsp;
+                            <input onclick="appendSelect()" class="btn btn-primary" type="button" value="添加"/>
+                        </td>
+                    </tr>
+                </table>
+                <div align="center" style="margin-top: 10px;" id="btn_box">
+                    <input onclick="doSubmit_()" class="btn btn-primary" type="button" value="保存"/>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>

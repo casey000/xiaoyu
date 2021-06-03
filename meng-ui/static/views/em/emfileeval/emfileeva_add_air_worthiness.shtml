@@ -1,0 +1,578 @@
+<!--
+  ~ Copyright 2018 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>持续性适航评估</title>
+</head>
+
+<body>
+
+<div class="search-form">
+    <table id="airWorthinessJudge" class="table table-bordered table-info attribute-judge">
+        <tr style="display: none">
+            <th class="th" >id：</th>
+            <td class="tdr" colspan="24">
+                <textarea id="worthinessId" name="worthinessId" style="height: 20px"></textarea>
+            </td>
+        </tr>
+        <tr>
+            <th class="th" >损伤容限：</th>
+            <td class="tdr" >
+                <input class="easyui-combobox subType-info" id="damage" name="#" data-options="editable:false"/>
+            </td>
+            <th id='app' class="th" rowspan="3"  align="right" >适用对象：</th>
+            <td id='app1' class="tdr" rowspan="3" style="min-width: 200px">
+                <ul id="zoneBind"></ul>
+            </td>
+        </tr>
+        <tr>
+            <th class="th">加入改装图：</th>
+            <td class="tdr" >
+                <input class="easyui-combobox subType-info" id="join" name="#" data-options="editable:false"/>
+            </td>
+        </tr>
+        <tr>
+            <th class="th">附件：</th>
+            <td>
+            <input class="btn btn-primary" type="button" id="uploadNoNe" onclick="uploadNoNece()"
+                   value="上传附件"
+                   style="width: 70px;margin:5px;"/>
+            <input class="btn btn-primary" type="button" id="downNece" onclick="neceAttach()"
+                   value="附件查看"
+                   style="width: 70px;margin:5px;"/>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="24">
+            <input class="btn btn-primary" type="button" id="saveNe" onclick="saveWorthinessJudgeData();return false" value="保存"
+                   style="width: 50px;margin:5px;float: right"/>
+            </td>
+        </tr>
+
+    </table>
+    <table id='airWorthinessJudgeDg' style="width:100%;height:200px"></table>
+</div>
+</body>
+<script type="text/javascript">
+    var param;
+    param = getParentParam_();
+    var evapkid = param.evapkid;
+    var id = param.id;
+    var otherData;
+    var datan;
+    const damageSelect = [
+        {
+            label: "是",
+            value: "Y"
+        },
+        {
+            label: "否",
+            value: "N"
+        }
+    ];
+    const joinSelect = [
+        {
+            label: "是",
+            value: "Y"
+        },
+        {
+            label: "否",
+            value: "N"
+        }
+    ];
+
+    $(function () {
+        //初始化选择项
+        selectNub();
+        //树形图
+        initData();
+        // 初始化页面展示
+        initPageShow(param.row);
+        //使用模拟数据
+        // initPageShow(mokeData);
+
+    });
+
+    //选择项初始化
+    function selectNub() {
+        $("#damage").combobox({
+            valueField: 'value',
+            textField: 'label',
+            panelHeight: '48px',
+            data: damageSelect,
+            onSelect: function (data) {
+                // showAndHide(data.value);
+            }
+        });
+        $("#join").combobox({
+            valueField: 'value',
+            textField: 'label',
+            panelHeight: '48px',
+            data: joinSelect,
+            onSelect: function (data) {
+
+            }
+        })
+    };
+
+    //    附件上传
+    function uploadNoNece() {
+        if($("#worthinessId").val()==""){
+            alert("请先保存");
+            return false;
+        };
+        common_uploadFile({
+            identity: 'dg',
+            param: {
+                cat: "emFlieevaWorthiness",
+                // sourceId: 1213456,
+                sourceId: $("#worthinessId").val(),
+                successCellBack: "",
+                fialCellBack: ""
+            }
+        });
+    };
+
+    //附件查看
+    function neceAttach() {
+        InitFuncCodeRequest_({
+            data: {
+                SOURCE_ID: $("#worthinessId").val(),
+                CATEGORY: "emFlieevaWorthiness",
+                FunctionCode: 'ATTACHMENT_RSPL_GET'
+            },
+            successCallBack: function (jdata) {
+                //为0时提示没有上传附件，无法查看
+                if (jdata.data.length == 0) {
+                    MsgAlert({content: "请先上传附件", type: 'error'});
+
+
+                } else {
+                    //打开一个列表页面
+                    ShowWindowIframe({
+                        width: "515",
+                        height: "285",
+                        param: {pkid: $("#worthinessId").val(), category: "emFlieevaWorthiness"},
+                        url: "/views/data_manager/dm/upload/editAttach.shtml"
+                    });
+                }
+            }
+        });
+    };
+
+    //上传
+    function common_uploadFile(edopt) {
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        ShowWindowIframe({
+            width: 575,
+            height: 200,
+            title: title_,
+            param: $.extend({}, edopt.param),
+            url: "/views/data_manager/dm/upload/attachment_add.shtml"
+        });
+    };
+
+    //删除附件
+    function deleteUpload() {
+        InitFuncCodeRequest_({
+            data: {
+                pkid: id,
+                category: 'emfileevaAddEdit',
+                FunctionCode: 'ATTACHMENT_RSPL_DEL_BY_CATEGORY'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    attachList(id);
+                    MsgAlert({content: "删除成功"});
+                    //MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    };
+
+    //回显附件
+    function attachList(pkid) {
+        //回显附件信息
+        InitFuncCodeRequest_({
+            data: {
+                SOURCE_ID: pkid,
+                CATEGORY: "emfileevaAddEdit",
+                FunctionCode: 'ATTACHMENT_RSPL_GET'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                var attachHtml1 = "";
+                for (var i = 0; i < jdata.data.length; i++) {
+                    attachHtml1 += '<a href="javascript:void(0);" onclick="downFileLocal(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a>&nbsp;'
+                }
+                document.getElementById("attachment").innerHTML = attachHtml1;
+            }
+        });
+    };
+
+    //刷新主页面
+    function reload_(dg) {
+        $(dg).datagrid("reload");
+    };
+
+    //保存操作
+    function saveWorthinessJudgeData() {
+        var treeData = $('#zoneBind').tree('getChecked');
+        var data ={
+            "fileEvaluateAirworthiness": {
+                // dteContent: "损伤容限评估内容",
+                // dteResult: "损伤容限结果",
+                // refitContent: "改装图评估内容",
+                // refitResult: "改装图评估结果",
+                // uuid: ""
+                evaId: param.evapkid,
+                id: $("#worthinessId").val(),
+                isAddRefit: $("#join").combobox("getValue"),
+                isDte: $("#damage").combobox("getValue"),
+                segId: param.segpkid,
+                suitable: getsuitableData(treeData).toString()
+            },
+            "segAppDefails":getSegAppDefailsData(treeData)};
+        if(data.fileEvaluateAirworthiness.isDte == ""){
+            MsgAlert({content: "请选择‘损伤容限’选项"});
+            return false
+        }else if(data.fileEvaluateAirworthiness.isAddRefit == ""){
+            MsgAlert({content: "请选择‘加入改装图’选项"});
+            return false
+        }else if(data.fileEvaluateAirworthiness.suitable.length == 0){
+            MsgAlert({content: "请选择‘适用对象’选项"});
+            return false
+        };
+        $.ajax({
+            url: '/mo/emFileEvaluateAirworthiness/editEmFileEvaluateAirworthiness',
+            type: 'POST',
+            data: JSON.stringify(data),
+            contentType: "application/json;charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+                //判断操作是否成功
+                if(data.msg == "success"){
+                    initPageShow(data.data);
+                    //使用模拟数据
+                    // initPageShow(mokeData);
+                    param.OWindow.initJudgeList();
+                    param.OWindow.reload_("#airWorthinessJudgeDg");
+                    //CloseWindowIframe();
+                }else {
+                    MsgAlert({content: data.msg, type: 'error'});
+                }
+            },
+            error: function (data) {
+            //    模拟数据
+            }
+        });
+    }
+
+    //树形图初始化
+    function initData() {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                pkid: id ? id : -1,
+                evapkid: evapkid,
+                FunctionCode: 'EM_FILE_TASK_GROUP_LIST'
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    InitTreegrid(jdata.data);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitTreegrid(data) {
+        if (!data) return;
+
+        let otherDatan1 = [];
+        //查询其他标准工时的适用性
+        if (otherData) {
+            for (let i = 0; i < data.length; i++) {
+                otherDatan.push(toCamelCase(otherData[i]));
+                if (otherDatan[i].checked == 1) {
+                    otherDatan[i].checked = true;
+                }
+
+            }
+
+            for (let i = 0; i < otherDatan.length; i++) {
+                if (!otherDatan[i].appConfig) {
+
+                    let id = otherDatan[i].id;
+                    for (let l = 0; l < otherDatan.length; l++) {
+                        if (otherDatan[l].appGroupPkid == id && otherDatan[l].appConfig) {
+                            if (!otherDatan[i].children) {
+                                let children = [];
+                                otherDatan[i].children = children;
+                            }
+                            otherDatan[i].children.push(otherDatan[l])
+                        }
+                    }
+                    otherDatan1.push(otherDatan[i]);
+                }
+            }
+
+        }
+
+        //找出已选中的适用性
+        let selectedIds = [];
+        if (otherDatan1.length > 0) {
+            for (let i = 0; i < otherDatan1.length; i++) {
+                if (otherDatan1[i].checked) { //父级被选中
+                    selectedIds.push(otherDatan1[i].id);
+                    if (otherDatan1[i].children && otherDatan1[i].children.length > 0) {
+                        for (let j = 0; j < otherDatan1[i].children.length; j++) {
+                            selectedIds.push(otherDatan1[i].children[j].id);
+                        }
+                    }
+                } else {//父级未选中
+                    let isChildren = false; //标识子级是否被选中
+                    if (otherDatan1[i].children && otherDatan1[i].children.length > 0) {
+                        for (let j = 0; j < otherDatan1[i].children.length; j++) {
+                            if (otherDatan1[i].children[j].checked) {
+                                isChildren = true;
+                                selectedIds.push(otherDatan1[i].children[j].id);
+                            }
+                        }
+                        if (isChildren) {//子级至少有一个选中时
+                            selectedIds.push(otherDatan1[i].id);
+                        }
+
+                    }
+                }
+            }
+        }
+
+         datan = [];
+        for (let i = 0; i < data.length; i++) {
+            datan.push(toCamelCase(data[i]));
+            if (datan[i].checked == 1) {
+                datan[i].checked = true;
+            }
+
+        }
+        let datan1 = [];
+        for (let i = 0; i < datan.length; i++) {
+            if (!datan[i].appConfig) {
+
+                let id = datan[i].id;
+                for (let l = 0; l < datan.length; l++) {
+                    if (datan[l].appGroupPkid == id && datan[l].appConfig) {
+                        if (!datan[i].children) {
+                            let children = [];
+                            datan[i].children = children;
+                        }
+                        datan[i].children.push(datan[l])
+                    }
+                }
+                datan1.push(datan[i]);
+            }
+        }
+        console.log(datan1);
+        console.log(otherDatan1);
+        console.log(selectedIds);
+
+        $('#zoneBind').tree({
+            data: datan1,
+            checkbox: true,
+            idField: 'id',
+            treeField: 'groupName',
+            onlyLeafCheck:true,
+            columns: [[
+                {title: 'Task Name', field: 'groupName', width: 180},
+                {field: 'persons', title: 'Persons', width: 60, align: 'right'},
+                {field: 'begin', title: 'Begin Date', width: 80},
+                {field: 'end', title: 'End Date', width: 80}
+            ]],
+            onCheck: function (node, checked) {
+                console.log(node);
+                if (checked) {
+                    if (selectedIds.length != 0 && selectedIds.indexOf(node.id) > -1) {
+                        $('#tt').tree('uncheck', node.target);
+                    }
+                }
+            }
+        });
+    }
+
+//    初始化查询树形数据页面
+    function initSearchData(id) {
+        if(id != ""){
+            $.ajax({
+                type: "get",
+                url: "/mo/emFileEvaluateAirworthiness/queryEmFileSegAppDefailByAirEvalId/"+id,
+                contentType: "application/json;charset=utf-8",
+                async:false,
+                success: function (obj) {
+                    treeShowBack(obj.data);
+                },
+                error: function (resultObj) {
+                    MsgAlert({content: obj.msg, type: 'error'});
+                }
+            });
+        }
+    };
+
+//    初始化页面
+    function initPageShow(data) {
+        if(data!=""&&!!data){
+            $("#damage").combobox("select", data.isDte);
+            $("#join").combobox("select", data.isAddRefit);
+            $("#worthinessId").html( data.id);
+            id = data.id;
+        //    树形回显
+            initSearchData(data.id);
+        }
+    };
+
+//    树形结构回显
+    function treeShowBack(data){
+        if(data.__proto__ === Array.prototype){
+            for (x in data) {
+                var node = $("#zoneBind").tree("find", data[x].appGroupPkid );//重点方法
+                //判断是否存在子节点，不存在勾选父节点
+                if(!node.children){
+                    $("#zoneBind").tree("check", node.target);
+                    continue;
+                }
+                //判断是否存在appConfig，不存在无法查证子节点
+                if(!data[x].appConfig){
+                    $("#zoneBind").tree("check", node.target);
+                    continue;
+                }
+                var children = node.children;
+                for(i in children){
+                    if(children[i].appConfig ===data[x].appConfig){
+                        var childNode = $("#zoneBind").tree("find", data[x].appGroupPkid+"_"+children[i].appConfig);
+                        $("#zoneBind").tree("check", childNode.target);
+                    }
+                }
+            }
+        }
+    }
+
+//    适用对象数据分割
+    function getsuitableData(treeNodes) {
+        var textData =[];
+        var parseTreeJson = function (treeNodes) {
+            var treeNodes = treeNodes || {};
+            for (var i = 0, len = treeNodes.length; i < len; i++) {
+                var childs = treeNodes[i].children;
+                textData.push(treeNodes[i].text);
+                if (childs && childs.length > 0) {
+                    parseTreeJson(childs);
+                }
+            }
+        };
+        parseTreeJson(treeNodes);
+        return textData;
+    };
+
+    //    关联关系数据分割
+    function getSegAppDefailsData(treeNodes) {
+        var segAppDefailsData =[];
+        var parseTreeJsonId = function (treeNodes) {
+            var treeNodes = treeNodes || {};
+            for (var i = 0, len = treeNodes.length; i < len; i++) {
+                var childs = treeNodes[i].children;
+                var obj = {
+                    "airEvalPkid": "",
+                    "id": treeNodes[i].id,
+                    "appGroupPkid": treeNodes[i].appGroupPkid,
+                    "appConfig": treeNodes[i].appConfig,
+                    "appMdataPkid": "",
+                };
+                segAppDefailsData.push(obj);
+                if (childs && childs.length > 0) {
+                    parseTreeJsonId(childs);
+                }
+            }
+        };
+        parseTreeJsonId(treeNodes);
+        return segAppDefailsData;
+    };
+
+    // function fengeData() {
+    //     // var suitableData = getsuitableData(mokeData.suitable).toString();
+    //     var suitableData = getSegAppDefailsData(mokeData.suitable);
+    //     MsgAlert({content: suitableData});
+    //
+    // }
+
+//    模拟数据
+    var mokeData = {
+        "evaId": "101132679",
+        "id": "22",
+        "isAddRefit": "Y",
+        "isDte": "Y",
+        "segId": "101050269",
+        "suitable": [{
+            "appGroupPkid": "101012002",
+            "text": "B757-G4",
+            "id": "101012002",
+            "checked": true,
+            "state": "open",
+            "domId": "_easyui_tree_2",
+            "checkState": "checked",
+            "target": {},
+            "_checked": true
+        }, {
+            "appGroupPkid": "101012003",
+            "text": "B757-G3",
+            "id": "101012003",
+            "checked": true,
+            "children": [{
+                "appGroupPkid": "101012004",
+                "appConfig": "Config2",
+                "text": "B757-G3_Config2",
+                "id": "101012003_Config2",
+                "checked": true,
+                "state": "open",
+                "domId": "_easyui_tree_4",
+                "checkState": "checked",
+                "target": {}
+            }],
+            "state": "open",
+            "domId": "_easyui_tree_3",
+            "checkState": "checked",
+            "target": {},
+            "_checked": true
+        }, {
+            "appGroupPkid": "101012005",
+            "appConfig": "Config2",
+            "text": "B757-G3_Config2",
+            "id": "101012003_Config2",
+            "checked": true,
+            "state": "open",
+            "domId": "_easyui_tree_4",
+            "checkState": "checked",
+            "target": {}
+        }]
+    }
+
+</script>
+</html>
+
+
+
+
+
+
+
+

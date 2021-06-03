@@ -1,0 +1,235 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <title></title>
+    <script type="text/javascript">
+        var isEdit_;
+        var param = {};
+        $(function () {
+            param = getParentParam_();
+            isEdit_ = param && param.PKID;
+            if (isEdit_) {
+                InitFuncCodeRequest_({
+                    data: {pkid: param.PKID, FunctionCode: "WS_DATAGRID_GET"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                            //初始化复选框勾选状态
+                            initCheckBoxValues('belongCK', jdata.data.BELONG);
+                            InitEditForm_();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                })
+            } else {
+                InitEditForm_();
+            }
+        });
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var belong = getCheckBoxValues('belongCK');
+                    $("#belong").val(belong);
+                    $("#i18nText").val($("#field").textbox('getValue'));
+
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'WS_DATAGRID_EDIT' : 'WS_DATAGRID_ADD')
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+        /**
+         * 获取复选框的值，并拼接成以“,”分割的字符串
+         * @param elName
+         * @returns {string}  ex: "E,Q"
+         */
+        function getCheckBoxValues(elName) {
+            var str = '';
+            $('input[name="' + elName + '"]:checked').each(function () {
+                str += $(this).val() + ',';
+            });
+            if (str.length > 0) {
+                str = str.substring(0, str.length - 1);
+            }
+            return str;
+        }
+
+        /**
+         * 解析以“;”分割的字符串，初始化复选框勾选状态
+         * @param elName
+         * @param elStr
+         * @returns {string}  ex: "E,Q"
+         */
+        function initCheckBoxValues(elName, elStr) {
+            var arr = new Array();
+            if (elStr && elStr.length > 0) {
+                arr = elStr.split(',');
+            }
+            for (i in arr) {
+                $('input[name="' + elName + '"]:checkbox[value =' + arr[i] + ']').prop('checked', true);
+            }
+        }
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" name="pkid" value=""/>
+                <input type="hidden" id="belong" name="belong">
+                <input type="hidden" id="i18nText" name="i18nText">
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">功能号</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="functionCode"
+                                   data-options="required:true,validType:['maxLength[100]']"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">列字段名称</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="field" name="field"
+                                   data-options="required:true,validType:['maxLength[200]']"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">列标题文本</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" name="title" data-options="validType:['maxLength[30]'] "
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">条目顺序号</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" id="sortNum" name="sortNum" data-options="precision:0"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">列大小可变</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="resizable" name="resizable"
+                                   data-options="validType:['maxLength[30]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">自适应宽度</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="fixed" name="fixed"
+                                   data-options="validType:['maxLength[30]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">是否复选框</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="checkbox" name="checkbox"
+                                   data-options="validType:['maxLength[30]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">是否隐藏列</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="hidden" name="hidden"
+                                   data-options="validType:['maxLength[30]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">是否排序</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="sortable" name="sortable"
+                                   data-options="validType:['maxLength[30]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">列宽度</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" data-options="precision:0" id="width" name="width"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">合并行</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" data-options="precision:0" id="rowspan" name="rowspan"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">合并列</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox" data-options="precision:0" id="colspan" name="colspan"
+                                   style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">标题对齐方式</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" data-options="validType:['maxLength[30]']" id="halign"
+                                   name="halign" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">数据对齐方式</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="align" name="align"
+                                   data-options="validType:['maxLength[30]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">数据域CODE</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="domainCode" name="domainCode"
+                                   data-options="validType:['maxLength[30]']" style="height:25px; width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">应用场景</th>
+                        <td class="tdr">
+                            <input type="checkbox" name="belongCK" data-options="" value="E" checked/>EXCEL导出
+                            <input type="checkbox" name="belongCK" data-options="" value="Q"
+                                   style="margin-left: 50px;"/>高级查询
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="searchBtn" type="submit" value="提交"
+                                                              style="border: none;cursor: pointer;"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

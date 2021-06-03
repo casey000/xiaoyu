@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>补充手册编写评估单-DS</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid" />
+                <table class="table table-bordered table-info">
+                    <tr id = "view">
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" onclick="addDatagridRow()" value="增加行" style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="save()" value="确定" style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭" style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="center" width="21%" style="text-align: center;">修订方式</th>
+                        <th class="th" align="center"  width="79%" style="text-align: center;"> 补充手册片段编号</th>
+                    </tr>
+                    <tr>
+                        <td class="td5" width="21%">
+                            <select name="dealOption" id="dealOption" class="easyui-combobox"
+                                    data-options="required:true, editable:false"
+                                    style="width:150px">
+                                <option value="新增补充手册片段">新增补充手册片段</option>
+                                <option value="改版补充手册片段">改版补充手册片段</option>
+                                <option value="失效补充手册片段">失效补充手册片段</option>
+                            </select>
+                        </td>
+
+                        <td class="td5" width="79%">
+                        <input class="easyui-textbox" id="CHAPTER" name="chapter" data-options="prompt:'CHAPTER'" style="width: 90px;">-
+                        <input class="easyui-textbox" id="SECTION" name="section" data-options="prompt:'SECTION'" style="width: 90px;">-
+                        <input class="easyui-textbox" id="SUBJECT" name="subject" data-options="prompt:'SUBJECT'" style="width: 90px;">-
+                        <input class="easyui-textbox" id="PGBLOCK" name="pgblock" data-options="prompt:'PGBLOCK'" style="width: 90px;">-
+                        <input class="easyui-textbox" id="FUNCTION" name="function" data-options="prompt:'FUNCTION'" style="width: 90px;">-
+                        <input class="easyui-textbox" id="SEQ" name="seq" data-options="prompt:'SEQ'" style="width: 90px;">
+
+
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+    <table id="dg"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+
+<script>
+    var param = {};
+    var isEdit_;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DS_DEAL_OPTION",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    PAGE_DATA['DEAL_OPTION'] = DomainCodeToMap_(jdata.data["DS_DEAL_OPTION"]);
+                    InitDataGrid(param.pkid);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid(pkid) {
+
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            enableLineEdit: true,
+            enableCellEdit: true,
+            queryParams: {tdPkid: pkid},
+            columns: {
+                param: {FunctionCode: 'TD_SUPPLEMENT_EVAL_DEAL'},
+
+                alter: {
+                    CHAPTER: {
+                        editor: {
+                            type: 'textbox'
+                        }
+                    },
+                    SECTION: {
+                        editor: {
+                            type: 'textbox'
+                        }
+                    },
+                    SUBJECT: {
+                        editor: {
+                            type: 'textbox'
+                        }
+                    },
+                    PGBLOCK: {
+                        editor: {
+                            type: 'textbox'
+                        }
+                    },
+                    FUNCTION: {
+                        editor: {
+                            type: 'textbox'
+                        }
+                    },
+                    SEQ: {
+                        editor: {
+                            type: 'textbox'
+                        }
+                    },
+                    DEAL_OPTION: {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                data: jdata.data["DS_DEAL_OPTION"],
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                editable: true,
+                                onChange: optionChange
+                            }
+                        },
+                        formatter: function (value) {
+                            return PAGE_DATA['DEAL_OPTION'][value];
+                        }
+                    },
+                    TD_PKID: {
+                        formatter: function (value) {
+                            return pkid;
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            // toolbar: [{
+            //     id: 'btnAdd',
+            //     text: $.i18n.t('增加行'),
+            //     iconCls: 'icon-add',
+            //     handler: function () {
+            //         addDatagridRow('add');
+            //     }
+            // }],
+            onEndEdit: function (index, row, changes) {
+                // editDate(index, row, changes);
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+    //新增
+    function addDatagridRow() {
+        $('#dg').datagrid('appendRow');
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    function save() {
+        var dealOption = $("#dealOption").val();
+        var CHAPTER = $("#CHAPTER").val();
+        var SECTION = $("#SECTION").val();
+        var SUBJECT = $("#SUBJECT").val();
+        var PGBLOCK = $("#PGBLOCK").val();
+        var FUNCTION = $("#FUNCTION").val();
+        var SEQ = $("#SEQ").val();
+        var dealResult = dealOption + ":" + CHAPTER + "-" + SECTION + "-" + SUBJECT + "-" + PGBLOCK + "-" + FUNCTION + "-" + SEQ;
+        var row = param.row;
+        row.DEAL_RESULT = dealResult;
+        param.OWindow.insertDealResult(row);
+        CloseWindowIframe();
+    }
+</script>
+</html>

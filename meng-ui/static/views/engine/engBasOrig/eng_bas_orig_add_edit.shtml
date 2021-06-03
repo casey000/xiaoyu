@@ -1,0 +1,375 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>添加/编辑-发动机初始信息</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="发动机初始信息维护" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" style="margin: 10px" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th >发动机/APU：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="eqart" name="eqart" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                        <th>发动机型号：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-combobox" id="matnr" name="matnr" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th >子型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="zzengSubmodel" name="zzengSubmodel" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                        <th>序号：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="sernr" name="sernr" data-options="required: true" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>引进方式：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="zzfrom" name="zzfrom" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                        <th style="width: 110px;">预计使用寿命：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="zzremainfc" name="zzremainfc"
+                                   data-options="validType:['number','length[1,8]']"  style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>是否原装机：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="zzindorg" name="zzindorg" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                        <th>生产日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="zzprdat" name="zzprdat" data-options="" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>原装机号：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-combobox" id="zzoipno" name="zzoipno" data-options="editable:false" style="width: 164px;"/>
+                        </td>
+                        <th>原装机位置：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="zzindpos" name="zzindpos" data-options="editable:false" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 110px;">前营运人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="zzfop" name="zzfop" data-options="" style="width: 164px;"/>
+                        </td>
+                        <th style="width: 110px;">(前)滑油牌号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="oilPartNo" name="oilPartNo" data-options="required: true" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>维护人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th>维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var operation;
+    var pkid;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        $("#modifyName").textbox('setValue',userLogin.userName);
+        $("#modifyUser").val(userLogin.accountId);
+        $("#modifyDate").datebox('setValue',new Date().Format('yyyy-MM-dd'));
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+        if(operation == "proof"){
+            $('#saveBtn').val("校核");
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_DA_ACNO,ENG_CHILD_CONFIG,ENG_OR_APU,ENG_ZZFROM,ENG_POS,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },async:false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/hanaMaterial/engInfo/getEngTypeAll",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#matnr').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    $('#zzoipno').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_DA_ACNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#zzengSubmodel').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_CHILD_CONFIG,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#eqart').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_OR_APU,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#zzfrom').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.ENG_ZZFROM,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange:fromChange
+                    });
+                    $('#zzindpos').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.ENG_POS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#zzindorg').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange:dorgChange
+                    });
+                    if(operation == "view" || operation == "proof"){
+                        $(".easyui-textbox").textbox({required:false,editable:false,onlyview:true});
+                        $(".easyui-combobox").combobox({required:false,editable:false,onlyview:true});
+                        $(".easyui-datebox").datebox({required:false,editable:false,onlyview:true});
+                        if(operation != "proof"){
+                            $("#saveBtn").hide();
+                        }
+                    }
+
+                    InitDataForm(pkid);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+
+    //回显
+    function InitDataForm(pkid) {
+        $('#pkid').val(pkid);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engBasOrig/selectById" + "/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+    //保存
+    function save(){
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var eqart = $('#eqart').combobox('getValue');
+        var zzindorg = $('#zzindorg').combobox('getValue');
+        var zzindpos = $('#zzindpos').combobox('getValue');
+        var matnr = $('#matnr').combobox('getValue');
+        var sernr = $('#sernr').textbox('getValue');
+        if(zzindorg != '' && zzindorg != null){
+            if(eqart == 'ENGINE' && zzindorg == 'Y'){
+                if(!(zzindpos == '1' || zzindpos == '2' || zzindpos == '3' || zzindpos == '4')){
+                    MsgAlert({content: "ENGINE 且 是否原装机为[是]，则原装机位置只能选择[1,2,3,4]发!", type: 'error'});
+                    $('#zzindpos').combobox('setValue','');
+                    return;
+                }
+            }else if(eqart == 'APU' && zzindorg == 'Y'){
+                if(zzindpos != 'APU'){
+                    MsgAlert({content: "APU 且 是否原装机为[是]，则原装机位置只能选择[APU]!", type: 'error'});
+                    $('#zzindpos').combobox('setValue','');
+                    return;
+                }
+            }
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        var cou = 0;
+        datas.matnr = matnr;
+        datas.sernr = sernr;
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBasOrig/checkBasOrig",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    cou = jdata.obj;
+                } else {
+                    MsgAlert({content: "保存失败!", type: 'error'});
+                }
+            }
+        });
+
+        if(cou > 0){
+            MsgAlert({content: "发动机型号+序号，已经存在，不允许重复增加!", type: 'error'});
+            return;
+        }
+        if(operation == "add"){ //添加
+            console.log("开始新增");
+            insertOrig();
+        }else{ //编辑
+            updateOil();
+        }
+    }
+
+    function insertOrig(){
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBasOrig/insertBasOrig",
+            data:datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if(data > 0){
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                    }
+                } else {
+                    MsgAlert({content: "新增失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function updateOil(){
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        var path = "/meng-engine/engBasOrig/updateBasOrig";
+        if(operation == 'proof'){
+            path = "/meng-engine/engBasOrig/proofBasOrig";
+        }
+        InitGatewayRequest_({
+            async: false,
+            path: path,
+            data:datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if(data > 0){
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                    }
+                } else {
+                    MsgAlert({content: "更新失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function dorgChange(val){
+        if(operation != 'view' && operation != "proof"){
+            if(val == 'Y'){
+                $('#zzoipno').combobox({required: true,editable: true, onlyview: false});
+                $('#zzindpos').combobox({required: true,editable: true, onlyview: false});
+            }else if(val == 'N'){
+                $('#zzoipno').combobox({required: false,editable: false, onlyview: true});
+                $('#zzindpos').combobox({required: false,editable: false, onlyview: true});
+                $('#zzoipno').combobox('setValue','');
+                $('#zzindpos').combobox('setValue','');
+            }
+        }
+    }
+
+    function fromChange(val){
+        if(operation != 'view' && operation != "proof"){
+            if(val == '1'){
+                $('#zzindorg').combobox({required: false,editable: false, onlyview: true});
+                $('#zzindorg').combobox('setValue','Y');
+            }else{
+                $('#zzindorg').combobox({required: false,editable: false, onlyview: true});
+                $('#zzindorg').combobox('setValue','N');
+            }
+            if(val == '11' || val == '12'){
+                $('#zzremainfc').textbox({required: false,editable: false, onlyview: true});
+                $('#zzremainfc').textbox('setValue','');
+            }else{
+                $('#zzremainfc').textbox({required: true,editable: true, onlyview: false});
+            }
+        }
+    }
+
+</script>
+</body>
+</html>

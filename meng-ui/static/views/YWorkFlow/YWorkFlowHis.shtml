@@ -1,0 +1,206 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--zwj-->
+    <title></title>
+    <script type="text/javascript">
+        var url;
+        var key;
+        var TASK_STATE_MAP = {
+            "N": "未执行",
+            'F': '已完成',
+            'T': '已终止',
+            'R': '已退回',
+            'J': '已跳转',
+            'H': '已转办'
+        };
+
+        function i18nCallBack() {
+            key = GetUrlPars(window.location).BUSINESS_KEY_; //oa推送过来
+            if (!key) {
+                param = getParentParam_();
+                key = param.BUSINESS_KEY
+            }
+            InitFuncCodeRequest_({
+                data: {key: key, FunctionCode: "Y_WORKFLOW_GET_HISTORY"},
+                async: false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (jdata.data) {
+                            InitDataGrid(jdata.data.PROC_INST_ID_)
+                        }
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+            InitFuncCodeRequest_({
+                data: {key: key, FunctionCode: "Y_WORKFLOW_GET_PDF_DATA"}, successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        var datas = jdata.data;
+                        if (datas.DOC_URL && datas.DOC_NAME)
+                            url = datas.DOC_URL + datas.DOC_NAME;
+                        $('#iframe0').attr('src', '/views/YWorkFlow/YWorkFlowPdf.shtml');
+                        if (!datas.DOC_NAME) {
+                            MsgAlert({content: '业务信息PDF文件名为空', type: 'error'});
+                        }
+                        if (!datas.DOC_URL) {
+                            MsgAlert({content: '业务信息PDF文件请求路径为空', type: 'error'});
+                        }
+                        if (datas.ENTITY_NUM)
+                            initDataGrid(datas.ENTITY_NUM, datas.ENTITY_TYPE)
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+        }
+
+        function initDataGrid(num, type) {
+            $("#r_dg").MyDataGrid({
+                identity: "r_dg",
+                sortable: true,
+                pagination: false,
+                singleSelect: true,
+                resize: function () {
+                    return tabs_standard_resize($('#tabs'), 0.8, 0, 100, 0);
+                },
+                queryParams: {OBJNR: num, ENTITY_TYPE: type},
+                pageSize: 4, pageList: [4],
+                columns: {
+                    param: {FunctionCode: 'SAP_ZFTP_GET'}
+                },
+                contextMenus: [
+                    {
+                        id: "m-approvalProcess", i18nText: "查看附件", auth: "",
+                        onclick: function () {
+                            var row = $('#r_dg').datagrid('getSelected');
+                            if (!row) {
+                                return;
+                            }
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: '',
+                                    myurl: row.DRE_URL,
+                                    filename: row.FILENAME,
+//                                    url: Constant.BASE_URL + "sysFtpDownFromSap"
+                                    FunctionCode: 'SYS_HTTP_FTP_DOWN'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        doPost(Constant.API_URL + "SYS_HTTP_FTP_DOWN", {
+                                            pkid: '',
+                                            myurl: row.DRE_URL,
+                                            filename: row.FILENAME,
+                                            down: 'Y'
+                                        });
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                ]
+            })
+
+        }
+
+        function InitDataGrid(id) {
+            var identity = 'dg';
+            $("#dg").MyDataGrid({
+                identity: identity,
+                pagination: false,
+                title: $.i18n.t('RES.PROC_HIS_TASK_LIST.TITLE'),
+                rowStyler: function (row) {
+                    if ((row.ID + '').indexOf('SUGGEST') != 0) {
+                        if (!row.END_TIME) {
+                            return 'color: #000;font-weight:bold;';
+                        }
+                    }
+                }, queryParams: {procInstId: id},
+                columns: {
+                    param: {FunctionCode: 'WS_FLOW_HIS_TASK_LIST'},
+                    alter: {
+                        END_TIME: {
+                            formatter: function (value, row, index) {
+                                return value;
+                            }
+                        },
+                        ACT_STATE: {
+                            formatter: function (value, row, index) {
+                                var v = [TASK_STATE_MAP[row.ACT_STATE]];
+                                if (row.RECORD_STATE && row.RECORD_STATE != 'N' && row.RECORD_STATE != 'F') {
+                                    v.push(TASK_STATE_MAP[row.RECORD_STATE])
+                                }
+                                return v.join(",")
+                            }
+                        },
+                        DURATION: {
+                            formatter: function (value, row, index) {
+                                return toMsTimeString(row.DURATION || row.DURATION_0);
+                            }
+                        },
+                        OPERATOR_UNAME: {
+                            formatter: function (value, row, index) {
+                                if (!value) {
+                                    return "";
+                                }
+                                return value;
+                            }
+                        }
+                    }
+                },
+                contextMenus: [],
+                toolbar: [
+                    {
+                        key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                        handler: function () {
+                            common_reload_({identity: identity});
+                        }
+                    }
+                ]
+            });
+        }
+
+        function GetUrlPars() {
+            var url = location.search;
+            var theRequest = {};
+            if (url.indexOf("?") != -1) {
+                var str = url.substr(1);
+                strs = str.split("&");
+                for (var i = 0; i < strs.length; i++) {
+                    var sTemp = strs[i].split("=");
+                    theRequest[sTemp[0]] = (sTemp[1]);
+                }
+            }
+            return theRequest;
+        }
+    </script>
+</head>
+<body class="ibody">
+
+<div id="tabs" class="easyui-tabs" style="width: 100%; height: 100%;">
+    <div id="tab01" title="正文信息" style="height: 100%;">
+        <form class="form-horizontal m-t" id="mform" style="margin-top: 0px;">
+            <table class="table table-bordered table-info">
+                <tbody id="custom_options"></tbody>
+            </table>
+            <iframe class="J_iframe" id="iframe0" name="iframe0" width="100%" height="500px"
+                    src="#" frameborder="0" data-id="index_v1.html" seamless></iframe>
+            <div id="lay_right" data-options="">
+                <td>
+                    <table id="r_dg"></table>
+                </td>
+            </div>
+        </form>
+    </div>
+    <div id="tab02" title="批办过程">
+        <table id="dg"></table>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js">
+</script>
+</body>
+</html>

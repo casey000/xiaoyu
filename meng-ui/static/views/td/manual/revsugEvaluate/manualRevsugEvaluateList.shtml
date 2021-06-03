@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册修改建议单列表</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:110px;" align="right">重评原因：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-textbox" id="reason" name="reason" style="width:110px;"/>
+                    </td>
+                    <th class="th" style="width:110px;" align="right">状态：</th>
+                    <td style="width:90px; padding:3px;">
+                        <input class="easyui-combobox" id="status" name="status" style="width:110px;"/>
+                    </td>
+                    <td style="width: 120px; padding:3px;">
+                        <a class="searchBtn" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var companyCode;
+    var accountId;
+    function i18nCallBack() {
+        accountId = getLoginInfo().accountId;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_REVSUG_EVALUATE_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#status').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.TD_REVSUG_EVALUATE_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //手册标准
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_REVSUG_EVALUATE_STATUS"]);
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: queryParams,
+            pagination: true,
+            path: "/online-manual/tdManualRevsugEvaluate/queryPageTdManualRevsugEvaluateList",
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_REVSUG_EVALUATE_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    MODIFY_DATE: {
+                        type: 'datetime'
+                    },
+                    DEADLINE: {
+                        type: 'datetime'
+                    },
+                    CREATE_DATE: {
+                        type: 'datetime'
+                    }
+
+                }
+            },
+            onLoadSuccess: function (data) {
+                formatterUpperDataGrid(data,"dg");
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+
+                    }
+                },
+
+            ],
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('增加'),
+                iconCls: 'icon-add',
+                handler: function () {
+                    editDetailData('add');
+                }
+            }
+                ,
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.STATUS != "0") {
+                    items['编辑'].enable = false;
+                    // items['提交'].enable = false;
+                }
+
+                return items;
+            },
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //手册修改建议单编写页面
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('修改建议单重评页面');
+        ShowWindowIframe({
+            width: "960",
+            height: "670",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/td/manual/revsugEvaluate/manualRevsugEvaluateDetail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onGateWaySearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+    //新增
+    function editDetailData(operation) {
+        openDetai(operation, '');
+    }
+
+</script>
+</body>
+</html>

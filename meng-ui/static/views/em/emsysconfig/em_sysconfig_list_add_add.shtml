@@ -1,0 +1,400 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>系统构型分组信息维护</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox float-e-margins" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend>分组信息</legend>
+        <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <input type="hidden" id="configId" name="configId"/>
+            <input type="hidden" id="refGraphic" name="refGraphic"/>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td colspan="9" align="right">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                        <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                               style="margin-left:3px;margin-right: 18px;"/>
+                        <br/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 80px;">分组编号：</th>
+                    <td class="tdr" style="width: 120px;  padding: 3px">
+                        <input class="easyui-textbox" style="width: 150px;"
+                               id="configGroupNo" name="configGroupNo"
+                               data-options="required:true,readonly:true,onlyview:true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 80px;">子构型组合：</th>
+                    <td class="tdr" style="width: 120px;  padding: 3px">
+                        <div id="subConfigRow">
+                            <span id="subConfigName1" style="width: 70px; text-align: right"></span>
+                            <input class="easyui-combobox" style="width: 200px;"
+                                   id="subConfig1" name="subConfig1" />
+                            <span id="subConfigName2" style="width: 70px; text-align: right"></span>
+                            <input class="easyui-combobox" style="width: 200px;"
+                                   id="subConfig2" name="subConfig2" />
+                            <span id="subConfigName3" style="width: 70px; text-align: right"></span>
+                            <input class="easyui-combobox" style="width: 200px;"
+                                   id="subConfig3" name="subConfig3" />
+                        </div>
+                        <div style="margin-top: 5px">
+                            <input class="easyui-textbox"
+                                   id="configGroupDesc" name="configGroupDesc"
+                                   data-options="required:true" readonly style="width: 700px" />中文
+                        </div>
+                        <div style="margin-top: 5px">
+                            <input class="easyui-textbox"
+                                   id="configGroupDescEn" name="configGroupDescEn"
+                                   data-options="required:true" readonly style="width: 700px" />英文
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 100px;">备注：</th>
+                    <td style="padding: 3px;">
+                        <input class="easyui-textbox" id="configMemo" name="configMemo"
+                               data-options="multiline:true,editable:true"
+                               style="width: 700px;height:70px"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl" align="right" style="width: 80px;">参考图片：</th>
+                    <td class="tdr" style="width: 120px;  padding: 3px">
+                        <input class="easyui-filebox" style="width: 700px;"
+                               id="fileToUpload" name="file" />
+                        <ul id="imageBlock"></ul>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <fieldset class="fieldset_eui">
+        <legend>来源及适用性</legend>
+        <table id="dg"></table>
+    </fieldset>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param; // operation[add,edit,view],...
+    var pkid = null;//主表PKID
+    var subModel = '';
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        subModel = param.subModel;
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_SYSCONFIG_SOURCE_TYPE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['sourceType'] = DomainCodeToMap_(jdata.data.EM_SYSCONFIG_SOURCE_TYPE);
+                }
+            }
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_SUB_LIST",
+                configId: param.configId
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    for (var i = 1; i <= jdata.data.length; i++) {
+                        $('#subConfigName' + i).text(jdata.data[i - 1].SUB_CONFIG_NAME + ":");
+                        $('#subConfigName' + i).attr("data-dd", jdata.data[i - 1].SUB_CONFIG_NAME_EN + ":");
+                        var v1s = '';
+                        var v2s = '';
+                        if(jdata.data[i - 1].SUB_CONFIG_VALUE && jdata.data[i - 1].SUB_CONFIG_VALUE_EN){
+                            v1s = jdata.data[i - 1].SUB_CONFIG_VALUE.split(";");
+                            v2s = jdata.data[i - 1].SUB_CONFIG_VALUE_EN.split(";");
+                        }
+                        var data = [];
+                        for (var j = 0; j < v1s.length; j++) {
+                            data.push({subConfigValue: v1s[j] + ";" + v2s[j]})
+                        }
+
+                        $('#subConfig' + i).combobox({
+                            data: data,
+                            valueField: "subConfigValue",
+                            textField: "subConfigValue",
+                            panelHeight: "70px",
+                            panelWidth: "150px",
+                            onSelect: function (item) {
+                                var desc1 = [];
+                                var desc2 = [];
+                                for (var i = 1; i <= 3; i++) {
+                                    var subConfigValue = $('#subConfig' + i).combobox("getValue");
+                                    if (!! subConfigValue) {
+                                        var vs = '';
+                                        if(subConfigValue){
+                                            vs = subConfigValue.split(";");
+                                        }
+                                        desc1.push($('#subConfigName' + i).text() + vs[0]);
+                                        desc2.push($('#subConfigName' + i).attr("data-dd") + vs[1]);
+                                    }
+                                }
+                                $('#configGroupDesc').textbox({
+                                    value: desc1.join(';')
+                                });
+                                $('#configGroupDescEn').textbox({
+                                    value: desc2.join(';')
+                                });
+                            }
+                        });
+                    }
+
+                    if (pkid) {
+                        InitDataForm(pkid);
+                        initAttachment(pkid);
+                        InitDataGrid(pkid);
+                    } else {
+                        ParseFormField_(param, $('#mform'));
+                        $('#editBtn').hide();
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: "EM_SYSCONFIG_LIST_NEW_GROUP_NO",
+                                configId: param.configId
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    $('#configGroupNo').textbox('setValue', jdata.data.NEW_GROUP_NO);
+                                }
+                            }
+                        })
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_LIST_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function initAttachment(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ATTACHMENT_LIST",
+                category: "emSysconfigList",
+                sourceId: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    var attachments = jdata.data;
+                    $('#imageBlock').empty();
+                    for (var i = 0; i < attachments.length; i++) {
+                        var fileId = attachments[i].FILE_ID;
+                        var filename = attachments[i].ORG_NAME;
+                        $('#imageBlock').append('<li>' + (i + 1) + '--<a onclick="downFile(' + fileId + ')" href="javascript:void(0);">' + filename + '</a>&nbsp;' +
+                            '<span onclick="deleteFile(' + fileId + '); initAttachment(' + pkid + '); return false;" class="icon-cross">&nbsp;&nbsp;&nbsp;&nbsp;</span></li>');
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(pkid) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            resize: function () {
+                return {width: 980, height: 150};
+            },
+            queryParams: {configListId: pkid},
+            columns: {
+                param: {FunctionCode: 'EM_SYSCONFIG_SOURCE_LIST'},
+                alter: {
+                    SOURCE_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['sourceType'][value];
+                        }
+                    }
+                }
+            },
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                iconCls: 'icon-add',
+                handler: function () {
+                    if ($('#pkid').val()) {
+                        common_add_edit_({
+                            url: "/views/em/emsysconfig/em_sysconfig_source_add.shtml?operation=add&configListId=" + $('#pkid').val()+"&subModel="+subModel,
+                            isEdit: 0,
+                            width: 600,
+                            height: 200
+                        });
+                    } else {
+                        MsgAlert({content: "请先保存构型基本信息！", type: "info"});
+                    }
+                }
+            }],
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "common:COMMON_OPERATION.EDIT",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        if (! rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        addOrEdit("edit", rowdata.PKID);
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "common:COMMON_OPERATION.DEL",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        if (! rowdata.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (! confirm("确认删除该记录？将同时删除对应适用性！")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_SYSCONFIG_SOURCE_DEL',
+                                pkid: rowdata.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                    param.OWindow.reload1();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                var sourceType = row.SOURCE_TYPE;
+                items['common:COMMON_OPERATION.EDIT'].enable = sourceType != "EO";
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEdit("view", value.PKID);
+            }
+        });
+    }
+
+    function addOrEdit(operation,pkid){
+        common_add_edit_({
+            url: "/views/em/emsysconfig/em_sysconfig_source_add.shtml?operation="+operation+"&pkid=" + pkid+"&subModel="+subModel,
+            identity: 'dg',
+            isEdit: 1,
+            width: 600,
+            height: 200
+        });
+    }
+
+    function reload_() {
+        $("#dg").datagrid("reload", {configListId: $('#pkid').val()});
+    }
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SYSCONFIG_LIST_ADD",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    if (! $('#pkid').val()) {
+                        $('#pkid').val(jdata.data.pkid);
+                        InitDataGrid(jdata.data.pkid);
+                    }
+
+                    if (!! $('#fileToUpload').filebox('getValue')) {
+                        upload(jdata.data.pkid);
+                    }
+                    param.OWindow.reload1();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    
+    function upload(pkid) {
+        $.ajaxFileUpload({
+            url: Constant.API_URL + "ATTACHMENT_UPLOAD",
+            secureuri: false,
+            fileElementId: "filebox_file_id_1",
+            dataType: "json",
+            type: "post",
+            data: {
+                "fileCategory": "emSysconfigList",
+                "sourceId": pkid
+            },
+            success: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    $('#fileToUpload').filebox('clear');
+                    initAttachment(pkid);
+                } else {
+                    MsgAlert({
+                        content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_FAILED') + jdata.msg,
+                        type: "error"
+                    })
+                }
+            },
+            error: function (data, status, e) {
+                MsgAlert({
+                    content: e,
+                    type: "error"
+                })
+            }
+        });
+    }
+
+    function closeW() {
+        param.OWindow.reload1();
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

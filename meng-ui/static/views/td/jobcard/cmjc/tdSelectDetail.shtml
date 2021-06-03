@@ -1,0 +1,130 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>飞机资料接收详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="jcPkid" name="jcPkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+
+                        <th class="th" align="right" style="width: 100px;">资料编号：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input id="dataTitle" name="dataTitle" class="easyui-textbox" data-options="required:true"
+                                   style="width: 100px;"></input>
+                        </td>
+
+                        <th class="th" align="right" style="width: 100px;">资料编号：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="dataType" name="dataType"
+                                   data-options="editable:false,required:true"
+                                   style="width: 100px;"/>
+                        </td>
+
+                        <th class="th" align="right" style="width: 100px;">版本号：</th>
+                        <td style="width: 100px;padding: 3px">
+                            <input id="dataVer" name="dataVer" class="easyui-textbox" data-options="required:true"
+                                   style="width: 100px;"></input>
+                        </td>
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var COMBOBOX_DATA = {};
+
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        $("#jcPkid").val(param.pkid);
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_JC_ALL_SELECT_DATA_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    //资料类型
+                    COMBOBOX_DATA['dataType'] = jdata.data.TD_JC_ALL_SELECT_DATA_TYPE;
+
+                    //资料类型
+                    $('#dataType').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.TD_JC_ALL_SELECT_DATA_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                }
+            }
+        })
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        datas = $.extend(datas, {
+            FunctionCode: 'TD_JC_ALL_CMJC_SAVE_DATA'
+        });
+
+        var dataTitle = $("#dataTitle").textbox('getValue');
+        InitFuncCodeRequest_({
+            data: {pkid: $("#jcPkid").val(), dataTitle: dataTitle, FunctionCode: "TD_JC_ALL_CMJC_DATAREC_CHECK"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        MsgAlert({content: "该资料已存在。", type: 'error'});
+
+                    } else {
+                        InitFuncCodeRequest_({
+                            data: datas, successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    if (param.OWindow.reload_) {
+                                        param.OWindow.reload_();
+                                    }
+                                    MsgAlert({content: '操作成功。'});
+                                    CloseWindowIframe();
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                } else {
+                    MsgAlert({content: "检查唯一性失败", type: 'error'});
+
+                }
+            }
+        });
+    }
+
+</script>
+</html>

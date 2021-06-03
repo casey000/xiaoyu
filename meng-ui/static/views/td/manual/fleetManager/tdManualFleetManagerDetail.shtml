@@ -1,0 +1,251 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>主管维护详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="9" align="right">
+                            <input class="btn btn-primary" type="button" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭" style="margin-left:3px;margin-right: 18px;"/>
+                            <br/>
+                        </td>
+                    </tr>
+                </table>
+                <table class="table table-bordered table-info">
+                    <tr>
+
+                        <th class="th" align="right" style="width: 80px;">机型：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-combobox"  style="width: 200px;" id="fleet" name="fleet" data-options="editable:false,required:true"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">部门：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <!--<input class="easyui-textbox"  style="width: 200px;"  id="department" name="department"  data-options="required:true" />-->
+                            <input id="department" name="department" class="easyui-textbox easyui-validatebox" data-options="validType:['maxLength[20]'] " style="width:200px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">主管：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-combobox"  style="width: 200px;" id="manager" name="manager" data-options="required:true"  />
+                            <!--<input id="manager" name="manager" class="easyui-textbox easyui-validatebox" data-options="validType:['maxLength[20]'] " style="width:200px;"/>-->
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var COMBOBOX_DATA = {};
+    var pkid=null;//主表PKID
+    var selectRow=null;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.op;
+        pkid=param.pkid;
+        $("#pkid").val(pkid);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    //工卡状态
+                    COMBOBOX_DATA['fleet'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+
+                    //机型
+                    $('#fleet').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //初始化部门机构
+                    $("#department").MyComboGrid({
+                        idField: 'ORG_ID',  //实际选择值
+                        textField: 'ORG_NAME', //文本显示值
+                        panelHeight: '180px',
+                        required: true,
+                        width: 200,
+                        params: {FunctionCode: 'GET_WS_ORG'},
+                        columns: [[
+                            {field: 'ORG_ID', title: '机构ID', width: 50},
+                            {field: 'ORG_NO', title: '机构编号', width: 50},
+                            {field: 'ORG_NAME', title: '机构名称', width: 50}
+                        ]],
+                        onHidePanel: function () {
+                            var t = $(this).combogrid('getValue');
+                            if(t != null && t != '' & t != undefined){
+                                if (selectRow == null || t != selectRow.ORG_ID) {//没有选择或者选项不相等时清除内容
+                                    alert('请选择，不要直接输入！');
+                                    $(this).combogrid({value:''});
+                                }
+                            }
+                        },
+                        onSelect: function (index, row) {
+                            selectRow = row;
+
+                            InitFuncCodeRequest_({
+                                data: {orgId: row.ORG_ID, FunctionCode: "GET_ACOUNT_BY_ORG_ID"}, successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        $('#manager').combobox({
+                                            panelHeight: '80px',
+                                            data: jdata.data,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT'
+                                        });
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    if (operation == 'view') {
+                        $("#saveBtn").hide();
+                    }
+                    if (!!pkid) {
+                        InitDataForm(pkid);
+                    }
+                }
+            }
+        })
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        debugger;
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/online-manual/tdManualFleetManager/selectById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"), Constant.CAMEL_CASE);
+
+                    $("#fleet").combobox({editable: false,value: jdata.obj.fleet});
+                    var id = jdata.obj.department;
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/online-manual/wsSysAccount/selectNameById/" + id,
+                        successCallBack: function (jdata) {
+                            debugger;
+                            if (jdata.success == true) {
+                                $('#manager').combobox({
+                                    panelHeight: '80px',
+                                    data: jdata.obj,
+                                    valueField: jdata.obj.value,
+                                    textField: jdata.obj.text
+                                });
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    //
+                    $("#manager").combobox({editable: false,value: jdata.obj.manager});
+                    $('#department').combogrid('grid').datagrid('selectRecord', jdata.obj.department);
+
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        if (!!datas.pkid) {
+            InitGatewayRequest_({
+                type: "post",
+                async: false,
+                data: datas,
+                path: "/online-manual/tdManualFleetManager/updateTdManualFleetManager",
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        if (param.OWindow.onSearch_) {
+                            param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            param.OWindow.reload_();
+                            CloseWindowIframe();
+                        }
+                    } else {
+                        if(jdata.msg.indexOf("UNI_TD_MANUAL_FLEET_MANAGER")!=-1){
+                            MsgAlert({content: "请检查[ 机队 ]是否重复.", type: 'error'});
+                        }else{
+                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.obj, type: 'error'});
+                        }
+                    }
+                }
+
+            });
+        } else {
+            InitGatewayRequest_({
+                type: "post",
+                async: false,
+                data: datas,
+                path: "/online-manual/tdManualFleetManager/addTdManualFleetManager",
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        if (param.OWindow.onSearch_) {
+                            param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            param.OWindow.reload_();
+                            CloseWindowIframe();
+                        }
+                    } else {
+                        if(jdata.msg.indexOf("UNI_TD_MANUAL_FLEET_MANAGER")!=-1){
+                            MsgAlert({content: "请检查[ 机队 ]是否重复.", type: 'error'});
+                        }else{
+                            MsgAlert({content: jdata.msg ? jdata.msg : jdata.obj, type: 'error'});
+                        }
+                    }
+                }
+            });
+        }
+    }
+    function closeW(){
+        // // if (confirm("是否关闭该页面？")){
+        //     CloseWindowIframe();
+        // // }
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                param.OWindow.reload_();
+                CloseWindowIframe();
+            }
+        });
+    }
+
+</script>
+
+</html>

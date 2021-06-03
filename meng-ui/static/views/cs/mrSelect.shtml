@@ -1,0 +1,329 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">航材选择</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<!--    <fieldset class="fieldset_eui">-->
+<!--        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+<!--        <form id="ffSearch" class="form-horizontal">-->
+<!--            <table class="table table-bordered table-info">-->
+<!--                <tr>-->
+<!--                    <th class="th" style="width:80px;" align="right">批次号：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-textbox" id="batchNo" name="batchNo" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                    <th class="th" style="width:80px;" align="right">MR行号：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-textbox" id="mrItem" name="mrItem" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                    <th class="th" style="width:80px;" align="right">MR编号：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-textbox" id="mrNo" name="mrNo" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                    <th class="th" style="width:80px;" align="right">件号：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-textbox" id="pn" name="pn" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                    <th class="th" style="width:80px;" align="right">序号：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-textbox" id="sn" name="sn" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                    <td class="td5">-->
+<!--                        <a class="searchBtn" type="button" onclick="searchData()"-->
+<!--                           data-options="iconCls:'icon-search'">-->
+<!--                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>-->
+<!--                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">-->
+<!--                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>-->
+<!--                    </td>-->
+<!--                </tr>-->
+<!--                <tr>-->
+<!--                    <th class="th" style="width:80px;" align="right">Restrictive：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-combobox" id="restrictive" name="restrictive" style="width:100px;"/>-->
+<!--                    </td>-->
+
+<!--                    <th class="th" style="width:80px;" align="right">LLP：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-combobox" id="llp" name="llp" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                    <th class="th" style="width:80px;" align="right">HT：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-combobox" id="ht" name="ht" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                    <th class="th" style="width:80px;" align="right">PMA：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-combobox" id="udpmaitem" name="udpmaitem" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                </tr>-->
+<!--                <tr>-->
+<!--                    <th class="th" style="width:80px;" align="right">Repairable：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-combobox" id="repairable" name="repairable" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                    <th class="th" style="width:80px;" align="right">Shelf-Life：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-combobox" id="udshelfcon" name="udshelfcon" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                    <th class="th" style="width:80px;" align="right">DGR：</th>-->
+<!--                    <td class="td5">-->
+<!--                        <input class="easyui-combobox" id="uddgr" name="uddgr" style="width:100px;"/>-->
+<!--                    </td>-->
+<!--                </tr>-->
+<!--            </table>-->
+<!--        </form>-->
+<!--    </fieldset>-->
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    let params = getParentParam_();
+    var workorderId = getParentParam_().workorderId;
+    var pn = getParentParam_().pn;
+    var sn = getParentParam_().sn;
+    var batchNo = getParentParam_().batchNo;
+    var mrNo = getParentParam_().mrNo;
+    var yn_select_list = [
+        {
+            label: "Y",
+            value: "1",
+            id: "Y"
+        }, {
+            label: "N",
+            value: "0",
+            id: "N"
+        }
+    ];
+
+    /**
+     * 页面easyui组件初始化
+     * @return {[void]}
+     */
+    function init_page() {
+        let select_id = ["udro", "prohibitive", "restrictive", "llp", "ht", "udpmaitem", "udshelfcon", "repairable", "uddgr"];
+        select_id.forEach(item => {
+            $("#" + item).combobox({
+                editable: false,
+                data: yn_select_list,
+                panelHeight: '48px',
+                valueField: 'value',
+                textField: 'label',
+            })
+        });
+        if (params.effType === "NA") {
+            $("#udro").combobox('setValue', 'N');
+            $("#udro").combobox('readonly', true);
+        }
+    }
+
+    $("#dg").datagrid({
+        columns: [
+            [
+                {field: 'select', title: 'select', width: 100, align: 'center', formatter: selectBtn},
+                {field: 'mrNo', title: 'MR编号', width: 110, align: 'center', formatter: YNformatter},
+                {field: 'pn', title: '件号', width: 130, align: 'center'},
+                {field: 'batchNo', title: '批次号', width: 150, align: 'center'},
+                {field: 'sn', title: '序号', width: 100, align: 'center', formatter: YNformatter},
+                {field: 'workType', title: '任务类型', width: 100, align: 'center', formatter: YNformatter},
+                {field: 'workNumber', title: '任务编号', width: 100, align: 'center'},
+                {field: 'qty', title: '数量', width: 100, align: 'center', formatter: YNformatter},
+                {field: 'unit', title: '单位', width: 100, align: 'center', formatter: YNformatter},
+                {field: 'mrItem', title: 'MR行号', width: 100, align: 'center'},
+            ]
+        ],
+        rowStyler: function () {
+            return "height: 33px"
+        },
+        method: "post",
+        pagination: true,
+        pageSize: 15,
+        loader: function (param, success, fail) {
+            let post_param = {
+                pageModel: {},
+                vParts: {}
+            };
+            for (let item in param) {
+                if (item != "vParts") {
+                    post_param.pageModel[item] = param[item]
+                }
+            }
+            if (!!param.vParts) {
+                post_param.vParts = param.vParts;
+            }
+            if (params.effType === "NA") {
+                post_param.vParts.udro = '0'
+            }
+            // axios.post("/part/sap_list", post_param).then((response) => {
+            //     console.log(response.data.data.pageModel.gridModelData);
+            //     // let grid_data = response.data.data.pageModel;
+            //     let grid_data = {};
+            //     // grid_data.rows = response.data.data.pageModel.gridModelData;
+            //     grid_data.rows = mokeData;
+            //     success(grid_data)
+            // }).catch(err => {
+            // })
+        //    根据工单和sn pn 以及批次号来筛选start
+            var data ={
+                "batchNo": batchNo,
+                // "mrNo":mrNo,
+                "pn": pn,
+                "sn": sn
+            }
+            var _url = basePath + "/api/v1/cancelSock/getRelationMrByCondition/"+  workorderId;
+            $.ajax({
+                type: "POST",
+                url: _url,
+                contentType: "application/json;charset=utf-8",
+                data: JSON.stringify(data),
+                dataType: "json",
+                success: function (data) {
+                    debugger
+                    if (data.code == 200) {
+                        let grid_data = {};
+                        //模拟数据
+                        // grid_data.rows = mokeData;
+                        //正式数据
+                        grid_data.rows = data.data;
+
+                        success(grid_data)
+                    }else {
+                        alert(data.msg);
+                    }
+                },
+                error: function () {
+                    alert("mr数据获取失败");
+                }
+            });
+            //    根据工单和sn pn 以及批次号来筛选start
+
+        },
+        // url: "/part/sap_list",
+    });
+
+    /**
+     * 01格式化为YN
+     * @param {[type]} value    [description]
+     * @param {[type]} rowData  [description]
+     * @param {[type]} rowIndex [description]
+     */
+    function YNformatter(value, rowData, rowIndex) {
+        if (value === ""||value === null) {
+            return ""
+        }  else {
+            return value
+        }
+    }
+
+    /**
+     * 选择操作按钮
+     * @param  {[object]} rowData  行数据
+     * @param  {[number]} rowIndex 行编号
+     */
+    function selectBtn(value, rowData, rowIndex) {
+        return "<button style='width: 50px;padding-top: 4px;padding-bottom: 4px; background-color:#FFA500;' type='button' " +
+            "onclick='select(" + JSON.stringify(rowData) + ")'>select</button>";
+    }
+
+    /**
+     * 选择操作, 执行params中的success方法
+     * @param  {object} data 被选中的数据
+     * @return {[type]}      [description]
+     */
+    function select(data) {
+        params.success(data);
+        close_window();
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        flag = "A";
+        openDetai(operation, '');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //查询
+    function searchData() {
+        let search_data = $("#ffSearch").serializeObject()
+        console.log(search_data)
+        $("#dg").datagrid('load', {vParts: search_data});
+    }
+
+    /**
+     * 关闭当前窗口
+     * @return {void}
+     */
+    function close_window() {
+        window.opener = null;
+        window.open('', '_self');
+        window.close();
+    }
+
+    $(function () {
+        init_page()
+    })
+
+    //    根据mr号选择模拟数据start
+    var mokeData = [{
+        "batchNo": "2003040035",
+        "mrItem": "1",
+        "mrNo": "29712",
+        "pn": "Q0001",
+        "qty": 3,
+        "sn": 2212,
+        "unit": "MA",
+        "workType": "工作类型1",
+        "workNumber":"工作编号1"
+    }, {
+        "batchNo": "2003040035",
+        "mrItem":  "1",
+        "mrNo": "29712",
+        "pn": "Q0001",
+        "qty": 1,
+        "sn": 2212,
+        "unit":"EA",
+        "workType": "工作类型1",
+        "workNumber":"工作编号1"
+    }, {
+        "batchNo": "1911040827",
+        "mrItem":  "行号3",
+        "mrNo": "MR编号3",
+        "pn": "CA8000B772",
+        "qty": 4,
+        "sn": 0,
+        "unit": "EA",
+        "workType": "工作类型3",
+        "workNumber":"工作编号3"
+    }, {
+        "batchNo": "Name:266-7569-4",
+        "mrItem":  "行号4",
+        "mrNo": "MR编号4",
+        "pn": "61555AB",
+        "qty": 4,
+        "sn": 0,
+        "unit": "EA",
+        "workType": "工作类型4",
+        "workNumber":"工作编号4"
+    }]
+    //    根据mr号选择模拟数据end
+
+</script>
+</body>
+</html>

@@ -1,0 +1,395 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">FLB Initialization</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        .table-bordered {
+            border: none;
+        }
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            /*position: absolute;*/
+            top: 0px;
+            margin-left: 5px;
+            /*right: 111px;*/
+        }
+        #pnRequest{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 110px;
+        }
+
+        #btnSyncPlan {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 30px;
+        }
+
+        #btnDel {
+            position: absolute;
+            top: 0px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<div class="easyui-tabs" id="tt" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="ffSearch">
+            <table class="table table-bordered table-info">
+
+                <tr>
+                    <th align="right" class="th" style="width:50px;">ATA：</th>
+                    <td style="width:80px; padding:3px;">
+
+                        <input class="easyui-textbox" id="ata" name="ata" style="width:180px;"/>
+                    </td>
+                    <th align="right" class="th" style="width:50px;">关键字：</th>
+                    <td style="width:80px; padding:3px;">
+
+                        <input class="easyui-textbox" id="title" name="title" style="width:180px;"/>
+                        <input hidden="true"  id="phenomenon" name="phenomenon" />
+                        <input hidden="true" id="treatmentMeasures" name="treatmentMeasures"/>
+                    </td>
+
+                    <td style="width: 120px; padding:3px;border: none;text-align: right;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script src="/js/date_format.js" type="text/javascript"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {}
+
+    function i18nCallBack() {
+
+        //绑定回车查询事件2
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "SPECIAL_CARD_TYPE,SPECIAL_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    // console.log(jdata.data);
+                    PAGE_DATA['postponeSort'] = DomainCodeToMap_(jdata.data["SPECIAL_CARD_TYPE"]);
+                    $('#cardTypeDet').combobox({
+                        panelHeight: '140px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.SPECIAL_CARD_TYPE,
+                    });
+                    $('#StatusDet').combobox({
+                        panelHeight: '80px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.SPECIAL_STATUS,
+                    });
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+        InitDataGrid();
+    }
+    function addKey() {
+        var title_ = "ADD Experience";
+        var curWidth = ($(window).width() * 0.6).toString();
+        var curheight = $(window).height().toString();
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: title_,
+            param: {
+
+            },
+            url: "/views/mccdoc/add_experience_list.shtml"
+        });
+    }
+    function importData(){
+        console.log("导入数据");
+        var title_ = "import";
+        var curWidth = ($(window).width() * 0.4).toString();
+        var curheight = ($(window).height()*0.3).toString();
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: title_,
+            param: {
+
+            },
+            url: "/views/mccdoc/tmc_import.shtml"
+        });
+    }
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            fitColumns: true,
+
+            // queryParams: {idx: '1'},
+            pageSize: 15,
+            columns: {
+                param: {
+                    FunctionCode: 'TMC_EXPERICE_LIST'
+                },
+                alter: {
+                    'expNo':{
+                        formatter: function (value,row) {
+                            return `<a style = "color: #FF6600" href="javascript:;" onclick="viewDet(${row.id})">${value}</a>`
+                        }
+                    },
+                    'createTime':{
+                        formatter: function (value) {
+                            return value.substr(0,10)
+                        }
+                    },
+
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            toolbar: [
+
+                {
+                    id:"btnExport",
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth: "TD_TMC_EXPERIENCE_ADD",
+                    handler: function () {
+
+                        addKey()
+                    }
+
+                },
+                {
+                    id:"btnSyncPlan",
+                    text: $.i18n.t(' Export '),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        // console.log(data)
+                        var data = $('#ffSearch').serializeObject();
+                        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/tmcExp/export'></form>");
+                        form.append($("<input type='hidden' name='fileType' value = 'excel'/>"));
+                        // var ata = $("<input type='hidden' name='ata' value = ''/>");
+                        // ata.val($("#ata").textbox("getValue"));
+                        // form.append(ata);
+                        $.each(data, function (key, val) {
+                            if (typeof (val) == "object") {
+                                $.each(val, function (k1, v1) {
+                                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                                });
+                            } else {
+                                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                            }
+                        });
+                        $(this).parent().append(form);
+                        form.submit();
+                        form.remove();
+                    }
+                },
+                {
+                    id:"btnExport",
+                    text: $.i18n.t('PDF批量导出'),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        // console.log(data)
+                        var data = $('#ffSearch').serializeObject();
+                        var form = $("<form method='post' style='display:none' action='" + basePath + "/api/v1/tmcExp/downLoadPdfZip'></form>");
+                        form.append($("<input type='hidden' name='fileType' value = 'excel'/>"));
+                        $.each(data, function (key, val) {
+                            if (typeof (val) == "object") {
+                                $.each(val, function (k1, v1) {
+                                    form.append($("<input name='" + key + "' value = '" + v1 + "'/>"));
+                                });
+                            } else {
+                                form.append($("<input name='" + key + "' value = '" + val + "'/>"));
+                            }
+                        });
+                        $(this).parent().append(form);
+                        form.submit();
+                        form.remove();
+                    }
+                },
+                {
+                    id: 'btnOperationExport',
+                    auth: "TD_TMC_EXPERIENCE_IMPORT",
+                    text: "导入",
+                    iconCls: 'icon-application_side_list',
+                    handler: function () {
+                        importData();
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-view",
+                    i18nText: "common:COMMON_OPERATION.EDIT",
+                    onclick: function () {
+                        var PKID = $('#dg').datagrid('getSelected').id;
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 1020, height: 420,
+                            param: {id: PKID},
+                            url: "/views/mccdoc/add_experience_list.shtml"
+                        });
+                        // var rowData = getDG('dg').datagrid('getSelected');
+                        // if (!rowData.id) {
+                        //     MsgAlert({
+                        //         content: "请选择数据！",
+                        //         type: 'error'
+                        //     });
+                        //     return;
+                        // }
+                        // openDetail('view', rowData.flbId);
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "common:COMMON_OPERATION.DEL",
+                    onclick: function () {
+                        var PKID = $('#dg').datagrid('getSelected').id;
+                        console.log(PKID,'123')
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_tip:TIP.COMMON.DEL_CONFIRM",
+                            param: {data:{id: PKID}},
+                            FunctionCode: "TMC_EXPERICE_DELETE",
+                            successCallBack: reload_
+                        });
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "PDF打印",
+                    onclick: function () {
+                        var PKID = $('#dg').datagrid('getSelected').id;
+                        window.location.href = basePath + "/api/v1/tmcExp/printPdf?id=" + PKID;
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    }
+
+
+
+    //同步flb数据
+    function syncFLB(days) {
+        if (!days) {
+            days = 2;
+        }
+        var url = "/flb/sync/syncFlb?count=" + days;
+        $.ajax({
+            url: url,
+            type: "get",
+            dataType: "json",
+            success: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+                    reload_();
+                }
+            }
+        });
+    }
+    function viewDet(id) {
+        var curWidth = ($(window).width() * 0.6).toString();
+        var curheight = $(window).height().toString();
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            param: {
+                id: id
+            },
+            url: "/views/mccdoc/view_experience_list.shtml"
+        });
+    }
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        $("#phenomenon").val($('#title').textbox('getValue'));
+        $("#treatmentMeasures").val($('#title').textbox('getValue'));
+        onSearch_('dg', '#ffSearch');
+        // {
+        //     "page":"1",
+        //     "rows":"10",
+        //     "qname":["partNo"],
+        //     "qoperator":["equals"],
+        //     "qvalue":["T01199"]
+        // }
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+
+    function exportFlbQuery() {
+
+        var con = "<form id='_f0_rm' method='post' action='/api/v1/plugins/EXPORT_FLB_QUERY'></form>";
+        $("#_f0_rm").remove();
+        $("body").append(con);
+
+        var ac = $("<input type='hidden' name='ser_acReg' />");
+        ac.val($("#ser_acReg").textbox('getValue'));
+        $("#_f0_rm").append(ac);
+
+        var no = $("<input type='hidden' name='ser_flbNo' />");
+        no.val($("#ser_flbNo").textbox('getValue'));
+        $("#_f0_rm").append(no);
+
+        var fd = $("<input type='hidden' name='ser_flightDate' />");
+        fd.val($("#ser_flightDate").textbox('getValue'));
+        $("#_f0_rm").append(fd);
+
+        $("#_f0_rm").submit();
+
+    }
+</script>
+</html>

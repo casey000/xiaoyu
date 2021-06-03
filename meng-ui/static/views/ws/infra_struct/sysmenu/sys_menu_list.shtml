@@ -1,0 +1,246 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="PAGE.SYS_MENU_LIST.TITLE">菜单维护</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="RES.SYS_MENU_LIST.QY_ITEM" align="right">查询项：</th>
+                    <td style="width:110px">
+                        <select name="queryType" class="easyui-combobox" data-options="required:true,editable:false"
+                                panelHeight="120"
+                                style="width:120px">
+                            <option value="NAME_CODE">菜单名称/编码</option>
+                            <option value="I18N_TEXT">国际化文本</option>
+                            <option value="URL">URL</option>
+                            <option value="ID">ID</option>
+                        </select>
+
+                    </td>
+                    <th data-i18n="RES.SYS_MENU_LIST.QY_VALUE" align="right">查询值：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" id="queryValue" name="queryValue"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="searchBtn" onclick="doSearch_()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="clearBtn" onclick="doClear_()"><span
+                                data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:true" style="width: 50%;">
+        <div>
+            <table id="l_dg"></table>
+        </div>
+    </div>
+    <div id="lay_right" data-options="region:'center'">
+        <div>
+            <table id="r_dg"></table>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var FuncCode_ = 'SYS_MENU_LIST';
+
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitLeftDataGrid();
+        InitRightDataGrid();
+    }
+
+    function doSearch_() {
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams = $.extend({}, queryParams, {FunctionCode: FuncCode_});
+        InitFuncCodeRequest_({
+            data: queryParams,
+            successCallBack: function (jdata) {
+                if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+                    layer.msg(jdata.msg, {icon: 5});
+                    return;
+                }
+                var tdata_ = WarpTreeGridData_(jdata.data, "0", ['PKID', 'PID']);
+                $("#l_dg").treegrid('loadData', tdata_);
+            }
+        });
+
+    }
+
+    function doClear_() {
+        $("#queryValue").textbox('setValue', '');
+        doSearch_();
+    }
+
+    function InitLeftDataGrid() {
+        InitFuncCodeRequest_({
+            data: {FunctionCode: FuncCode_},
+            successCallBack: function (jdata) {
+                if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+                    layer.msg(jdata.msg, {icon: 5});
+                    return;
+                }
+                var tdata_ = WarpTreeGridData_(jdata.data, "0", ['PKID', 'PID']);
+                var identity = 'dg';
+                $("#l_dg").MyDataGrid({
+                    identity: identity,
+                    idField: "PKID",
+                    treeField: "MENU_NAME",
+                    data: tdata_,
+                    pagination: false,
+                    title: $.i18n.t('page:PAGE.SYS_MENU_LIST.TITLE'),
+                    columns: {param: {FunctionCode: FuncCode_}},
+                    contextMenus: [
+                        {
+                            i18nText: "common:COMMON_OPERATION.ADD",
+                            onclick: function () {
+                                var rowData = getDG(identity).datagrid('getSelected');
+                                common_add_edit_({
+                                    identity: identity, isEdit: 0, width: 630, height: 420,
+                                    param: {PID: rowData.PKID},
+                                    url: "/views/ws/infra_struct/sysmenu/sys_menu_add_edit.shtml"
+                                });
+                            }
+                        },
+                        {
+                            id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT",
+                            onclick: function () {
+                                common_add_edit_({
+                                    identity: identity, isEdit: 1, width: 630, height: 420,
+                                    url: "/views/ws/infra_struct/sysmenu/sys_menu_add_edit.shtml"
+                                });
+                            }
+                        }
+                        , {
+                            id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL",
+                            onclick: function () {
+                                common_delete_({
+                                    identity: identity,
+                                    cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                                    param: {pkid: "PKID"},
+                                    FunctionCode: "SYS_MENU_DEL",
+                                    successCallBack: function (jdata) {
+                                        layerStandardMsg_(jdata, null, function () {
+                                            doSearch_();
+                                        });
+                                    }
+                                });
+                            }
+                        }
+
+                    ],
+                    toolbar: [
+                        {
+                            key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                            handler: function () {
+                                common_add_edit_({
+                                    identity: identity, isEdit: 0, width: 630, height: 420,
+                                    url: "/views/ws/infra_struct/sysmenu/sys_menu_add_edit.shtml"
+                                });
+                            }
+                        }
+                    ],
+                    onClickRow: function (row) {
+                        if (!row) {
+                            return;
+                        }
+
+                        $('#r_dg').datagrid('load', {
+                            menuId: row.ORG_ID
+                        });
+                    },
+                    resize: function () {
+                        return {
+                            height: $(document.body).height() - $("fieldset").height() - 30,
+                            width: $("#lay_left").width()
+                        };
+                    }
+                });
+            }
+        });
+
+    }
+
+    function InitRightDataGrid() {
+        var identity = 'r_dg';
+        $("#r_dg").MyDataGrid({
+            identity: identity,
+            title: $.i18n.t('page:PAGE.WS_SYS_TABLE_LIST.TITLE'),
+            columns: {param: {FunctionCode: 'WS_SYS_TABLE_LIST'}},
+            queryParams: {menuId: '0000'},
+            contextMenus: [
+                {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                    onclick: function () {
+                        var rowDataL = $("#l_dg").datagrid('getSelected');
+                        if (!rowDataL) {
+                            layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.FUNC_NOT_SELECT'), {icon: 5});
+                            return;
+                        }
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {menuId: rowDataL.PKID, tableCode: "TABLE_CODE"},
+                            FunctionCode: "WS_SYS_TABLE_DEL"
+                        });
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: '维护', auth: "",
+                    handler: function () {
+                        var rowDataL = $("#l_dg").datagrid('getSelected');
+                        if (!rowDataL) {
+                            layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.FUNC_NOT_SELECT'), {icon: 5});
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 700, height: 500,
+                            param: {
+                                MENU_ID: rowDataL.PKID, CloseCallBack: function (param) {
+                                    reloadRdg_();
+                                }
+                            },
+                            url: "/views/ws/infra_struct/sysmenu/sma_obj_list.shtml"
+                        });
+                    }
+                },
+                '-',
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ],
+            resize: function () {
+                return {
+                    height: $(document.body).height() - $("fieldset").height() - 30,
+                    width: $("#lay_right").width()
+                };
+            }
+        });
+    }
+
+    function reloadRdg_() {
+        $("#r_dg").datagrid("reload");
+
+    }
+</script>
+</body>
+</html>

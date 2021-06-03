@@ -1,0 +1,269 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>维护EO反馈通知人</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%; height: 380px">
+    <div class="ibox-content">
+        <form class="form-horizontal m-t" id="mform">
+            <input type="hidden" id="pkid" name="pkid"/>
+
+            <table class="table table-bordered table-info">
+                <tr id="id_btn_row">
+                    <td colspan="9" align="right">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                        <input class="btn btn-primary" type="button" id="closeBtn" onclick="closeW();" value="关闭"
+                               style="margin-left:3px;margin-right: 18px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">模块：</th>
+                    <td style="width: 300px; padding: 3px">
+                        <input class="easyui-textbox" style="width: 250px;"
+                               id="module" name="module" />
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">手册类型：</th>
+                    <td style="width: 300px; padding: 3px">
+                        <input class="easyui-textbox" style="width: 250px;"
+                               id="manualType" name="manualType" />
+                    </td>
+                </tr>
+            </table>
+        </form>
+
+        <fieldset id="id_user_para" class="fieldset_eui">
+            <legend>负责人</legend>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" align="right" style="width: 90px;">选择负责人：</th>
+                    <td style="width: 300px; padding: 3px;">
+                        <input class="easyui-combobox" style="width: 200px;"
+                               id="userId" name="userId" />
+                    </td>
+                    <td>
+                        <input class="btn btn-primary" type="button" onclick="addUser()" value="添加"/>
+                    </td>
+                </tr>
+            </table>
+            <table id="dg"></table>
+        </fieldset>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param;
+    var op = null;// operation[add,edit,view,flow]
+    var pkid = null;//主表PKID
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        op = param.operation;
+        pkid = param.pkid;
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode:
+                    "EM_MODULE_MANUAL_TYPE," +
+                    "DM_DATA_TYPE," +
+                    "EM_EO_MANUAL_FILE_TYPE_V_ONE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#module').combobox({
+                        data: jdata.data.EM_MODULE_MANUAL_TYPE,
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#manualType').combobox({
+                        data: jdata.data.EM_EO_MANUAL_FILE_TYPE_V_ONE,
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        var selectRow = null;
+        $('#userId').MyComboGrid({
+            params: {
+                FunctionCode: "FLOW_WORK_ACCOUNT"
+            },
+            columns: [[
+                {field: "ACCOUNT_NUMBER", title: "工号", width: 80, sortable: true},
+                {field: "USER_NAME", title: "姓名", width: 100, sortable: true}
+            ]],
+            idField: "ACCOUNT_ID",
+            textField: "USER_NAME",
+            onSelect: function (index, row) {
+                selectRow = row;
+            },
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (selectRow == null || t != selectRow.ACCOUNT_ID) {
+                    alert("请选择，不要直接输入！");
+                    $(this).combogrid({value: ''});
+                }
+            },
+            width: 250
+        });
+
+        if (!! pkid) {
+            InitDataForm(pkid);
+            InitDataGrid(pkid);
+        } else {
+            $('#id_user_para').hide();
+        }
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_MODULE_MANUAL_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid(pkid) {
+        var identity = 'dg';
+
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            columns: {
+                param: {FunctionCode: 'EM_MODULE_ORG_USER_LIST'}
+            },
+            queryParams: {
+                refPkid: pkid
+            },
+            resize: function () {
+                return {width: 585, height: 235};
+            },
+            contextMenus: [
+                {
+                    id: "m-delete",
+                    i18nText: "删除",
+                    onclick: function () {
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (! rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_MODULE_ORG_USER_DELETE',
+                                pkid: rowData.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                    param.OWindow.reload_();
+                                } else {
+                                    MsgAlert({content: $.i18n.t(jdata.msg), type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ]
+        });
+    }
+
+    function addUser() {
+        var refPkid = $('#pkid').val();
+        if (! refPkid) {
+            alert("请先保存！");
+            return;
+        }
+        var userId = $('#userId').combogrid('getValue');
+        if (! userId) {
+            alert("请选择负责人！");
+            return;
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_MODULE_ORG_USER_ADD",
+                refPkid: refPkid,
+                userId: userId
+            },
+            successCallBack: function (jdata) {
+                reload_();
+                param.OWindow.reload_();
+                $('#userId').combogrid({value: ''})
+            }
+        })
+    }
+
+    function reload_() {
+        $('#dg').datagrid('reload');
+    }
+
+    function save() {
+        var isValidate = $('#mform').form('validate');
+        if (! isValidate) {
+            return;
+        }
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_MODULE_MANUAL_ADD",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#pkid').val(jdata.data.pkid);
+                    $('#id_user_para').show();
+                    InitDataGrid(jdata.data.pkid);
+
+                    MsgAlert({
+                        content: jdata.msg
+                    });
+
+                    param.OWindow.i18nCallBack();
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        param.OWindow.i18nCallBack();
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

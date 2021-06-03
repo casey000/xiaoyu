@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_data_dict">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        var isEdit_;
+        var param = {};
+        $(function() {
+            param = getParentParam_();
+            isEdit_ = param && param.CODE;
+            $("input:radio[name='isdomain']").bind("click", DomainRadioClick);
+
+            if (isEdit_) {
+                $("#code").textbox({editable: false});
+                InitFuncCodeRequest_({
+                    data: {code: param.CODE, FunctionCode: "WS_ELEMENT_GET"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if(jdata.data.DOMAIN_CODE)
+                            {
+                                $("#a").attr("checked","checked");
+                            }  else{
+                                $("#b").attr("checked","checked");
+                            }
+                            DomainRadioClick();
+                            ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                            InitEditForm_();
+                        } else {
+                            MsgAlert({ content: jdata.msg, type: 'error'});
+                        }
+                    }
+                })
+            } else {
+                $("#a").attr("checked","checked");
+                InitEditForm_();
+                DomainRadioClick();
+            }
+            $("#domainCode").combobox({
+                valueField: 'CODE',
+                textField: 'DESCRIPTION',
+                url: '/api/v1/plugins/DATA_ELEMENT_DOMAIN',
+                required: true,
+                onSelect: CboxEleCodeSelect_,
+                loadFilter: function (jdata) {
+                    return jdata.data;
+                }
+            });
+
+        });
+
+            function InitEditForm_() {
+
+                var $form = $("#mform");
+                $form.form({
+                    onSubmit: function () {
+
+                        var isValidate = $(this).form('validate');
+                        if (!isValidate) {
+                            return false;
+                        }
+                        var data = $form.serializeObject();
+                        data = $.extend({}, data, {
+                            FunctionCode: (isEdit_ ? 'WS_ELEMENT_EDIT' : 'WS_ELEMENT_ADD')
+                        });
+                        InitFuncCodeRequest_({
+                            data: data,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    param.OWindow.reload_();
+                                    MsgAlert({ content : jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')  });
+                                    CloseWindowIframe();
+                                } else {
+                                    MsgAlert({ content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                        return false;
+                    }
+                });
+            }
+
+
+        function DomainRadioClick(){
+            var jQ = $("input:radio[name='isdomain']:checked");
+            if (jQ.val() == "1") {
+                $("#domain_area").show();
+                $(".dmainArea").textbox({editable: false});
+                $("#domainCode").combobox({
+                    required:true
+                });
+            } else {
+                $("#domain_area").hide();
+                $(".dmainArea").textbox({editable: true});
+                $("#domainCode").combobox({
+                    required:false
+                });
+            }
+        }
+
+            function CboxEleCodeSelect_(record) {
+
+                $("#fieldLen").textbox({value: record.LENGTH});
+                $("#fieldScale").textbox({value: record.PREC});
+                $("#fieldType").textbox({value: record.DATA_TYPE});
+            }
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">数据元素CODE：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="code" name="code"  data-options="required:true,validType:['maxLength[30]']"  style="height:25px; width: 60%;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">元素名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="eleName"  data-options="multiline:true,required:true,validType:['maxLength[60]']"  style="height:25px; width: 60%;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl"></th>
+                        <td class="tdr">
+                            <input type="radio" id="a" name="isdomain" value="1"/>&nbsp;域
+                            <input type="radio" id ="b" name="isdomain" value="0"/>&nbsp;预定义</td>
+                    </tr>
+                    <tr id="domain_area" style="diplay:none;">
+                        <th class="tdl">数据域：</th>
+                        <td class="tdr">
+                            <select id="domainCode" name="domainCode" class="easyui-combobox"  panelHeight="120"
+                                    style="width:180px">
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">元素-字段类型：</th>
+                        <td class="tdr">
+
+
+                            <select id="fieldType" name="fieldType" class="easyui-combobox dmainArea" data-options="required:true" panelHeight="100">
+
+                                <option value="NVARCHAR2">NVARCHAR2</option>
+                                <option value="NUMBER">NUMBER</option>
+                                <option value="DATE">DATE</option>
+                                <option value="TIMESTAMP">TIMESTAMP</option>
+                                <option value="CLOB">CLOB</option>
+                                <option value="NCLOB">NCLOB</option>
+                                <option value="BLOB">BLOB</option>
+                                <option value="BINARY_FLOAT">BINARY_FLOAT</option>
+                                <option value="BINARY_DOUBLE">BINARY_DOUBLE</option>
+
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                    <tr>
+                        <th class="tdl">字段长度：</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox easyui-validatebox dmainArea"  missingMessage="请输入数字"  invalidMessage="只允许数字类型" id="fieldLen" name="fieldLen"  data-options="required:true,validType:['maxLength[10]']"  style="height:25px; width: 60%;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">元素-字段长度-小数位：</th>
+                        <td class="tdr">
+                            <input class="easyui-numberbox easyui-validatebox dmainArea"  missingMessage="只允许一位小数" invalidMessage="只允许一位小数" name="fieldScale" id="fieldScale"  data-options="required:true,validType:['maxLength[10]']"  style="height:25px; width: 60%;" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="searchBtn" type="submit" value="提交" style="border: none;cursor: pointer;"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

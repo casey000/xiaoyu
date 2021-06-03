@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">EO/EA整体终结</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="mform" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td colspan="6" align="right">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="save()"
+                           >保存</a>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="submit()"
+                           >提交</a>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="" onclick="CloseWindowIframe();"
+                           >关闭</a>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 100px">执行文件编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="eoNo" id="eoNo" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 100px">执行文件版次：</th>
+                    <td>
+                        <input class="easyui-textbox" name="eoVer" id="eoVer" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 100px">执行文件类型：</th>
+                    <td>
+                        <input class="easyui-textbox" name="eoEa" id="eoEa" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                </tr>
+                <tr id="reqStopDateTr">
+                    <th data-i18n="" style="width: 100px">要求终结日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="reqStopDate" id="reqStopDate"
+                               style="width:150px;" data-options="" />
+                    </td>
+
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 100px">终结原因：</th>
+                    <td colspan="5">
+                        <input class="easyui-textbox" name="stopReason" id="stopReason" data-options="required:true,multiline:true,validType:'length[0,200]'"
+                               style="width:700px;height: 50px;" />
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 100px">申请人：</th>
+                    <td>
+                        <input class="easyui-textbox" name="applyMan" id="applyMan" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 100px">申请日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="applyDate" id="applyDate" data-options=""
+                               style="width:150px;" />
+                    </td>
+                    <th data-i18n="" style="width: 100px">状态：</th>
+                    <td>
+                        <input class="easyui-combobox" name="status" id="status" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<script type="text/javascript">
+var PAGE_DATA = {};
+var param;
+var pkid;
+var eoPkid;
+var eoNo;
+var eoVer;
+var eoEa;
+var userName;
+var sfPkid;
+
+function i18nCallBack() {
+    param = getParentParam_();
+    pkid = param.pkid;
+    sfPkid = param.sfPkid;
+    userName = getLoginInfo().userName;
+    InitFuncCodeRequest_({
+        async : false,
+        data: {
+            domainCode: "EM_EOEA_STOP_STATUS",
+            FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+        },
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                $('#reqStopDateTr').hide();
+
+                PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_EOEA_STOP_STATUS"]);
+                // 状态status
+                $('#status').combobox({
+                    panelHeight: '100px',
+                    data: jdata.data.EM_EOEA_STOP_STATUS,
+                    valueField: 'VALUE',
+                    textField: 'TEXT'
+                });
+                initForm(pkid);
+
+            } else {
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+}
+
+function initForm(pkid) {
+    if(pkid){ //从查询页面进入
+        InitFuncCodeRequest_({
+            async: false,
+            data: {pkid : pkid, FunctionCode: 'EM_EOEA_STOP_PKID'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                    eoPkid = jdata.data.EO_PKID;
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }else{//重EO/EA页面进入
+        eoPkid = param.eoPkid;
+        eoNo = param.eoNo;
+        eoVer = param.eoVer
+        eoEa = param.eoEa;
+        $('#eoNo').textbox('setValue', eoNo);
+        $('#eoVer').textbox('setValue', eoVer);
+        $('#eoEa').textbox('setValue', eoEa);
+        $('#status').combobox('setValue', 'SQZ');
+        $('#applyDate').datebox('setValue', formatterDate(new Date()));
+    }
+    $("#applyMan").textbox('setValue', userName);
+
+}
+
+//保存
+function save() {
+    var isValidate = $("#mform").form('validate');
+    if (!isValidate) {
+        return false;
+    }
+    var data = $("#mform").serializeObject();
+    if(pkid){
+        data.pkid = pkid;
+    }
+    data.eoPkid = eoPkid;
+    data.status = $('#status').combobox('getValue');
+    data = $.extend({}, data, {FunctionCode: 'EM_EOEA_STOP_ADD'});
+    MaskUtil.mask("正在处理...");
+    InitFuncCodeRequest_({
+        async : false,
+        data: data,
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                MaskUtil.unmask();
+                pkid = jdata.data;
+                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                param.OWindow.reload_();
+            }
+            else {
+                MaskUtil.unmask();
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+}
+
+//提交
+function submit() {
+    if(!pkid){
+        MsgAlert({content: '请先保存数据', type: 'error'});
+        return;
+    }
+
+    var status = $('#status').combobox('getValue');
+    if(status != 'SQZ'){
+        MsgAlert({content: '申请状态才可提交', type: 'error'});
+        return;
+    }
+    var eoNo = $('#eoNo').textbox('getValue');
+
+    common_add_edit_({
+        identity: '', isEdit: '', width: 520, height : 300,title:$.i18n.t('选择审批人'),
+        param: {roleId: '',otherParam: eoNo,PKID:sfPkid,FunctionCode_:'EM_EOEA_STOP_SUBMIT',successCallback: reload_},
+        url: "/views/em/workflow/work_flow_account_select.shtml"
+    });
+
+}
+
+function formatterDate (date) {
+    var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+    var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+        + (date.getMonth() + 1);
+    return date.getFullYear() + '-' + month + '-' + day;
+};
+
+
+function reload_() {
+    if(sfPkid){
+        param.OWindow.reload_("#dg2");
+    }else{
+        param.OWindow.reload_();
+    }
+    CloseWindowIframe();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="PAGE.ENG_UNITS_MANAGE_LIST.TITLE">发动机单元体修理级别维护</title>
+</head>
+<body class="ibody">
+
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div class ="btnTr">
+        <input class="btn btn-primary" type="button" id="fetchBtn" onclick="fetch()" style="margin: 10px;margin-left:570px" value="提取数据"/>
+        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" style="margin: 10px" value="保存"/>
+        <input class="btn btn-primary" type="button" id="closeBtn" onclick="CloseWindowIframe()" style="margin: 10px" value="关闭"/>
+    </div>
+    <div id="lay_left">
+        <div>
+            <table id="dg"></table>
+    </div>
+    </div>
+</div>
+
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param = {};
+    var loginUser;
+    var loginName;
+    var operation;
+    var repairId;
+    var preEvaId;
+    var evaId;
+    var flag;
+    var epn;
+    var arr = [];
+    var userLogin = getLoginInfo();
+    loginUser = userLogin.accountId;
+    loginName = userLogin.userName;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        repairId = param.repairId;
+        preEvaId = param.preEvaId;
+        flag = param.flag;
+        evaId = param.evaId;
+        epn = param.epn;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_INT_MOD_LEVEL",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['level'] = DomainCodeToMap_(jdata.data["ENG_INT_MOD_LEVEL"]);
+                    if(operation == 'view'){
+                        $('.btnTr').hide();
+                    }
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+       var data="";
+        var $form = $("#ffSearch");
+        var datas = $form.serializeObject();
+        datas.epn = epn;
+        datas.repairId = repairId;
+        datas.flag = flag;
+        if(flag == 'pre'){
+            datas.preEvaId = preEvaId;
+        }else if(flag == 'eva'){
+            datas.evaId = evaId;
+        }
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+//            path: "/meng-engine/engIntRepair/getUnits",
+            path: "/meng-engine/engIntMod/getUnitList",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    data = jdata.obj;
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+        var  levels = [
+                    {  "value" :  "01" ,  "text" :  "level1"  },
+                    {  "value" :  "02" ,  "text" :  "level2"  },
+                    {  "value" :  "03" ,  "text" :  "level3"  },
+                    {  "value" :  "04" ,  "text" :  "level4"  },
+                    {  "value" :  "05" ,  "text" :  "minimal"  },
+                    {  "value" :  "06" ,  "text" :  "performance"  },
+                    {  "value" :  "07" ,  "text" :  "overhaul"  },
+                    {  "value" :  "99" ,  "text" :  "Not provided"  }
+                    ];
+        $("#dg").datagrid({
+            height: window.innerHeight - 70,
+            //定义标题行所有的列
+            columns:[[
+                {title:'pkid',field:'pkid',width:"100",hidden:true},
+                {title:'名称(发动机型号，单元体，组件)',field:'keyMod',width:"300",},
+                {title: '修理级别', field: 'repairLev', width:"200",
+                    editor: {
+                        type: 'combobox',
+                        options: {
+                            editable: false,
+                            panelHeight: '180px',
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            queryParams: {domainCode: "ENG_INT_MOD_LEVEL"},
+                            url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                            required: true,
+                            loadFilter: function (jdata) {
+                                var v = eval("jdata.data." + "ENG_INT_MOD_LEVEL");
+                                return v;
+                            },
+                            tipPosition: 'top'
+                        }
+                    }, formatter: function (value) {
+                    return PAGE_DATA['level'][value];
+                }
+                },
+                {title:'维护人',field:'modifyName',width:"120"},
+                {title:'维护时间',field:'modifyDate',width:"130",
+                    formatter: function (value, row, rowData) {
+                        return formatterSrDate(value);
+                    }
+                }
+
+            ]],
+            data:data,
+            rownumbers:true,
+            onClickCell:onClickCell6,
+            onAfterEdit:function (index, row, changes) {
+                var pkid = row.pkid;
+                var level = changes.repairLev;
+                if(!level){
+                    level = row.repairLev;
+                }
+                if(isStrInArray(pkid,arr)){
+                    var index = getIndex(pkid);
+                    if(index != -1){
+                        arr.splice(index,1);
+                    }
+                }
+                if(level){
+                    var temp = pkid+";"+level;
+                    arr.push(temp);
+                }
+                row.editing = false;
+                $('#dg').datagrid('refreshRow', index);
+            },
+        });
+    }
+
+    // 格式化日期
+    function formatterSrDate(date) {
+        if(!date){
+            return "";
+        }
+        date = new Date(date);
+        var y = date.getFullYear();
+        var m = parseInt(date.getMonth()) + 1;
+        var d = date.getDate();
+        m = (m < 10) ? ('0' + m) : m;
+        d = (d < 10) ? ('0' + d) : d;
+        return y + "-" + m + "-" + d;
+    }
+
+    function getIndex(pkid){
+        var index = -1;
+        for(var i = 0 ; i< arr.length ; i++){
+            if(arr[i].indexOf(pkid) != -1){
+                index = i;
+            }
+        }
+        return index;
+    }
+
+    // 传入字符串 str ，数组 arr
+    function isStrInArray(str, arr) {
+        var n = arr.length;
+        for (var i = 0; i < n; i++) {
+            if (arr[i].indexOf(str) != -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    var editIndex = undefined;
+    function onClickCell6(index, field){
+        if (endEditing("#dg") && operation !== 'view'){
+            $("#dg").datagrid('selectRow', index)
+                .datagrid('editCell', {index:index,field:field});
+            editIndex = index;
+        }
+    }
+
+    function endEditing(dg){
+        if (editIndex == undefined){return true}
+        if ($(dg).datagrid('validateRow', editIndex)){
+            $(dg).datagrid('endEdit', editIndex);
+            editIndex = undefined;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    $.extend($.fn.datagrid.methods, {
+        editCell: function(jq,param){
+            return jq.each(function(){
+                var opts = $(this).datagrid('options');
+                var fields = $(this).datagrid('getColumnFields',true).concat($(this).datagrid('getColumnFields'));
+                for(var i=0; i<fields.length; i++){
+                    var col = $(this).datagrid('getColumnOption', fields[i]);
+                    col.editor1 = col.editor;
+                    if (fields[i] != param.field){
+                        col.editor = null;
+                    }
+                }
+                $(this).datagrid('beginEdit', param.index);
+                for(var i=0; i<fields.length; i++){
+                    var col = $(this).datagrid('getColumnOption', fields[i]);
+                    col.editor = col.editor1;
+                }
+            });
+        }
+    });
+
+
+    //刷新列表
+    function fetch() {
+        var rows = $('#dg').datagrid('getRows');
+        if(rows.length > 0){
+            if (!confirm("此操作会删除原有数据重新提取，请确认？")) {
+                return;
+            }
+        }
+
+        //提取数据（先删除再插入）
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engIntMod/fetchUnits",
+            data: {epn:epn,preEvaId:preEvaId,evaId:evaId,repairId:repairId},
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if (data != null) {
+                        if(data == 0){
+                            MsgAlert({content: "没有提取到数据!", type: 'error'});
+                        }else{
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            reload_();
+                        }
+                    }
+                } else {
+                    MsgAlert({content: "保存失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function save(){
+        var rows = $('#dg').datagrid('getRows');
+        for (var i = 0; i < rows.length; i++) {
+            $('#dg').datagrid('endEdit', i);
+        }
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        var rows = $('#dg').datagrid('getRows');
+        var tempstr = "";
+        if(arr.length > 0){
+            tempstr = arr.join();
+        }
+
+        datas.tempstr = tempstr;
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engIntMod/editLevel",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if (data != null) {
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                } else {
+                    MsgAlert({content: "保存失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function reload_(){
+        InitDataGrid();
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <fieldset class="fieldset_eui">
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <caption style="padding-bottom: 7px;font-weight:bold;">增加部件维护要求</caption>
+                        </tr>
+                        <tr>
+                            <input type="hidden" id="whyqType" name="whyqType">
+                            <input type="hidden" id="lpPkid" name="lpPkid">
+                            <th class="tdl">维护要求（中文）：</th>
+                            <td class="tdr" width="100" align="center">
+                                <input class="easyui-textbox" name="whyqChn" id="whyqChn"
+                                       data-options="required:true"
+                                       style="height:25px; width: 250px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">维护要求（英文）：</th>
+                            <td class="tdr" width="100" align="center">
+                                <input class="easyui-textbox" name="whyqEng" id="whyqEng"
+                                       data-options="required:true"
+                                       style="height:25px; width: 250px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">备注（中文）：</th>
+                            <td class="tdr" width="100" align="center">
+                                <input class="easyui-textbox" name="memoChn" id="memoChn"
+                                       data-options="required:true,multiline:true"
+                                       style="height:50px; width: 250px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">备注（英文）：</th>
+                            <td class="tdr" width="100" align="center">
+                                <input class="easyui-textbox" name="memoEng" id="memoEng"
+                                       data-options="required:true,multiline:true"
+                                       style="height:50px; width: 250px;"/>
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td colspan="6" align="right">
+                                <input class="btn btn-primary" type="submit" onclick="addpartrequire()" value="保存"
+                                       style="margin:5px;"/>
+                                <input class="btn btn-primary" type="button" onclick="closeAdd();" value="关闭"
+                                       style="margin:5px;"/>
+                            </td>
+                        </tr>
+
+                    </table>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var PKID;
+    var type;
+    var isEdit_;
+    param = getParentParam_();
+    PKID = param.PKID;
+    type = param.type;
+    isEdit_ = param.isEdit;
+
+    function i18nCallBack() {
+
+    }
+
+    if (isEdit_) {
+        $(function () {
+            InitFuncCodeRequest_({
+                data: {PKID: PKID, FunctionCode: "EM_CMP_EVAL_PN_WHYQ_SHOW"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        console.log(jdata.data);
+                        ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+
+                    }
+                }
+            });
+        });
+    }
+
+
+    function addpartrequire() {
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var $form = $("#mform");
+                var data = $form.serializeObject();
+                if (isEdit_) {
+                    data.PKID = PKID;
+                } else {
+                    data.lpPkid = PKID;
+                    data.whyqType = type;
+                }
+                data = $.extend({}, data, {
+                    FunctionCode: (isEdit_ ? 'EM_CMP_EVAL_PN_WHYQ_UPDATE' : 'EM_CMP_EVAL_PN_WHYQ_ADD')
+                });
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            param.OWindow.reload_();
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#dg").form('clear');
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>EO</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form id="ffSearch" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+
+                        <td align="right">
+                            &nbsp;&nbsp;
+                            <input class="btn btn-primary" id="saveBtn" type="button" onclick="save()" value="确定"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+            <table id="dg"></table>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var COMBOBOX_DATA = {};
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 185) / 50);
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: pageSize,
+            queryParams: {jcPkid: param.jcPkid},
+            columns: {
+                param: {FunctionCode: 'TD_JC_ALL_EOJC_APPTYPE_LIST2'},
+                alter: {
+                    CONFIG_TYPE: {
+                        formatter: function (value) {
+                            var t = "";
+                            if (value == "MX") {
+                                t = "明细";
+                            } else {
+                                t = "型号";
+                            }
+                            return t;
+                        }
+                    }
+                }
+            }
+        });
+
+    }
+
+    function save() {
+        var selectRows = $("#dg").datagrid('getChecked');
+        var selectCount = selectRows.length;
+        if (selectCount === 0) {
+            MsgAlert({content: '请选择要增加的记录！', type: 'error'});
+            return;
+        }
+        var config = '';
+        var configId = '';
+
+        $.each(selectRows, function (k, item) {
+            if (k == (selectRows.length - 1)) {
+                config += item.CONFIG;
+                configId += item.PKID;
+            } else {
+                config += item.CONFIG + ',';
+                configId += item.PKID + ',';
+            }
+        });
+
+        param.OWindow.setConfigValues(configId, config);
+        CloseWindowIframe();
+    }
+</script>
+</html>

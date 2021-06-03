@@ -1,0 +1,107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title></title>
+    <script type="text/javascript">
+        var param = {};
+        $(function () {
+            param = getParentParam_();
+            if (!param.DEPLOYMENT_ID) {
+                $("input:radio[value='1']").attr("disabled", "disabled");
+            }
+            if (!param.ID) {
+                $("input:radio[value='2']").attr("disabled", "disabled");
+            }
+            if (!param.DEPLOYMENT_ID || !param.ID) {
+                $("input:radio[value='3']").attr("disabled", "disabled");
+            }
+            $("input:radio").each(function () {
+                if ($(this).attr("disabled") != "disabled") {
+                    $(this).attr("checked", "checked");
+                    return false;
+                }
+            }).bind("click", checkedRatio);
+            InitEditForm_();
+        });
+
+        function checkedRatio() {
+            var val = $("input:radio:checked").val();
+            if (val == "1" || val == '3') {
+                $("#cascade_area").show();
+            } else {
+                $("#cascade_area").hide();
+            }
+        }
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var data = $form.serializeObject();
+                    if (!data.delOption) {
+                        MsgAlert({content: "请选择删除选项!", type: 'error'});
+                        return;
+                    }
+                    data = $.extend({}, data, {
+                        FunctionCode: 'PROCESS_DEFINITION_DEL',
+                        id: param.ID,
+                        actiDeploymentId: param.DEPLOYMENT_ID
+                    });
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+    </script>
+    <style type="text/css">
+        #mform {
+            font-size: 11px;
+        }
+
+        ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+    </style>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div style="float: left; width: 80px; text-align: right; margin-right: 15px;">删除选项：</div>
+                <div style="float: left; width: 230px;">
+                    <ul>
+                        <li><input type="radio" name="delOption" value="1"/>&nbsp;删除流程部署</li>
+                        <li><input type="radio" name="delOption" value="2"/>&nbsp;删除流程定义</li>
+                        <li><input type="radio" name="delOption" value="3"/>&nbsp;删除流程部署,删除流程定义</li>
+                    </ul>
+                    <div style="font-size: 11px; color: red; margin-top: 15px;">警告：删除流程部署，会删除流程相关的所有信息，会影响正在使用的流程!</div>
+                </div>
+                <div style="clear: both;"></div>
+                <div style="text-align: center; margin-top: 20px; ">
+                    <input class="btn btn-primary" type="submit" value="提交"/>
+                    &nbsp;&nbsp;&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" value="取消"/>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

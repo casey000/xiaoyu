@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+<div style="" id="tt">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <div class="form-horizontal m-t" id="mform">
+                <fieldset class="fieldset_eui">
+                    <table class="table table-bordered table-info">
+                        <caption style="padding-bottom: 7px;font-weight:bold;">飞机退租退出方案</caption>
+                        <tr>
+                            <td colspan="6" align="right">
+                                <input class="btn btn-primary" type="button" onclick="confirm_eval()" value="确认"/>
+                                &nbsp;&nbsp;
+                                <input class="btn btn-primary" type="button" onclick="closeAdd();" value="关闭"/>
+
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">机队：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" id="fleet" name="fleet"
+                                       data-options="editable:false,onlyview:true" style="width: 120px"/>
+                            </td>
+                            <th class="tdl">机号：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" id="acno" name="acno"
+                                       data-options="editable:false,onlyview:true" style="width: 120px"/>
+                            </td>
+                            <th class="tdl">退租运营人：</th>
+                            <td class="tdr">
+                                <input class="easyui-textbox" id="outOperator" name="outOperator"
+                                       data-options="editable:false,onlyview:true" style="width: 120px"/>
+                            </td>
+                        </tr>
+                    </table>
+                </fieldset>
+                <table id="dg"></table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var pkid;
+    var eval_byid = getLoginInfo().accountId;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.PKID;
+
+        $("#fleet").textbox('setValue', param.FLEET);
+        $("#acno").textbox('setValue', param.ACNO);
+        $("#outOperator").textbox('setValue', param.OUT_OPERATOR);
+
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            enableLineEdit: true,
+            queryParams: {pkid: pkid, eval_byid: eval_byid},
+            resize: function () {
+                return {height: 420};
+            },
+            columns: {
+                param: {FunctionCode: 'EM_CMP_ALLOCATE_OUT_D_LIST'},
+                alter: {
+                    NOAPPLY_DESC: {
+                        editor: {
+                            type: 'textbox',
+                            options: {required: true, tipPosition: 'top', validType: ['maxLength[1000]']}
+                        }
+                    }
+                }
+            },
+            onEndEdit: function (index, row, changes) {
+                row = toCamelCase(row);
+                row = $.extend({}, row, {FunctionCode: 'EM_CMP_ALLOCATE_OUT_EDIT'});
+                InitFuncCodeRequest_({
+                    data: row,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    //确认
+    function confirm_eval() {
+        //检查是否有草稿版本的维修方案
+        var fleet = $("#fleet").textbox("getValue");
+
+        var draftPkid = "";
+        InitFuncCodeRequest_({
+            data: {fleet: fleet, FunctionCode: "EM_CMP_ALLOCATE_QUERY_DRAFT_CMP"},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    draftPkid = jdata.data.PKID;
+                } else {
+                    MsgAlert({content: jdata.data ? jdata.data : jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        if (draftPkid == "") {
+            alert("没有草稿版方案，请到方案管理中创建草稿版。");
+            return;
+        }
+        //更新是否确认
+        InitFuncCodeRequest_({
+            data: {
+                evalByid: eval_byid,
+                acno: $("#acno").textbox("getValue"),
+                FunctionCode: "EM_CMP_ALLOCATE_UPDATE_IF_CONFIRM"
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                } else {
+                    MsgAlert({content: jdata.data ? jdata.data : jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        //更新飞机集合
+        InitFuncCodeRequest_({
+            data: {
+                pkid: draftPkid,
+                acno: $("#acno").textbox("getValue"),
+                revCode: "D",
+                FunctionCode: "EM_CMP_ALLOCATE_UPDATE_CMP_LIST"
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    alert("操作成功!");
+                    window.close();
+                } else {
+                    MsgAlert({content: jdata.data ? jdata.data : jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //关闭
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+            }
+        });
+    }
+</script>
+</html>
+
+

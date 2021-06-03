@@ -1,0 +1,94 @@
+<table class="table table-bordered table-info" style="padding-top:10px" id="ccList">
+    <tr>
+        <th class="table-cell cell-normal">CC No</th>
+        <th class="table-cell cell-normal">Type</th>
+        <th class="table-cell cell-normal">Complete Date</th>
+        <th class="table-cell cell-normal">Flight No</th>
+        <th class="table-cell cell-normal">Reason</th>
+    </tr>
+    
+</table>
+    
+<script type="text/javascript">
+
+    $(function(){
+        /** 获取列表数据 **/
+        function get_list_data(){
+            let defectId = parent.get_defectId();
+            let defectNo = parent.get_defectNo();
+            let url = `/api/v1/cc/findCCByDefectId?id=${defectId}`;
+            axios.get(url).then(response=>{
+                if(response.data.msg.toUpperCase().indexOf("SUCCESS") != -1){
+                    console.log("response.relation.data");
+                    console.log(response.data.data);
+                    load_list_data(response.data.data)
+                }else if(response.data.msg.toUpperCase().indexOf("ERROR") != -1){
+                    throw new Error("cc列表获取失败")
+                }
+            }).catch(err=>{
+                load_list_data();
+                MsgAlert({type: "error", content: err.message})
+            })
+        }
+
+        function load_list_data(data){
+            if(!data || !Array.isArray(data) || data.length < 1){
+                //没有数据
+                $("#ccList").append(`<tr>\r\n \
+                                    <td class="table-cell cell-normal" colspan="99">N/A</td>\r\n \
+                                </tr>\r\n`)
+            }else{
+                //显示数据
+                for(let i = 0, len = data.length; i < len; i++){
+                    each_table_row(i, data[i])
+                }
+            }
+        }
+
+        function each_table_row(index, row_data){
+            if(!row_data){
+                return ""
+            }
+            let html = "";
+            let completeDate = row_data.completeDate ? formatterDate(new Date(row_data.completeDate)) : "";
+            
+            html = `<tr>
+                        <td class="table-cell cell-normal"><a style="color: #f60" id="CCNo${index}">${row_data.ccNo || "no CC No"}</a></td>
+                        <td class="table-cell cell-normal">${row_data.ccTypeStr || ""}</td>
+                        <td class="table-cell cell-normal">${completeDate||""}</td>
+                        <td class="table-cell cell-normal">${row_data.flightNo||""}</td>
+                        <td class="table-cell cell-normal">${row_data.reason||""}</td>
+                    </tr>`;
+            $("#ccList").append(html);
+            $("#CCNo" + index).click(() => openAddCC(row_data.id, row_data.acReg));
+            return html;
+
+        }
+        
+        /** 打开addCC页面 **/
+        function openAddCC(id, ac){
+            let title = "【查看TLB CC】";
+            let param = {
+                operation: "view",
+                defect_info: {
+                    ac: ac || "",
+                },
+                id: id,
+                type:"see"
+            };
+
+
+            let url = "/views/defect/new_addcc.shtml";
+            ShowWindowIframe({
+                width: "1200",
+                height: "700",
+                title: title,
+                param: param,
+                url: url
+            });
+        }
+
+        get_list_data();
+    })
+    
+</script>

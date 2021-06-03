@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head id="i18n_">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <link href="/css/common_new.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/ui.jqgrid.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_new.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_from_me.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/dialog_default.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/easyui.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/ztree/zTreeStyle.css" rel="stylesheet" type="text/css"/>
+    <!-- <link rel="stylesheet" type="text/css" href="/css/easyui/gray/easyui.css"/> -->
+    <link href="/css/common_qc.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/jquery-ui-multiselect/jquery.multiselect.css" rel="stylesheet" type="text/css"/>
+
+
+    <script src="/js/global_var.js"></script>
+
+    <script src="/js/jquery/easyui/jquery-1.8.0.min.js" type="text/javascript"></script>
+
+    <!-- multiSelect -->
+    <script src="/js/jquery-ui-1.8.16.custom.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jquery-ui-multiselect/src/jquery.multiselect.js" type="text/javascript"></script>
+
+    <!-- easy UI -->
+    <script src="/js/jquery/easyui/jquery.easyui.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js" type="text/javascript"></script>
+
+    <!-- Ztree 使用了tree类型的查询条件定义则需要引入此js -->
+    <script src="/js/jquery/ztree/jquery.ztree.core-3.4.js" type="text/javascript"></script>
+    <script src="/js/jquery/ztree/jquery.ztree.excheck-3.4.js" type="text/javascript"></script>
+
+    <!-- jqGrid-->
+    <script src="/js/jquery/jqGrid/jquery.jqGrid.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jqGrid/i18n/grid.locale-cn.js" type="text/javascript"></script>
+
+    <script src="/js/jquery/lhgdialog/lhgdialog.js" type="text/javascript"></script>
+
+    <script src="/js/sfa-query-1.0.js" type="text/javascript"></script>
+    <script src="/js/date_utils_from_me.js" type="text/javascript"></script>
+    <script src="/js/sfa-executor.js" type="text/javascript"></script>
+    <script src="/js/sfa-export.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="qc_box"></div>
+<div class="list_btn_row_s qc_template" id="qc_template_box"></div>
+<div class="qc_advance" id="qc_advance_box"></div>
+<div class="list_btn_row">
+    <ul>
+        <li class="right_button"><input class="btn" id="export_btn" type="button" value="Export"/></li>
+    </ul>
+</div>
+<div class="listbox">
+    <div class="gridbox">
+        <div class="grid_tab">
+            <!-- <table id="common_list_grid"></table> -->
+            <table id="gridTable"></table>
+            <div id="gridPager"></div>
+        </div>
+    </div>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script src="/js/common_query_dialog.js" type="text/javascript"></script>
+<script src="/js/tlb/defect/defect_info.js" type="text/javascript"></script>
+<script>
+
+    $(function () {
+        var api = frameElement.api, W = api.opener;
+        var s_params = api.data;
+        var woId = s_params["woId"];
+        var trNos = s_params["trNos"];
+        var woIds = s_params["woIds"];
+        var index = 0;
+
+        var defaultParam = {
+            'pageModel.qname': {},
+            'pageModel.qoperator': {},
+            'pageModel.qvalue': {}
+        };
+
+        if (woId != null) {
+            defaultParam['pageModel.qname']["" + index] = "woId";
+            defaultParam['pageModel.qoperator']["" + index] = "equals";
+            defaultParam['pageModel.qvalue']["" + index] = woId;
+            index += 1;
+        }
+
+        if (woIds != null) {
+            defaultParam['pageModel.qname']["" + index] = "woId";
+            defaultParam['pageModel.qoperator']["" + index] = "in";
+            defaultParam['pageModel.qvalue']["" + index] = woIds;
+            index += 1;
+        }
+
+        if (trNos != null) {
+            defaultParam['pageModel.qname']["" + index] = "type";
+            defaultParam['pageModel.qoperator']["" + index] = "in";
+            defaultParam['pageModel.qvalue']["" + index] = trNos;
+        }
+
+        var options = {
+            view: 'V_TR_ITEMS',
+            defaultParam: defaultParam,
+            qcOptions: {
+                qcBoxId: 'qc_box'
+            },
+            gridOptions: {
+                gridId: 'gridTable',
+                jqGridSettings: {
+                    autowidth: false,
+                    width: 895
+                },
+                allColModels: {
+                    "qty": {
+                        formatter: formatQty
+                    }
+                }
+            }
+        };
+
+        $(document).sfaQuery(options);
+    });
+
+    function formatQty(cellValue, options, rowObject) {
+        if (null == rowObject.qty) {
+            if (0 != rowObject.qtyex) {
+                return "<font style='color:red'>AR(" + (rowObject.qtyex || 0) + ")</font>";
+            }
+
+            return "";
+        } else {
+            return rowObject.qty;
+        }
+    }
+</script>
+</html>

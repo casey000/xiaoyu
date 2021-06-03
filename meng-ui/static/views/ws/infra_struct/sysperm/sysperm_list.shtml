@@ -1,0 +1,253 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="PAGE.WS_SYS_PERM_LIST.TITLE">功能列表</title>
+</head>
+-
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 90px;" align="right">权限组KEY：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="permGroupKey" style="width: 120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px;" align="right">权限组名称：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="permGroupName" style="width: 120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px;" align="right">权限KEY：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="permKey" style="width: 120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px;" align="right">权限名称：</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="permName" style="width: 120px;"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a class="searchBtn" onclick="searchData()"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a class="clearBtn" onclick="ClearAll()"><span
+                                data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:true" style="width: 50%;">
+        <div>
+            <table id="l_dg"></table>
+        </div>
+    </div>
+    <div id="lay_right" data-options="region:'center'">
+        <div>
+            <table id="r_dg"></table>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitLeftDataGrid();
+        InitRightDataGrid();
+    }
+
+    $(function () {
+
+    });
+
+    function InitLeftDataGrid() {
+        var identity = 'l_dg';
+        $("#l_dg").MyDataGrid({
+            identity: identity,
+            title: "用户组",
+            columns: {param: {FunctionCode: 'WS_SYS_PERM_LIST'}},
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "", /*ROLE_EDIT*/
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 600, height: 360,
+                            url: "/views/ws/infra_struct/sysperm/sys_perm_add_edit_by_pid.shtml"
+                        });
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "", /*ROLE_DEL*/
+                    onclick: function () {
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {pkid: "PKID"},
+                            FunctionCode: "WS_SYS_PERM_DEL"
+                        });
+                    }
+                }
+
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth: "",
+                    handler: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 600, height: 360,
+                            url: "/views/ws/infra_struct/sysperm/sys_perm_add_edit_by_pid.shtml"
+                        });
+                    }
+                }, '-',
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ],
+            onClickRow: function (index, row) {
+                if (!row) {
+                    return;
+                }
+                $('#r_dg').datagrid('load', {
+                    pid: row.PKID
+                });
+            },
+            resize: function () {
+                return {
+                    height: $(document.body).height() - $("fieldset").height() - 30,
+                    width: $("#lay_left").width()
+                };
+            }
+        });
+    }
+
+    function reloadLdg_() {
+        $("#l_dg").datagrid("reload");
+
+    }
+
+    function InitRightDataGrid() {
+        var identity = 'r_dg';
+        $("#r_dg").MyDataGrid({
+            identity: identity,
+            title: "权限",
+            columns: {
+                param: {FunctionCode: 'WS_SYS_PERM_SERVICE_LIST'},
+                alter: {
+                    TYPE: {
+                        formatter: function (value, row, index) {
+                            if (value == 'F') {
+                                return '功能类型';
+                            }
+                            if (value == 'S') {
+                                return '状态类型';
+                            }
+                            if (value == 'E') {
+                                return '元素类型';
+                            }
+                            if (value == 'Z') {
+                                return '自定义类型';
+                            }
+
+                        }
+                    }
+                }
+            },
+            queryParams: {pid: ''},
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "", /*ROLE_EDIT*/
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 650, height: 380,
+                            url: "/views/ws/infra_struct/sysperm/sys_perm_add_edit.shtml"
+                        });
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "", /*ROLE_DEL*/
+                    onclick: function () {
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "msg_err:ERRMSG.COMMON.DEL_CONFIRM",
+                            param: {pkid: "PKID"},
+                            FunctionCode: "WS_SYS_PERM_DEL"
+                        });
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:COMMON_OPERATION.ADD'), auth: "", /*ROLE_ADD*/
+                    handler: function () {
+                        var rowDataL = $("#l_dg").datagrid('getSelected');
+                        if (!rowDataL) {
+                            layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.FUNC_NOT_SELECT'), {icon: 5});
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 600, height: 320,
+                            param: {pid: rowDataL.PKID},
+                            url: "/views/ws/infra_struct/sysperm/sys_perm_add_edit.shtml"
+                        });
+                    }
+                },
+                '-',
+                {
+                    key: "COMMON_ADD", text: "增加(常用)", auth: "", /*ROLE_ADD*/
+                    handler: function () {
+                        var rowDataL = $("#l_dg").datagrid('getSelected');
+                        if (!rowDataL) {
+                            layer.msg($.i18n.t('msg_err:ERRMSG.COMMON.FUNC_NOT_SELECT'), {icon: 5});
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 600, height: 320,
+                            param: {pid: rowDataL.PKID},
+                            url: "/views/ws/infra_struct/sysperm/sys_perm_add_edit_common.shtml"
+                        });
+                    }
+                },
+                '-',
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ],
+            resize: function () {
+                return {
+                    height: $(document.body).height() - $("fieldset").height() - 30,
+                    width: $("#lay_right").width()
+                };
+            }
+        });
+    }
+
+    function reloadRdg_() {
+        $("#r_dg").datagrid("reload");
+
+    }
+
+    function ClearAll() {
+        onClear_('l_dg');
+        onClear_('r_dg');
+    }
+
+    function searchData() {
+        onSearch_('l_dg');
+        $("#r_dg").datagrid("reload", {'pid': ''});
+    }
+</script>
+</body>
+</html>

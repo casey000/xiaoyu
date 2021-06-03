@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TDMS 机务维修平台</title>
+    <!--#include virtual="/views/items/resource_.shtml"-->
+</head>
+<body>
+<fieldset class="fieldset_eui">
+    <legend>搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width:80px;">请求功能：</th>
+                    <td>
+                        <input class="easyui-textbox" name="funcCode" style="width:110px"/>（* 非模糊）
+                    </td>
+
+                    <th data-i18n="" style="width:80px;">时间范围：</th>
+                    <td>
+                        <input class="easyui-datetimebox" name="startDate" style="width:110px"/>
+                        -
+                        <input class="easyui-datetimebox" name="endDate" style="width:110px"/>
+                    </td>
+                    <td>
+                        <a class="searchBtn" onclick="onSearch_()">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a class="clearBtn" onclick="onClear_()"><span
+                                data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>&nbsp;&nbsp;
+                        <a class="searchBtn" onclick="onViewTransaction_()">
+                            <span>查看事务</span></a>&nbsp;&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</body>
+<script>
+    $(function () {
+        InitDataGrid();
+    });
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            width: $(window).width(),
+            height: $(window).height() - $('fieldset').outerHeight() - 6,
+            url: Constant.API_V1_URL + 'IC_LOG_LIST',
+            columns: [[
+                {field: "sign", title: "SIGN", width: 150},
+                {
+                    field: "timestamp", title: "记录时间", width: 140, formatter: function (value, row, index) {
+                        return '<a href="javascript:void(0);" style="text-decoration: underline;" onclick="showLogDetail(\'' + index + '\')">' + value + '</a>';
+                    }
+                },
+                {field: "logType", title: "日志类型", width: 90},
+                {
+                    field: "funcCode", title: "请求功能", width: 160, formatter: function (value, row, index) {
+                        return (row.funcName || '-') + "/" + (row.funcCode || '-');
+                    }
+                },
+                {
+                    field: "accountId", title: "操作账号信息", width: 160, formatter: function (value, row, index) {
+                        return (row.accountNumber || '-') + "/" + (row.accountUserName || '-') + "/" + (row.accountId || '-');
+                    }
+                },
+                {field: "message", title: "日志内容", width: 320}
+            ]],
+            rowStyler: function (index, row) {
+                if ("ERROR" == row.logType) {
+                    return 'color:red;';
+                }
+            },
+            contextMenus: [],
+            toolbar: [
+                {
+                    iconCls: 'icon-reload', text: '刷新',
+                    handler: function () {
+                        reloadDataGrid();
+                    }
+                }
+            ]
+        });
+    }
+
+    function reloadDataGrid() {
+        $("#dg").datagrid('reload');
+    }
+
+    function showLogDetail(index) {
+        var row = $('#dg').datagrid('getRows')[index];
+        ShowWindowIframe({
+            width: 948,
+            height: 450,
+            title: '日志-查看',
+            param: row,
+            url: "/views/ws/log/ic_log_detail.shtml"
+        })
+    }
+
+    function onViewTransaction_() {
+        ShowWindowIframe({
+            width: 948,
+            height: 450,
+            title: '事务-查看',
+            param: {},
+            url: "/views/ws/log/ic_transaction_list.shtml"
+        })
+    }
+</script>
+</html>

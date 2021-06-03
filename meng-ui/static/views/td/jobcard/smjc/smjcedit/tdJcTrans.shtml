@@ -1,0 +1,155 @@
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table class="table table-bordered table-info">
+                    <tr id='tran'>
+                        <th class="tdl" id = "man" style="font-size: 13px;width: 80px">联合评估人：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="engineer" id="engineer"
+                                   data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr id='turn'>
+                        <th class="th" style="width: 80px">驳回原因：</th>
+                        <td>
+                                <textarea class="easyui-textbox" id="memo" name="memo" multiline="true"
+                                          style="height:50px;width: 450px;border: 1px solid #ddd;"
+                                ></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" colspan="2">
+                            <input class="btn btn-primary" style="margin: 10px" type="submit" value="提交"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var pkid;
+    var msgpkid;
+    var param = {};
+    var selectRow = null;
+    var accountId;
+    var cflag;
+    var fluflag;
+    var ata;
+    var fleet;
+    var taskType;
+    var ifQua = '';
+
+    /**
+     * 变量赋值和页面加载功能号和数据域
+     *
+     */
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        msgpkid = param.msgpkid;
+        cflag = param.cflag;
+        accountId = param.accountId;
+        fluflag = param.fluflag;
+        ata = param.ata;
+        fleet = param.fleet;
+        ifQua = param.ifQua;
+        taskType = param.taskType;
+
+        var func = 'TD_JC_QUA_USER';
+        if (cflag == 'zf') {
+            $("#man").html("转发人：");
+            func = 'EM_FILE_TRAN_ACCOUNT';
+            ifQua = 'N';
+        }
+        $("#engineer").MyComboGrid({
+            idField: 'ACCOUNT_ID',  //实际选择值
+            textField: 'USER_NAME', //文本显示值
+            panelHeight: '180px',
+            width: 140,
+            onSelect: function (index, row) {
+                ACCOUNT_ID = row.ACCOUNT_ID;
+            },
+            params: {taskType: taskType, ata: ata, fleet: fleet, accpkid: accountId, FunctionCode: func},
+            columns: [[
+                {field: 'ACCOUNT_NUMBER', title: '账号', width: 50},
+                {field: 'USER_NAME', title: '员工', width: 50},
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                    alert('请选择，不要直接输入！');
+                    $(this).combogrid({value: ''});
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+            }
+        });
+        if (cflag == 'turn') {
+            $("#tran").hide();
+            $("#turn").show();
+            $("#engineer").combogrid({required: false});
+        } else {
+            $("#tran").show();
+            $("#turn").hide();
+            $("#engineer").combogrid({required: true});
+        }
+        InitDatagrid();
+    }
+
+    /**
+     *
+     * @constructor
+     */
+    function InitDatagrid() {
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var engineer = $("#engineer").textbox("getValue");
+                var name = $("#engineer").textbox("getText");
+                var data = $form.serializeObject();
+                data = $.extend({
+                    engineerId: data.engineer,
+                    pkid: pkid,
+                    msgpkid: msgpkid,
+                    ifQua: ifQua,
+                    cflag: cflag,
+                    taskType: taskType
+                }, data, {FunctionCode: 'TD_JC_TRANS'});
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                MsgAlert({content: '操作成功'});
+                                if (fluflag == 'list') {
+                                    param.OWindow.reload_all();
+                                } else {
+                                    param.OWindow.param.OWindow.reload_();
+                                    param.OWindow.CloseWindowIframe();
+                                }
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    })
+            }
+        });
+    }
+</script>
+</body>
+</html>

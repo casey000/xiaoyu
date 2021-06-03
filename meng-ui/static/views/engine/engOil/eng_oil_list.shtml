@@ -1,0 +1,442 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">滑耗查询</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">机型：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acType" name="acType" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">机号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acReg" name="acReg" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:100px;" align="right">航班日期从：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="flightDateFrom" name="flightDateFrom" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">至：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-datebox" id="flightDateTo" name="flightDateTo" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a href="javascript:void(0)" class="ridoBtn" data-options="iconCls:'icon-search'" auth="ENG_OIL1"
+                           onclick="doCompute()"><span>重新计算</span></a>
+                        <a href="javascript:void(0)" class="addBtn" onclick="onExcel()"><span>导出</span></a>&nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:80px;" align="right">位置：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="pos" name="pos" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="applyModel" name="applyModel" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">件号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="esn" name="esn" style="width:100px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var address=window.location.origin; //url
+    var port=document.location.port;//ip:端口号
+    if(!port){
+        port = ':'+port;
+    }else{
+        port = '';
+    }
+    var ctx = address+port;
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,ENG_POS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机型
+                    $('#acType').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            $('#acReg').combobox({
+                                panelHeight: '100px',
+                                queryParams: {acType: item.VALUE},
+                                url: Constant.API_URL + 'DA_ACTYPE_GET_ACNOS',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                loadFilter: function (jdata) {
+                                    return jdata.data;
+                                }
+                            });
+                        }
+                    });
+                    //位置
+                    $('#pos').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_POS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/basTypeMapper/getEngtypesAll",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#applyModel').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '100px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#epn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            idField: "PKID",
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/oil/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_OIL_LIST'},
+                alter: {
+                    flightDate: {
+                        type: 'datetime'
+                    },
+                    installDate: {
+                        type: 'date'
+                    },
+                    createDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    },
+                    engAvg:{
+                        formatter: function (value, row, index) {
+                            var overrunType = row.overrunType;
+                            if ("ALERT" == overrunType) {
+                                var yellowHtml = "<span style='background-color: yellow'>" + value + "</span>";
+                                return yellowHtml;
+                            }else if("LIMIT" == overrunType) {
+                                var redHtml = "<span style='background-color: red'>" + value + "</span>";
+                                return redHtml;
+                            }
+                            return value;
+                        }
+                    },
+                    engAvg5:{
+                        formatter: function (value, row, index) {
+                            var info= row.overrunType;
+                            if (info){
+                                var overrunType = info.split("_");
+                                if ("ALERT" == overrunType[0]&&"5" == overrunType[1]) {
+                                    var yellowHtml = "<span style='background-color: yellow'>" + value + "</span>";
+                                    return yellowHtml;
+                                }else if("LIMIT" == overrunType[0]&&"5" == overrunType[1]) {
+                                    var redHtml = "<span style='background-color: red'>" + value + "</span>";
+                                    return redHtml;
+                                }
+                            }
+                            return value;
+                        }
+                    },
+                    engAvg8:{
+                        formatter: function (value, row, index) {
+                            var info= row.overrunType;
+                            if (info) {
+                                var overrunType = info.split("_");
+                                if ("ALERT" == overrunType[0] && "8" == overrunType[1]) {
+                                    var yellowHtml = "<span style='background-color: yellow'>" + value + "</span>";
+                                    return yellowHtml;
+                                } else if ("LIMIT" == overrunType[0] && "8" == overrunType[1]) {
+                                    var redHtml = "<span style='background-color: red'>" + value + "</span>";
+                                    return redHtml;
+                                }
+                            }
+                            return value;
+                        }
+                    },
+                    engAvg10:{
+                        formatter: function (value, row, index) {
+                            var info= row.overrunType;
+                            if (info) {
+                                var overrunType = info.split("_");
+                                if ("ALERT" == overrunType[0] && "10" == overrunType[1]) {
+                                    var yellowHtml = "<span style='background-color: yellow'>" + value + "</span>";
+                                    return yellowHtml;
+                                } else if ("LIMIT" == overrunType[0] && "10" == overrunType[1]) {
+                                    var redHtml = "<span style='background-color: red'>" + value + "</span>";
+                                    return redHtml;
+                                }
+                            }
+                            return value;
+                        }
+                    },
+                    engAvg13:{
+                        formatter: function (value, row, index) {
+                            var info= row.overrunType;
+                            if (info) {
+                                var overrunType = info.split("_");
+                                if ("ALERT" == overrunType[0] && "13" == overrunType[1]) {
+                                    var yellowHtml = "<span style='background-color: yellow'>" + value + "</span>";
+                                    return yellowHtml;
+                                } else if ("LIMIT" == overrunType[0] && "13" == overrunType[1]) {
+                                    var redHtml = "<span style='background-color: red'>" + value + "</span>";
+                                    return redHtml;
+                                }
+                            }
+                            return value;
+                        }
+                    },
+                    engAvg15:{
+                        formatter: function (value, row, index) {
+                            var info= row.overrunType;
+                            if (info) {
+                                var overrunType = info.split("_");
+                                if ("ALERT" == overrunType[0] && "15" == overrunType[1]) {
+                                    var yellowHtml = "<span style='background-color: yellow'>" + value + "</span>";
+                                    return yellowHtml;
+                                } else if ("LIMIT" == overrunType[0] && "15" == overrunType[1]) {
+                                    var redHtml = "<span style='background-color: red'>" + value + "</span>";
+                                    return redHtml;
+                                }
+                            }
+                            return value;
+                        }
+                    },
+                    engAvg20:{
+                        formatter: function (value, row, index) {
+                            var info= row.overrunType;
+                            if (info) {
+                                var overrunType = info.split("_");
+                                if ("ALERT" == overrunType[0] && "20" == overrunType[1]) {
+                                    var yellowHtml = "<span style='background-color: yellow'>" + value + "</span>";
+                                    return yellowHtml;
+                                } else if ("LIMIT" == overrunType[0] && "20" == overrunType[1]) {
+                                    var redHtml = "<span style='background-color: red'>" + value + "</span>";
+                                    return redHtml;
+                                }
+                            }
+                            return value;
+                        }
+                    }
+
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-chart", i18nText: "图表", auth: "",
+                    onclick: function () {
+                        var rowData = $('#dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+
+                        }
+                        openChartView(rowData);
+                    }
+                },
+                {
+                    id: "m-view", i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        viewEngOil('view', rowData.pkid);
+                    }
+                }
+            ],
+            onDblClickRow: function (index, field, value) {
+                viewEngOil("view", value.pkid);
+            }
+        });
+
+
+        /*InitGatewayRequest_({
+            path: "/meng-engine/oil/listByPage",
+            async: false,
+            data: queryParams,
+            successCallBack: function (jdata) {
+
+            }
+        })*/
+    }
+
+    //添加或编辑--阶跃上升滑耗阈值设置
+    function viewEngOil(operation, pkid) {
+        var title_ = $.i18n.t('查看滑耗');
+        ShowWindowIframe({
+            width: "1000",
+            height: "470",
+            title: title_,
+            param: {pkid: pkid, operation: operation},
+            url: "/views/engine/engOil/eng_oil_view.shtml"
+        });
+    }
+
+    function showEchart(){
+        var title_ = $.i18n.t('折线图');
+        ShowWindowIframe({
+            width: "1000",
+            height: "470",
+            title: title_,
+            param: {pkid: "", operation:""},
+            url: "/views/engine/engOil/eng_oil_echart.shtml"
+        });
+    }
+
+
+
+    //刷新列表
+    function reload_() {
+        InitDataGrid();
+    }
+
+    function doCompute() {
+        MaskUtil.mask('正在计算...');
+        InitGatewayRequest_({
+            //async: false,
+            path: "/meng-engine/oil/compute",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                   // MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    InitDataGrid();
+                    MaskUtil.unmask();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        reload_();
+    }
+
+    function openChartView(rowData) {
+        var title_ = $.i18n.t('图表展示');
+        ShowWindowIframe({
+            width: "970",
+            height: "570",
+            title: title_,
+            param: {rowData: rowData},
+            url: "/views/engine/engOilTrend/eng_oil_trend_chart.shtml"
+        });
+    }
+
+    function onExcel() {
+        var queryParams = $("#ffSearch").serializeObject();
+
+
+        if(JSON.stringify(queryParams) === '{"acType":"","acReg":"","flightDateFrom":"","flightDateTo":"","pos":"","epn":"","esn":""}'){
+            alert("请选择筛选条件，再进行导出!");
+            return;
+        }
+
+        InitGatewayRequest_({
+            async: false,
+            data: queryParams,
+            path: "/meng-engine/oil/genExcel",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var url = jdata.obj;
+                    window.location.href = ctx + url;
+
+                } else {
+                    MsgAlert({content:"导出失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

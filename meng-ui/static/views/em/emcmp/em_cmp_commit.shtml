@@ -1,0 +1,108 @@
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right"><input class="btn btn-primary" type="submit" value="提交"/></td>
+                    </tr>
+                    <tr>
+                        <th class="tdl" style="font-size: 13px;width: 80px">审核人 ：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="engineerId" id="engineerId"
+                                   data-options="required:true" style="width: 60%;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/jobcard/em_jobcard_commit.js"></script>
+<script type="text/javascript">
+
+    var param = {};
+    var functionCode;
+    param = getParentParam_();
+    functionCode = param.functionCode;
+    var type = param.type;
+    $(function () {
+        InitEditForm_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "EM_NAME_SHENHE_HELP"},
+            successCallBack: function (jdata) {
+                console.log(jdata.data.EM_JC_COMMIT_ACCOUNT);
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    /*$('#engineerId').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.EM_JC_COMMIT_ACCOUNT,
+                        valueField: 'PKID',
+                        textField: 'ACCOUNT_NUMBER',
+                    });*/
+
+
+                    $("#engineerId").MyComboGrid({
+                        idField: 'ACCOUNT_ID',  //实际选择值
+                        textField: 'USER_NAME', //文本显示值
+                        panelHeight: '180px',
+                        width: 140,
+                        onSelect: function (index, row) {
+                            ACCOUNT_ID = row.ACCOUNT_ID;
+                        },
+                        params: {FunctionCode: 'EM_NAME_SHENHE_HELP'},
+                        columns: [[
+                            {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                            {field: 'USER_NAME', title: '审核人', width: 50},
+                        ]]
+                    });
+
+
+                } else {
+
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    });
+
+    function InitEditForm_() {
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var data = $form.serializeObject();
+                data.itemPkid = param.itemPkid;
+                data.PKID = param.itemPkid;
+                data = $.extend({}, data, {
+                    FunctionCode: 'EM_CMP_ITEM_SP'
+                });
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            param.OWindow.CloseWindowIframe();
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,477 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>换发计划明细</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="换发计划明细" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="appType" name="appType" value="APL"/>
+                <input type="hidden" id="exeVer" name="exeVer" value="0"/>
+                <input type="hidden" id="acReg" name="acReg"/>
+                <input type="hidden" id="eoNo" name="eoNo"/>
+
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="8" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="issueEA()"
+                                   value="下发EA任务"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">发动机型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="epn" name="epn"
+                                   data-options="onlyview:true,editable:false" style="width: 160px;"/>
+                        </td>
+                        <th style="width: 120px;">发动机序号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="esn" name="esn"
+                                   data-options="onlyview:true,editable:false" style="width: 160px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th style="width: 120px;">计划装机序号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="installEsn" name="installEsn"
+                                   data-options="onlyview:true,editable:false" style="width: 160px;"/>
+                        </td>
+                        <th style="width: 120px;">计划装机日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="installDate" name="installDate"
+                                   data-options="onlyview:true,editable:false" style="width: 160px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+
+                        <th style="width: 120px;">章节号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="ata" name="ata"
+                                   data-options="required:true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">拆换类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="replacementType" name="replacementType"
+                                   data-options="onlyview: true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+
+                        <th style="width: 120px;">拆下EA编号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="exeNo" name="exeNo"
+                                   data-options="onlyview: true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">装上EA编号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="exeEono" name="exeEono"
+                                   data-options="onlyview: true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var rowData;
+    var user;
+    var pkid;
+    function i18nCallBack() {
+        param = getParentParam_();
+        rowData = param.rowData;
+        user = getLoginInfo();
+        $('#ata').combobox({
+            data: [{
+                TEXT: '49',
+                VALUE: '49'
+            }, {
+                TEXT: '71',
+                VALUE: '71'
+            }],
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            panelHeight: '60px'
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_ERO_REPLACE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            }, async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //拆换类别
+                    $('#replacementType').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_ERO_REPLACE_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        if (rowData) {
+            InitDataForm(rowData);
+            $("#exeNo").textbox('setValue', rowData.eoNo);
+            pkid = rowData.pkid;
+            // $('#ata').combobox('setValue', '71');
+        }
+    }
+
+    function issueEA() {
+        var type = $("#replacementType").combobox("getValue");
+        var eoNo = $("#eoNo").val();
+        var installEsn = $("#installEsn").textbox("getValue");
+
+        if (type == 'CZ' && installEsn == "缺少备件") {
+            alert("拆换类型为拆下装上,计划装机序号需要给出准确发动机序号!");
+            return;
+        }
+
+        if (type == 'CZFL' && !isEmpty(eoNo) && installEsn == "缺少备件") {
+            alert("拆换类型为拆装分离且已下发拆下EA,需要给出准确装上发动机序号才能下发装上EA!");
+            return;
+        }
+
+        if (type == 'CZ') {
+            save("REPLACE_INSTALL");
+        } else if (type == 'CZFL' && isEmpty(eoNo) && installEsn == "缺少备件") {
+            saveDC("REPLACE");
+            CloseWindowIframe();
+        }else if (type == 'CZFL' && isEmpty(eoNo) && installEsn != "缺少备件") {
+            saveDC("REPLACE");
+            saveDZ("INSTALL");
+            CloseWindowIframe();
+        }else if (type == 'CZFL' && !isEmpty(eoNo) && installEsn != "缺少备件") {
+            saveDZ("INSTALL");
+            CloseWindowIframe();
+        }
+    }
+
+    // 保存
+    function saveDC(deal) {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) return;
+
+        var ata = $("#ata").combobox("getValue");
+        var acReg = $("#acReg").val();
+        var applyModel = getAcinfo(acReg);
+        var acId = getAcId(acReg);
+        var eaNO = randomNumber('EA', 'APL', applyModel);
+        $("#exeNo").textbox('setValue', eaNO);
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        datas = $.extend({FunctionCode: "EM_FILE_EVAL_STF_SAVE"}, datas, {
+            dealOpinion: 'EA',
+            deal: deal,
+            dealMeasure: '',
+            taskPkid: '',
+            pkid: '',
+            source: acId,
+            applyModel: applyModel,
+            ata: ata,
+            segpkid: '',
+            taskNature: '',
+            applyType: 'APL',
+            evapkid: '', // no OTHERS
+            appType: '' //MP, no OTHERS
+        });
+        InitFuncCodeRequest_({
+            async: false,
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            data: {"pkid": pkid, "eoNo": datas.exeNo, "ifSend": "Y"},
+            path: "/meng-engine/rxChangePlan/updatePlan",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.InitDataGrid1();
+                } else {
+                    MsgAlert({content: "操作失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function saveDZ(deal) {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) return;
+
+        var ata = $("#ata").combobox("getValue");
+        var acReg = $("#acReg").val();
+        var applyModel = getAcinfo(acReg);
+        var acId = getAcId(acReg);
+        var eaNO = randomNumber('EA', 'APL', applyModel);
+        //$("#exeEono").textbox('setValue', eaNO);
+        $("#exeNo").textbox('setValue', eaNO);
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        datas = $.extend({FunctionCode: "EM_FILE_EVAL_STF_SAVE"}, datas, {
+            dealOpinion: 'EA',
+            deal: deal,
+            dealMeasure: '',
+            taskPkid: '',
+            pkid: '',
+            source: acId,
+            applyModel: applyModel,
+            ata: ata,
+            segpkid: '',
+            taskNature: '',
+            applyType: 'APL',
+            evapkid: '', // no OTHERS
+            appType: '' //MP, no OTHERS
+        });
+        InitFuncCodeRequest_({
+            async: false,
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            data: {"pkid": pkid, "installEono": datas.exeNo, "ifSend": "Y"},
+            path: "/meng-engine/rxChangePlan/updatePlan",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.InitDataGrid1();
+                } else {
+                    MsgAlert({content: "操作失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save(deal) {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) return;
+
+        var ata = $("#ata").combobox("getValue");
+        var acReg = $("#acReg").val();
+        var applyModel = getAcinfo(acReg);
+        var acId = getAcId(acReg);
+        var eaNO = randomNumber('EA', 'APL', applyModel);
+        $("#exeNo").textbox('setValue', eaNO);
+        $("#exeEono").textbox('setValue', eaNO);
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        datas = $.extend({FunctionCode: "EM_FILE_EVAL_STF_SAVE"}, datas, {
+            dealOpinion: 'EA',
+            deal: deal,
+            dealMeasure: '',
+            taskPkid: '',
+            pkid: '',
+            source: acId,
+            applyModel: applyModel,
+            ata: ata,
+            segpkid: '',
+            taskNature: '',
+            applyType: 'APL',
+            evapkid: '', // no OTHERS
+            appType: '' //MP, no OTHERS
+        });
+        InitFuncCodeRequest_({
+            async: false,
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            data: {"pkid": pkid, "eoNo": datas.exeNo, "installEono": datas.exeEono, "ifSend": "Y"},
+            path: "/meng-engine/rxChangePlan/updatePlan",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.InitDataGrid1();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: "操作失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    function randomNumber(dealOpinion, applyType, applyModel) {
+        var num = 1;
+        var temp = "";
+        var ata = $("#ata").textbox('getValue');
+
+        var datas;
+        if (dealOpinion == "EO" || dealOpinion == "EA") {
+            if (applyType == "APL") { //EO前缀-机型-2位章节-4位流水号
+                temp = applyModel;
+            } else if (applyType == "ENG") { //EO前缀-发动机型号（位数不定）-2位章节号-4位流水号
+                //评估单的入口暂时不做发动机的新增
+                temp = applyModel;
+            } else if (applyType == "PART") { //EO前缀-CM-2位章节号-4位流水号
+                temp = "CM";
+            }
+            var serialNo = dealOpinion + "-" + temp + "-" + ata + "-";
+            datas = {
+                FunctionCode: "TD_EVAL_EO_BY_NO",
+                serialNo: serialNo
+            };
+        } else if (dealOpinion == "TB") {
+            var serialNo = dealOpinion + "-" + ata + "-";
+            datas = {
+                FunctionCode: "TD_EVAL_TB_BY_NO",
+                serialNo: serialNo
+            };
+        }
+
+        InitFuncCodeRequest_({
+            data: datas,
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null && jdata.data.OLDNUM) {
+                        num = parseInt(jdata.data.OLDNUM, 10) + 1;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        num = pad(num, 4);
+        serialNo = serialNo + num;
+        return serialNo;
+    }
+
+    //回显
+    function InitDataForm(rowData) {
+        ParseFormField_(rowData, $("#mform"));
+    }
+
+    var pad = function () {
+        var tbl = [];
+        return function (num, n) {
+            var len = n - num.toString().length;
+            if (len <= 0) return num;
+            if (!tbl[len]) tbl[len] = (new Array(len + 1)).join('0');
+            return tbl[len] + num;
+        }
+    }();
+
+    function getAcinfo(acno) {
+        var scType = "";
+        InitGatewayRequest_({
+            async: false,
+            type: 'get',
+            path: "/meng-engine/engMcdReport/selectDaAcregByAcno" + "/" + acno,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    // $('#acType').val(jdata.obj.mpActype);
+                    scType = jdata.obj.mpActype;
+                } else {
+                    MsgAlert({content: '获取机型失败', type: 'error'});
+                }
+            }
+        });
+        return scType;
+    }
+
+    function getAcId(acno) {
+        var acId = "";
+        InitGatewayRequest_({
+            async: false,
+            type: 'get',
+            path: "/meng-engine/engMcdReport/selectDaAcregByAcno" + "/" + acno,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    acId = jdata.obj.acid;
+                } else {
+                    MsgAlert({content: '获取机型失败', type: 'error'});
+                }
+            }
+        });
+        return acId;
+    }
+
+    function isEmpty(obj) {
+        if (typeof obj == "undefined" || obj == null || obj == "") {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+</script>
+</body>
+</html>

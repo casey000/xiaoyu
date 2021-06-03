@@ -1,0 +1,456 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <meta charset="UTF-8">
+    <title data-i18n="">Oil Summary</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 0px;
+            right: 20px;
+        }
+
+        .th {
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="ibody">
+<div class="easyui-tabs" id="tt" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form class="form-horizontal" id="ffSearch">
+            <table class="table table-bordered table-info" style="table-layout: fixed">
+                <tr>
+                    <th class="th" style="width:12%;">飞机号</th>
+                    <th class="th" style="width:12%;">航段数</th>
+                    <th class="th" style="width:12%;">位置</th>
+                    <th class="th" style="width:12%;">件号</th>
+                    <th class="th" style="width:12%;">序号</th>
+                    <th class="th" style="width:12%;">开始日期</th>
+                    <th class="th" style="width:12%;">结束日期</th>
+                </tr>
+                <tr>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-combobox" data-options="required:true,onChange:ACchange " id="serAcReg"
+                               name="serAcReg" style="width:100%;"/>
+                    </td>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-combobox" data-options="required:true,editable:false" id="serStep"
+                               name="serStep"  style="width:100%;"/>
+                    </td>
+                    <td style="width:80px; padding:3px;">
+                        <input  id="serPosition"  name="serPosition"  style="width:100%;"/>
+                    </td>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" data-options="editable:false" id="serPn" name="serPn"
+                               style="width:100%;"/>
+                    </td>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-textbox" data-options="" id="serSn" name="serSn"  style="width:85%;"/>
+                        <img class="search_btn_img" height="16" onclick="toAc()" src="/img/search.png"
+                             style="cursor: pointer;vertical-align: -30%" title="Search" width="16">
+                    </td>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-datebox" data-options="required:true,editable:false"
+                               id="serStartDate" name="serStartDate"  style="width:100%;"/>
+                    </td>
+                    <td style="width:80px; padding:3px;">
+                        <input class="easyui-datebox" data-options="editable:false"
+                               id="serEndDate" name="serEndDate"  style="width:100%;"/>
+                    </td>
+                    <td style="width: 120px; padding:3px;">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()"
+                           type="button">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script src="/js/date_format.js" type="text/javascript"></script>
+<script type="text/javascript">
+    let flag = true;
+    let snflag ;
+    $('#serPosition').combobox({
+        valueField: 'value',
+        textField: 'text',
+        editable:false,
+        data: [
+            {value: '', text: "== Please Select =="},
+            {value: 1, text: "ENG 1"},
+            {value: 2, text: "ENG 2"},
+            {value: 3, text: "ENG 3"},
+            {value: 4, text: "ENG 4"}
+        ],
+        onChange:function(n,o){
+            console.log(123);
+            if(snflag){
+                console.log(3);
+                $("#serPn").textbox('clear');
+                $("#serSn").textbox('clear');
+            }else{
+                snflag = true ;
+                console.log(snflag);
+
+            }
+
+        },
+        onClick:function (item) {
+            alert(item)
+        }
+        // onLoadSuccess: function() {
+        //     $(this).combobox('select', '');
+        // },
+        // onSelect :function () {
+        //     alert(1)
+        //     $("#serPn").textbox('setValue', '');
+        //     $("#serSn").textbox('setValue', '');
+        // }
+
+    });
+    function poChange(){
+        $("#serPn").textbox('setValue', '');
+        $("#serSn").textbox('setValue', '');
+    }
+    $('#serStep').combobox({
+        valueField: 'value',
+        textField: 'text',
+        data: [
+            {value: 6, text: "6"},
+            {value: 7, text: "7"},
+            {value: 8, text: "8"},
+            {value: 9, text: "9"},
+            {value: 10, text: "10"},
+            {value: 11, text: "11"},
+            {value: 12, text: "12"},
+            {value: 13, text: "13"},
+            {value: 14, text: "14"},
+            {value: 15, text: "15"},
+            {value: 16, text: "16"},
+            {value: 17, text: "17"},
+            {value: 18, text: "18"},
+            {value: 19, text: "19"},
+            {value: 20, text: "20"},
+            {value: 21, text: "21"},
+            {value: 22, text: "22"},
+            {value: 23, text: "23"},
+            {value: 24, text: "24"},
+            {value: 25, text: "25"},
+            {value: 26, text: "26"},
+            {value: 27, text: "27"},
+            {value: 28, text: "28"},
+            {value: 29, text: "29"},
+            {value: 30, text: "30"}
+        ]
+    });
+
+    /*初始化查询条件*/
+    function setInitialParamValue() {
+        //设置时间
+        $('#serStartDate').datebox({
+            // value: getNowFormatDate(),
+            value: '',
+            showSeconds: false
+        });
+        var url_ac = "/api/v1/plugins/FLB_AC_LIST";
+
+        $("#serAcReg").combobox({
+            valueField: 'tail',
+            textField: 'tail',
+            url: url_ac,
+            prompt: '请选择',
+            loadFilter: function (data) {
+                if (data.data) {
+                    return data.data;
+                } else {
+                    return data;
+                }
+            },
+            onSelect: function (val) {
+                $('#serAcReg').combobox('setValue', val.acReg);
+
+            }
+        });
+        $('#serStep').combobox({value: 13})
+    }
+
+    /**获取当前时间*/
+    function getNowFormatDate() {
+        var date = new Date();
+        var dateSeparator = "-";
+
+        var month = formatDate(date.getMonth() + 1);
+        var strDate = formatDate(date.getDate());
+        return date.getFullYear() + dateSeparator + month + dateSeparator + strDate;
+    }
+
+    function formatDate(t) {
+        var tmp;
+        if (t >= 0 && t <= 9) {
+            tmp = "0" + t;
+        } else {
+            tmp = t;
+        }
+        return tmp;
+    }
+
+    function i18nCallBack() {
+        setInitialParamValue();
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitDataGrid();
+    }
+
+    function ACchange() {
+
+        $("#serPn").textbox('setValue', '');
+        $("#serSn").textbox('setValue', '');
+    }
+    function InitDataGrid() {
+        var startDate = $('#serStartDate').datebox('getValue');
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {serStartDate: startDate},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'OIL_SUMMARY_LIST'},
+                alter: {
+                    'flightDate': {
+                        // type: 'datetime'
+                    },
+                    'blockTime': {
+                        formatter: function (val) {
+                            return ChangeHourMinutestr(val);
+                        }
+                    },
+                    'position': {
+                        formatter: function (val, row, index) {
+                            return "<a style = \"color: #FF6600\" href=\"javascript:void(0);\" onclick='drawTest(" + JSON.stringify(row) + ")'>" + 'ENG' + val + "</a>";
+                        }
+                    },
+                    'acReg': {
+                        formatter: function (val, row, index) {
+                            return "<a style = \"color: #FF6600\" href=\"javascript:void(0);\" onclick='drawTest2(" + JSON.stringify(row) + ")'>" + val + "</a>";
+                        }
+                    }
+                }
+            },
+            toolbar: [
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                },
+                // {
+                //     id: 'drawRTest',
+                //     text: $.i18n.t(' drawRTest '),
+                //     iconCls: 'icon-application_side_list',
+                //     handler: function () {
+                //         drawTest("R");
+                //     }
+                // },
+                // {
+                //     id: 'drawZTest',
+                //     text: $.i18n.t(' drawZTest '),
+                //     iconCls: 'icon-application_side_list',
+                //     handler: function () {
+                //         drawTest("Z");
+                //     }
+                // },
+                // {
+                //     id: 'drawYTest',
+                //     text: $.i18n.t(' drawYTest '),
+                //     iconCls: 'icon-application_side_list',
+                //     handler: function () {
+                //         drawTest("Y");
+                //     }
+                // },
+                // {
+                //     id: 'drawNTest',
+                //     text: $.i18n.t(' drawNTest '),
+                //     iconCls: 'icon-application_side_list',
+                //     handler: function () {
+                //         drawTest("N");
+                //     }
+                // },
+                {
+                    id: 'btnExport',
+                    text: $.i18n.t(' Export '),
+                    iconCls: 'icon-page_excel',
+                    handler: function () {
+                        exportOilSummary();
+                    }
+                }
+            ]
+        });
+    }
+
+    function toAc() {
+        var datas = $('#ffSearch').serializeObject();
+        ShowWindowIframe({
+            width: "1100",
+            height: "520",
+            title: 'ENG LISt',
+            param: {data: datas},
+            url: '/views/common/select_sn_list.html'
+        })
+    }
+    function querySnno(data) {
+        console.info(data);
+        $("#serPn").textbox('setValue', data.pn);
+        $("#serSn").textbox('setValue', data.sn);
+        if( $('#serPosition').combobox('getValue') != data.position){
+            snflag = false;
+            $('#serPosition').combobox('select',data.position);
+
+        }
+        console.log(snflag,'snflag')
+
+    }
+    function drawTest(val) {
+        var datas = $('#ffSearch').serializeObject();
+        datas = $.extend({}, datas, val);
+        console.log(datas)
+        ShowWindowIframe({
+            width: "1100",
+            height: "520",
+            title: 'engine-oil-chart',
+            param: {data: datas},
+            url: '/views/common/engine-oil-chart.html'
+        })
+
+    }
+
+    function drawTest2(val) {
+        var datas = $('#ffSearch').serializeObject();
+        datas = $.extend({}, datas, val);
+        // console.log(datas)
+        ShowWindowIframe({
+            width: "1100",
+            height: "520",
+            title: 'AC-oil-chart',
+            param: {data: datas},
+            url: '/views/common/ac-oil-chart.html'
+        })
+        // InitFuncCodeRequest_({
+        //     data: datas,
+        //     successCallBack: function (jdata) {
+        //         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+        //
+        //             MsgAlert({content: $.i18n.t(jdata.data)});
+        //         } else {
+        //             MsgAlert({content: jdata.msg, type: 'error'});
+        //         }
+        //     }
+        // });
+    }
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        var $form_ = $("#ffSearch");
+        var datas = $form_.serializeObject();
+        console.log(datas);
+        if(datas.serAcReg == ''){
+            MsgAlert({content:'请选择AC',type:'error'})
+            return;
+        }
+        if(datas.serStartDate == ''){
+            MsgAlert({content:'请输入开始时间',type:'error'})
+            return;
+        }
+        var isValid = $form_.form("validate");
+        if(isValid){
+            onSearch_('dg', '#ffSearch');
+        }
+    }
+
+    //重置
+    function doClear_() {
+        // $("#ffSearch").form('clear');
+        $("#serPn").textbox('setValue', '');
+        $("#serSn").textbox('setValue', '');
+        $("#serAcReg").combobox('setValue', '');
+        $("#serPosition").combobox('setValue', '');
+        $("#serEndDate").datebox('setValue', '');
+        searchData();
+    }
+
+    function exportOilSummary() {
+        var con = "<form id='_f0_rm' method='post' action='/api/v1/plugins/EXPORT_OIL_SUMMARY'></form>";
+        $("#_f0_rm").remove();
+        $("body").append(con);
+
+        var ac = $("<input type='hidden' name='serAcReg' />");
+        ac.val($("#serAcReg").textbox('getValue'));
+        $("#_f0_rm").append(ac);
+
+        var sd = $("<input type='hidden' name='serStartDate' />");
+        sd.val($("#serStartDate").textbox('getValue'));
+        $("#_f0_rm").append(sd);
+
+        var from = $("<input type='hidden' name='serPn' />");
+        from.val($("#serPn").textbox('getValue'));
+        $("#_f0_rm").append(from);
+
+        var ed = $("<input type='hidden' name='serEndDate' />");
+        ed.val($("#serEndDate").textbox('getValue'));
+        $("#_f0_rm").append(ed);
+
+        var to = $("<input type='hidden' name='serSn' />");
+        to.val($("#serSn").textbox('getValue'));
+        $("#_f0_rm").append(to);
+
+        var Step = $("<input type='hidden' name='serStep' />");
+        Step.val($("#serStep").combobox('getValue'));
+        $("#_f0_rm").append(Step);
+
+        var po = $("<input type='hidden' name='serPosition' />");
+        po.val($("#serPosition").combobox('getValue'));
+        $("#_f0_rm").append(po);
+
+        $("#_f0_rm").submit();
+    }
+
+    function ChangeHourMinutestr(str) {
+        if (str !== "0" && str !== "" && str !== null) {
+            return ((Math.floor(str / 60)).toString().length < 2 ? "0" + (Math.floor(str / 60)).toString() :
+                (Math.floor(str / 60)).toString()) + ":" + ((str % 60).toString().length < 2 ? "0" + (str % 60).toString() : (str %
+                60).toString());
+        } else {
+            return "";
+        }
+    }
+</script>
+</html>

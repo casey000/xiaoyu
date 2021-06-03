@@ -1,0 +1,212 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <input type="hidden" id="pkid" name="pkid">
+        <input type="hidden" id="dataSort" name="dataSort" value="deal">
+        <table class="table table-bordered table-info">
+            <caption style="padding-bottom: 7px;font-weight:bold;">评估时限维护</caption>
+            <tr>
+
+                <td align="right" style="padding-top: 6px;">
+                    <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                           value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5 hs" align="right"> 来源厂商：</th>
+                <td class="tdr hs">
+                    <input class="easyui-combobox" id="dataFrom" name="dataFrom"
+                           data-options="editable:false,required:true,validType:['maxLength[100]']"/>
+                </td>
+                <th class="td5" align="right"> 资料类型：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="dataType" name="dataType" data-options="required: true"/>
+                </td>
+
+            </tr>
+            <tr>
+                <th id='lev1' class="td5" align="right"> 生效日期：</th>
+                <td id='lev2' class="tdr">
+                    <input class="easyui-combobox" id="sbLevel" name="sbLevel"
+                           data-options="editable:false,required: true"/>
+                </td>
+                <th class="td5" align="right"> 评估时限：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="dealDays" name="dealDays" data-options="required: true"/>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<script type="text/javascript">
+    var param;
+    var selectRow1;
+    var selectRow2;
+    var pkid;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.PKID;
+        if (param.PKID) {
+            $("#pkid").val(param.PKID);
+        }
+        if (!pkid) {
+            pkid = -1;
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_REC_PRIVIDOR,DM_DATA_TYPE_TECHNOLOGY,DM_OTHER_LEVEL",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#dataFrom').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.DM_REC_PRIVIDOR,
+                        multiple: true,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#sbLevel').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.DM_OTHER_LEVEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#dataType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_DATA_TYPE_TECHNOLOGY,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (row) {
+                            disChange(row.VALUE);
+                        }
+                    });
+                    //回显数据
+                    if (param.PKID) {
+                        InitDataForm(param.PKID);
+                    }
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function disChange(dataType) {
+        if (dataType == 'AD' || dataType == 'CAD' || dataType == 'AMOC') {
+            $("#sbLevel").combobox({required: true});
+            $("#lev1").show();
+            $("#lev2").show();
+        } else {
+            $("#sbLevel").combobox({required: false});
+            $("#lev1").hide();
+            $("#lev2").hide();
+        }
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "DM_SB_LEVEL_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#dataFrom').combobox({value: jdata.data.DATA_FROM});
+                    var dataType = jdata.data.DATA_TYPE;
+                    if (dataType == 'AD' || dataType == 'CAD' || dataType == 'AMOC') {
+                        $("#lev1").show();
+                        $("#lev2").show();
+                    } else {
+                        $("#sbLevel").combobox({required: false});
+                        $("#lev1").hide();
+                        $("#lev2").hide();
+                    }
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var dataType = $("#dataType").combobox('getValue');
+        if (dataType != 'AD' && dataType != 'CAD' && dataType != 'AMOC') {
+            var curCou = 0;
+            InitFuncCodeRequest_({
+                data: {pkid: pkid, dataType: dataType, FunctionCode: 'DM_OTHER_UN'},
+                async: false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (jdata.data != null) {
+                            curCou = jdata.data.COU;
+                        }
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+            if (curCou != 0) {
+                MsgAlert({content: "资料类型重复，请重新选择！", type: 'error'});
+                return;
+            }
+        }
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        if (Array.isArray(datas['dataFrom'])) {
+            datas['dataFrom'] = datas['dataFrom'].join(',');
+        }
+        datas = $.extend({}, datas, {FunctionCode: 'DM_SB_LEVEL_ADD_OR_EDIT'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.onSearch_('dg', '#ffSearch');
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    if (jdata.msg.indexOf("DM_DEAL_DAYS_UNIQUE") != -1) {
+                        MsgAlert({content: "请检查[资料类型,生效日期]是否重复.", type: 'error'});
+
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+
+                }
+            }
+        });
+    }
+
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#mform").form('clear');
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

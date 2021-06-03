@@ -1,0 +1,189 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="PAGE.ENG_UNITS_MANAGE_LIST.TITLE">损伤列表</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th align="right">勾选损伤：</th>
+                    <td style="text-align:right;">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="addBtn"
+                           onclick="save()"><span>确定</span></a>&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+
+<div id="mlayout" class="easyui-layout" style="height: 92%;">
+    <div id="lay_left" data-options="region:'west',split:true" style="width: 100%;">
+        <ul id="locTree" class="easyui-tree" checkbox="true"></ul>
+    </div>
+</div>
+
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var PAGE_DATA = {};
+    var epn;
+    var bsiId;
+    var rangValues = [];
+    function i18nCallBack() {
+        param = getParentParam_();
+        var userLogin = getLoginInfo();
+        epn = param.epn;
+        bsiId = param.pkid;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var data = "";
+        var $form = $("#ffSearch");
+        var datas = $form.serializeObject();
+        datas.dataName = epn;
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/getDamageCheckList",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    data = jdata.obj;
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+        //查询最外层主键
+        var parentId = '';
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/getParentId",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    parentId = jdata.obj;
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+        var tdata_ = WarpTreeGridData_(data, parentId, ['PKID', 'PARENT_ID']);
+
+        $("#locTree").tree({
+            data: tdata_,
+            lines: true,
+            animate: true,
+            checkbox:function (node) {
+                //判断是否是损伤
+                if(node.FLAW_FLAG == 'Y'){
+                    return true;
+                }
+                return false;
+            },
+            onLoadSuccess: function (node) {
+                $("#locTree").tree("collapseAll");
+            },
+            formatter: function (tdata_) {
+                return tdata_.DATA_NAME;
+            },
+            onContextMenu: function (e, node) {
+                e.preventDefault();
+                // 查找节点
+                $('#tt').tree('select', node.target);
+                // 显示快捷菜单
+                $('#mm').menu('show', {
+                    left: e.pageX,
+                    top: e.pageY
+                });
+            },
+            onCheck: function (node,checked) {
+                var desc = node.MANUAL_DESC;
+                if(desc == '' || desc == null){
+                    desc = 'N/A' ;
+                }
+                var str = node.DAMAGE_PATH +";"+node.DATA_NAME+";"+node.PKID+";"+desc;
+                if(checked){
+                    rangValues.push(str);
+                }else{
+                    rangValues.remove(str);
+                }
+            },
+        });
+    }
+
+    Array.prototype.remove = function(val) {
+        var index = this.indexOf(val);
+        if (index > -1) {
+            this.splice(index, 1);
+        }
+    };
+
+
+    //刷新列表
+    function reload_() {
+        InitDataGrid();
+    }
+
+    function save(){
+        var tempstr = '';
+        if(rangValues.length == 0 || rangValues == null){
+            MsgAlert({content: "请选择数据！", type: 'error'});
+            return;
+        }else{
+            tempstr = rangValues.join();
+        }
+        var datas = {bsiId:bsiId,tempstr:tempstr}
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiDamage/addOrEditBsiDamage",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var cou = jdata.obj;
+                    if(cou > 0){
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_2();
+                        CloseWindowIframe();
+                    }
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //折叠
+    function undo() {
+        var treeGrid = $("#l_dg");
+        var node = treeGrid.treegrid('getSelected');
+        if (node) {
+            treeGrid.treegrid('collapseAll', node.id);
+        } else {
+            treeGrid.treegrid('collapseAll');
+        }
+
+    }
+</script>
+</body>
+</html>

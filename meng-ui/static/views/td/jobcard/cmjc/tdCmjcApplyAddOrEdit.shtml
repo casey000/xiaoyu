@@ -1,0 +1,197 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>部件工卡适用性</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="jcPkid" name="jcPkid"/>
+                <table class="table table-bordered table-info">
+                    <caption style="padding-bottom: 7px;font-weight:bold;font-size: 16px;">部件工卡适用性</caption>
+                </table>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" align="right" style="width: 120px;">厂家件号：</th>
+                        <td style="width: 130px; padding: 3px">
+                            <input id="venderPn" name="venderPn" class="easyui-textbox" data-options="required:true"
+                                   style="width: 130px;"></input>
+                            <input class="btn btn-primary" type="button" id="chooseVenderPn" name="chooseVenderPn"
+                                   onclick="chooseVenderPnData()"
+                                   style="" value="选取"/>
+                        </td>
+
+                        <th class="th" align="right" style="width: 120px;">波音件号：</th>
+                        <td style="width: 130px;  padding: 3px">
+                            <input class="easyui-textbox" id="boeingPn" name="boeingPn"
+                                   data-options="required:true"
+                                   style="width: 130px;"/>
+                            <input class="btn btn-primary" type="button" id="chooseBoeingPn" name="chooseBoeingPn"
+                                   onclick="chooseBoeingPnData()"
+                                   style="" value="选取"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 120px;">厂家信息：</th>
+                        <td style="width: 130px;padding: 3px" colspan="3">
+                            <input id="vender" name="vender" class="easyui-textbox" data-options="required:true"
+                                   style="width: 542px;"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 120px;">名称：</th>
+                        <td style="width: 130px;  padding: 3px" colspan="3">
+                            <input id="pnName" name="pnName" class="easyui-textbox" data-options="required:true"
+                                   style="width: 542px;"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 120px;">改装后件号是否变化：</th>
+                        <td style="width: 130px;  padding: 3px">
+                            <input class="easyui-combobox" id="pnChange" name="pnChange"
+                                   data-options="required:true"
+                                   style="width: 130px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 120px;">改装后件号：</th>
+                        <td style="width: 130px;padding: 3px">
+                            <input id="modifiedPn" name="modifiedPn" class="easyui-textbox" data-options="required:true"
+                                   style="width: 130px;"></input>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="middle">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var jcPkid;
+    var pkid;
+    var COMBOBOX_DATA = {};
+
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        jcPkid = param.jcPkid;
+        pkid = param.pkid;
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_CMJC_PN_CHANGE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    //改装后件号是否变化
+                    $('#pnChange').combobox({
+                        panelHeight: '60px',
+                        data: jdata.data.TD_CMJC_PN_CHANGE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if (pkid) {
+                        InitDataForm(pkid);
+                    }
+                }
+            }
+        })
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_CMJC_APPLY_BY_PKID"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#pkid").val(jdata.data.PKID);
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        datas = $.extend(datas, {FunctionCode: 'TD_CMJC_APPLY_ADD_EDIT', operation: operation, jcPkid: jcPkid});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    if (param.OWindow && typeof param.OWindow.reloadCmjcApply == 'function') {
+                        param.OWindow.reloadCmjcApply();
+                    }
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //选取原厂件号
+    function chooseVenderPnData() {
+        var title_ = $.i18n.t('件号主数据');
+        ShowWindowIframe({
+            width: "800",
+            height: "350",
+            param: {
+                title: title_,
+                pnFrom: 'YC'
+            },
+            url: "/views/td/jobcard/cmjc/tdCmjcChoosePnData.shtml"
+        });
+    }
+
+    //选取波音件号
+    function chooseBoeingPnData() {
+        var title_ = $.i18n.t('件号主数据');
+        ShowWindowIframe({
+            width: "800",
+            height: "350",
+            param: {
+                title: title_,
+                pnFrom: 'BOEING'
+            },
+            url: "/views/td/jobcard/cmjc/tdCmjcChoosePnData.shtml"
+        });
+    }
+
+    //回填原厂件号
+    function backfillYCPn(pnValue) {
+        $("#venderPn").textbox('setValue', pnValue);
+    }
+
+    //回填波音件号
+    function backfillBoeingPn(pnValue) {
+        $("#boeingPn").textbox('setValue', pnValue);
+    }
+
+</script>
+</html>

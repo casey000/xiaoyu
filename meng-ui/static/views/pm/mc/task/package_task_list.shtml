@@ -1,0 +1,315 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>MCC工作包接收</title>
+    <style>
+        .datagrid-wrap {
+            width: 99.5% !important;
+        }
+    </style>
+</head>
+<body>
+<div id="tt" class="ibox-content">
+<fieldset class="fieldset_eui">
+    <legend>搜索</legend>
+    <form id="ffSearch" method="post">
+        <input type="hidden" id="packageNumber" name="packageNumber"/>
+        <input type="hidden" id="zxbm" name="zxbm" value="AB"/>
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th style="width: 80px;" align="right">工包编号：</th>
+                    <td>
+                        <input class="easyui-textbox" id="revnr" name="revnr" data-options="" style="width:120px"/>
+                    </td>
+                    <th style="width: 80px;" align="right">工包类型：</th>
+                    <td>
+                        <input class="easyui-textbox" id="revtp" name="revtp" data-options="" style="width:80px"/>
+                    </td>
+                    <th class="td5"> 推送日期从：</th>
+                    <td class="tdr">
+                        <input class="easyui-datebox" id="jsdtBegin" name="jsdtBegin" style="width:120px;"
+                               data-options="editable:false"/>
+                    </td>
+                    <th class="td5"> 至：</th>
+                    <td class="tdr">
+                        <input class="easyui-datebox" id="jsdtEnd" name="jsdtEnd" style="width:120px;"
+                               data-options="editable:false"/>
+                    </td>
+                    <th style="width: 100px;" align="right">工包接收状态：</th>
+                    <td>
+                        <input class="easyui-combobox" id="status" name="status" data-options="" style="width:120px"/>
+                    </td>
+                    <td colspan="2" align="center" width="160px">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchDg()" auth="PM_MC_PACKAGE_QUERY"><span>查询</span></a>
+                        <!--<a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="onClear_()"><span>重置</span></a>-->
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+</div>
+<div id="tt1" class="ibox-content">
+<fieldset class="fieldset_eui">
+    <form>
+        <div id="">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th style="width: 100px;text-align: left">任务清单：</th>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg1"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    var packageNumber;
+    var dd = 1;
+    var cc = 1;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_('dg');
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "PM_MC_PACKAGE_STATUS,MCC_PACKAGE_TYPE,MCC_EXECUTION_COMPANY,WORKORDER_STATUS,MCC_PACKAGE_STATUS"
+            },
+            successCallBack: function (jdata) {
+                PAGE_DATA['status'] = DomainCodeToMap_(jdata.data.PM_MC_PACKAGE_STATUS);
+                PAGE_DATA['packageStatus'] = DomainCodeToMap_(jdata.data.MCC_PACKAGE_STATUS);
+                PAGE_DATA['revtp'] = DomainCodeToMap_(jdata.data.MCC_PACKAGE_TYPE);
+                PAGE_DATA['zxbm'] = DomainCodeToMap_(jdata.data.MCC_EXECUTION_COMPANY);
+                PAGE_DATA['taskStatus'] = DomainCodeToMap_(jdata.data.WORKORDER_STATUS);
+                $('#status').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: [{VALUE:'DJS',TEXT:'待接收'},{VALUE:'YJS',TEXT:'已接收'}]
+                });
+                $('#status').combobox('setValue','DJS');
+                $('#revtp').combobox({
+                    panelHeight: '120px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data['MCC_PACKAGE_TYPE'],
+                });
+                InitDataGrid();
+                InitDataGrid1();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            queryParams: {status: 'DJS'},
+            columns: {
+                param: {FunctionCode: 'PM_MC_PACKAGE_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            if ("DJS_GX" == value) {
+                                var redHtml = "<span style='background-color: red'>" + PAGE_DATA['status'][value] + "</span>";
+                                return redHtml;
+                            }
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    REVST: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['packageStatus'][value];
+                        }
+                    },
+                    ZXBM: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['zxbm'][value];
+                        }
+                    },
+                    REVTP: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['revtp'][value];
+                        }
+                    },
+                    PLANSTD: {
+                        type: 'date'
+                    },
+                    PLANEND: {
+                        type: 'date'
+                    },
+                    ZUDDAT: {
+                        type: 'date'
+                    },
+                    CRDAT: {
+                        type: 'date'
+                    },
+                    JSDT: {
+                        type: 'date'
+                    }
+                }
+            },
+            validAuth: function (row, items) {
+                if (row.STATUS == 'YJS') {
+             items['接收'].enable=false;
+             }
+             return items;
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "接收",auth:"PM_MC_PACKAGE_JS",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        InitFuncCodeRequest_({
+                            data: {
+                                packageNumber: rowData.REVNO,
+                                FunctionCode: "SELECT_WORKORDER_LIST_BY_PACKAGE_NUMBER"
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    var planstd = rowData.PLANSTD.substring(0, 10);
+                                    var Nowdate = new Date(planstd + " 00:00:00");
+                                    var WeekFirstDay = new Date(Nowdate - (Nowdate.getDay() - 1) * 86400000);
+                                    var WeekLastDay = new Date((WeekFirstDay / 1000 + 7 * 86400) * 1000);
+                                    var error = "确认接收吗？";
+                                    for (var i = 0; i < jdata.data.length; i++) {
+                                        if (WeekFirstDay > new Date(jdata.data[i].JOB_DATE) || new Date(jdata.data[i].JOB_DATE) >= WeekLastDay) {
+                                            error = "该工包中存在计划执行日期超出一周范围内的工卡，是否接收？";
+                                            break;
+                                        }
+                                    }
+                                    if (confirm(error)) {
+                                        InitFuncCodeRequest_({
+                                            data: {
+                                                pkid: rowData.PKID,
+                                                FunctionCode: "PM_MC_PACKAGE_JS"
+                                            },
+                                            successCallBack: function (jdata) {
+                                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                    reload_();
+                                                    //清空子列表
+                                                    $('#dg1').datagrid('loadData', {total: 0, rows: []});
+                                                }else {
+                                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                                }
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+                packageNumber = rowData.REVNO;
+                $('#packageNumber').val(packageNumber);
+                onSearch_('dg1');
+            },
+            resize: function () {
+                if (dd < 3) {
+                    dd++;
+                    return tabs_standard_resize($('#tt'), -200);
+                }
+            }
+        });
+    }
+
+    function InitDataGrid1() {
+        var pn;
+        if (packageNumber == undefined || packageNumber == "") {
+            pn = '-1';
+        } else {
+            pn = packageNumber;
+        }
+        $("#dg1").MyDataGrid({
+            identity: 'dg1',
+            queryParams: {packageNumber: pn, zxbm: 'AB'},
+            pageSize:100,
+            columns: {
+                param: {FunctionCode: 'MCC_WORKORDER_LIST_BY_PACKAGE'},
+                alter: {
+                    AC_REG: {
+                        formatter: function (value, row, index) {
+                            var acno = row.AC_REG;
+                            if ("1" == row.IS_UPDATE) {
+                                var greenHtml = "<span style='background-color: green'>" + acno + "</span>";
+                                return greenHtml;
+                            }
+                            if ("2" == row.IS_UPDATE) {
+                                var redHtml = "<span style='background-color: red'>" + acno + "</span>";
+                                return redHtml;
+                            }
+                            return acno;
+
+                        }
+                    },
+                    STATION: {
+                        formatter: function (value, row, index) {
+                            var isSpecialJob = row.IS_SPECIAL_JOB;
+                            if ("X" == isSpecialJob) {
+                                var greenHtml = "<span style='background-color: green'>" + value + "</span>";
+                                return greenHtml;
+                            }
+                            return value;
+
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['taskStatus'][value];
+                        }
+                    },
+                    PPC_PLAN_DATE: {
+                        type: 'date'
+                    },
+                    EXPIRE_DATE: {
+                        type: 'date'
+                    },
+                    RECEIVE_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                $('#dg1').datagrid('hideColumn', 'EXECUTION_DEPARTMENT');
+                $('#dg1').datagrid('hideColumn', 'CANCEL_TYPE');
+                $('#dg1').datagrid('hideColumn', 'CANCEL_REASON');
+                $('#dg1').datagrid('hideColumn', 'JOB_DATE');
+            },
+
+            resize: function () {
+                if (cc < 3) {
+                    cc++;
+                    return tabs_standard_resize($('#tt1'), -((document.documentElement.clientHeight) - 460));
+                }
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    function reload1_() {
+        $("#dg1").datagrid("reload");
+    }
+
+    function onSearchDg() {
+        onSearch_('dg');
+        //清空子列表
+        $('#dg1').datagrid('loadData', {total: 0, rows: []});
+    }
+</script>
+</body>
+</html>

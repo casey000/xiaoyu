@@ -1,0 +1,351 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+    <style>
+        #mform table tr th {
+            width: 80px;
+        }
+    </style>
+    <script type="text/javascript">
+
+        var isEdit_;
+        var param = {};
+        param = getParentParam_();
+        isEdit_ = param.pkid;
+
+
+        function i18nCallBack() {
+
+            InitFuncCodeRequest_({
+                data: {
+                    domainCode: "EM_MP_INTERVAL_TYPE,EM_MP_CALENDAR_UNIT,EM_MP_CALENDAR_UNIT,EM_MP_CHECK_UNIT," +
+                    "EM_MP_INTERVAL_TYPE1,EM_MP_INTERVAL_TYPE2,EM_MP_INTERVAL_TYPE3,EM_MP_INTERVAL_TYPE4",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                        //首检日历日单位
+                        $('#tCalUnit').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_CALENDAR_UNIT,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+                        //首检字母检单位
+                        $('#tCheckUnit').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_CHECK_UNIT,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+                        //重复日历日单位
+                        $('#ivCalUnit').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_CALENDAR_UNIT,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+                        //重检字母检单位
+                        $('#ivCheckUnit').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data.EM_MP_CHECK_UNIT,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+
+                        InitFuncCodeRequest_({
+                            data: {
+                                pkid: param.itemPkid,
+                                FunctionCode: "EM_CMP_ITEM_GETONE"
+                            },
+                            successCallBack: function (jdata2) {
+                                if (jdata2.code == RESULT_CODE.SUCCESS_CODE) {
+                                    // IF_OPTIMIZED 是否优化，IF_WB是否称重 IF_SPL 是否抽样
+                                    var type1 = 'Y' == jdata2.data.IF_SPL;
+                                    var type2 = 'Y' == jdata2.data.IF_OPTIMIZED;
+
+                                    if (!type1 && !type2) {
+                                        //间隔类型
+                                        $('#itervalType').combobox({
+                                            panelHeight: '150px',
+                                            data: jdata.data.EM_MP_INTERVAL_TYPE1,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT',
+                                        });
+                                    }
+                                    if (type1 && !type2) {
+
+                                        //间隔类型
+                                        $('#itervalType').combobox({
+                                            panelHeight: '150px',
+                                            data: jdata.data.EM_MP_INTERVAL_TYPE2,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT',
+                                        });
+
+                                    }
+                                    if (!type1 && type2) {
+                                        //间隔类型
+                                        $('#itervalType').combobox({
+                                            panelHeight: '150px',
+                                            data: jdata.data.EM_MP_INTERVAL_TYPE3,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT',
+                                        });
+                                    }
+                                    if (type1 && type2) {
+
+                                        //间隔类型
+                                        $('#itervalType').combobox({
+                                            panelHeight: '150px',
+                                            data: jdata.data.EM_MP_INTERVAL_TYPE4,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT',
+                                        });
+                                    }
+                                    $('#itemPkid').val(param.itemPkid);
+
+
+                                    if (isEdit_) {
+                                        InitFuncCodeRequest_({
+
+                                            data: {
+                                                pkid: isEdit_,
+                                                FunctionCode: "EM_CMP_ITEM_INTERVAL_GETONE"
+                                            },
+                                            successCallBack: function (jdata) {
+                                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                                                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                                                    $('#pkid').val(isEdit_);
+                                                    $('#itervalType').combobox({
+                                                        editable: false,
+                                                        onlyview: true,
+                                                        value: jdata.data.ITERVAL_TYPE
+                                                    });
+                                                } else {
+                                                    MsgAlert({content: "信息错误", type: 'error'});
+                                                }
+                                            }
+                                        });
+
+                                    } else {
+                                        MsgAlert({content: "信息错误", type: 'error'});
+                                    }
+                                }
+                            }
+                        });
+
+
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+
+
+        function DomainCodeToMap_(list) {
+            var d = {};
+            $.each(list, function (k, it) {
+                d[it.VALUE] = it.TEXT;
+            });
+            return d;
+        }
+
+        //获取当前时间
+        function formatDates(date) {
+            var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+            var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+                + (date.getMonth() + 1);
+            var hor = date.getHours();
+            var min = date.getMinutes();
+            var sec = date.getSeconds();
+            return date.getFullYear() + '-' + month + '-' + day + " " + hor + ":" + min + ":" + sec;
+        }
+
+        function saveFunction() {
+            var isValidate = $("#mform").form('validate');
+            if (!isValidate)
+                return;
+            var $form = $("#mform");
+            var datas = {};
+            //更新操作人，操作时间
+
+            var datas = $form.serializeObject();
+
+
+            datas = $.extend({}, datas, {FunctionCode: (isEdit_ ? 'EM_CMP_ITEM_INTERVAL_UPDATE' : 'EM_CMP_ITEM_INTERVAL_ADD'),});
+
+            InitFuncCodeRequest_({
+                data: datas,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (!isEdit_) {
+                            param.OWindow.reload_();
+                        }
+                        param.OWindow.reload_();
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <form class="form-horizontal m-t" id="mform">
+            <fieldset class="fieldset_eui" style="width:100%;margin-right:5px">
+                <input type="hidden" id="pkid" name="pkid">
+                <input type="hidden" id="itemPkid" name="itemPkid">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" onclick="saveFunction()" type="button" value="保存"
+                                   style="margin:5px;"/>
+
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td1" style="width:80px;">间隔类型：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox easyui-validatebox" id="itervalType" name="itervalType"
+                                   data-options="required:true"/>
+                        </td>
+                    </tr>
+
+                </table>
+            </fieldset>
+            <fieldset class="fieldset_eui" style="float:left;width:10%;height:200px">
+                <table>
+                    <legend>首检说明</legend>
+                    <td class="tdr">
+                        <input class="easyui-textbox easyui-validatebox" id="thresholdDesc"
+                               name="thresholdDesc"
+                               style="width: 100px;height:150px;border: 1px solid #ddd;border-radius: 5px;"
+                               data-options="multiline:true"/>
+                    </td>
+                </table>
+            </fieldset>
+
+            <fieldset class="fieldset_eui" style="float:left;width:200px;height:200px">
+                <table>
+                    <legend>首检</legend>
+                    <tr>
+                        <td class="tdr" colspan="2">
+                            <input class="easyui-textbox easyui-validatebox" id="tFh" name="tFh"
+                                   style="width:140px;height:30px;"
+                                   data-options=""/>FH
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="tFc" name="tFc"
+                                   style="width:140px;height:30px;"
+                                   data-options=""/>FC
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="tCal" name="tCal"
+                                   style="width:80px;height:30px"
+                                   data-options=""/>
+                            <input class="easyui-combobox easyui-validatebox" id="tCalUnit" name="tCalUnit"
+                                   style="width:80px;height:30px"
+                                   data-options=""/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="tCheck" name="tCheck"
+                                   style="width:80px;height:30px"
+                                   data-options=""/>
+                            <input class="easyui-combobox easyui-validatebox" id="tCheckUnit"
+                                   name="tCheckUnit" style="width:80px;height:30px"
+                                   data-options=""/>
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+
+            <fieldset class="fieldset_eui" style="float:left;width:10%;margin-right:5px;height:200px">
+                <table>
+                    <legend>重检说明</legend>
+                    <td class="tdr">
+                        <input class="easyui-textbox easyui-validatebox" id="intervalDesc"
+                               name="intervalDesc"
+                               style="width: 100px;height:150px;border: 1px solid #ddd;border-radius: 5px;"
+                               data-options="multiline:true"/>
+                    </td>
+                </table>
+            </fieldset>
+
+            <fieldset class="fieldset_eui" style="float:left;width:200px;height:200px">
+                <table>
+                    <legend>重检</legend>
+                    <tr>
+                        <td class="tdr" colspan="2">
+                            <input class="easyui-textbox easyui-validatebox" id="ivFh" name="ivFh"
+                                   style="width:140px;height:30px"
+                                   data-options=""/>FH
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="ivFc" name="ivFc"
+                                   style="width:140px;height:30px"
+                                   data-options=""/>FC
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="ivCal" name="ivCal"
+                                   style="width:80px;height:30px"
+                                   data-options=""/>
+                            <input class="easyui-combobox easyui-validatebox" id="ivCalUnit" name="ivCalUnit"
+                                   style="width:80px;height:30px"
+                                   data-options=""/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" id="ivCheck" name="ivCheck"
+                                   style="width:80px;height:30px"
+                                   data-options=""/>
+                            <input class="easyui-combobox easyui-validatebox" id="ivCheckUnit"
+                                   name="ivCheckUnit" style="width:80px;height:30px"
+                                   data-options=""/>
+                        </td>
+                    </tr>
+                </table>
+            </fieldset>
+
+            <!--   <fieldset class="fieldset_eui" style="float:left;width:220px;margin-right:5px;height:200px">
+                   <table>
+                       <legend>适用性描述</legend>
+                       <td class="tdr">
+                           <input class="easyui-textbox easyui-validatebox" id="applDesc" name="applDesc"
+                                  style="width: 250px;height:150px;border: 1px solid #ddd;border-radius: 5px;"
+                                  data-options="multiline:true"/>
+                       </td>
+                   </table>
+               </fieldset>-->
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

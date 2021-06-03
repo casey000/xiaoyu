@@ -1,0 +1,283 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">修改建议单重评页面</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 102%">
+    <fieldset class="fieldset_eui">
+        <form id="mform" class="form-horizontal">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input id="saveBtn" class="btn btn-primary" type="button" onclick="msave()" value="保存"
+                                   style="width: 50px;margin:10px;"/>
+                            <input id="subBtn" class="btn btn-primary" type="button" onclick="submitSupple()" value="提交"
+                                   style="width: 50px;margin:10px;"/>
+                            <input class="btn btn-primary" type="button" id="closeBtn" onclick="CloseWindowIframe();"
+                                   value="关闭"
+                                   style="width: 50px;margin:10px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">重评原因：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="reason" name="reason"
+                                   data-options="required:true"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">处理期限：</th>
+                        <td class="td5">
+                            <input class="easyui-datebox" id="deadline" name="deadline"
+                                   data-options="editable:true,required:true"/>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+        <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var param;
+    var operation;
+    var pkid = "";
+    function i18nCallBack() {
+        //绑定回车查询事件
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+
+        if (operation == "view") {
+            $("#saveBtn").hide();
+            $("#subBtn").hide();
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_REVSUG_EVALUATE_DEAL_OPTION,TD_REVISED_CATEGORIES,REVSUG_IS_STRUCTURE,YESORNO,REVSUG_FLEET,REVSUG_DATA_TYPE,REVSUG_DEAL_OPTION,REVSUG_STATUS,DM_ATA,REVSUG_APPLY",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#ata').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_ATA,
+                        multiple: true,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //手册标准
+                    PAGE_DATA['dealOption'] = DomainCodeToMap_(jdata.data["TD_REVSUG_EVALUATE_DEAL_OPTION"]);
+
+                    if (operation == "view") {
+                        $("#reason").textbox({onlyview: true, editable: false});
+                        $("#deadline").datebox({onlyview: true, editable: false});
+                    }
+
+                    InitDataGrid(pkid);
+                    if (pkid) {
+                        InitDataForm(pkid);
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+
+
+    function InitDataGrid(pkid) {
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            queryParams: {"fpkid": pkid},
+            path:"/online-manual/tdManualRevsugEvaluateSub/queryPageTdManualRevsugEvaluateSubList",
+            columns: {
+                param: {FunctionCode: 'TD_MANUAL_REVSUG_EVALUATE_SUB_LIST'},
+                alter: {
+                    DEAL_OPTION: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dealOption'][value];
+                        }
+                    },
+                    CREATE_DATE: {
+                        type: 'datetime'
+                    },
+                    DEAL_DATE: {
+                        type: 'datetime'
+                    }
+                }
+            },
+            onLoadSuccess: function (row) {
+                formatterUpperDataGrid(row,"dg");
+            },
+            onBeforeLoad: function (data) {
+                if (operation == "view") {
+                    $("div.datagrid-toolbar [id ='btnAdd']").eq(0).hide();
+                }
+            },
+            onEndEdit: function (index, row, changes) {
+                editDate(index, row, changes);
+            },
+            onBeginEdit: function (index, row) {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+
+                        InitGatewayRequest_({
+                            type:'get',
+                            async: false,
+                            path: "/online-manual/tdManualRevsugEvaluateSub/deleteById"+"/"+rowData.PKID,
+                            // data: {pkid: rowData.PKID, FunctionCode: 'TD_MANUAL_REVSUG_DS_DEL'},
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }],
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('增加'),
+                iconCls: 'icon-add',
+                handler: function () {
+                    add();
+                }
+            },
+               ],
+
+            validAuth: function (row, items) {
+                if (operation == "view") {
+                    items['删除'].enable = false;
+                }
+
+                return items;
+            }
+
+        });
+    }
+
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_REVSUG_EVALUATE_PKID"}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        // $("#dg").datagrid("reload");
+        InitDataGrid(pkid);
+    }
+    // 保存
+    function msave(flag) {
+
+
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        datas = $.extend({}, datas, {FunctionCode: 'TD_REVSUG_EVALUATE_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.searchData();
+                    }
+                    pkid =jdata.data.pkid;
+                  $("#pkid").val(jdata.data.pkid);
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function submitSupple() {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_REVSUG_SUB_SUBMIT"}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.searchData();
+                    }
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    function add() {
+        if (isEmpty(pkid)) {
+            alert("请先保存主表数据！");
+            return;
+        }
+        // var isStructure = $('#isStructure').combobox('getValue');
+
+        var title_ = $.i18n.t('选择手册修改建议单');
+        ShowWindowIframe({
+            width: 960,
+            height: 690,
+            title: title_,
+            param: {
+
+                pkid: pkid,
+                // flag: flag,
+                // typeFlag: typeFlag,
+                // isStructure:isStructure
+            },
+            url: "/views/td/manual/revsugEvaluate/revsugList.shtml"
+        });
+    }
+
+    //刷新
+    function reload_par() {
+        getParentParam_().OWindow.reload_();
+        window.close();
+    }
+
+
+</script>
+</body>
+</html>

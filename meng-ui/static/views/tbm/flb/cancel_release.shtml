@@ -1,0 +1,94 @@
+<!--
+  ~ Copyright 2018 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>取消放行</title>
+</head>
+
+<body>
+<div id="cancelReleaseWindow" class="easyui-window" title="取消放行">
+    <form id="mform">
+        <input type="hidden" id="workOrderId" name="workOrderId"/>
+        <input type="hidden" id="flightId" name="flightId"/>
+        <table class="table">
+            <tr>
+                <th class="th" align="right" style="width: 80px;">取消原因：</th>
+                <td class="tdr" style="width: 100px;">
+                            <textarea rows="3" cols="60" id="remark" name="remark" maxlength="300"
+                                      validate="{maxlength:300}" required="required"
+                                      style="border: 1px solid rgb(153, 153, 153);">
+                            </textarea>
+                </td>
+            </tr>
+            <tr id="view">
+                <td colspan="6" align="center">
+                    <!--<input class="btn" type="button" onclick="cancelRelease()" value="确认" style="width: auto;"/>-->
+                    <div  class="btn">确认</div>
+                    <div class="btn">关闭</div>
+                    <!--<input class="btn" type="button" onclick="CloseWindowIframe();" value="关闭" style="width: auto;"/>-->
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var flightId;
+    var workOrderId;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        workOrderId = param.workOrderId;
+        flightId = param.flightId;
+        $('#workorderId').val(workOrderId);
+        $('#flightId').val(flightId);
+    }
+
+    //取消放行
+    function cancelRelease() {
+        alert("确认取消航班放行？");
+        var $form = $("#mform");
+        var isValidate = $form.form('validate');
+        if (!isValidate)
+            return;
+
+        var datas = $form.serializeObject();
+        console.log("event report datas: " + JSON.stringify(datas));
+
+        var url = "/api/v1/tbm/detail/cancel_release";
+        $.ajax({
+            type: "POST",
+            url: url,
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify(datas),
+            dataType: "json",
+            success: function (data) {
+                console.log("成功返回，data:" + JSON.stringify(data, null, '  '));
+                if(data.code === 200){
+                    isReleased = 'RELEASED';
+                    window.alert("取消放行成功！");
+                    console.log("data:" + data);
+                }else{
+                    var errMsg = data.msg;
+                    window.alert("放行成功！失败原因：" + errMsg);
+
+                    //todo 父窗口（详情页窗口控件改变，页面变成可编辑）
+                    window.close();
+                }
+            },
+            error: function () {
+                window.alert("放行失败！");
+            }
+        });
+    }
+
+</script>
+</html>

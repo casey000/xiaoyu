@@ -1,0 +1,201 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">EA</title>
+</head>
+<body class="ibody">
+<div id="title" class="title" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="mform" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td align="right">
+                        <input class="btn btn-primary" type="button" onclick="openDetai()" value="保存"
+                               style="width: 50px;margin:5px;"/>
+                    </td>
+                </tr>
+            </table>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">执行工卡：</th>
+                    <td class="td5">
+                        <input class="easyui-combogrid" style="width: 150px" id="eojcNo" name="eojcNo"
+                               data-options="required:true,editable:false"/>
+                    </td>
+                    <th class="th" align="right" style="width: 80px;">执行对象：</th>
+                    <td class="td5">
+                        <input class="easyui-combobox" style="width: 150px" id="exeObj" name="exeObj"
+                               data-options="required:true,editable:true,validType:'comboBoxEditvalid[\'exeObj\']'"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">工作内容：</th>
+                    <td colspan="3">
+                        <input class="easyui-textbox" style="width: 515px;height:200px" id="workContent"
+                               name="workContent"
+                               data-options="required:true,editable:true,multiline:true,validType:['maxLength[2000]']"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var nalter = {};
+    var param = {};
+    var eoPkid;
+    var operation;
+    var pkid;
+    var selectRow = "";
+
+    function i18nCallBack() {
+        window.resizeTo("700", "400");
+        window.moveTo(300, 200);
+
+        param = getParentParam_();
+        eoPkid = param.eoPkid;
+        operation = param.operation;
+        pkid = param.pkid;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EA_ERO_EXE_OBJ",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //执行对象
+                    $('#exeObj').combobox({
+                        panelHeight: 'auto',
+                        data: jdata.data.EM_EA_ERO_EXE_OBJ,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['EM_EA_ERO_EXE_OBJ'] = DomainCodeToMap_(jdata.data["EM_EA_ERO_EXE_OBJ"]);
+                    InitDataGrid();
+                    if(pkid){
+                        InitDataForm(pkid);
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            async : false,
+            data: {pkid: pkid, FunctionCode: "EM_EO_JC_RELATE_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#eojcNo").MyComboGrid({
+            panelWidth: '300',
+            idField: 'TEXT',  //实际选择值
+            textField: 'TEXT', //文本显示值
+            editable: true,
+            required: true,
+            pagination: true,
+            tipPosition: 'top',
+            mode: 'remote',
+            params: {eoPkid:eoPkid
+                ,FunctionCode: 'EM_ERO_JC_RELATE_NRC_LIST'},
+            url: Constant.API_URL + 'EM_ERO_JC_RELATE_NRC_LIST',
+            columns: [[
+                {field: 'TEXT', title: 'JC_NO', width: 300, sortable: true}
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (selectRow == null || t != selectRow.TEXT) {//没有选择或者选项不相等时清除内容
+                    alert('请选择，不要直接输入！');
+                    $(this).combogrid({value: ''});
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+            }
+        });
+
+    }
+
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //打开资料类型详细页面
+    function openDetai() {
+        var isValidate = $('#mform').form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        var $form = $("#mform");
+        var data = $form.serializeObject();
+        if(pkid){
+            data.pkid = pkid;
+        }
+        data.jcType = 'NSJC';
+        data.eoPkid = param.eoPkid;
+        data = $.extend(data, {FunctionCode: "EM_ERO_JC_RELATE_NRC_ADD"});
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.InitDataGridJcAdd(param.eoPkid);
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg.replace("msg_err:", ""), type: 'error'});
+                }
+            }
+        });
+    }
+
+    //下拉框校验
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    /*if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;*/
+                    var result = true;
+                    var allData = $combobox.combobox('getData');
+                    for(var i = 0; i< allData.length; i++){
+                        if(value == allData[i].TEXT){
+                            result = false;
+                            break;
+                        }
+                    }
+                    if(result){
+                        return false;
+                    }else{
+                        return true;
+                    }
+
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        }
+    });
+</script>
+</body>
+</html>

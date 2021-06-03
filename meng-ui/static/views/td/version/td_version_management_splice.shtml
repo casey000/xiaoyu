@@ -1,0 +1,113 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册片段信息</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<form id="ffSearch">
+    <fieldset class="fieldset_eui">
+    <legend data-i18n="">手册基本信息</legend>
+    <table class="table table-bordered table-info">
+        <tr>
+            手册名称： <span id="manualName"></span>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            机队： <span id="fleet"></span>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+            厂家版本： <span id="oemRev"></span>
+        </tr>
+        <tr>
+            <th style="width: 100px">TASK CODE：</th>
+            <td style="width: 150px">
+                <input class="easyui-textbox" name="taskCode" id="taskCode" style="width:150px;"/>
+            </td>
+            <th style="width: 100px">改版类型：</th>
+            <td style="width: 150px">
+                <input class="easyui-textbox" name="revType" id="revType" style="width:150px;"/>
+            </td>
+            <td>
+                <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="onSearch()">查询</a>
+            </td>
+        </tr>
+    </table>
+</fieldset>
+</form>
+<table id="dg"></table>
+<script type="text/javascript">
+    var param = null;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        $('#manualName').text(param.manualName);
+        $('#fleet').text(param.fleet);
+        $('#oemRev').text(param.oemRev);
+
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").GatewayDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pagination: true,
+            path: "/online-manual/tdOemRevDiff/listByPage",
+            resize: function() {
+                return {width: 800, height: 555}
+            },
+            queryParams: {
+                companyCode: param.companyCode,
+                fleet: param.fleet,
+                manualType: param.manualType,
+                oemRev: param.oemRev,
+                taskCode: $('#taskCode').textbox('getValue'),
+                revType: $('#revType').textbox('getValue')
+            },
+            columns: {
+                param: {FunctionCode: 'TD_VERSION_SPLICE_LIST'},
+                alter: {
+                    MANUAL_FILE_NAME: {
+                        formatter: function (value, row, index) {
+                            var str = param.companyCode + ";"
+                                + param.fleet + ";"
+                                + param.manualType + ";"
+                                + param.oemRev + ";"
+                                + row.OEM_TASKCODE + ";"
+                                + row.MANUAL_FILE_NAME;
+                            return "<a href='javascript:void(0)' onclick='openWeb(\"" + str + "\")'>" + row.MANUAL_FILE_NAME + "</a>";
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                formatterUpperDataGrid(data,"dg")
+            },
+        });
+    }
+
+    function onSearch() {
+        InitDataGrid();
+    }
+
+    function openWeb(str) {
+        var params = str.split(";");
+        common_add_edit_({
+            url: "/views/td/version/td_version_management_splice_history.shtml",
+            param: {
+                companyCode: params[0],
+                fleet: params[1],
+                manualType: params[2],
+                oemRev: params[3],
+                oemTaskcode: params[4],
+                manualFileName: params[5]
+            },
+            title: "手册片段历史信息",
+            width: 800,
+            height: 600
+        });
+    }
+</script>
+</body>
+</html>

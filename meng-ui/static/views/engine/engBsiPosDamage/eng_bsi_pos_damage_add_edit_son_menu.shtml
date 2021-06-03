@@ -1,0 +1,410 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>孔探结构化维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <script type="text/javascript" src="/js/common.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="孔探结构化设置-添加子项" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="parentId" name="parentId"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>父项名称：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="parentName" name="parentName"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>是否缺陷：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="flawFlag" name="flawFlag" data-options="required:true"/>
+                        </td>
+                        <th>子项名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="dataName" name="dataName"
+                                   data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>
+                            <a href="javascript:void(0)" onclick="addOrEditBsiPosDamgeManual('add','')">手册标准:&nbsp;&nbsp;</a>
+                        </th>
+                        <td colspan="3">
+                            <table id="dg"></table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>维护人：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName" value=""
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                        <th>维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate" value=""
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var param = {};
+    var pkid;
+    var operation;
+    var flawFlag;
+    var damageOperation;
+    var parentName;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        $("#modifyName").textbox('setValue', userLogin.userName);
+        var currentDate = new Date();
+        var year = currentDate.getFullYear().toString();
+        var month = (currentDate.getMonth() + 1).toString();
+        var day = currentDate.getDate().toString();
+        $("#modifyDate").datebox('setValue', year + "-" + month + "-" + day);
+        $("#modifyUser").val(userLogin.accountId);
+        param = getParentParam_();
+        pkid = param.pkid;
+        parentName = param.dataName;//父菜单名称
+        flawFlag = param.flawFlag;//是否缺陷
+        operation = param.operation;//操作类型(新添或编辑)
+        damageOperation = param.operation;
+        if ("view" == operation) { //查看
+            $(".easyui-combobox").combobox({editable: false, onlyview: true});
+            $(".easyui-textbox").textbox({editable: false, onlyview: true});
+            $("#saveBtn").hide();
+        }
+        if (operation == "add") { //新增
+            $("#parentName").textbox('setValue', parentName);
+            $("#parentId").val(pkid); //新增传过的是父pkid
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO,BSI_POS_DAMAGE_SON_MENU_NAME",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#flawFlag').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (item) {
+                            if (item.VALUE == "Y") {
+                                $("#dataName").combobox({
+                                    required: true,
+                                    editable: true,
+                                    hasDownArrow: true,
+                                    panelHeight: 150,
+                                    data: jdata.data.BSI_POS_DAMAGE_SON_MENU_NAME,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    filter: function (q, row) {
+                                        var opts = $(this).combobox('options');
+                                        return row[opts.textField].indexOf(q) > -1;
+                                    }
+                                })
+                            } else {
+                                $("#dataName").combobox({
+                                    required: true,
+                                    editable: true,
+                                    hasDownArrow: false,
+                                    panelHeight: 1,
+                                    onChange: function (n, o) {
+                                        var inputDataName = $("#dataName").combobox('getValue');
+                                        if (inputDataName.indexOf(",") != -1 || inputDataName.indexOf(";") != -1) {
+                                            MsgAlert({content: "请勿输入英文逗号、分号！", type: 'error'});
+                                            $("#dataName").combobox('setValue', '');
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                    });
+                    $('#dataName').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.BSI_POS_DAMAGE_SON_MENU_NAME,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if (operation != 'add') {
+                        InitDataForm(pkid);
+                    }
+                    if (pkid) {
+                        InitDataGrid(pkid);
+                    } else {
+                        InitDataGrid(-1);
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    function InitDataGrid(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            path: "/meng-engine/engBsiPosDamageManual/bsiPosDamageManualListByPosDamageId/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $("#dg").MyDataGrid({
+                        identity: "dg",
+                        pagination: false,
+                        data: jdata.obj,
+                        resize: function () {
+                            return {width: 720, height: 160};
+                        },
+                        columns: {
+                            param: {FunctionCode: 'ENG_BSI_POS_DAMAGE_MANUAL_LIST'}
+                        },
+                        contextMenus: [
+                            {
+                                id: "m-edit", i18nText: "编辑",
+                                auth: "",
+                                onclick: function () {
+                                    var rowData = getDG('dg').datagrid('getSelected');
+                                    if (!rowData.pkid) {
+                                        MsgAlert({content: "请选择数据！", type: 'error'});
+                                        return;
+                                    }
+                                    addOrEditBsiPosDamgeManual('edit', rowData.pkid);
+                                }
+                            },
+                            {
+                                id: "m-delete", i18nText: "删除",
+                                auth: "",
+                                onclick: function () {
+                                    var rowData = getDG('dg').datagrid('getSelected');
+                                    if (!rowData.pkid) {
+                                        MsgAlert({content: "请选择数据！", type: 'error'});
+                                        return;
+                                    }
+                                    if (!confirm("是否确认删除？")) {
+                                        return;
+                                    }
+                                    InitGatewayRequest_({
+                                        type: "get",
+                                        async: false,
+                                        path: "/meng-engine/engBsiPosDamageManual/deletePosDamageManualByPkid/" + rowData.pkid,
+                                        successCallBack: function (jdata) {
+                                            if (jdata.success == true) {
+                                                MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                                reloadManualDesc(pkid);
+                                                param.OWindow.reload_();
+                                            } else {
+                                                MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        ],
+                        validAuth: function (row, items) {
+                            if (operation == 'view') {
+                                items['编辑'].display = false;
+                                items['删除'].display = false;
+                            }
+                            return items;
+                        },
+                        onDblClickRow: function (index, field, value) {
+                            addOrEditBsiPosDamgeManual("view", value.pkid);
+                        }
+                    });
+                } else {
+                    MsgAlert({content: "获取手册标准信息失败！", type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var dataName = $("#dataName").combobox('getValue');
+        var parentId = $("#parentId").val();
+        if (operation == "add") { //新增
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: "/meng-engine/engBsiPosDamage/checkDataIfLegal/" + parentId + "/-1/" + dataName,
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        var data = jdata.obj;
+                        if (data > 0) {
+                            MsgAlert({content: "子项名称已存在,请重新输入!", type: 'error'});
+                            $("#dataName").combobox('setValue', '');
+                        } else {
+                            saveOrEdit(operation);
+                        }
+                    } else {
+                        MsgAlert({content: jdata.errorMessage, type: 'error'});
+                    }
+                }
+            });
+        } else { //编辑
+            var curPkid = $("#pkid").val();
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: "/meng-engine/engBsiPosDamage/checkDataIfLegal/" + parentId + "/" + curPkid + "/" + dataName,
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        var data = jdata.obj;
+                        if (data > 0) {
+                            MsgAlert({content: "子项名称已存在,请重新输入!", type: 'error'});
+                            $("#dataName").combobox('setValue', '');
+                        } else {
+                            saveOrEdit(operation);
+                        }
+                    } else {
+                        MsgAlert({content: jdata.errorMessage, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+    function InitDataForm(pkid) {
+        $("#pkid").val(pkid);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/getSonEngBsiPosDamageById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    if ("view" == operation) {
+                        ParseFormField_(jdata.obj, $("#mform"));
+                    } else {
+                        if ("Y" == jdata.obj.flawFlag) {
+                            $("#dataName").combobox({editable: false, hasDownArrow: true, panelHeight: 150});
+                        } else if ("N" == jdata.obj.flawFlag) {
+                            $("#dataName").combobox({editable: true, hasDownArrow: false, panelHeight: 1})
+                        }
+                        if ("edit" == operation) {
+                            $("#flawFlag").combobox('setValue', jdata.obj.flawFlag);
+                            $("#parentName").textbox('setValue', jdata.obj.parentName);
+                            $("#dataName").combobox('setValue', jdata.obj.dataName);
+                            $("#parentId").val(jdata.obj.parentId);
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function saveOrEdit(operation) {
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas['operation'] = operation;
+        // datas['parentId'] = pkid;
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/addOrEditSonMenus",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    $("#pkid").val(jdata.obj.pkid);
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //添加或编辑手册标准
+    function addOrEditBsiPosDamgeManual(operation, pkid) {
+        var damageId = $("#pkid").val();
+        var flawFlag = $("#flawFlag").combobox('getValue');
+        if ("view" == damageOperation) {
+            if ("add" == operation) {
+                MsgAlert({content: "查看状态下不可添加手册标准信息！", type: 'error'});
+            } else {
+                var title_ = $.i18n.t('添加或编辑手册标准');
+                ShowWindowIframe({
+                    width: "380",
+                    height: "240",
+                    title: title_,
+                    param: {pkid: pkid, operation: operation, damageId: damageId},
+                    url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_manual_add_edit.shtml"
+                });
+            }
+        } else {
+            if (damageId) {
+                if ("Y" == flawFlag) {
+                    var title_ = $.i18n.t('添加或编辑手册标准');
+                    ShowWindowIframe({
+                        width: "380",
+                        height: "240",
+                        title: title_,
+                        param: {pkid: pkid, operation: operation, damageId: damageId},
+                        url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_manual_add_edit.shtml"
+                    });
+                } else {
+                    MsgAlert({content: "只有类别为“缺陷”的才可录入手册标准！", type: 'error'});
+                }
+            } else {
+                MsgAlert({content: "请先保存子项封面！", type: 'error'});
+            }
+        }
+    }
+
+    function reloadManualDesc(pkid) {
+        InitDataGrid(pkid);
+    }
+</script>
+</body>
+</html>

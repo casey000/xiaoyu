@@ -1,0 +1,826 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">外部文件接收</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">资料类型：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="dataType" name="dataType" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">资料编号：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataNo" name="dataNo" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">资料版次：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataVer" name="dataVer" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">状态：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="dataStatus" name="dataStatus" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">紧急程度：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="urgentLevel" name="urgentLevel" style="width:100px;"/>
+                        </td>
+                        <td class="td5">
+                            <a class="searchBtn" type="button" onclick="searchData()"
+                               data-options="iconCls:'icon-search'">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            <a class="excelBtn" data-options="iconCls:'icon-page_excel'"
+                               onclick="excelExport('dg','技术资料清单','DM_RECEIVE_FILE_EXPORT')"><span>导出</span></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">适用类型：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="applyType" name="applyType" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">适用型号：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="applyModel" name="applyModel" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">章节：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="ata" name="ata" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">接收日期：</th>
+                        <td class="td5">
+                            <input class="easyui-datebox" id="dmReceiveDateS" name="dmReceiveDateS"
+                                   style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">至：</th>
+                        <td class="td5">
+                            <input class="easyui-datebox" id="dmReceiveDateE" name="dmReceiveDateE"
+                                   style="width:100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">资料标题：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataTitle" name="dataTitle" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">库类别：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="libType" name="libType" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">修正案号：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="dataAmend" name="dataAmend" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">是否结构类：</th>
+                        <td class="td5">
+                            <input class="easyui-combobox" id="ifAsms" name="ifAsms" style="width:100px;"/>
+                        </td>
+                    </tr>
+
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var flag = "";
+    var companyCode;
+    var applyTypeFleetDic;
+    var applyTypeEngDic;
+    var filecou = 0;
+    var dflag = 'N';
+    var minAta = '';
+    var minFleet = '';
+    var minSpec = '';
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO,DM_DATA_LIB_TYPE,EM_APPLY_TYPE,REVSUG_FLEET,DA_ENG_TYPE,DM_REC_PRIVIDOR,DM_DATA_TYPE_TECHNOLOGY," +
+                "DM_EXTER_STATUS2,DA_FLEET,DM_URGENT_LEVEL,DM_APPLIC_TYPE,DM_EXTER_STATUS,DM_DATA_FROM,DM_HOW_DEALWITH",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#dataType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_DATA_TYPE_TECHNOLOGY,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#applyType').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_APPLY_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange: applyTypeChange
+                    });
+                    $('#urgentLevel').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DM_URGENT_LEVEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#dataStatus').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DM_EXTER_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#dataFrom').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DM_REC_PRIVIDOR,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#libType').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DM_DATA_LIB_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ifAsms').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    PAGE_DATA['dataType'] = DomainCodeToMap_(jdata.data["DM_DATA_TYPE_TECHNOLOGY"]);
+                    PAGE_DATA['urgentLevel'] = DomainCodeToMap_(jdata.data["DM_URGENT_LEVEL"]);
+                    // PAGE_DATA['ata'] = DomainCodeToMap_(jdata.data["DA_ATA"]);
+                    PAGE_DATA['dataStatus'] = DomainCodeToMap_(jdata.data["DM_EXTER_STATUS"]);
+                    PAGE_DATA['dataFrom'] = DomainCodeToMap_(jdata.data["DM_REC_PRIVIDOR"]);
+                    PAGE_DATA['applic'] = DomainCodeToMap_(jdata.data["DM_APPLIC_TYPE"]);
+                    PAGE_DATA['howDealwith'] = DomainCodeToMap_(jdata.data["DM_HOW_DEALWITH"]);
+                    PAGE_DATA['libType'] = DomainCodeToMap_(jdata.data["DM_DATA_LIB_TYPE"]);
+                    PAGE_DATA['ifAsms'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    applyTypeFleetDic = jdata.data["REVSUG_FLEET"];
+                    applyTypeEngDic = jdata.data["DA_ENG_TYPE"];
+
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function applyTypeChange() {
+        var applyType = $("#applyType").combobox('getValue');
+        if (applyType == "APL") {
+            $('#applyModel').combobox({
+                panelHeight: '70px',
+                data: applyTypeFleetDic,
+                valueField: 'VALUE',
+                textField: 'TEXT'
+            });
+
+            $("#applyModel").combobox({disabled: false});
+        } else if (applyType == "ENG") {
+            $('#applyModel').combobox({
+                panelHeight: '100px',
+                panelWidth: '100px',
+                data: applyTypeEngDic,
+                valueField: 'VALUE',
+                textField: 'TEXT'
+            });
+            $("#applyModel").combobox({disabled: false});
+        } else if (applyType == "PART") {
+            $("#applyModel").combobox({disabled: true});
+            $("#applyModel").textbox('setValue', "CM");
+        }
+
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {companyCode: companyCode},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'DM_RECEIVE_FILE'},
+                alter: {
+                    TEST_UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.TEST_UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    DATA_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dataType'][value];
+                        }
+                    },
+                    URGENT_LEVEL: {
+                        formatter: function (value) {
+                            return PAGE_DATA['urgentLevel'][value];
+                        }
+                    },
+                    DATA_STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dataStatus'][value];
+                        }
+                    },
+                    DATA_FROM: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dataFrom'][value];
+                        }
+                    },
+                    APPLY_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['applic'][value];
+                        }
+                    },
+                    HOW_DEALWITH:{
+                        formatter: function (value) {
+                            return PAGE_DATA['howDealwith'][value];
+                        }
+                    },
+                    IF_ASMS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['ifAsms'][value];
+                        }
+                    },
+                    ISSUE_DATE: {
+                        type: 'date'
+                    },
+                    EFFECT_DATE: {
+                        type: 'date'
+                    },
+                    EVA_LIMIT_DATE: {
+                        type: 'date'
+                    },
+                    LIB_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['libType'][value];
+                        }
+                    },
+                    RECEIVE_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "dmDataRecExter",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+
+                                }
+                                var html = "";
+                                var sta = row.DATA_STATUS;
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    if (sta == "WFB" || sta == "TURNBACK") {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                    } else {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                    }
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "DM_RECEIVE_FILE_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        flag = "E";
+                        openDetai('edit', rowData);
+                    }
+                },
+                {
+                    id: "m-file", i18nText: "补充附加文件", auth: "DM_RECEIVE_FILE_BC",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        flag = "E";
+                        openDetai('file', rowData);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除", auth: "DM_RECEIVE_FILE_DEL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'DM_DATA_REC_EXTER_DEL'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-dis", i18nText: "作废", auth: "DM_RECEIVE_FILE_DIS",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认作废该记录？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'DM_DATA_REC_EXTER_DIS'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }, {
+                    id: "m-submit", i18nText: "提交", auth: "DM_RECEIVE_FILE_SUBMIT",
+                    onclick: function () {
+
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (checkDm(rowData.PKID)) {
+                            if (rowData.DATA_STATUS == 'WFB') {
+                                common_add_edit_({
+                                    identity: '',
+                                    isEdit: '',
+                                    width: 520,
+                                    height: 300,
+                                    title: $.i18n.t('选择审批人'),
+                                    param: {
+                                        operation: "flow",
+                                        roleId: '',
+                                        otherParam: minAta + "," + minFleet,
+                                        PKID: rowData.PKID,
+                                        FunctionCode_: 'DM_CAD_SUBMIT',
+                                        successCallback: reload_
+                                    },
+                                    url: "/views/flow/work_flow_account_select.shtml"
+                                });
+                            } else {
+                                MsgAlert({content: "状态不是【未发布】不允许提交！", type: 'error'});
+
+                            }
+                        }
+                    }
+                },
+                {
+                    id: "m-issue", i18nText: "发布", auth: "DM_RECEIVE_FILE_PUBLISH",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        issueCheck(rowData.PKID);
+                    }
+                },{
+                    id: "m-upload", i18nText: "上传附件", auth: "DM_RECEIVE_FILE_UPLOAD",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var dataType = rowData.DATA_TYPE;
+                        var dataFrom = rowData.DATA_FROM;
+                        common_uploadFile({
+                            identity: 'dg',
+                            param: {
+                                dataType: dataType,
+                                dataFrom: dataFrom,
+                                cat: "dmDataRecExter",
+                                sourceId: rowData.PKID,
+                                successCellBack: "",
+                                fialCellBack: ""
+                            }
+                        });
+
+                    }
+                }, {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "DM_RECEIVE_FILE_GUIJI",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "DM_DATA_REC"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+                    }
+                }
+            ],
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('文件接收'),
+                auth: "DM_RECEIVE_FILE_RECEIVE",
+                iconCls: 'icon-add',
+                handler: function () {
+                    editDetailData('add');
+                }
+            }, '-', {
+                id: 'btnReload',
+                text: $.i18n.t('刷新'),
+                iconCls: 'icon-reload',
+                handler: function () {
+                    $("#dg").datagrid("reload");
+                }
+            }],
+
+            validAuth: function (row, items) {
+                if (row.DATA_STATUS != 'WFB') {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                    items['作废'].enable = false;
+                    if(row.DATA_STATUS == 'TURNBACK'){
+                        items['上传附件'].enable = true;
+                    }else{
+                        items['上传附件'].enable = false;
+                    }
+                    items['发布'].enable = false;
+                    items['提交'].enable = false;
+                } else {
+                    items['办理轨迹'].enable = false;
+                    items['补充附加文件'].enable = false;
+                }
+                if (row.HOW_DEALWITH == 'N') {
+                    items['发布'].display = false;
+                } else {
+                    items['提交'].display = false;
+                }
+                if (row.DATA_TYPE != 'CAD') {
+                    items['办理轨迹'].display = false;
+                }
+                if(row.DATA_TYPE != 'MOD'){
+                    items['补充附加文件'].display = false;
+                }
+                if (row.DATA_STATUS == 'TURNBACK') { //被驳回的技术资料允许右键删除
+                    items['删除'].enable = true;
+                }
+                return items;
+            },
+
+
+
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                flag = "V";
+                openDetai("view", value);
+            }
+        });
+    }
+
+    //发布前检验
+    function issueCheck(mpkid) {
+        if (checkDm(mpkid)) {
+            if (filecou != 0) {
+                issue(mpkid, minAta, minFleet, dflag);
+            }
+        }
+    }
+
+    //发布
+    function issue(mpkid, minAta, minFleet, dflag) {
+        if (!confirm("确定要发布吗，发布后不可再收回？")) {
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {
+            mpkid: mpkid,
+            minAta: minAta,
+            minFleet: minFleet,
+            ifEval: dflag,
+            FunctionCode: 'DM_DATA_REC_EXTER_ISS'
+        });
+        //发布前，需先验证是否上传附件，如果没有，则不能发布
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    searchData();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkDm(mpkid) {
+        var rowData = getDG('dg').datagrid('getSelected');
+        var dataType = rowData.DATA_TYPE;
+        var applyModel = rowData.APPLY_MODEL;
+        var applyType = rowData.APPLY_TYPE;
+        var crossData = rowData.CROSS_DATA;
+        var ata2 = rowData.ATA;
+        var howDealwith = rowData.HOW_DEALWITH;
+        var spec = rowData.SPECIALIZE;
+        //保存校验
+        if (isEmpty(mpkid)) {
+            alert("请先保存数据！");
+            return false;
+        }
+
+        if (dataType == "AMOC" || dataType == "IN" || dataType == "NSC") {
+            if (isEmpty(crossData)) {
+                alert("请先选择对应资料！");
+                return false;
+            }
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+
+        //发布前，需先验证是否上传附件，如果没有，则不能发布
+        datas = $.extend({}, datas, {CATEGORY: 'dmDataRecExter', SOURCE_ID: mpkid, FunctionCode: 'DM_EXTER_ARC'});
+        InitFuncCodeRequest_({
+            data: datas, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    filecou = jdata.data.ARC;
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+        if (filecou == 0) {
+            alert("未上传附件，请先上传附件。");
+            return false;
+        }
+
+
+        InitFuncCodeRequest_({
+            data: {dataType: dataType, FunctionCode: 'EM_FILE_GET_EVAL'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        dflag = jdata.data.IF_EVAL;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+
+        var coueng = 0;
+        if (ata2) {
+            if (ata2.indexOf(",") != -1) {
+                var array = ata2.split(",");
+                minAta = array[0];//定义最小值为该数组的第一个数
+                for (var i = 0; i < array.length; i++) {
+                    if (minAta > array[i]) {
+                        minAta = array[i];
+                    }
+                }
+            } else {
+                minAta = ata2;
+            }
+        }
+        if (applyType == 'APL') {
+            if (applyModel) {
+                if (applyModel.indexOf(",") != -1) {
+                    var array = applyModel.split(",");
+                    minFleet = array[0];//定义最小值为该数组的第一个数
+                    for (var i = 0; i < array.length; i++) {
+                        if (minFleet > array[i]) {
+                            minFleet = array[i];
+                        }
+                    }
+                } else {
+                    minFleet = applyModel;
+                }
+            }
+        } else if (applyType == 'ENG') {
+            if (applyModel) {
+                if (applyModel.indexOf("CFM56") != -1) {
+                    minFleet = 'CFM56';
+                } else if (applyModel.indexOf("CF6") != -1) {
+                    minFleet = 'CF6';
+                } else if (applyModel.indexOf("RB211") != -1) {
+                    minFleet = 'RB211';
+                } else if (applyModel.indexOf("PW4000") != -1) {
+                    minFleet = 'PW4000';
+                }
+            }
+        } else {
+            minFleet = applyModel;
+        }
+        var cflag = "";
+        if(dataType == "CAD"){
+            if(howDealwith == "Y"){
+                cflag = "Y";
+            }
+        }else{
+            cflag = "Y";
+        }
+        //EE专业优先级高到底：AV/ME/STR/ENG
+        if(spec != "" && spec != null){
+            if (spec.indexOf("AV") != -1) {
+                minSpec = 'AV';
+            } else if (spec.indexOf("ME") != -1) {
+                minSpec = 'ME';
+            } else if (spec.indexOf("STR") != -1) {
+                minSpec = 'STR';
+            } else if (spec.indexOf("ENG") != -1) {
+                minSpec = 'ENG';
+            }
+        }
+        //校验章节工程师
+        if (dflag == 'Y' && cflag == 'Y') {
+            InitFuncCodeRequest_({
+                data: {ata: minAta, applyModel: minFleet,specialize: minSpec, FunctionCode: 'EM_FILE_COUNT_ENGER'},
+                async: false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (jdata.data.COU != null) {
+                            coueng = jdata.data.COU;
+                        }
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+
+            if (coueng == 0) {
+                MsgAlert({content: "请先在主数据分工规则配置菜单配置章节工程师！章节为：" + minAta + ";机型为：" + minFleet+ ";专业：" + minSpec, type: 'error'});
+                return false;
+            }
+        }
+        return true;
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        flag = "A";
+        openDetai(operation, '');
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, rowData) {
+        var pkid = rowData.PKID;
+        var applyType = rowData.APPLY_TYPE;
+        var dataType = rowData.DATA_TYPE;
+        var title_ = $.i18n.t('技术资料接收');
+        if(flag == "A"){
+            ShowWindowIframe({
+                width: "850",
+                height: "500",
+                title: title_,
+                param: {operation: operation, pkid: pkid, applyType: applyType, dataType: dataType},
+                url: "/views/data_manager/technology_data/adother/dmExterDetail.shtml"
+            });
+        }else{
+            var rowData = getDG('dg').datagrid('getSelected');
+            var dataType = rowData.DATA_TYPE;
+            if(dataType == "SB"){
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, applyType: applyType, dataType: dataType},
+                    url: "/views/data_manager/technology_data/sbsl/sbAdd.shtml"
+                });
+            }else if(dataType == "CAD"){
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, applyType: applyType, dataType: dataType},
+                    url: "/views/data_manager/technology_data/cad/cadAdd.shtml"
+                });
+            }else if(dataType == "AD"){
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, applyType: applyType, dataType: dataType},
+                    url: "/views/data_manager/technology_data/ad/adAdd.shtml"
+                });
+            }else if(dataType == "AMOC"){
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, applyType: applyType, dataType: dataType},
+                    url: "/views/data_manager/technology_data/amoc/amocAdd.shtml"
+                });
+            } else if (dataType == 'IN'||dataType == 'NSC') {
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, applyType: applyType, dataType: dataType},
+                    url: "/views/data_manager/technology_data/nsc/nscAdd.shtml"
+                });
+            }else{
+                ShowWindowIframe({
+                    width: "850",
+                    height: "500",
+                    title: title_,
+                    param: {operation: operation, pkid: pkid, applyType: applyType, dataType: dataType},
+                    url: "/views/data_manager/technology_data/adother/dmExterDetail.shtml"
+                });
+            }
+        }
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //上传
+    function common_uploadFile(edopt) {
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        ShowWindowIframe({
+            width: 575,
+            height: 200,
+            title: title_,
+            param: $.extend({}, edopt.param),
+            url: "/views/data_manager/dm/upload/attachment_add.shtml"
+        });
+    }
+
+</script>
+</body>
+</html>

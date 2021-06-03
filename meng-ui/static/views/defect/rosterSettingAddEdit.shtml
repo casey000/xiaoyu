@@ -1,0 +1,456 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/common_query_dialog.js"></script>
+    <script src="/js/lhgdialog/lhgdialog.js"></script>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/plugins/dialog/dialog_default.css">
+    <link href="/css/nrc/nrc_add.css" rel="stylesheet">
+    <title data-i18n="">排班设置</title>
+    <style type="text/css">
+        #dd .post_table td {
+            border: 1px solid #ccc;
+            height: 30px;
+            border-top: 0px;
+            border-left: 0px;
+            text-indent: 10px;
+        }
+
+        .table-bordered {
+            border: none;
+        }
+        #btnExport {
+            background-color: #2465a8;
+            color: #fff;
+            /*position: absolute;*/
+            top: 0px;
+            margin-left: 5px;
+            /*right: 111px;*/
+        }
+        #pnRequest{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 110px;
+        }
+        #Pdf{
+            background-color: #2465a8;
+            color: #fff;
+            position: absolute;
+            top: 2px;
+            right: 205px;
+        }
+
+        #btnSyncPlan ,
+        #btnDel{
+            background-color: #2465a8;
+            color: #fff;
+            /*position: absolute;*/
+            margin-left: 5px;
+            top: 2px;
+            /*right: 30px;*/
+        }
+        .title-background-color{
+            background-color: #F5F5F5;
+        }
+        .td-font-red,
+        .errorMessage{
+            color: red;
+        }
+        .btnAll{
+            position: fixed;
+            bottom: 0px;
+            width: 100%;
+            background-color: #f0f0f0;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <table class="addnrc_table">
+            <tbody>
+                <div style="display: none">
+                    <div id = "id"></div>
+                </div>
+                <tr>
+                    <td colspan="2" class="title-background-color">航站(中文):</td>
+                    <td colspan="2" >
+                        <div id="station"></div>
+                    </td>
+                    <td colspan="2" class="title-background-color">航站(三字码):<span class="td-font-red">*</span></td>
+                    <td colspan="2" >
+                        <input class="easyui-combogrid" id="staThree"   data-options=""
+                               style="width:95%"/>
+                    </td>
+                    <td colspan="2"  class="title-background-color">处室:<span class="td-font-red">*</span></td>
+                    <td colspan="2" >
+                        <input class="easyui-combobox" data-options="required:true"  id="office" name="currOrgName" style="width:95%;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2"  class="title-background-color">班次时间点:<span class="td-font-red">*</span></td>
+                    <td colspan="4" >
+<!--                        <div id="inWork"></div>-->
+                        <input id="classTime" class="easyui-timespinner" style="width:150px;" value="16:00:00"
+                                data-options="showSeconds:true">
+                    </td>
+                    <td colspan="6" >
+                        <div id="outWork">
+                            以2021-1-11为例：查找班次时间点为:2021-1-11 16:00到2021-01-12 16:00
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2"  class="title-background-color">是否合班:<span class="td-font-red">*</span></td>
+                    <td colspan="4" >
+                        <input style="width: 90%"  class="easyui-textbox" id="coClass"/>
+                    </td>
+                    <td colspan="2"  class="title-background-color coclass-select">预警时长:</td>
+                    <td colspan="4" class="coclass-select">
+                        <input id="classTimelength" class="easyui-numberspinner" style="width:80px;"
+                               data-options="min:0,value:13,editable:true">
+                    </td>
+                    <td colspan="6" class="roseter-placeholder" >
+
+                    </td>
+                </tr>
+                <tr class="roseter-placeholder">
+                    <td colspan="6"  class="title-background-color">运营班</td>
+                    <td colspan="6"  class="title-background-color">航后班</td>
+                </tr>
+                <tr class="roseter-placeholder">
+                    <td colspan="3"  class="title-background-color">预警时长(单位h):<span class="td-font-red">*</span></td>
+                    <td colspan="3" >
+                        <input id="operatClass" class="easyui-numberspinner" style="width:80px;"
+                               data-options="min:0,value:13,editable:true">
+                    </td>
+                    <td colspan="3"  class="title-background-color">预警时长(单位h):</td>
+                    <td colspan="3" >
+                        <input id="poFClass" class="easyui-numberspinner" style="width:80px;"
+                               data-options="min:0,value:13,editable:true">
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </fieldset>
+    <div class="btnAll" >
+        <div colspan="5" align="right" style="padding: 5px 5px;">
+            <!--            编辑提交-->
+            <input class="btn btn-primary" type="button" style=" padding: 2px 29px;   font-size: 15px;margin-right: 20px;" id="submitBtn" onclick="submitAdd('add')" value="提交"/>
+            <!--            关闭按钮-->
+            <input class="btn btn-primary" type="button" style="  padding: 2px 29px;     font-size: 15px;margin-right: 20px;" id="closeBtn" onclick="closeCurrent();" value="关闭"
+                   style="margin-right: 20px;"/>
+        </div>
+    </div>
+</div>
+<script>
+    var params = {};
+    var pageType ,id;
+    function i18nCallBack() {
+        params = getParentParam_();
+        pageType = params.type||"Add";
+        id = params.id||"";
+        initPageComponent();
+        carriedOut();
+    }
+
+    //刷新列表
+    function reload_() {
+        params.OWindow.reload();
+    }
+
+    //初始化查询组件等
+    function initPageComponent(){
+        //航站选择
+        var selectRow;
+        $("#staThree").MyComboGrid({
+            idField: 'STATION',  //实际选择值
+            textField: 'STATION', //文本显示值
+            panelHeight: '180px',
+            width: 140,
+            params: {FunctionCode: 'SELECT_STATION'},
+            columns: [[
+                {field: 'STATION', title: '航站三字码', width: 50},
+                {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                {field: 'FULLNAME_CN', title: '中文全称', width: 50},
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (t != null && t != '' & t != undefined) {
+                    if (selectRow == null || t != selectRow.STATION || t == "SZX") {//没有选择或者选项不相等时清除内容
+                        if(t == "SZX"){
+                            alert('请选择深圳站以外的航站！');
+                        }else {
+                            alert('请选择，不要直接输入！');
+                        };
+                        $(this).combogrid({value: ''});
+                        $("#station").html("");
+                    }
+                }else {
+                    $("#station").html("");
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+                $("#station").html(selectRow.FULLNAME_CN);
+            }
+        });
+        //处室
+        $('#office').combobox({
+            panelHeight: '160px',
+            valueField: 'VALUE',
+            multiple:false,
+            textField: 'TEXT',
+            data: [
+                {
+                    VALUE:"",
+                    TEXT:"—请选择—"
+                },
+                {
+                    VALUE:"航线维修一组",
+                    TEXT:"航线维修一组"
+                },
+                {
+                    VALUE:"航线维修二组",
+                    TEXT:"航线维修二组"
+                },
+                {
+                    VALUE:"航线维修三组",
+                    TEXT:"航线维修三组"
+                },
+                {
+                    VALUE:"航线维修四组",
+                    TEXT:"航线维修四组"
+                },
+                {
+                    VALUE:"定检维修组",
+                    TEXT:"定检维修组"
+                },
+                {
+                    VALUE:"结构修理组",
+                    TEXT:"结构修理组"
+                },
+                {
+                    VALUE:"部件维修组",
+                    TEXT:"部件维修组"
+                }
+            ],
+        });
+        //是否合班
+        $("#coClass").combobox({
+            data:[
+                {
+                    value:"Y",
+                    label:"是"
+                },
+                {
+                    value:"N",
+                    label:"否"
+                }
+            ],
+            editable: false,
+            panelHeight: '60px',
+            valueField: 'value',
+            textField: 'label',
+            onSelect: (data) => {
+                var selectData = data;
+                if(selectData.value == 'Y'){
+                   $(".coclass-select").show();
+                    $(".roseter-placeholder").hide();
+                    $('#operatClass').numberspinner('setValue',"");
+                    $('#poFClass').numberspinner('setValue',"");
+
+                }else {
+                    $(".coclass-select").hide();
+                    $(".roseter-placeholder").show();
+                    $('#classTimelength').numberspinner('setValue',"");
+                }
+            }
+        });
+        $('#classTimelength').spinner({
+            increment:0.5,
+            editable:true
+        });
+    }
+
+    //关闭当前弹窗
+    function closeCurrent(){
+        if (params.OWindow.pathName.indexOf("workTimeRosterSeting") > -1) {
+            params.OWindow.reload();
+        }
+        window.close();
+    };
+
+    //查询数据
+    function getDataById(){
+        var data={} ;
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/otws/schedulingPlanConfig/selectById/"+ id,//,"69996617217896451"
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var getData = jdata.obj||{};
+                    if(JSON.stringify(getData) !== '{}'){
+                        editInit(getData);
+                    }else {
+                        MsgAlert({content: "暂无数据"});
+                    };
+                }else {
+                    MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+                };
+            },
+            error:function (jdata) {
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+    }
+
+    //
+
+    //编辑进入
+    function editInit(data){
+        $("title").text("编辑排班设置");
+        $('#id').html(id);
+        $('#staThree').textbox('setValue',data.station||"");
+        $('#station').html(data.stationDesc||"");
+        $('#office').combobox('setValue',data.currOrgName||"");
+        $('#classTime').timespinner('setValue',data.timePoint||"");
+        if(data.merge == 'N'){
+            $('#coClass').combobox('setValue','N');
+            $(".coclass-select").hide();
+            $(".roseter-placeholder").show();
+        }else if(data.merge == 'Y'){
+            $('#coClass').combobox('setValue','Y');
+            $(".coclass-select").show();
+            $(".roseter-placeholder").hide();
+        };
+        $('#classTimelength').numberspinner('setValue',data.mergeHour||"");
+        $('#operatClass').numberspinner('setValue',data.operationHour||"");
+        $('#poFClass').numberspinner('setValue',data.pofHour||"");
+    }
+
+    //新增进入
+    function addInit(){
+        $("title").text("新增排版设置");
+        $(".coclass-select").show();
+        $(".roseter-placeholder").hide();
+        $('#coClass').combobox('setValue','Y');
+    }
+
+    //获取值
+    function getData(){
+        var getInputData = {
+            id: $('#id').html()||"",
+            stationDesc:  $('#station').html()||"",
+            station: $('#staThree').combobox('getValue')||"",
+            currOrgName:$('#office').combobox('getValue')||"",
+            timePoint:$('#classTime').timespinner('getValue')||"",
+            merge:$('#coClass').combobox('getValue')||"",
+            mergeHour:$('#classTimelength').numberspinner('getValue')||"",
+            operationHour:$('#operatClass').numberspinner('getValue')||"",
+            pofHour:$('#poFClass').numberspinner('getValue')||"",
+        };
+        return getInputData;
+    }
+
+    //提交校验
+    function checkData(data){
+        var data = data;
+        if(!data.station){
+            MsgAlert({content: "请选择航站！", type: 'error'});
+            return false;
+        };
+        if(!data.currOrgName){
+            MsgAlert({content: "请选择处室！", type: 'error'});
+            return false;
+        };
+        if(!data.timePoint){
+            MsgAlert({content: "请输入班次时间！", type: 'error'});
+            return false;
+        };
+        if(!data.merge){
+            MsgAlert({content: "请选择是否合班！", type: 'error'});
+            return false;
+        };
+        if(!data.merge && data.merge == "Y" && !data.mergeHour){
+            MsgAlert({content: "请输入预警时长！", type: 'error'});
+            return false;
+        }else if(!data.merge && data.merge == "N" && (!data.operationHour || !data.pofHour)){
+            MsgAlert({content: "请输入'运营班'和‘航后班’的预警时长！", type: 'error'});
+            return false;
+        };
+        return true;
+    }
+
+    //提交
+    function submitAdd(remark){
+        var remark = remark;
+        var getPostData = getData();
+        if(!checkData(getPostData)){
+            return false;
+        };
+        var postUrl = "";
+        if (!$("#id").html()){
+            //新增
+            postUrl = "/otws/schedulingPlanConfig/add";
+            delete getPostData.id;
+        }else{
+            postUrl = "/otws/schedulingPlanConfig/update";
+        };
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            data: getPostData,
+            path: postUrl ,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    closeCurrent()
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                };
+            },
+            error:function (jdata) {
+                MsgAlert({content: jdata.status + " "+jdata.statusText, type: 'error'});
+            }
+        });
+    }
+
+    //根据传参标识确定新增/编辑
+    function carriedOut() {
+        if(pageType == "edit"){
+            getDataById();
+        }else if(pageType == "add"){
+            addInit();
+        }
+    }
+
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

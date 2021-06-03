@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <input type="hidden" id="pkid" name="pkid">
+        <table class="table table-bordered table-info">
+            <caption style="padding-bottom: 7px;font-weight:bold;">接班</caption>
+            <tr>
+
+                <td align="right" style="padding-top: 6px;">
+                    <input class="btn btn-primary" type="button" onclick="mccHoTake();" value="接班"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                           value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 交接席位：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="hoSeat" name="hoSeat"
+                           data-options="onlyview: true,editable: false"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 交接日期：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="hoDate" name="hoDate"
+                           data-options="onlyview: true,editable: false"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 交接班次：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="hoType" name="hoType"
+                           data-options="onlyview: true,editable: false"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<script type="application/javascript">
+    var param;
+    var hoPkid;
+    var byWho;
+    var type;
+    function i18nCallBack() {
+        param = getParentParam_();
+        if (param.hoPkid) {
+            hoPkid = param.hoPkid;
+            $("#pkid").val(hoPkid);
+        }
+        if (param.byWho) {
+            byWho = param.byWho;
+            if ("ONDUTY" == byWho) {
+                $("#hoSeat").textbox({value: 'MCC值班经理席'});
+            }
+            if ("SUPPORT" == byWho) {
+                $("#hoSeat").textbox({value: 'MCC技术支援席'});
+            }
+            if ("CONTROL" == byWho) {
+                $("#hoSeat").textbox({value: 'MCC控制席'});
+            }
+        }
+        if (param.type) {
+            type = param.type;
+            if ("BB" == type) {
+                $("#hoType").textbox({value: '白班'});
+            }
+            if ("WB" == type) {
+                $("#hoType").textbox({value: '晚班'});
+            }
+        }
+        $("#hoDate").textbox({value: formatterDate(new Date()).substring(0, 16)});
+    }
+
+    //接班
+    function mccHoTake() {
+        InitFuncCodeRequest_({
+            data: {pkid: hoPkid, byWho: byWho, FunctionCode: "PM_MC_MCC_HO_TAKE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                    param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                }
+            }
+        });
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#mform").form('clear');
+            }
+        });
+    }
+</script>
+</body>
+</html>

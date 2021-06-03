@@ -1,0 +1,302 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 200px !important;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="ibox-content">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <input type="hidden" id="id" name="id">
+        <input type="hidden" id="parentId" name="parentId">
+        <input type="hidden" id="flightId" name="flightId">
+        <input type="hidden" id="station" name="station">
+        <input type="hidden" id="acId" name="acId">
+        <input type="hidden" id="model" name="model">
+        <table class="table table-bordered table-info">
+            <caption style="padding-bottom: 7px;font-weight:bold;">新增任务</caption>
+            <tr>
+
+                <td align="right" style="padding-top: 6px;">
+                    <input class="btn btn-primary" type="button" onclick="save();" value="保存"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" type="button" style="margin-right: 25px;" onclick="closeAdd();"
+                           value="关闭"/>
+                </td>
+            </tr>
+        </table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 机号：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="acReg" name="acReg" data-options="required:true"
+                           style="width:150px;"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 计划日期：</th>
+                <td class="tdr">
+                    <input class="easyui-datetimebox" id="jobDate" name="jobDate"
+                           data-options="onlyview: true,editable: false" style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width:110px;" align="right"> 航班号：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="flightNo" name="flightNo"
+                           data-options="required:true,editable: false"
+                           style="width:150px;"/>
+                    <a href="javascript:void(0)" class="easyui-linkbutton" style="height:20px"
+                       data-options="iconCls:'icon-search'"
+                       onclick="chooseFlight();"/>
+                </td>
+                <th class="td5" style="width:110px;" align="right"> 计划工时：</th>
+                <td class="tdr" colspan="3">
+                    <input class="easyui-numberbox" id="planeHours" name="planeHours"
+                           data-options="required:true,precision:2"
+                           style="width:150px;"/>
+                </td>
+            </tr>
+            <tr>
+                <!--<th class="td5" style="width:110px;" align="right"> 工卡标题：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox" id="title" name="title" data-options="editable:false,onlyview:true"
+                           style="width:150px;"/>
+                </td>-->
+                <th class="td5" style="width:110px;" align="right"> 工卡号：</th>
+                <td class="tdr" colspan="4">
+                    <input class="easyui-combobox" id="cardNumber" name="cardNumber"
+                           data-options="required:true,editable: false"
+                           style="width:230px;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5" style="width: 130px;" align="right">任务描述：</th>
+                <td class="tdr" colspan="5">
+                    <input class="easyui-textbox " name="description" id="description"
+                           data-options="required:true,validType:['maxLength[3000]']" multiline="true"
+                           style="height:100px; width:485px;"/>
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<script type="application/javascript">
+    var param;
+    var identity = 'dg';
+    var identity1 = 'dg1';
+    var PAGE_DATA = {};
+    var selectRow;
+    var checkType;
+    var flightB;
+    var flightE;
+    function i18nCallBack() {
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "MSGRP,PM_MC_JOBCARD_NO"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['position'] = DomainCodeToMap_(jdata.data.PM_MC_POSITION);
+                // 初始化查询条件
+                $('#acReg').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP,
+                    onChange: function (value) {
+                        $("#flightNo").textbox('setValue', "");
+                        InitFuncCodeRequest_({
+                            data: {acno: value, FunctionCode: "SELECT_DA_ACREG_BY_ACNO"},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    $("#acId").val(jdata.data.ACID);
+                                    $("#model").val(jdata.data.MODEL_SERIES);
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            actype: jdata.data.MP_ACTYPE,
+                                            FunctionCode: "SELECT_PM_MC_JOBCARD_BY_NO_BY_ACTYPE"
+                                        },
+                                        successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                $('#cardNumber').combobox({
+                                                    panelHeight: '160px',
+                                                    valueField: 'VALUE',
+                                                    textField: 'TEXT',
+                                                    data: jdata.data,
+                                                    onChange: function (value) {
+                                                        InitFuncCodeRequest_({
+                                                            data: {
+                                                                jobcardNo: value,
+                                                                FunctionCode: "PM_MC_JOBCARD_BY_NO"
+                                                            },
+                                                            successCallBack: function (jdata) {
+                                                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                                    $("#description").textbox('setValue', jdata.data.JOBCARD_TITLE);
+                                                                }
+                                                            }
+                                                        });
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+                if (param.PKID) {
+                    $("#id").val(param.PKID);
+                    InitDataForm(param.PKID);
+                }
+            }
+        });
+    }
+
+    //回显数据
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "MCC_WORKORDER_GET"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                }
+            }
+        });
+    }
+
+
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        if (checkType == "O/G") {
+            if (flightB && flightE && $("#jobDate").datetimebox('getValue')) {
+                if (Date.parse(new Date($("#jobDate").datetimebox('getValue'))) < Date.parse(new Date(flightB)) || Date.parse(new Date($("#jobDate").datetimebox('getValue'))) > Date.parse(new Date(flightE))) {
+                    MsgAlert({content: '计划日期不能超出O/G任务时间段范围。', type: 'error'});
+                    return false;
+                }
+            }
+        }
+        var data = $("#mform").serializeObject();
+        data = $.extend({}, data, {FunctionCode: 'MCC_WORKORDER_ADD_EDIT'});
+        MaskUtil.mask("正在处理...");
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                MaskUtil.unmask();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    var pkid = jdata.data;
+                    $("#id").val(pkid);
+                    param.OWindow.searchData1();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    //选择航班号
+    function chooseFlight() {
+        $("#jobDate").datetimebox({required: true, editable: false, onlyview: true});
+        var acno = $("#acReg").combobox('getValue');
+        if (acno == "") {
+            MsgAlert({content: "请先选择机号", type: "error"});
+            return;
+        }
+        $.chooseFlight({
+            fullData: true,
+            filter: {
+                ac: acno
+            },
+            success: function (data) {
+                if (acno != data.AC) {
+                    MsgAlert({content: "不能选择其它机号的航班", type: "error"});
+                    return;
+                }
+                checkType = data.CHECK_TYPE;
+                if (data.CHECK_TYPE == "Pr/F" || data.CHECK_TYPE == "T/R") {
+                    if ("UNRELEASED" != data.status1) {
+                        MsgAlert({content: "该段已放行，不能安排任务", type: "error"});
+                        return;
+                    }
+                    $("#station").val(data.DEPARTURE);
+                    $("#jobDate").datetimebox('setValue', data.PLAN_TO);
+
+                    $("#flightNo").textbox('setValue', data.FLIGHT_NO);
+                    $("#flightId").val(data.flightId);
+                    if(!!data.CHECK_TYPE2){
+                        $("#parentId").val(data.TBFTR);
+                    }else {
+                        $("#parentId").val(data.WORK_ORDER_ID);
+                    };
+                }
+                if (data.CHECK_TYPE == "Po/F" || data.CHECK_TYPE == "O/G") {
+                    if (data.CHECK_TYPE == "Po/F") {
+                        if ("RELEASED" == data.status2) {
+                            MsgAlert({content: "该段已放行，不能安排任务", type: "error"});
+                            return;
+                        } else {
+                            $("#station").val(data.ARRIVAL);
+                            $("#jobDate").datetimebox('setValue', data.PLAN_LDG);
+                            $("#parentId").val(data.pofWorkOrderId);
+                            $("#flightNo").textbox('setValue', data.FLIGHT_NO);
+                            $("#flightId").val(data.flightId);
+                        }
+                    }
+                    if (data.CHECK_TYPE == "O/G") {
+                        //任务安排页面，计划日期，在选择O/G时，放开可以编辑日期
+                        $("#jobDate").datetimebox({required: true, editable: true, onlyview: false});
+                        var hours_ = 0;
+                        //计算OG停场时长，如果大于24，job_date不需要回填。
+                        if (data.FLIGHT_DATE && data.FLIGHT_END_DATE) {
+                            hours_ = GetNumberOfHours(data.FLIGHT_DATE, data.FLIGHT_END_DATE);
+                            flightB = data.FLIGHT_DATE;
+                            flightE = data.FLIGHT_END_DATE;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {parentId: data.pofWorkOrderId, FunctionCode: "SELECT_IS_UNRELEASED"},
+                            successCallBack: function (jdata) {
+                                if (jdata.data.STATUS == 'RELEASED') {
+                                    MsgAlert({content: "该段已放行，不能安排任务", type: "error"});
+
+                                } else {
+                                    $("#station").val(data.ARRIVAL);
+                                    if (hours_ < 24) {
+                                        $("#jobDate").datetimebox('setValue', data.PLAN_LDG);
+                                    }
+                                    $("#parentId").val(data.pofWorkOrderId);
+                                    $("#flightNo").textbox('setValue', data.FLIGHT_NO);
+                                    $("#flightId").val(data.flightId);
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        })
+    }
+    function GetNumberOfHours(date1, date2) {//获得小时数
+        //date1：开始日期，date2结束日期
+        var a1 = Date.parse(new Date(date1));
+        var a2 = Date.parse(new Date(date2));
+        var hours = parseInt((a2 - a1) / (1000 * 60 * 60));//核心：时间戳相减，然后除以天数
+        return hours
+    }
+    function closeAdd() {
+        CloseWindowIframe();
+        param.OWindow.reload_();
+        $("#mform").form('clear');
+    }
+</script>
+</body>
+</html>

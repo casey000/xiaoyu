@@ -1,0 +1,635 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>会议纪要维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+
+        }
+
+        th {
+            width: 120px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+    </style>
+</head>
+<body onunload="closeByOnunloadMeeting()">
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <div id="p0" class="easyui-panel" title="会议纪要信息" style="width: 100%"></div>
+            <table class="table table-bordered table-info" style="width: 100%">
+                <tr>
+                    <td colspan="4" align="right" style="padding: 0;">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="saveEngFsdMeeting()"
+                               value="保存"/>
+                        <input class="btn btn-primary" type="button" id="submitBtn" onclick="submitEngFsdMeetingFlow()"
+                               value="提交审批"/>
+                        <input class="btn btn-primary" type="button" id="fileUploadBtn"
+                               onclick="uploadAttachmentFile()"
+                               value="上传附件"/>
+                        <input class="btn btn-primary" type="button" id="closeBtn" onclick="closeOrReloadMeeting()"
+                               value="关闭"
+                               style="margin-left:3px;margin-right: 20px;"/>
+                    </td>
+                </tr>
+            </table>
+
+            <fieldset class="fieldset_eui">
+                <legend data-i18n="">文件纪要信息</legend>
+                <div class="ibox-content">
+                    <form class="form-horizontal m-t" id="engFsdMeetingForm">
+                        <input type="hidden" id="pkid" name="pkid"/>
+                        <input type="hidden" id="memo" name="memo"/>
+                        <input type="hidden" id="auditUser" name="auditUser"/>
+                        <input type="hidden" id="auditName" name="auditName"/>
+                        <input type="hidden" id="auditDate" name="auditDate"/>
+                        <input type="hidden" id="createUser" name="createUser"/>
+                        <input type="hidden" id="createName" name="createName"/>
+                        <input type="hidden" id="createDate" name="createDate"/>
+                        <input type="hidden" id="modifyUser" name="modifyUser"/>
+                        <input type="hidden" id="modifyName" name="modifyName"/>
+                        <input type="hidden" id="modifyDate" name="modifyDate"/>
+                        <input type="hidden" id="deleteFlag" name="deleteFlag"/>
+                        <input type="hidden" id="status" name="status"/>
+                        <table class="table table-bordered table-info" style="width: 100%">
+                            <tr>
+                                <th>会议日期</th>
+                                <td class="tdr">
+                                    <input class="easyui-datebox" id="meetingDate" name="meetingDate"
+                                           data-options="required:true,editable:true"
+                                           style="width: 200px;"/>
+                                </td>
+                                <th>会议纪要附件：</th>
+                                <td class="tdr" target="_blank" id="fileUploadTd" style="text-decoration:underline;">
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>会议标题：</th>
+                                <td class="tdr" colspan="3">
+                                    <input class="easyui-textbox" id="title" name="title"
+                                           data-options="required:true,editable:true"
+                                           style="width: 650px;"/>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>会议地点：</th>
+                                <td class="tdr">
+                                    <input class="easyui-textbox" id="meetingAddr" name="meetingAddr"
+                                           data-options="required:true,editable:true" style="width: 255px;"/>
+                                </td>
+                                <th>会议主持人：</th>
+                                <td class="tdr">
+                                    <input class="easyui-textbox" id="meetingHost" name="meetingHost"
+                                           data-options="required:true,editable:true" style="width: 255px;"/>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>参会人：</th>
+                                <td class="tdr" colspan="3">
+                                    <input class="easyui-textbox" id="attendee" name="attendee"
+                                           data-options="required:true,editable:true,multiline:true"
+                                           style="width: 650px;height: 40px;"/>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>缺席人：</th>
+                                <td class="tdr" colspan="3">
+                                    <input class="easyui-textbox" id="absentee" name="absentee"
+                                           data-options="editable:true,multiline:true"
+                                           style="width: 650px;height: 40px;"/>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <th>会议结论：</th>
+                                <td class="tdr" colspan="3">
+                                    <input class="easyui-textbox" id="conclusion" name="conclusion"
+                                           data-options="required:false,editable:true,multiline:true"
+                                           style="width: 650px;height: 150px;"/>
+                                </td>
+                            </tr>
+
+                        </table>
+                    </form>
+                </div>
+            </fieldset>
+            <fieldset class="fieldset_eui">
+                <legend data-i18n="">会议任务</legend>
+                <div id="tt" style="height: 255px">
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <td align="right">
+                                <a class="searchBtn" onclick="addOrEditEngFsdMeetingTask('add')"
+                                   data-options="iconCls:'icon-clear'" style="margin-left:3px;margin-right: 10px;"
+                                   id="addBtn1"
+                                >
+                                    <span data-i18n="">新增</span></a>
+                            </td>
+                        </tr>
+                    </table>
+                    <table id="dg1"></table>
+                </div>
+            </fieldset>
+
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script>
+    let meetingParam = getParentParam_();
+    let operation = meetingParam.operation;
+    let rowData = meetingParam.rowData;
+    let type = meetingParam.type;
+    let pkid = meetingParam.pkid;
+    let userId;
+    let userName;
+    let nowDate = new Date();
+    let PAGE_DATA = {};
+
+    function i18nCallBack() {
+        userId = meetingParam.userId;
+        userName = meetingParam.userName;
+        if (!userId) {
+            const userInfo = getLoginInfo();
+            userId = userInfo.accountId;
+            userName = userInfo.userName;
+        }
+        initBasicData();
+
+        if (rowData && rowData.status != '1' && rowData.status != null && rowData.status != '') {
+            $("#submitBtn").hide();
+        }
+
+        //如果传入数据，将数据写入表单中
+        initFuncCode();
+
+        if (rowData) {
+            ParseFormField_(rowData, $("#engFsdMeetingForm"));
+        }
+
+        initFileUpload();
+        initDataGrid1();
+
+    }
+
+    function initBasicData() {
+        if (!rowData && pkid) {
+            const url = "/meng-engine/engFsdMeeting/engFsdMeetingInfoById/" + pkid;
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: url,
+                successCallBack: function (jData) {
+                    if (jData.success == true) {
+                        rowData = jData.obj;
+                    } else {
+                        MsgAlert({content: jData.errorMessage, type: 'error'});
+                    }
+                }
+            })
+        }
+
+        if (rowData && !pkid) {
+            pkid = rowData.pkid;
+        }
+
+
+    }
+
+    //初始化数据字段数据
+    function initFuncCode() {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                domainCode:
+                    "ENG_FSD_MEETING_FEED_STATUS,ENG_FSD_MEETING_TASK_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jData) {
+                if (jData.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['feedbackStatus'] = DomainCodeToMap_(jData.data["ENG_FSD_MEETING_FEED_STATUS"]);
+                    PAGE_DATA['taskStatus'] = DomainCodeToMap_(jData.data["ENG_FSD_MEETING_TASK_STATUS"]);
+                } else {
+                    MsgAlert({content: jData.msg, type: 'error'});
+                }
+
+            }
+        });
+    }
+
+    //初始化会议任务
+    function initDataGrid1() {
+        const queryParams = {refId: pkid};
+        $("#dg1").GatewayDataGrid({
+            identity: 'dg1',
+            sortable: true,
+            singleSelect: true,
+            queryParams: queryParams,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0, 0, 0, 0);
+            },
+            path: "/meng-engine/engFsdMeetingTask/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_FSD_MEETING_TASK_LIST'},
+                alter: {
+                    fileUpload: {
+                        formatter: function (value, row, index) {
+                            if (row.fileUpload) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach attach4">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    feedbackStatus: {
+                        formatter: function (value) {
+                            return PAGE_DATA['feedbackStatus'][value];
+                        }
+                    },
+                    taskStatus: {
+                        formatter: function (value) {
+                            return PAGE_DATA['taskStatus'][value];
+                        }
+                    },
+                    limitDate: {
+                        type: 'date'
+                    },
+                    feedbackDate: {
+                        type: 'date'
+                    },
+                    delayDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    onclick: function () {
+                        const rowData = getDG('dg1').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngFsdMeetingTask('edit', rowData);
+                    }
+                },
+                {
+                    id: "m-delay", i18nText: "延期",
+                    onclick: function () {
+                        const rowData = getDG('dg1').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        delayEngFsdMeetingTask('add', rowData);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    onclick: function () {
+                        const rowData = getDG('dg1').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        deleteEngFsdMeetingTask(rowData);
+                    }
+                },
+                {
+                    id: "m-close", i18nText: "关闭",
+                    onclick: function () {
+                        const rowData = getDG('dg1').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                        }
+                        closeMeetingTask(rowData);
+                    }
+                }
+            ],
+            //数据加载成功后处理附件事件
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        const index = $(thiz).attr("rowindex");
+                        const row = $("#dg1").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.pkid,
+                                CATEGORY: "ENGFSDMEETINGTASK",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jData) {
+                                if (jData.code == 200) {
+                                    var html = "";
+                                    for (var i = 0; i < jData.data.length; i++) {
+                                        if (userId == row.followUser && row.feedbackStatus == "1" && (row.status == '1' || row.status == '4')) {
+                                            html += '<li><a target="_blank" onclick="downFile(' + jData.data[i].PKID + ')">' + jData.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jData.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                        } else {
+                                            html += '<li><a target="_blank" onclick="downFile(' + jData.data[i].PKID + ')">' + jData.data[i].ORG_NAME + '</a></li>';
+                                        }
+                                    }
+                                    callback(html);
+                                }
+                            }
+                        });
+                    }
+                })
+            },
+            validAuth: function (row, items) {
+                //查看是不可删除
+                if (operation == 'view' || row.taskStatus == '2') {
+                    items['删除'].enable = false;
+                    items['编辑'].enable = false;
+                    items['延期'].enable = false;
+                    items['关闭'].enable = false;
+                }
+
+                if (row.status != '1' && row.status != '4') {
+                    items['删除'].enable = false;
+                    items['编辑'].enable = false;
+                }
+
+                if (row.feedbackStatus == '1') {
+                    items['关闭'].enable = false;
+                }
+
+                if (row.feedbackStatus == '2' || row.taskStatus == '3') {
+                    items['延期'].enable = false;
+                    if (row.feedbackStatus == '2'){
+                        items['删除'].enable = false;
+                        items['编辑'].enable = false;
+                    }
+                }
+
+                return items;
+            },
+            //鼠标点击事件
+            onDblClickRow: function (index, field, value) {
+                addOrEditEngFsdMeetingTask("view", value);
+            }
+        });
+    }
+
+    //删除会议Task信息
+    function deleteEngFsdMeetingTask(rowData) {
+        const data = {"pkid": rowData.pkid};
+        InitGatewayRequest_({
+            async: false,
+            data: data,
+            path: "/meng-engine/engFsdMeetingTask/deleteEngFsdMeetingTask",
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    const cou = jData.obj;
+                    if (cou > 0) {
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload1_();
+                    }
+                } else {
+                    MsgAlert({content: "删除失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    //根据不同操作执行不同后处理
+    function postProcessingByOperation() {
+        if (operation == "view") {
+            $(".easyui-textbox").textbox({required: false, editable: false, onlyview: true});
+            $(".easyui-combobox").combobox({required: false, editable: false, onlyview: true});
+            $(".easyui-combogrid").combobox({required: false, editable: false, onlyview: true});
+            $(".easyui-datebox").datebox({required: false, editable: false, onlyview: true});
+            $("#closeBtn").hide();
+            $("#saveBtn").hide();
+            $("#fileUploadBtn").hide();
+            $("#submitBtn").hide();
+            $("#addBtn1").hide();
+            $("#addBtn2").hide();
+        } else if (type == 'flow') {
+            $("#closeBtn").hide();
+        }
+
+    }
+
+    //检查表单值是否合规
+    function checkFromIsValidate() {
+        const isValidate = $("#engFsdMeetingForm").form('validate');
+        return isValidate;
+    }
+
+    //保存数据，修改或增加
+    function saveEngFsdMeeting(ifSubmit) {
+        const isValidate = checkFromIsValidate();
+        if (!isValidate) {
+            return false;
+        }
+        const saveEngFsdMeetingParam = $("#engFsdMeetingForm").serializeObject();
+
+        //第一次编写保存需要将状态设置为编写中
+        if (saveEngFsdMeetingParam.status == null || saveEngFsdMeetingParam.status == '') {
+            saveEngFsdMeetingParam.status = '1';
+            $('#status').val('1');
+        }
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFsdMeeting/saveEngFsdMeeting",
+            data: saveEngFsdMeetingParam,
+            error: function (jData) {
+                MsgAlert({content: jData.errorMessage ? jData.errorMessage : "更新会议纪要信息失败", type: 'error'});
+                return false;
+            },
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    if (!ifSubmit) {
+                        MsgAlert({content: jData.msg ? jData.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    }
+                    if (jData.obj) {
+                        pkid = jData.obj.pkid;
+                        rowData = jData.obj;
+                        ParseFormField_(jData.obj, $("#engFsdMeetingTask"));
+                    }
+                    return true;
+                } else {
+                    return false;
+                    MsgAlert({content: jData.errorMessage ? jData.errorMessage : "更新会议纪要信息失败", type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    function closeOrReloadMeeting() {
+        CloseWindowIframe();
+        closeByOnunloadMeeting();
+    }
+
+    function closeByOnunloadMeeting() {
+
+        if (meetingParam.OWindow && meetingParam.OWindow.reload_) {
+            meetingParam.OWindow.reload_();
+        }
+    }
+
+    //关闭会议任务
+    function closeMeetingTask(rowData) {
+        const data = rowData;
+        if (!pkid) {
+            MsgAlert({content: '请先保存会议纪要信息', type: 'error'})
+            return;
+        }
+        data.taskStatus = '2';
+        data.meetingId = pkid;
+        InitGatewayRequest_({
+            async: false,
+            data: data,
+            path: '/meng-engine/engFsdMeetingTask/saveEngFsdMeetingTask',
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload1_();
+                } else {
+                    MsgAlert({content: jData.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //延期会议
+    function delayEngFsdMeetingTask(operation, rowData) {
+        const title_ = $.i18n.t('任务延期');
+        ShowWindowIframe({
+            width: "540",
+            height: "320",
+            title: title_,
+            param: {operation: operation, rowData: rowData, refId: pkid},
+            url: "/views/engine/engFsd/engFsdMeeting/eng_fsd_meeting_task_delay_add.shtml"
+        });
+    }
+
+    //新增会议任务
+    function addOrEditEngFsdMeetingTask(operation, rowData) {
+        const title_ = $.i18n.t('任务维护');
+        if (!pkid) {
+            MsgAlert({content: '请先保存会议纪要信息', type: 'error'})
+            return;
+        }
+        ShowWindowIframe({
+            width: "810",
+            height: "400",
+            title: title_,
+            param: {refId: pkid, operation: operation, rowData: rowData, userId: userId, userName, userName},
+            url: "/views/engine/engFsd/engFsdMeeting/eng_fsd_meeting_task_add_edit.shtml"
+        });
+    }
+
+
+    //提交流程
+    function submitEngFsdMeetingFlow() {
+        const isSuccess = saveEngFsdMeeting(true);
+        if (isSuccess == false) {
+            return;
+        }
+
+        if (!pkid) {
+            MsgAlert({content: "获取pkid失败！", type: 'error'});
+        }
+        common_add_edit_({
+            identity: '',
+            isEdit: '',
+            width: 520,
+            height: 300,
+            title: $.i18n.t('选择审批人'),
+            param: {
+                operation: "flow",
+                roleId: '',
+                otherParam: '',
+                PKID: pkid,
+                FunctionCode_: 'ENG_FSD_MEETING_SUBMIT',
+                successCallback: closeOrReloadMeeting
+            },
+            url: "/views/flow/work_flow_account_select.shtml"
+        });
+
+    }
+
+    //上传附件
+    function uploadAttachmentFile() {
+        if (!pkid || pkid == '') {
+            MsgAlert({content: "请先保存会议纪要信息！", type: 'error'});
+            return;
+        }
+
+        common_upload_({
+            identity: 'dg',
+            resize: {},
+            param: {
+                cat: 'ENGFSDMEETING',
+                sourceId: pkid,
+                successCallBack: initFileUpload,
+                failCallBack: ""
+            }
+        });
+    }
+
+    function initFileUpload() {
+
+        InitFuncCodeRequest_({
+            data: {
+                SOURCE_ID: pkid,
+                CATEGORY: "ENGFSDMEETING",
+                FunctionCode: 'ATTACHMENT_RSPL_GET'
+            },
+            successCallBack: function (jData) {
+                if (jData.code == 200) {
+                    let html = "";
+                    for (let i = 0; i < jData.data.length; i++) {
+                        if (operation == 'add' || operation == 'edit') {
+                            html += '<li  style="list-style-type:none;"><a target="_blank" style="text-decoration:underline;" onclick="downFile(' + jData.data[i].PKID + ')">' + jData.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jData.data[i].PKID + '\');return false;" class="icon-cross">&nbsp&nbsp&nbsp&nbsp</span></li>';
+                        } else {
+                            html += '<li  style="list-style-type:none;"><a target="_blank" style="text-decoration:underline;" onclick="downFile(' + jData.data[i].PKID + ')">' + jData.data[i].ORG_NAME + '</a></li>';
+                        }
+                    }
+                    $('#fileUploadTd').empty();
+                    $('#fileUploadTd').html(html);
+                }
+            }
+        });
+
+    }
+
+    function reload_() {
+        i18nCallBack();
+    }
+
+    //刷新表格数据
+    function reload1_() {
+        initDataGrid1();
+    }
+
+    //优先执行
+    postProcessingByOperation();
+
+</script>
+</body>
+</html>

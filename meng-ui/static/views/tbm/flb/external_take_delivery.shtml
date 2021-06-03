@@ -1,0 +1,377 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">调配航材接收</title>
+    <!--表格样式-->
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/ui.jqgrid.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_from_me.css" rel="stylesheet" type="text/css"/>
+
+    <!--搜索区域按钮样式-->
+    <link href="/css/common_qc.css" rel="stylesheet" type="text/css"/>
+
+
+    <!---->
+    <script src="/js/global_var.js"></script>
+    <script src="/js/jquery/easyui/jquery-1.8.0.min.js" type="text/javascript"></script>
+
+    <!-- multiSelect -->
+    <script src="/js/jquery-ui-1.8.16.custom.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jquery-ui-multiselect/src/jquery.multiselect.js" type="text/javascript"></script>
+
+    <!-- easy UI -->
+    <script src="/js/jquery/easyui/jquery.easyui.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js" type="text/javascript"></script>
+
+    <!-- Ztree 使用了tree类型的查询条件定义则需要引入此js -->
+    <script src="/js/jquery/ztree/jquery.ztree.core-3.4.js" type="text/javascript"></script>
+    <script src="/js/jquery/ztree/jquery.ztree.excheck-3.4.js" type="text/javascript"></script>
+
+    <!-- jqGrid-->
+    <script src="/js/jquery/jqGrid/jquery.jqGrid.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jqGrid/i18n/grid.locale-cn.js" type="text/javascript"></script>
+
+    <script src="/js/sfa-query-1.0.js" type="text/javascript"></script>
+
+    <script src="/js/common/query_data_dict.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/js/common.js"></script>
+    <style type="text/css">
+
+        #deliveryInfo{
+            background: #fff;
+            width: 100%;
+            height: 100%;
+            /*table-layout: fixed;*/
+        }
+
+        #deliveryInfo .line{
+            width: 100%;
+            height: 42px;
+            margin: 0 auto;
+        }
+        #deliveryInfo .lineInfo{
+            width: 16.5%;
+            float: left;
+            height: 25px;
+            line-height: 25px !important;
+            background: rgb(245, 245, 246);
+            border: 0.5px solid #ccc;
+            word-break: break-all;
+            padding: 8px 0;
+            text-align: center;
+        }
+
+        #deliveryInfo .specialLineInfo{
+            width: 24.8%;
+        }
+
+        #deliveryInfo .val{
+            background: #fff;
+        }
+        #deliveryInfo .valText{
+            height: 41px;
+            padding: 0;
+            background: #fff;
+            width: calc(100% - 16.5% - 2px);
+        }
+        #jiaweiValInput{
+            border: 0;
+            width: calc(100% - 10px);
+            height: 100%;
+            border: 0.5px solid #ccc;
+            padding-left:9px;
+        }
+        #jiaweiValInput:focus{
+            border-color: #BBBBBB;
+            border-radius: 5px;
+            box-shadow: 0 0 3px 0 #d4d4d4;
+            outline: 0;
+        }
+        #bb .l-btn{
+            text-decoration: none;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 3px 10px;
+            border: none;
+        }
+
+        .deliveryDialog{
+            display: none;
+        }
+
+        .ibody .panel-title{
+            font-size: 14px;
+        }
+
+    </style>
+</head>
+<body class="ibody">
+    <div id="qc_box"></div>
+    <div class="list_btn_row_s qc_template" id="qc_template_box"></div>
+    <div class="qc_advance" id="qc_advance_box"></div>
+    <div class="listbox">
+        <div class="gridbox">
+            <div class="grid_tab">
+                <table id="common_list_grid"></table>
+                <div id="gridPager"></div>
+
+            </div>
+        </div>
+    </div>
+    <div class="deliveryDialog">
+        <div id="deliveryModal" class="easyui-dialog" title="My Dialog" style="width:650px;height:300px;"
+             data-options="title:'收货确认',buttons:'#bb',modal:true,closed: true">
+            <div id="deliveryInfo">
+                <div class="line">
+                    <div class="lineInfo">件号:</div>
+                    <div class="lineInfo val" id="pn">
+
+                    </div>
+                    <div class="lineInfo">批次:</div>
+                    <div class="lineInfo val" id="batchNo">
+
+                    </div >
+                    <div class="lineInfo">序号:</div>
+                    <div class="lineInfo val" id="sn">
+
+                    </div>
+                </div>
+                <div class="line">
+                    <!--<div class="lineInfo">实际接收数量:</div>-->
+                    <!--<div class="lineInfo val" id="sendQty">-->
+                    <!--</div>-->
+                    <div class="lineInfo">应接收数量:</div>
+                    <div class="lineInfo val" id="planQty">
+
+                    </div>
+                    <div class="lineInfo">收货单位:</div>
+                    <div  class="lineInfo val" id="unit">
+                    </div >
+                    <div class="lineInfo">航站:</div>
+                    <div  class="lineInfo val" id="station">
+                    </div >
+                </div>
+                <div class="line">
+                    <div class="lineInfo">架位:</div>
+                    <div class="lineInfo valText" id="jiaweiVal">
+                        <input id="jiaweiValInput"/>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+        <div id="bb" style="text-align: center">
+            <a onclick="confirm()" class="easyui-linkbutton">确认</a>
+            <a onclick="cancel()" class="easyui-linkbutton" style="margin-right: 20px">取消</a>
+        </div>
+    </div>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    $(function(){
+        // 优先加载数据字典
+        queryDataDict({
+            "domainCode": "DEPLOY_REASON_TYPE",
+            succFn:function(data){
+                if(data){
+                    PAGE_DATA['reasonType']  = DomainCodeToMap_(data.DEPLOY_REASON_TYPE);
+                }
+            }
+        });
+        //加载表格
+        let defaultParam = {
+            'qname': [''],
+            'qoperator': [''],
+            'qvalue': ['']
+        };
+        var options = {
+            view: "RECEIPT_LIST",
+            // 初始化查询参数
+            defaultParam: defaultParam,
+            qcOptions: {
+                qcBoxId: "qc_box"
+            },
+            gridOptions: {
+                gridId: "common_list_grid",
+                allColModels: {
+                    'edit': {
+                        name: 'E',
+                        colNameEn: 'E',
+                        isOpts: true,
+                        width: 25,
+                        formatter: function (cellValue, options, rowObj) {
+                            //已收货没有编辑按钮
+                            if(rowObj.status == 'X'){
+                                return '';
+                            }else{
+                                let ele = '<div id="rowData_' + rowObj.orderNo+'_'+rowObj.orderItem + '"  class="ui-corner-all clever-jqgrid-action clever-jqgrid-edit edit icon-edit z_bianji" title="Edit"></div>';
+                                $('#rowData_' + rowObj.orderNo+'_'+rowObj.orderItem).die().live('click', function () {
+                                   //显示编辑收货确认框
+                                    getEditInfo(rowObj);
+                                });
+                                return ele;
+                            }
+                        }
+                    },
+                    'reason':{
+                        formatter: function (cellValue, options, rowObj) {
+                            if(!!rowObj.reason){
+                                return rowObj.reason;
+                            }else{
+                                return "";
+                            }
+                        }
+                    },
+                    'status':{
+                        formatter: function (cellValue, options, rowObj) {
+                            //已收货没有编辑按钮
+                            if(rowObj.status == 'X'){
+                                return '已收货';
+                            }else{
+                                return '未收货';
+                            }
+                        }
+                    },
+                    'receiptDay':{
+                        formatter: function (cellValue, options, rowObj) {
+                            let ymd = "";
+                            if(rowObj.receiptDay){
+                                let yyyy = rowObj.receiptDay.substring(0,4);
+                                let MM = rowObj.receiptDay.substring(4,6);
+                                let dd = rowObj.receiptDay.substring(6,8);
+                                ymd = yyyy+"-"+MM+"-"+dd;
+                            }
+                            return ymd;
+                        }
+                    },
+                    'receiptTime':{
+                        formatter: function (cellValue, options, rowObj) {
+                            let hms = "";
+                            if(rowObj.receiptTime){
+                                let hh = rowObj.receiptTime.substring(0,2);
+                                let mm = rowObj.receiptTime.substring(2,4);
+                                let ss = rowObj.receiptTime.substring(4,6);
+                                hms = hh+":"+mm+":"+ss;
+                            }
+                            return hms;
+                        }
+                    }
+                },
+                jqGridSettings: {
+                    height: 500,
+                    multiselect: false
+                },
+                optsFirst: true,
+                optsCols: ['edit']
+            }
+        };
+        $(document).sfaQuery(options);
+    });
+    //刷新
+    function Refresh() {
+        $(".qc_btn_srh").click();
+    }
+
+    var curItem = {};
+    //获取收货详情
+    function getEditInfo(data){
+       // debugger
+        $.ajax({
+            type: "get",
+            url: "/api/v1/receipt/selectByOrder/"+data.orderNo+"/"+data.orderItem,
+            contentType: "application/json;charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+                if(data.code == 200){
+                    curItem = data.data;
+                    initData(data.data);
+                }
+            },
+            error: function () {
+                MsgAlert({content: '获取收货详情失败', type: 'error'});
+                $(".deliveryDialog").hide();
+                $("#deliveryModal").dialog('close');
+            }
+        });
+    }
+
+    //详情数据回显
+    function initData(item){
+        $("#pn").text(item.pn ? item.pn : '');
+        $("#batchNo").text(item.batchNo ? item.batchNo : '');
+        $("#sn").text(item.sn ? item.sn : '');
+        $("#unit").text(item.unit ? item.unit :'');
+        // $("#sendQty").text(item.sendQty);
+        $("#station").text(item.station ? item.station :'');
+        $("#planQty").text(item.planQty ? item.planQty : '');
+        $("#jiaweiValInput").val(item.shelf);
+        $(".deliveryDialog").show();
+        $("#deliveryModal").dialog('open');
+    }
+
+    //用于架位信息长度校验star
+    function shelfLen(shelf) {
+        var len = 0;
+        for (var i=0; i<shelf.length; i++) {
+            if (shelf.charCodeAt(i)>127 || shelf.charCodeAt(i)==94) {
+                len += 2;
+            } else {
+                len ++;
+            }
+        }
+        return len;
+    }
+    //用于架位信息长度校验end
+
+    //确认收货事件
+    function confirm(){
+        let shelf=$("#jiaweiValInput").val();
+        let len=0;
+            len=shelfLen(shelf);
+        if(len>40){
+            MsgAlert({type:"error",content:"请输入40个字符以内的架位信息"});
+        }else{
+            let param = {
+                "orderNo": curItem.orderNo,
+                "orderItem":  curItem.orderItem,
+                "shelf":$("#jiaweiValInput").val()
+            };
+            $.ajax({
+                type: "POST",
+                url: "/api/v1/receipt/confirm",
+                contentType: "application/json;charset=utf-8",
+                data: JSON.stringify(param),
+                dataType: "json",
+                success: function (data) {
+                    if(data.code == 200){
+                        //发料成功
+                        $(document).sfaQuery().reloadQueryGrid();
+                        $(".deliveryDialog").hide();
+                        $("#deliveryModal").dialog('close');
+                        MsgAlert({content: '确认收货成功！', type: 'info'});
+                    }else{
+                        MsgAlert({content: data.msg, type: 'error'});
+                        $(".deliveryDialog").hide();
+                        $("#deliveryModal").dialog('close');
+                    }
+                },
+                error: function () {
+                    MsgAlert({content: '确认收货失败', type: 'error'});
+                    $(".deliveryDialog").hide();
+                    $("#deliveryModal").dialog('close');
+                }
+            });
+        }
+    }
+
+    //取消事件
+    function cancel(){
+        $(".deliveryDialog").hide();
+        $("#deliveryModal").dialog('close');
+    }
+</script>
+</body>
+</html>

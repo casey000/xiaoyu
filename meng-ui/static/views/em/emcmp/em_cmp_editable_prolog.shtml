@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html xmlns="http://www.w3.org/1999/html">
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">文件维护</title>
+    <style>
+        .abc {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="">
+    <div title="文件维护" style="">
+        <form id="mform" method="post">
+            <input type="hidden" id="cmpPkid" name="cmpPkid"/>
+            <input type="hidden" id="pkid" name="pkid"/>
+
+            <div id="searchBar">
+                <div>
+                    <h4>维修方案编写建议</h4>
+                    <p>
+                        1.在编写维修方案时，将非结构化内容和结构化内容分为不同的部分，例如：将非结构化的内容安排在前半部分，将结构化的cmp项目安排在后半部分：
+                        </br>
+                        2.非结构化的文字部分使用WORD等编辑，之后上传到系统中对应的目录下保存。
+                        </br>
+                        3.结构化的cmp项目直接在系统中维护
+                        </br>
+                        4.cmp有效页面清单通过系统的打印功能打印成 pdf格式，如必要需要人工校准
+                    </p>
+                </div>
+                <div>
+                    <br/>
+                    <input class="btn btn-primary" type="button" style="margin-left:30px;" auth="EM_CMP_WJWH_UPLOAD"
+                           onclick="upload()" value="上传附件"/>&nbsp;&nbsp;
+                    <input class="btn btn-primary" data-options="iconCls:'icon-edit'" auth="EM_CMP_WJWH_UPLOAD"
+                           type="button" onclick="reload_()" value="刷新"/>&nbsp;&nbsp;
+                    <br/>
+                    <br/>
+                    文件：<span id="fileName"></span>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/pageoffice.js" id="po_js_main"></script>
+<script type="text/javascript">
+
+    var thisURL = document.URL.split('?')[1];
+    var catid = thisURL.split("=")[1];
+    var cmpPkid = thisURL.split("=")[2];
+    var cmpStatus;
+    var cmpStatus_cg = 'DRAFT';
+
+    function i18nCallBack() {
+        //alert("若修订附件，请注意上传最新版!");
+        getCmpOne();
+        $("#pkid").val(catid);
+        $("#cmpPkid").val(cmpPkid);
+    }
+
+    function getCmpOne() {
+        InitFuncCodeRequest_({
+            data: {
+                pkid: cmpPkid,
+                FunctionCode: "EM_CMP_GETONE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    cmpStatus = jdata.data.STATUS;
+                    successCallBack();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function successCallBack(jdata) {
+        InitFuncCodeRequest_({
+            data: {SOURCE_ID: catid, CATEGORY: "EMCMPLAW", FunctionCode: 'ATTACHMENT_RSPL_GET'},
+            successCallBack: function (jdata) {
+                var html = "";
+                var fileName;
+                for (var i = 0; i < jdata.data.length; i++) {
+                    var erdat = jdata.data[i].ERDAT;
+                    var orgName = jdata.data[i].ORG_NAME;
+                    orgName = orgName.split(".")[0] + '_' + erdat + "." + orgName.split(".")[1];
+                    if (cmpStatus != cmpStatus_cg) {
+                        fileName = '<li>文件名称' + orgName + '&nbsp;&nbsp;&nbsp;&nbsp;<span  class="abc" style="text-decoration: underline;" onclick="downFileLocal(\'' + jdata.data[i].PKID + '\');">下载</span>' + '</li>';
+                    } else {
+                        fileName = '<li>文件名称' + orgName + '&nbsp;&nbsp;&nbsp;&nbsp;<span class="abc" style="text-decoration: underline;" name ="del" onclick="deleteFile(\'' + jdata.data[i].PKID + '\');">删除</span>' + '&nbsp;&nbsp;&nbsp;&nbsp;<span class="abc" style="text-decoration: underline;" onclick="downFileLocal(\'' + jdata.data[i].PKID + '\');">下载</span>' + '</li>';
+                    }
+
+                    html += fileName
+                }
+                document.getElementById("fileName").innerHTML = html;
+
+
+            }
+        })
+    }
+
+    $("span").mouseover(function () {
+        $(this).css({
+            "border-color": "green",
+            "color": "blue"
+        });
+    }).mouseout(function () {
+        $(this).css({
+            "border-color": "green",
+            "color": "green"
+        });
+    });
+
+    function reload_() {
+        successCallBack();
+    }
+
+    //下载
+    function downFile(pkid, filename) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, filename: filename, FunctionCode: 'ATTACHMENT_DOWN'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    doPost(Constant.API_URL + "/ATTACHMENT_DOWN", {pkid: pkid, filename: filename, down: 'Y'});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //删除
+    function deleteFile(pkid) {
+        $.messager.confirm('', '是否删除', function (r) {
+            if (r) {
+                InitFuncCodeRequest_({
+                    data: {pkid: pkid, FunctionCode: 'ATTACHMENT_RSPL_DEL'},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == 200) {
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            successCallBack();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    //上传附件
+    function upload() {
+        if (cmpStatus != cmpStatus_cg) {
+            MsgAlert({content: '必须为草稿状态', type: 'error'});
+            return false;
+        }
+        common_upload_({
+            /*  identity: identity,*/
+            param: {cat: 'EMCMPLAW', sourceId: catid, successCallBack: successCallBack, failCallBack: "bb"},
+        });
+    }
+
+</script>
+</body>
+</html>

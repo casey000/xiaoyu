@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>流程定义管理</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th>流程名称:</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="defname"/>
+                    </td>
+                    <th>流程定义KEY:</th>
+                    <td style="width:110px">
+                        <input class="easyui-textbox" name="defkey"/>
+                    </td>
+
+                    <td colspan="2">
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
+                           onclick="onSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-clear'"
+                           onclick="onClear_()"><span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    function i18nCallBack() {
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            title: $.i18n.t('RES.PROCESS_DEFINITION_LIST.TITLE'),
+            columns: {
+                param: {FunctionCode: 'PROCESS_DEFINITION_LIST'},
+                alter: {}
+            },
+            validAuth: function (row, items) {
+                if (row.ACTI_DEPLOYMENT_ID) {
+                    items['RES.PROCESS_DEFINITION_LIST.PROC_DEF_DEPLOY'].enable = false;
+                } else {
+                    items['RES.PROCESS_DEFINITION_LIST.PROC_INSTANCE_LIST'].enable = false;
+                }
+                return items;
+            },
+            contextMenus: [
+                {
+                    i18nText: "RES.PROCESS_DEFINITION_LIST.PROC_INSTANCE_LIST", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_page_({
+                            identity: identity, checkRowData: true, width: '90%', height: '90%',
+                            param: {
+                                processDefinitionId: rowData.ACTI_PROC_ID || "", processName: rowData.PROCESS_NAME
+                            },
+                            title: $.i18n.t("RES.PROCESS_DEFINITION_LIST.PROC_INSTANCE_LIST") + "[" + rowData.PROCESS_NAME + "]",
+                            url: "/views/ws/work_flow/processDefinition/process_instance_list.shtml"
+                        });
+                    }
+                },
+                {
+                    i18nText: "RES.PROCESS_DEFINITION_LIST.PROC_DEF_EDIT", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var t = function () {
+                            common_add_edit_({
+                                identity: identity, isEdit: 1, width: '90%', height: '90%',
+                                param: {ID: rowData.ID || "", PROCESS_NAME: rowData.PROCESS_NAME || ""},
+                                title: $.i18n.t("RES.PROCESS_DEFINITION_LIST.PROC_DEF_EDIT") + "[" + rowData.PROCESS_NAME + "]",
+                                url: "/views/ws/work_flow/designer/index.shtml"
+                            });
+                        };
+                        if (!rowData || !rowData.ID) {
+                            MsgAlert({content: "该流程无法编辑设计!", type: 'error'});
+                            return;
+                        }
+                        if (rowData && rowData.ACTI_PROC_ID) {
+                            layerConfirm_({
+                                content: "该流程已部署，是否编辑该流程副本？",
+                                yesFunc: function () {
+                                    t();
+                                }
+                            });
+                        } else {
+                            t();
+                        }
+                    }
+                },
+                {
+                    i18nText: "RES.PROCESS_DEFINITION_LIST.PROC_DEF_DEPLOY", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_confirm_({
+                            identity: identity,
+                            cfmI18next: "RES.PROCESS_DEFINITION_LIST.PROC_DEF_DEPLOY_CONFIRM",
+                            param: {id: "ID"},
+                            FunctionCode: "PROCESS_DEFINITION_DEPLOY",
+                            CallRequest: function (d_) {
+                                var load = parent.layer.msg('处理中...', {time: 0, shade: [0.3, '#393D49'], icon: 16});
+                                InitFuncCodeRequest_({
+                                    data: d_,
+                                    successCallBack: function (jdata) {
+                                        parent.layer.close(load);
+                                        layerStandardMsg_(jdata, null, function () {
+                                            common_reload_({identity: identity});
+                                        });
+                                    }
+                                });
+                            }
+                        })
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "RES.PROCESS_DEFINITION_LIST.PROC_DEF_DEL", auth: "",
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_page_({
+                            identity: identity, checkRowData: true, width: 420, height: 280,
+                            param: {
+                                DEPLOYMENT_ID: rowData.ACTI_DEPLOYMENT_ID || "",
+                                ID: rowData.ID || ""
+                            },
+                            title: $.i18n.t("RES.PROCESS_DEFINITION_LIST.PROC_DEF_DEL") + "[" + (rowData.PROCESS_NAME || rowData.ACTI_PROC_KEY) + "]",
+                            url: "/views/ws/work_flow/processDefinition/process_definition_del_confirm.shtml"
+                        });
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    iconCls: 'icon-application_side_list', text: '新建流程', auth: "",
+                    handler: function () {
+                        common_add_edit_({
+                            title: "流程定义设计",
+                            identity: identity, isEdit: 0, width: '96%', height: '94%',
+                            url: "/views/ws/work_flow/designer/index.shtml"
+                        });
+                    }
+                }, '-',
+                {
+                    iconCls: 'icon-application_side_list', text: $.i18n.t('RES.PROCESS_DEFINITION_LIST.XMLPROCESS'),
+                    handler: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 0, width: 600, height: 320,
+                            url: '/views/ws/work_flow/processDefinition/flow_deploy_process.shtml'
+                        });
+                    }
+                },
+                {
+                    key: "COMMON_RELOAD", text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        common_reload_({identity: identity});
+                    }
+                }
+            ]
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

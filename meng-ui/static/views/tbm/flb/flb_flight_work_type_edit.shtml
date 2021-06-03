@@ -1,0 +1,112 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>航班任务类型修改页</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="easyui-form" data-options="novalidate:true" id="mform" method="post">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th align="right" class="th" style="width: 80px;padding-right: 10px;height: 35px;">任务类型：</th>
+                        <td id="workTypeTd" style="width: 100px;padding-left:10px;">
+                            <select class="easyui-combobox text" data-options="required:true" id="workTypeSelect"
+                                    name="workType" style="width: 60%;">
+                                <option value="">--select--</option>
+                                <option value="Pr/F">Pr/F</option>
+                                <option value="T/R">T/R</option>
+                                <option value="N/A">N/A</option>
+                            </select>
+                            <label id="workTypeLable" style="color:red;display: none">任务类型为必填项</label>
+                        </td>
+                    </tr>
+                    <tr id="view">
+                        <td align="right" colspan="6">
+                            <span style="padding-right: 10%">
+                                <input class="btn btn-primary" onClick="validate()" style="width: 50px;margin:5px;"
+                                       type="button" value="保存"/>
+                                <input class="btn btn-primary" onClick="CloseWindowIframe();"
+                                       style="width: 50px;margin:5px;background-color: #ce3c3c" type="button"
+                                       value="关闭"/>
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script src="/js/datagrid_utils.js" type="text/javascript"></script>
+<script type="text/javascript">
+    var param = getParentParam_();
+    $(function () {
+        $('#workTypeSelect').combobox({
+            onChange: function (n, o) {
+                var _object = $(this);
+                var _value = _object.combobox('getValue');
+                if (_value) {
+                    removeClass(_object);
+                } else {
+                    addClass(_object);
+                }
+            }
+        });
+    });
+
+    function validate() {
+        var _object = $('#workTypeSelect');
+        var _value = _object.combobox('getValue');
+        if (_value) {
+            removeClass(_object);
+            if(_value == param.type){
+                MsgAlert({content: "不能修改成本身类型", type: 'error'});
+                return;
+            }
+            var workOrderId = param.workOrderId;
+
+            var $form = $("#mform");
+            var datas = $form.serializeObject();
+            console.log("event report datas: " + JSON.stringify(datas));
+            datas = $.extend({workOrderId: workOrderId}, datas, {FunctionCode: 'STATION_TASK_WORK_TYPE_EDIT'});
+            console.log("event report datas: " + JSON.stringify(datas));
+            InitFuncCodeRequest_({
+                data: datas,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        param.OWindow.eventReportReload_();
+                        param.OWindow.listreload_();
+                        param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msgData[0] ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                    }
+                }
+            });
+
+        } else {
+            addClass(_object);
+        }
+    }
+
+    function addClass(_object) {
+        _object.parent("td").find("span").addClass('textbox-invalid');
+        _object.parent("td").find("label").css('display', 'inline-block');
+    }
+
+    function removeClass(_object) {
+        _object.parent("td").find("span").removeClass('textbox-invalid');
+        _object.parent("td").find("label").css('display', 'none');
+    }
+</script>
+</html>

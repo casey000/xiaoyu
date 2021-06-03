@@ -1,0 +1,423 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>航线交接班管理</title>
+    <style>
+        .datagrid-wrap {
+            height: 300px !important;
+            width: 99% !important;
+        }
+
+    </style>
+</head>
+<body class="ibody">
+<div style="width:100%;margin:0 auto;">
+<fieldset class="fieldset_eui">
+    <!--<legend>搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <caption id="captionTitle" style="padding-bottom: 7px;font-weight:bold;"></caption>
+                <tr>
+                    <td colspan="2" align="right" style="align-items: center;height: 25px" >
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="airLineHo()" auth="PM_MC_AIRLINE_HO"><span>交班</span></a>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="closeAdd()"><span>关闭</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+    <tr>
+        <th colspan="2" style="text-align: left;height: 25px">Tasks From Last Flight</th>
+        <th colspan="2" align="right">
+            <a class="searchBtn" data-options="iconCls:'icon-search'"
+               onclick="batch('dg','CLOSE')" auth="PM_MC_AIRLINE_CLOSE"><span>close</span></a>
+            <a class="searchBtn" data-options="iconCls:'icon-search'"
+               onclick="batch('dg','HANDOVER')" auth="PM_MC_AIRLINE_HANDOVER"><span>handover</span></a>
+            <a class="searchBtn" data-options="iconCls:'icon-search'"
+               onclick="batch('dg','OPEN')" auth="PM_MC_AIRLINE_REOPEN"><span>reopen</span></a>
+        </th>
+    </tr>
+</table>
+<table id="dg"></table>
+<table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+    <tr>
+        <th colspan="2" style="text-align: left;height: 25px">Tasks On This Flight</th>
+        <th colspan="2" align="right" width="160px">
+            <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="add()" auth="PM_MC_AIRLINE_ADD"><span>add</span></a>
+            <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="batch('dg1','CLOSE')" auth="PM_MC_AIRLINE_CLOSE"><span>close</span></a>
+            <a class="searchBtn" data-options="iconCls:'icon-search'"
+               onclick="batch('dg1','HANDOVER')" auth="PM_MC_AIRLINE_HANDOVER"><span>handover</span></a>
+            <a class="searchBtn" data-options="iconCls:'icon-search'"
+               onclick="batch('dg1','OPEN')" auth="PM_MC_AIRLINE_REOPEN"><span>reopen</span></a>
+        </th>
+    </tr>
+</table>
+<table id="dg1"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    var hoPkid;
+    var hoStation;
+    var hoDate;
+    var hoTime;
+    var flag;
+    function i18nCallBack() {
+        param = getParentParam_();
+        if (param.hoPkid) {
+            hoPkid = param.hoPkid;
+            hoStation = param.hoStation;
+            hoDate = param.hoDate;
+            hoTime = param.hoTime;
+            $("#captionTitle").html(hoDate.substring(0, 10) + "&nbsp" + hoTime + "&nbsp" + hoStation);
+        }
+        if (param.flag && param.flag == 'CLOSE') {
+            $(".searchBtn").hide();
+        }
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "AIRLINE_ITEM_TYPE"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['itemType'] = DomainCodeToMap_(jdata.data.AIRLINE_ITEM_TYPE);
+                InitDataGrid();
+                InitDataGrid1();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            queryParams: {thisFlightOrLastFlight: 'lastFlight', hoPkid: hoPkid},
+            columns: {
+                param: {FunctionCode: 'PM_MC_AIRLINE_ITEM_LIST'},
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a  href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    AIRLINE_DATE: {
+                        type: 'date'
+                    },
+                    INPUTER_NAME: {
+                        formatter: function (value, row, index) {
+                            return (value == undefined ? "" : value + "(" + row.INPUTER_ID + ")");
+                        }
+                    },
+                    HANDLER_NAME: {
+                        formatter: function (value, row, index) {
+                            return (value == undefined ? "" : value + "(" + row.HANDLER_ID + ")");
+                        }
+                    },
+                    TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['itemType'][value];
+                        }
+                    },
+                    LSRZ: {
+                        formatter: function (value, row, index) {
+                            return "<input class='btn' style='width: 100px' type='button' onclick=\"history('" + row.PKID2 + "');\"  value='history'/>";
+                        }
+                    },
+                }
+            },
+            validAuth: function (row, items) {
+                if (param.flag && param.flag == 'CLOSE') {
+                    items['编辑'].enable = false;
+                    items['上传附件'].enable = false;
+                }
+                if (row.STATUS != 'OPEN') {
+                    items['编辑'].enable = false;
+                    items['上传附件'].enable = false;
+                }
+                return items;
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID2,
+                                CATEGORY: "AIRLINEHOITEM",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span auth="PM_MC_AIRLINE_DEL" onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                }, 'attach');
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",auth:"PM_MC_AIRLINE_EDIT",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 650, height: 400,
+                            param: {thisFlightOrLastFlight: 'lastFlight'},
+                            url: "/views/pm/mc/handover/airline_ho_item_add_edit.shtml"
+                        })
+                    }
+                },
+                {
+                    id: "", i18nText: "上传附件", auth: "PM_MC_AIRLINE_UPLOAD",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        common_upload_({
+                            identity: 'dg',
+                            param: {
+                                cat: 'AIRLINEHOITEM',
+                                sourceId: rowData.PKID2,
+                                successCallBack: function () {
+                                    reload_();
+                                },
+                                failCallBack: ""
+                            }
+                        });
+                    }
+                },
+            ]
+        });
+    }
+    function InitDataGrid1() {
+        $("#dg1").MyDataGrid({
+            identity: 'dg1',
+            queryParams: {thisFlightOrLastFlight: 'thisFlight', hoPkid: hoPkid},
+            columns: {
+                param: {FunctionCode: 'PM_MC_AIRLINE_ITEM_LIST'},
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a  href="javascript:void(0);" rowindex="' + index + '" class="attach1">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    AIRLINE_DATE: {
+                        type: 'date'
+                    },
+                    INPUTER_NAME: {
+                        formatter: function (value, row, index) {
+                            return (value == undefined ? "" : value + "(" + row.INPUTER_ID + ")");
+                        }
+                    },
+                    HANDLER_NAME: {
+                        formatter: function (value, row, index) {
+                            return (value == undefined ? "" : value + "(" + row.HANDLER_ID + ")");
+                        }
+                    },
+                    TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['itemType'][value];
+                        }
+                    },
+                    LSRZ: {
+                        formatter: function (value, row, index) {
+                            return "<input class='btn' style='width: 100px' type='button' onclick=\"history('" + row.PKID2 + "');\"  value='history'/>";
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach1', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg1").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID2,
+                                CATEGORY: "AIRLINEHOITEM",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == 200) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span auth="PM_MC_AIRLINE_DEL" onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                }, 'attach1');
+                //$("#dg1").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+            },
+            validAuth: function (row, items) {
+                if (param.flag && param.flag == 'CLOSE') {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                    items['上传附件'].enable = false;
+                }
+                if (row.STATUS != 'OPEN') {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                    items['上传附件'].enable = false;
+                }
+                return items;
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",auth: "PM_MC_AIRLINE_EDIT",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: 'dg1', isEdit: 1, width: 650, height: 400,
+                            param: {thisFlightOrLastFlight: 'thisFlight'},
+                            url: "/views/pm/mc/handover/airline_ho_item_add_edit.shtml"
+                        })
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "删除",auth: "PM_MC_AIRLINE_DEL",
+                    onclick: function () {
+                        var rowData = $("#dg1").datagrid('getSelected');
+                        common_delete_({
+                            identity: 'dg1',
+                            cfmI18next: "确认删除吗",
+                            param: {data: {pkid: rowData.PKID}},
+                            FunctionCode: "PM_MC_AIRLINE_ITEM_DEL"
+                        })
+                    }
+                },
+                {
+                    id: "", i18nText: "上传附件", auth: "PM_MC_AIRLINE_UPLOAD",
+                    onclick: function () {
+                        var rowData = getDG('dg1').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        common_upload_({
+                            identity: 'dg1',
+                            param: {
+                                cat: 'AIRLINEHOITEM',
+                                sourceId: rowData.PKID2,
+                                successCallBack: function () {
+                                    reload_();
+                                },
+                                failCallBack: ""
+                            }
+                        });
+
+                    }
+                },
+            ]
+        });
+    }
+
+    //批量操作
+    function batch(dg, status) {
+        var rows = $('#' + dg).datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: $.i18n.t('请至少选择一行数据'), type: 'error'});
+            return;
+        }
+        var pkids = "";
+        var error = "";
+        //close,handover判断是否都是OPEN状态
+        if("OPEN" != status){
+            for (var i = 0; i < rows.length; i++) {
+                pkids += rows[i].PKID + ",";
+                var itemStatus = rows[i].STATUS;
+                if (itemStatus != 'OPEN') {
+                    error = "只有OPEN状态可以进行" + status + "操作";
+                }
+            }
+        }else{
+            //reopen判断是否都是非OPEN状态
+            for (var i = 0; i < rows.length; i++) {
+                pkids += rows[i].PKID + ",";
+                var itemStatus = rows[i].STATUS;
+                if (itemStatus == 'OPEN') {
+                    error = "只有非OPEN状态可以进行" + status + "操作";
+                }
+            }
+        }
+        if (error != "") {
+            MsgAlert({content: error, type: 'error'});
+            return;
+        }
+        InitFuncCodeRequest_({
+            data: {pkids: pkids, status: status, FunctionCode: 'BATCH_CLOSE_OR_HANDOVER'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    reload_();
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                }
+            }
+        })
+    }
+    //历史日志history
+    function history(pkid2) {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 650, height: 400,
+            param: {pkid2: pkid2},
+            url: "/views/pm/mc/handover/airline_ho_log_history.shtml"
+        });
+    }
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+        $("#dg1").datagrid("reload");
+    }
+    function add() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 650, height: 450,
+            param: {hoPkid: hoPkid},
+            url: "/views/pm/mc/handover/airline_ho_item_add_edit.shtml"
+        });
+    }
+    function airLineHo() {
+        if (confirm("确认交班吗？")) {
+            InitFuncCodeRequest_({
+                data: {hoPkid: hoPkid, FunctionCode: 'PM_MC_AIRLINE_HO'},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                        param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    } else {
+                        MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                    }
+                }
+            })
+        }
+    }
+
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#ffSearch").form('clear');
+            }
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>发动机资料注册详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="6" align="right">
+                            <input class="btn btn-primary" id="saveBtn" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">手册来源：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combogrid" id="dataFrom" name="dataFrom" data-options="required:true" />
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">手册类型：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="dataType" name="dataType"
+                                   data-options="required:true,editable:true" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">手册编号：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="dataNo" name="dataNo"
+                                   data-options="required:true,editable:true"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">手册级别：</th>
+                        <td style="width: 100px;  padding: 3px">
+                            <input class="easyui-combobox" id="dataLevel" name="dataLevel"
+                                   data-options="editable:false" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">手册标题：</th>
+                        <td colspan="3" style="width: 100px;  padding: 3px">
+                            <textarea id="dataTitle" name="dataTitle" style="width: 500px;height:50px;"></textarea>
+                        </td>
+
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">网址：</th>
+                        <td colspan="3" style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="fileUrl" name="fileUrl" style="width: 335px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">适用性：</th>
+                        <td colspan="5" style="width: 100px;  padding: 3px" id="applicStr">
+                            <input class="easyui-combobox" id="applic" name="applic"
+                                   data-options="required:true,editable:true" style="width: 180px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">备注：</th>
+                        <td style="width: 100px;  padding: 3px" colspan="5">
+                            <textarea id="memo" name="memo" style="width: 500px;height:50px;"></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var type;
+    var COMBOBOX_DATA = {};
+    var selectStatus="0";//0：不全选 1：全选
+
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        type = param.type;
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_REC_PRIVIDOR,DM_DATA_TYPE_ENG,YESORNO,DM_DATA_LEVEL,DA_FLEET,DM_DATA_ENG_FROM",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    COMBOBOX_DATA['dataType'] = jdata.data.DM_DATA_TYPE_ENG;
+                    COMBOBOX_DATA['ifThird'] = jdata.data.YESORNO;
+                    COMBOBOX_DATA['ifUpload'] = jdata.data.YESORNO;
+                    COMBOBOX_DATA['dataLevel'] = jdata.data.DM_DATA_LEVEL;
+                    COMBOBOX_DATA['fleet'] = jdata.data.DA_FLEET;
+
+                    //资料类型
+                    $("#dataType").combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_DATA_TYPE_ENG,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#dataFrom').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_REC_PRIVIDOR,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //是否第三方
+                    $("#ifThird").combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#applic').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //是否上传
+                    $("#ifUpload").combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //资料级别
+                    $("#dataLevel").combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DM_DATA_LEVEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    if (param.pkid) {
+                        InitDataForm(param.pkid);
+                    }
+                }
+
+                if (type == 'view') {
+                    $("#saveBtn").hide();
+                }
+
+
+            }
+        })
+    }
+
+    //数据反显
+    function InitDataForm(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/online-manual/engineManual/selectById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                    if (type == "view") {
+                        $('#dataFrom').combobox({value: jdata.obj.dataFrom, onlyview: true, editable: false});
+                        $('#applic').combobox({value: jdata.obj.applic, onlyview: true, editable: false});
+                        $('#dataLevel').combobox({value: jdata.obj.dataLevel, onlyview: true, editable: false});
+                        // $('#dataNo').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+                        $('#dataTitle').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+                        $('#fileUrl').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+
+                    }
+                    if (type == "edit") {
+                        //已发布后，再编辑，不可修改适用性、资料类型、资料来源。
+                        if (jdata.obj.STATUS == "YFB") {
+                            $('#dataFrom').combobox({value: jdata.obj.dataFrom, onlyview: true, editable: false});
+                            $('#dataType').combobox({value: jdata.obj.dataType, onlyview: true, editable: false});
+                            $('#applic').combobox({value: jdata.obj.applic, onlyview: true, editable: false});
+                        }
+                    }
+                } else {
+                    MsgAlert({content: '操作失敗', type: 'error'})
+                }
+            }
+        });
+        // InitFuncCodeRequest_({
+        //     data: {pkid: pkid, FunctionCode: "DM_DATA_REG_AC_PK"}, successCallBack: function (jdata) {
+        //         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+        //             ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+        //             if (type == "view") {
+        //                 $('#dataFrom').combobox({value: jdata.data.DATA_FROM, onlyview: true, editable: false});
+        //                 $('#applic').combobox({value: jdata.data.APPLIC, onlyview: true, editable: false});
+        //                 $('#dataLevel').combobox({value: jdata.data.DATA_LEVEL, onlyview: true, editable: false});
+        //                 // $('#dataNo').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+        //                 $('#dataTitle').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+        //                 $('#fileUrl').textbox({onlyview: true, editable: false});//将textbox 不可编辑
+        //
+        //             }
+        //             if (type == "edit") {
+        //                 //已发布后，再编辑，不可修改适用性、资料类型、资料来源。
+        //                 if (jdata.data.STATUS == "YFB") {
+        //                     $('#dataFrom').combobox({value: jdata.data.DATA_FROM, onlyview: true, editable: false});
+        //                     $('#dataType').combobox({value: jdata.data.DATA_TYPE, onlyview: true, editable: false});
+        //                     $('#applic').combobox({value: jdata.data.APPLIC, onlyview: true, editable: false});
+        //                 }
+        //             }
+        //         } else {
+        //             MsgAlert({content: jdata.msg, type: 'error'});
+        //         }
+        //     }
+        // });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        if (!!datas.pkid) {
+            InitGatewayRequest_({
+                type: "post",
+                async: false,
+                data: datas,
+                path: "/online-manual/engineManual/editEngineManual",
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                    } else {
+                        if (jdata.errorMessage.indexOf("UNI_BM_MANUAL_ATA") != -1) {
+                            MsgAlert({content: "请检查各章节是否重复.", type: 'error'});
+                        } else {
+                            MsgAlert({content: jdata.errorMessage ? jdata.errorMessage : jdata.obj, type: 'error'});
+                        }
+                    }
+                }
+            });
+
+        } else {
+
+            InitGatewayRequest_({
+                type: "post",
+                async: false,
+                data: datas,
+                path: "/online-manual/engineManual/addEngineManual",
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                    } else {
+                        if (jdata.errorMessage.indexOf("UNI_BM_MANUAL_ATA") != -1) {
+                            MsgAlert({content: "请检查各章节是否重复.", type: 'error'});
+                        } else {
+                            if (jdata.errorMessage.indexOf("UK_DM_REG") != -1) {
+                                MsgAlert({content: '资料来源、资料类型、适用性重复!', type: 'error'});
+                            }
+                            if (jdata.errorMessage.indexOf("UK_DM_NOG") != -1) {
+                                MsgAlert({content: '资料编号重复!', type: 'error'});
+                            }
+                            else {
+                                MsgAlert({content: jdata.errorMessage ? jdata.errorMessage : jdata.errorMessage, type: 'error'});
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        // datas = $.extend({}, datas, {FunctionCode: 'DM_DATA_REG_ENG_SAVEORUPDATE',type:type});
+        // InitFuncCodeRequest_({
+        //     data: datas, successCallBack: function (jdata) {
+        //         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+        //             if(param.OWindow.onSearch_){
+        //                 param.OWindow.onSearch_('dg', '#ffSearch');
+        //             }
+        //             param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+        //             CloseWindowIframe();
+        //         } else {
+        //             if (jdata.msg.indexOf("UK_DM_REG") != -1) {
+        //                 MsgAlert({content: '资料来源、资料类型、适用性重复!', type: 'error'});
+        //
+        //             }
+        //             if (jdata.msg.indexOf("UK_DM_NOG") != -1) {
+        //                 MsgAlert({content: '资料编号重复!', type: 'error'});
+        //
+        //             }
+        //             else {
+        //                 MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+        //             }
+        //         }
+        //     }
+        // });
+    }
+
+</script>
+</html>

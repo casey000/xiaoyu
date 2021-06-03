@@ -1,0 +1,500 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">监控报警通知单</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:40px;" align="right">机型：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="mpActype" name="mpActype" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:40px;" align="right">机号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acReg" name="acReg" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">装机位置：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="pos" name="pos" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:40px;" align="right">状态：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                    </td>
+                    <td class="td5" colspan="2">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a href="javascript:void(0)" auth="ENG_PER_ALERT1" class="addBtn"
+                           onclick="addOrEditAlert('add','')"><span>新增</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:60px;" align="right">发动机型号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="applyModel" name="applyModel" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">件号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:40px;" align="right">序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="esn" name="esn" style="width:100px;"/>
+                    </td>
+                    <th class="th" align="right" style="width:90px;">监控开始日期从：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="alertDateS" name="alertDateS" data-options="editable:false" style="width: 100px;"/>
+                    </td>
+                    <th class="th" align="right" style="width:20px;">至：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="alertDateE" name="alertDateE" data-options="editable:false" style="width: 100px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:30px;" align="right">编号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="alertNo" name="alertNo" style="width:100px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            doSearch_();
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_PER_ALERT_STATUS,ENG_POS,ENG_PER_KEYLIST_SOURCE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["ENG_PER_ALERT_STATUS"]);
+                    PAGE_DATA['pos'] = DomainCodeToMap_(jdata.data["ENG_POS"]);
+                    PAGE_DATA['sourceType'] = DomainCodeToMap_(jdata.data["ENG_PER_KEYLIST_SOURCE"]);
+                    $('#status').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.ENG_PER_ALERT_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#pos').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_POS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //发动机型号
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/basTypeMapper/getEngtypesAll",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#applyModel').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '100px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#epn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //获取发动机序号
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {matnr: ''},
+                        path: "/meng-engine/baseOwn/getEngByType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#esn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px'
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/engBsiReport/getMpActypes",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#mpActype').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取机型列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {},
+                        path: "/meng-engine/engBsiReport/getAcnos",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#acReg').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取机号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engPerAlert/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_PER_ALERT_LIST'},
+                alter: {
+                    testUpload: {
+                        formatter: function (value, row, index) {
+                            if (row.testUpload) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    sourceType:{
+                        formatter: function (value) {
+                            return PAGE_DATA['sourceType'][value];
+                        }
+                    },
+                    status:{
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    pos:{
+                        formatter: function (value) {
+                            return PAGE_DATA['pos'][value];
+                        }
+                    },
+                    alertDate: {
+                        type: 'date'
+                    },
+                    measureDate: {
+                        type: 'date'
+                    },
+                    feedbackDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_PER_ALERT2",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditAlert('edit', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_PER_ALERT3",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        deleteAlert(rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "提交",
+                    auth: "ENG_PER_ALERT4",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        submitPerAlert(rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "上传附件",
+                    auth: "ENG_PER_ALERT5",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        uploadFile(rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-flowTjt", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        var pkid = rowData.pkid;
+                        if (!pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        var datas = {"objNo":pkid,"objKey":"ENG_PER_ALERT"};
+                        InitGatewayRequest_({
+                            async: false,
+                            data:datas,
+                            path: "/meng-engine/engCommonService/checkFlow",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    cou = jdata.obj;
+                                    if(cou == 0){
+                                        MsgAlert({content: "该数据没有办理轨迹!", type: 'error'});
+                                        return;
+                                    }else{
+                                        ShowWindowIframe({
+                                            width: 1100,
+                                            height: 400,
+                                            title: $.i18n.t('审批轨迹'),
+                                            param: {objNo: rowData.pkid, objKey: "ENG_PER_ALERT"},
+                                            url: '/views/flow/work_flow_history_task_list.shtml'
+                                        });
+                                    }
+                                } else {
+                                    MsgAlert({content: "校验办理轨迹失败!", type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.pkid,
+                                CATEGORY: "engPerAlert",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+
+                                }
+                                var html = "";
+                                var sta = row.status;
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    if (sta == "1") {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                    } else {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                    }
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            validAuth: function (row, items) {
+                items['删除'].display = false;
+                if ('1' != row.status || loginUser != row.createUser) {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                    items['提交'].enable = false;
+                    items['上传附件'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEditAlert('view',value.pkid);
+            }
+        });
+    }
+
+    //添加或编辑--监控报警通知单
+    function addOrEditAlert(operation, pkid) {
+        var flag = 'key';
+        var title_ = $.i18n.t('添加或编辑--监控报警通知单');
+        ShowWindowIframe({
+            width: "920",
+            height: "680",
+            title: title_,
+            param: {pkid: pkid, operation: operation,flag:flag},
+            url: "/views/engine/engPerAlert/eng_per_alert_add_edit.shtml"
+        });
+    }
+
+    //刷新列表
+    function reload_(){
+        $("#dg").datagrid("reload");
+    }
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        InitGatewayRequest_({
+            async: false,
+            data: {},
+            path: "/meng-engine/engBsiReport/getAcnos",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#acReg').combobox({
+                        data: jdata.obj,
+                        valueField: 'value',
+                        textField: 'text',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取机号列表失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+    //删除
+    function deleteAlert(pkid){
+        var cou = '';
+        var datas = {"pkid":pkid};
+        InitGatewayRequest_({
+            async: false,
+            data:datas,
+            path: "/meng-engine/engPerAlert/deleteAlert",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    cou = jdata.obj;
+                    if(cou > 0){
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                } else {
+                    MsgAlert({content: "删除失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function uploadFile(pkid){
+        common_upload_({
+            identity: 'dg',
+            param: {
+                cat: "engPerAlert",
+                sourceId: pkid,
+                successCallBack: function () {
+                    reload_();
+                },
+                fialCellBack: ""
+            }
+        });
+    }
+
+
+    function submitPerAlert(pkid){
+        common_add_edit_({
+            identity: '',
+            isEdit: '',
+            width: 520,
+            height: 300,
+            title: $.i18n.t('选择审批人'),
+            param: {
+                operation: "flow",
+                roleId: '',
+                otherParam: '',
+                PKID: pkid,
+                FunctionCode_: 'ENG_PER_ALERT_SUBMIT',
+                successCallback: reload_
+            },
+            url: "/views/flow/work_flow_account_select.shtml"
+        });
+    }
+
+</script>
+</body>
+</html>

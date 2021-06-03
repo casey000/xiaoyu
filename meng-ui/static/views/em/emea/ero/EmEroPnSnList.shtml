@@ -1,0 +1,128 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">EO</title>
+</head>
+<body class="ibody">
+<div id="title" class="title" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" align="right" style="width: 80px;">件号：</th>
+                    <td class="tdr" style="width: 150px">
+                        <input class="easyui-textbox" id="pn" name="pn"
+                               data-options="editable:true" style="width: 150px;"/>
+                    </td>
+                    <th id="snTh" class="th" align="right" style="width: 80px;">序号：</th>
+                    <td id="snTd" class="tdr" style="width: 150px">
+                        <input class="easyui-textbox" id="sn" name="sn"
+                               data-options="editable:true" style="width: 150px;"/>
+                    </td>
+                    <td align="right">
+                        <input id="searchBtn" class="btn btn-primary" type="button" onclick="searchData()" value="查询"
+                               style="width: 50px;margin:10px;"/>
+                        <input id="clearBtn" class="btn btn-primary" type="button" onclick="doClear_()" value="重置"
+                               style="width: 50px;margin:10px;"/>
+                        <input class="btn btn-primary" type="button" onclick="save()" value="选择"
+                               style="width: 50px;margin:5px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var pn1;
+    var sn1;
+    var type;
+    var eaSort;
+
+    function i18nCallBack() {
+       // window.resizeTo("800", "500");
+        //window.moveTo(300, 200);
+
+        param = getParentParam_();
+        pn1 = param.pn;
+        sn1 = param.sn;
+        type = param.type;
+        eaSort = param.eaSort;
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TD_JC_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["TD_JC_STATUS"]);
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var pn = $('#pn').textbox('getValue');
+        var sn = $('#sn').textbox('getValue');
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            //pagination: true,
+            singleSelect: true,
+            pageSize: 15,
+            queryParams : {pn: pn, sn: sn, eaSort: eaSort},
+            columns: {
+                param: {FunctionCode: 'EM_ERO_ENGSERI_LIST'},
+            },
+            onLoadSuccess: function (data) {
+                if(pn1 && sn1){
+                    for(var i=0; i<data.rows.length; i++){
+                        if(data.rows[i].PN == pn1 && data.rows[i].SN == sn1){
+                            $('#dg').datagrid('checkRow', i);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function save() {
+        var rowData = getDG('dg').datagrid('getChecked');
+        if (rowData.length > 1) {
+            MsgAlert({content: '不能选择多条数据', type: 'error'});
+            return;
+        }
+
+        var pn2 = '';
+        var sn2 = '';
+        if(rowData.length == 1){
+             pn2 = rowData[0].PN;
+             sn2 = rowData[0].SN;
+        }
+        param.OWindow.setPnSn(pn2, sn2, type);
+        CloseWindowIframe();
+    }
+
+</script>
+</body>
+</html>

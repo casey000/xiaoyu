@@ -1,0 +1,288 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">工作分工规则配置</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">分工/资质：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="divisionQua" name="divisionQua" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">任务类型：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="taskType" name="taskType" style="width:100px;"/>
+                    </td>
+
+                    <th class="th" style="width:80px;" align="right">机型/型号：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="acengModel" name="acengModel" style="width:100px;"/>
+                    </td>
+                    <td colspan="2">
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="excelBtn"  data-options="iconCls:'icon-page_excel'"
+                           onclick="coefficient()"><span>工时系数</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:80px;" align="right">ATA章节：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-textbox" id="ata" name="ata" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">责任工程师：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="engineerId" name="engineerId" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">专业：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="specialize" name="specialize" style="width:100px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var companyCode;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_TASK_TYPE,EM_TASK_SORT,DA_FLEET_ENG,DM_ATA,EM_FILE_SPEC",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //型号
+                    PAGE_DATA['acengModel'] = DomainCodeToMap_(jdata.data["DA_FLEET_ENG"]);
+                    PAGE_DATA['taskType'] = DomainCodeToMap_(jdata.data["EM_TASK_TYPE"]);
+                    PAGE_DATA['divisionQua'] = DomainCodeToMap_(jdata.data["EM_TASK_SORT"]);
+                    $('#taskType').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_TASK_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#divisionQua').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_TASK_SORT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#acengModel').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_FLEET_ENG,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ata').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#specialize').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_FILE_SPEC,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $("#engineerId").MyComboGrid({
+                        // idField: 'NO',  //实际选择值
+                        idField: 'ACCOUNTID',
+                        textField: 'NAME', //文本显示值
+                        editable: true,
+                        pagination: true,
+                        tipPosition: 'top',
+                        width: 100,
+                        mode: 'remote',
+                        params: {FunctionCode: 'WS_USER'},
+                        url: Constant.API_URL + 'WS_USER',
+                        columns: [[
+                            {field: 'ACCOUNTID', title: '员工编号', width: 100, sortable: true},
+                            {field: 'NAME', title: '名称', width: 100, sortable: true}
+                        ]]
+                    });
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {companyCode: companyCode},
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_ALLOCATE_RULE_LIST'},
+                alter: {
+                    TASK_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['taskType'][value];
+                        }
+                    },
+                    DIVISION_QUA: {
+                        formatter: function (value) {
+                            return PAGE_DATA['divisionQua'][value];
+                        }
+                    },
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+
+            },
+            validAuth: function (row, items) {
+                items['编辑'].enable = true;
+                items['删除'].enable = true;
+                return items;
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    auth: "EM_RULE_EDIT",
+                    i18nText: "编辑",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+                    }
+                },
+                {
+                    id: "",
+                    auth: "EM_RULE_DEL",
+                    i18nText: "删除",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (confirm("是否确认删除？")) {
+                            InitFuncCodeRequest_({
+                                data: {FunctionCode: 'EM_ALLOCATERULE_DELETE', pkid: rowData.PKID},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD",
+                    auth: "EM_RULE_ADD",
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    handler: function () {
+                        openDetai("save", "");//打开新增页面
+                    }
+                },
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('工程分工配置详情');
+        ShowWindowIframe({
+            width: "520",
+            height: "320",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/em/em_allocate_rule/emAllocateRuleDetail.shtml"
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //工时系数维护
+    function coefficient() {
+        var title_ = $.i18n.t('工时系数维护');
+        ShowWindowIframe({
+            width: 575,
+            height: 200,
+            title: title_,
+            url: "/views/em/emeo/EmEoCoefficientEdit.shtml"
+        });
+    }
+</script>
+</body>
+</html>

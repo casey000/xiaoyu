@@ -1,0 +1,414 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form id="mform">
+                <fieldset class="fieldset_eui" style="float:left;width:97%;margin-right:5px">
+                    <legend data-i18n="">MOD条件</legend>
+                    <table cellspacing="0" cellpadding="2">
+                        <tr>
+                            <th class="tdl">与前一条数据的关系：</th>
+                            <td class="tdr" width="100" align="center">
+                                <input type="hidden" id="pkid" name="pkid">
+                                <input class="easyui-combobox" name="logicOperator" id="logicOperator"
+                                       data-options="editable:false,validType:[]"
+                                       style="height:25px; width: 150px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">PRE OR POST：</th>
+                            <td class="tdr" width="100" align="center">
+                                <input class="easyui-combobox" name="prePost" id="prePost"
+                                       data-options="required:true"
+                                       style="height:25px; width: 150px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="tdl">MOD：</th>
+                            <td class="tdr" width="100" align="center">
+                                <input class="easyui-textbox" name="mod" id="mod"
+                                       data-options=" "
+                                       style="height:25px; width: 150px;"/>
+                            </td>
+                        </tr>
+                    </table>
+                </fieldset>
+
+                <table class="table table-bordered table-info">
+                    <tr align="right">
+                        <td colspan="6" align="right">
+                            <input style="margin-right:5px;margin-top:5px;float: right" class="btn btn-primary"
+                                   type="submit" value="保存"/>&nbsp;
+                            <input style="margin-right:5px;margin-top:5px;float: right" class="btn btn-primary"
+                                   type="button" onclick="closeAdd()" value="关闭"/>&nbsp;
+                        </td>
+                    </tr>
+                </table>
+                <fieldset class="fieldset_eui" style="float:left;width:96%; margin-right:5px">
+                    <legend data-i18n="">SB条件</legend>
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <td colspan="8" align="right">
+                                <input style="margin-right:5px;margin-top:5px;float: right" class="btn btn-primary"
+                                       type="button" id="DR" onclick="inport()" value="导入SB"/>&nbsp;
+                                <input style="margin-right:5px;margin-top:5px;float: right" class="btn btn-primary"
+                                       type="button" id="ZJ" onclick="addSb()" value="增加SB"/>&nbsp;
+                                <input style="margin-right:5px;margin-top:5px;float: right" class="btn btn-primary"
+                                       type="button" id="SC" onclick="deleteSb()" value="删除SB"/>&nbsp;
+                            </td>
+                        </tr>
+                    </table>
+                    <table id="dg2"></table>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param = {};
+    var PKID;
+    var oId;
+    var isEdit_;
+    param = getParentParam_();
+    isEdit_ = param.isEdit;
+    PKID = param.PKID;//适用性PKID
+    oId = PKID;
+    $("#DR").attr("disabled", "true");
+    $("#ZJ").attr("disabled", "true");
+    $("#SC").attr("disabled", "true");
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "EM_LOGIC_OPERATOR,EM_PRE_POST"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#logicOperator').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_LOGIC_OPERATOR,
+                        valueField: 'VALUE',
+                        textField: 'VALUE',
+                    });
+                    $('#prePost').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_PRE_POST,
+                        valueField: 'VALUE',
+                        textField: 'VALUE',
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitEditForm_();
+        InitDataGrid();
+    }
+
+    $(function () {
+        if (!isEdit_) {
+            InitFuncCodeRequest_({
+                data: {PKID: PKID, FunctionCode: "EM_CMP_FIND_DATA"},//cmp
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        var list = [];
+                        if (jdata.data.length == 0) {
+                            $('#logicOperator').combobox({editable: false, onlyview: true, required: false});
+                        }
+                        $.each(jdata.data, function (k, m) {
+                            var list = m.PRE_POST;
+                            if (list == "PRE" || list == "POST") {
+                                $('#logicOperator').combobox({editable: false, onlyview: false, required: true});
+                            }
+                        });
+                    }
+                }
+            })
+        }
+    });
+
+
+    if (isEdit_) {
+        $(function () {
+            InitFuncCodeRequest_({
+                data: {PKID: PKID, FunctionCode: "EM_CMP_EVAL_APL_CON_FORM"},//CMP
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                        if (jdata.data.LOGIC_OPERATOR != null) {
+                            $('#logicOperator').combobox({value: jdata.data.LOGIC_OPERATOR});
+                            $('#logicOperator').combobox({editable: false, onlyview: false, required: true});
+                        }
+                        if (jdata.data.LOGIC_OPERATOR == null) {
+                            $('#logicOperator').combobox({editable: false, onlyview: true, required: false});
+                        }
+                        $('#prePost').combobox({value: jdata.data.PRE_POST});
+                    }
+                }
+            });
+        });
+    }
+
+    function InitDataGrid() {
+        if (!isEdit_) {
+            var newPkid = $("#pkid").val();
+            if (newPkid != "") {
+                PKID = newPkid;
+                var identity = 'dg2';
+                $("#dg2").MyDataGrid({
+                    identity: identity,
+                    singleSelect: false,
+                    sortable: true,
+                    queryParams: {PKID: PKID},
+                    columns: {
+                        param: {FunctionCode: 'EM_CMP_EVAL_APLSBCON'},
+                        alter: {
+                            'SB': {
+                                editor: {type: 'textbox', options: {tipPosition: 'top', validType: ['maxLength[100]']}}
+                            },
+                        },
+                    },
+                    resize: function () {
+                        return {width: 475, height: 200};
+                    },
+                    enableLineEdit: true,
+                    onBeginEdit: function (index, row) {
+                        if (
+                            (typeof (row.isadd__) == 'undefined') || (
+                            row.isadd__ == 1 && row.___editcount > 1)
+                        ) ;
+
+                    },
+                    onEndEdit: function (index, row, changes) {
+                        row = toCamelCase(row);
+                        //验证中文包括繁体字
+                        if (row.sb.match(/[\u4e00-\u9fa5]/)) {
+                            MsgAlert({content: '不可输入中文，请重新输入', type: 'error'});
+                            return false;
+                        }
+                        if (!row.isadd__) {
+                            row.oldest = oId;
+                            row = $.extend({}, row, {FunctionCode: 'EM_CMP_EVAL_APLSBCON_UPDATE'});
+                        } else {
+                            row.oId = PKID;
+                            row.oldest = oId;
+                            row = $.extend({}, row, {FunctionCode: 'EM_CMP_EVAL_APLSBCON_SAVE'});
+//                    row['RSPL_FILE_NO'] = isAgreementId;
+                        }
+                        InitFuncCodeRequest_({
+                            data: row,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    reload_();
+                                    param.OWindow.reload_();
+                                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    },
+
+                });
+            }
+        } else {
+            //$('#logicOperator').combobox({editable: false, onlyview: false,required:false});
+            $('#DR').removeAttr("disabled");
+            $('#ZJ').removeAttr("disabled");
+            $('#SC').removeAttr("disabled");
+            var identity = 'dg2';
+            $("#dg2").MyDataGrid({
+                identity: identity,
+                singleSelect: false,
+                sortable: true,
+                queryParams: {PKID: PKID},
+                columns: {
+                    param: {FunctionCode: 'EM_CMP_EVAL_APLSBCON'},
+                    alter: {
+                        'SB': {
+                            editor: {type: 'textbox', options: {tipPosition: 'top', validType: ['maxLength[100]']}}
+                        },
+                    },
+                },
+                resize: function () {
+                    return {width: 475, height: 200};
+                },
+                enableLineEdit: true,
+                onBeginEdit: function (index, row) {
+                    if (
+                        (typeof (row.isadd__) == 'undefined') || (
+                        row.isadd__ == 1 && row.___editcount > 1)
+                    ) ;
+
+                },
+                onEndEdit: function (index, row, changes) {
+                    row = toCamelCase(row);
+                    //验证中文包括繁体字
+                    if (row.sb.match(/[\u4e00-\u9fa5]/)) {
+                        MsgAlert({content: '不可输入中文，请重新输入', type: 'error'});
+                        return false;
+                    }
+                    if (!row.isadd__) {
+                        row.oldest = oId;
+                        row = $.extend({}, row, {FunctionCode: 'EM_CMP_EVAL_APLSBCON_UPDATE'});
+                    } else {
+                        row.oId = PKID;
+                        row.oldest = oId;
+                        row = $.extend({}, row, {FunctionCode: 'EM_CMP_EVAL_APLSBCON_SAVE'});
+                    }
+                    InitFuncCodeRequest_({
+                        data: row,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                },
+
+            });
+        }
+    }
+
+    //后一页面保存成功时打开这个页面对应数据域
+    function openDataBox() {
+        var $form = $("#mform");
+        var data = $form.serializeObject();
+        var newPkid = $("#pkid").val();
+        data.oId = newPkid;
+        data = $.extend({}, data, {
+            FunctionCode: ('EM_CMP_EVAL_APL_CON_SAVE')
+        });
+        InitFuncCodeRequest_({
+            data: data,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_();
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+
+        });
+        return false;
+    }
+
+
+    //保存方法
+    function InitEditForm_() {
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var $form = $("#mform");
+                var isValidate = $(this).form('validate');
+                if (!isValidate) {
+                    return false;
+                }
+                var data = $form.serializeObject();
+                data.oId = oId;
+                data = $.extend({}, data, {
+                    //FunctionCode: ('EM_MPD_EVAL_APL_CON_SAVE')
+                    FunctionCode: (isEdit_ ? 'EM_CMP_EVAL_APL_CON_EDIT' : 'EM_CMP_EVAL_APL_CON_SAVE')
+                });
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            //$('#logicOperator').combobox({editable: false, onlyview: false,required:true});
+                            $("#pkid").val(jdata.data.pkid);
+                            $('#DR').removeAttr("disabled");
+                            $('#ZJ').removeAttr("disabled");
+                            $('#SC').removeAttr("disabled");
+                            setTimeout("InitDataGrid();", 100);
+                            param.OWindow.reload_();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+
+    }
+
+    //关闭页面
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#dg2").form('clear');
+            }
+        });
+    }
+
+    //导入Sb页面
+    function inport() {
+        var PKID = $("#pkid").val();
+        ShowWindowIframe({
+            width: 600,
+            height: 320,
+            param: {PKID: PKID},
+            title: "导入SB",
+            //url: "/views/em/emmpdeval/em_mpdeval.sbList.shtml"
+            url: "/views/em/emcmp/em_cmpeval.sbList.shtml"
+        });
+    }
+
+    //行编辑增加一行数据
+    function addSb() {
+        $('#dg2').datagrid('appendRow', {isadd__: 1});
+    }
+
+    //删除一行记录
+    function deleteSb() {
+        var rowData = getDG('dg2').datagrid('getChecked');
+        if (!rowData.length) {
+            MsgAlert({content: "请选择至少一条数据", type: 'error'});
+            return false;
+        }
+
+        rowData = toCamelCaseArray(rowData);
+        var rowDatas = JSON.stringify(rowData);
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_CMP_EVAL_APLSBCON_DELETE",
+                rowDatas: rowDatas
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg2").datagrid("reload");
+        InitDataGrid();
+        //CloseWindowIframe();
+    }
+
+</script>
+</html>

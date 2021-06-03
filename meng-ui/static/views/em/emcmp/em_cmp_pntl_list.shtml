@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="em_cmp">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">时控件项目清单</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">任务号：</th>
+                    <td>
+                        <input class="easyui-combobox" id="revCode" name="revCode"
+                               style="width:110px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;" align="right">改版标识：</th>
+                    <td>
+                        <input class="easyui-combobox" id="revCode2" name="revCode"
+                               style="width:110px"/>
+                    </td>
+
+                    <td colspan="2">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-filter'"
+                           onclick="helpQuery('dg', 'ffSearch', function(){onSearch_(); });"><span
+                                data-i18n="">高级查询</span></a>&nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-redo'"
+                           onclick="daYinPdf()"><span
+                                data-i18n="">打印pdf</span></a>&nbsp;&nbsp;
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">部件名称：</th>
+                    <td>
+                        <input class="easyui-combobox" id="partCnname" name="partCnname"
+                               style="width:110px"/>
+                    </td>
+                    <th data-i18n="" style="width:50px;" align="right">件号：</th>
+                    <td colspan="2">
+                        <input class="easyui-combobox" id="status" name="status"
+                               style="width:110px"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="">查询结果</legend>-->
+    <div style="width: 100%;height:390px">
+        <table id="dg"></table>
+    </div>
+
+</fieldset>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var identity = 'dg';
+    var param = {};
+    var cmpStatus = {};
+    var verType = {};
+    var userName = {};
+    var numberLetter = {};
+
+    var thisURL = document.URL;
+    var geturlvalue = thisURL.split('?')[1];
+    var emCmpCatPkid = geturlvalue.split("=")[1];
+    var cmpPkid = geturlvalue.split("=")[2];
+
+
+    function daYinPdf() {
+        doPost(Constant.API_URL + "EM_CMP_SKJ_PDF", {cmpPkid: cmpPkid});
+    }
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_REV_CODE,EM_CMP_STATE,EM_CMP_VER_TYPE,USER_NAME,EM_NUM_LETTER",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    cmpStatus = DomainCodeToMap_(jdata.data["EM_CMP_STATE"]);
+                    verType = DomainCodeToMap_(jdata.data["EM_CMP_VER_TYPE"]);
+                    userName = DomainCodeToMap_(jdata.data["USER_NAME"]);
+                    numberLetter = DomainCodeToMap_(jdata.data["EM_NUM_LETTER"]);
+
+                    $('#revCode').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_REV_CODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+
+                    $('#status').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_CMP_STATE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+
+                    InitDataGrid();
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function DomainCodeToMap_(list) {
+        var d = {};
+        $.each(list, function (k, it) {
+            d[it.VALUE] = it.TEXT;
+        });
+        return d;
+    }
+
+    function add_() {
+        common_add_edit_({
+            width: 800,
+            height: 400,
+            title: '维修方案新增',
+            url: "/views/em/emcmp/em_cmp_wxfa_add.shtml"
+        });
+    }
+
+    function InitDataGrid() {
+        param = getParentParam_();
+
+        $("#dg").MyDataGrid({
+            identity: identity,
+            fit: true,
+            sortable: true,
+            title: $.i18n.t(''),
+            queryParams: {cmpPkid: cmpPkid},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_PNTL_LIST'},
+                alter: {
+                    REV_DATE: {
+                        type: 'date'
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return cmpStatus[value];
+                        }
+                    },
+                    VER_TYPE: {
+                        formatter: function (value, row, index) {
+                            return verType[value];
+                        }
+                    },
+                    CREATE_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    },
+                    CHECK_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    },
+                    AUDIT_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    },
+                    APPROVE_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    },
+                    PUBLISH_BY: {
+                        formatter: function (value, row, index) {
+                            return userName[value];
+                        }
+                    },
+                    MINOR_VER: {
+                        formatter: function (value, row, index) {
+                            return numberLetter[value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [], toolbar: [
+                {
+                    key: "COMMON_ADD", text: $.i18n.t('common:RES.COMMON.CREATE'), auth: "",//创建
+                    handler: function () {
+                        /*
+                         common_add_edit_({
+                         identity: identity, isEdit: 0, width: 1150, height : 620,title:$.i18n.t('common:RES.COMMON.CREATE'),
+                         url: '/views/pm/nonroutine/nonroutine_add_edit.shtml'
+                         });
+                         */
+                    }
+                }
+            ]
+        });
+    }
+
+    /*doSearch_查询*/
+    function doSearch_() {
+        var $form = $("#ffSearch");
+        var data = $form.serializeObject();
+        data = $.extend({}, data, {fleet: fleet});
+        var dgopt = getDgOpts('dg');
+        var url = dgopt.url;
+        var $dg = $(dgopt.owner);
+        $dg.datagrid({
+            url: url,
+            queryParams: data
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+</script>
+</body>
+</html>

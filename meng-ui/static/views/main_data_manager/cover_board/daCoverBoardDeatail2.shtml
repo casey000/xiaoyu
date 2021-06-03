@@ -1,0 +1,152 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>接近盖板维护</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="model" name="model"/>
+                <input type="hidden" id="createBy" name="createBy"/>
+                <input type="hidden" id="createDate" name="createDate"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="8" align="right">
+                            <input class="btn btn-primary" id="saveBtn" type="button" onclick="save()" value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin-right:25px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">Access Panel And Door Number：</th>
+                        <td class="td5" style="width: 100px;padding: 3px">
+                            <input class="easyui-textbox" id="doorNumber" name="doorNumber" data-options="required:true"
+                                   style="width: 100px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">Man Hours Open：</th>
+                        <td class="td5" style="width: 100px;padding: 3px">
+                            <input class="easyui-textbox" id="manHoursOpen" name="manHoursOpen"
+                                   data-options="required:true" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">Man Hours Close：</th>
+                        <td class="td5" style="width: 100px;padding: 3px">
+                            <input class="easyui-textbox" id="manHoursClose" name="manHoursClose" style="width: 100px;"
+                                   data-options="required:true"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">APL/ENG Applic：</th>
+                        <td class="td5" style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="applic" name="applic" data-options="required:true"
+                                   style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 100px;">Location by Zone：</th>
+                        <td class="td5" style="width: 100px;  padding: 3px">
+                            <input class="easyui-textbox" id="location" name="location" data-options="required:true"
+                                   style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right">Panel Description And/Or Access Provided：</th>
+                        <td class="td5" colspan="7">
+                            <textarea class="easyui-textbox" id="description" name="description" multiline="true"
+                                      style="height:80px;width: 99%;border: 1px solid #ddd;"></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var COMBOBOX_DATA = {};
+    var loginInfo;
+    var model;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        model = param.model;
+        $("#model").val(model);
+        operation = param.operation;
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_REC_VER_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    if (param.pkid) {
+                        InitDataForm(param.pkid);
+                    }
+                }
+                if (operation == 'view') {
+                    $("#saveBtn").hide();
+                }
+            }
+        })
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "DA_COVER_BOARD_PKID"}, async: false, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'DA_COVER_BOARD_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //刷新父页面
+    function reload_() {
+        if (model == 'B747') {
+            param.OWindow.searchData2();
+        }
+        if (model == 'B757') {
+            param.OWindow.searchData3();
+        }
+        if (model == 'B767') {
+            param.OWindow.searchData4();
+        }
+
+    }
+
+</script>
+</html>

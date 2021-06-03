@@ -1,0 +1,2082 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+    <title></title>
+    <style>
+        .datagrid-wrap {
+            height: 300px !important;
+        }
+        .redColor{
+            color: red;
+            font-weight:bold;
+        }
+        .blackColor{
+            color: black;
+        }
+    </style>
+</head>
+<body>
+
+<div class="ibox-content" id="tt">
+    <form class="form-horizontal m-t" id="mform" style="width:100%;">
+        <table class="table table-bordered table-info">
+            <tr>
+                <th style="width: 60px;"> 机型：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="actype" name="actype" data-options="" style="width:120px;"/>
+                </td>
+                <th style="width: 60px;"> 机号：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="acReg" name="acReg" data-options="" style="width:120px;"/>
+                </td>
+                <!--<select name="thisWeekAndNextWeek" id="thisWeekAndNextWeek" class="easyui-combobox" data-options=""
+                        style="width:120px">
+                    <option value="thisWeek" selected="selected">本周</option>
+                    <option value="nextWeek">下周</option>
+                </select>-->
+                <!--<input type="radio" name="thisWeekAndNextWeek" checked="checked" value="thisWeek"/>本周
+                <input type="radio" name="thisWeekAndNextWeek" value="nextWeek"/>下周-->
+                <th style="width: 70px;"> 日期从：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="planStartDateBegin" name="planStartDateBegin" style="width:120px;"
+                           data-options="editable:false"/>
+                </td>
+                <th style="width: 40px;"> 至：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="planStartDateEnd" name="planStartDateEnd" style="width:120px;"
+                           data-options="editable:false"/>
+                </td>
+                </td>
+                <td style="text-align: left;width: 30%">
+                    <a class="searchBtn" type="button" onclick="searchData();" auth="PM_MC_WEEKPLAN_TIME_PERIOD_QUERY"><span>查询</span></a>
+                    <a class="ridoBtn" type="button" onclick="focFlightPlan();" auth="PM_MC_WEEKPLAN_FOC"><span>FOC航班计划</span></a>
+                </td>
+            </tr>
+        </table>
+        <table id="dg" style="height: 100px;"></table>
+    </form>
+    <form id="mform1" style="width:100%;">
+        <input type="hidden" id="status" name="status" value="ALL">
+        <input type="hidden" id="allowStatus" name="allowStatus" value="">
+        <table class="table table-bordered table-info">
+            <tr>
+                <th style="width: 100px;">MCC计划日期从：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="flightDateBegin" name="flightDateBegin" style="width:100px;"
+                           data-options="editable:false"/>
+                </td>
+                <th style="width: 40px;"> 至：</th>
+                <td class="tdr">
+                    <input class="easyui-datebox" id="flightDateEnd" name="flightDateEnd" style="width:100px;"
+                           data-options="editable:false"/>
+                </td>
+                <td class="tdr" style="width: 120px" colspan="2">
+                    <!-- <select name="thisWeekAndNextWeek1" id="weekId"   class="easyui-combobox" data-options=""
+                             style="width:120px">
+                         <option value="thisWeek" selected="selected">本周</option>
+                         <option value="nextWeek">下周</option>
+                     </select>-->
+                    <input type="radio" name="thisWeekAndNextWeek1" value="today"/>当天
+                    <input type="radio" name="thisWeekAndNextWeek1" checked="checked" value="thisWeek"/>本周
+                    <input type="radio" name="thisWeekAndNextWeek1" value="nextWeek"/>下周
+                </td>
+                <th style="width: 80px;"> 任务描述：</th>
+                <td class="tdr" colspan="5">
+                    <input class="easyui-textbox" id="description" name="description" style="width:200px;" data-options=""/>
+                    &nbsp;&nbsp;&nbsp;<a class="searchBtn" type="button" onclick="searchData1();"
+                                         auth="PM_MC_WEEKPLAN_WORKORDER_QUERY"><span>查询</span></a>
+                </td>
+            </tr>
+            <tr>
+                <th style="width: 60px;"> 航站：</th>
+                <td class="tdr">
+                    <input class="easyui-combogrid" id="station" name="station" style="width:100px;" data-options=""/>
+                </td>
+                <th style="width: 60px;"> 机型：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="actype1" name="actype1" style="width:100px;" data-options=""/>
+                </td>
+                <th style="width: 60px;"> 机号：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="acReg1" name="acReg1" style="width:120px;" data-options=""/>
+                </td>
+                <th style="width: 80px;"> 工卡/文件号：</th>
+                <td class="tdr" colspan="5">
+                    <input class="easyui-textbox" id="cardNumber" name="cardNumber" style="width:200px;"
+                           data-options=""/>&nbsp;&nbsp;&nbsp;
+                    <a class="excelBtn" type="button"
+                       onclick="exportList('MCC_EXPORT_STATION_3_FILE');"
+                       auth="PM_MC_WEEKPLAN_WORKORDER_SEND_STATION"><span>导出航站任务</span></a>
+                    <a class="excelBtn" type="button"
+                       onclick="exportList('MCC_EXPORT_STATION_3_FILE2');" auth="PM_MC_WEEKPLAN_WORKORDER_SEND_STATION"><span>导出截至日期航站任务</span></a>
+                </td>
+
+            </tr>
+            <tr>
+                <th style="text-align: left" colspan="4">
+                    已计划已下发任务清单：
+                    <input class="btn btn-success" type="button" onclick="reloadByStatus('allCount','ALL');"
+                           id="allCount" value=""/>
+                    <input class="btn" type="button" onclick="reloadByStatus('yjhCount','PLANNED');" id="yjhCount"
+                           value=""/>
+                    <input class="btn" type="button" onclick="reloadByStatus('yxfCount','ISSUED');" id="yxfCount"
+                           value=""/>
+                    <input class="btn" type="button" onclick="reloadByStatus('ywcCount','COMPLETED');" id="ywcCount"
+                           value=""/>
+                </th>
+                <td align="right" style="padding-top: 6px;padding-bottom: 6px;padding-right:20px" colspan="7">
+                    <a class="ridoBtn" type="button" onclick="add();" auth="PM_MC_WEEKPLAN_WORKORDER_ADD"><span>增加任务</span></a>
+                    <a class="addBtn" type="button" onclick="batchXf();" auth="PM_MC_WEEKPLAN_WORKORDER_XF"><span>任务下发</span></a>
+                    <a class="ridoBtn" type="button" onclick="batchCh();" auth="PM_MC_WEEKPLAN_WORKORDER_CH"><span>任务撤回</span></a>
+                    <a class="excelBtn" type="button"
+                       onclick="exportList('MCC_EXPORT_WEEKPLAN_LIST');" auth="PM_MC_WEEKPLAN_WORKORDER_EXPORT"><span>导出周计划</span></a>
+                    <a class="clearBtn" type="button" onclick="TjJobcardXf();" auth="PM_MC_WEEKPLAN_WORKORDER_TJXF"><span>特检工卡下发</span></a>
+                    <a class="ridoBtn" type="button"
+                       onclick="exportList('MCC_EXPORT_WORKORDER_LIST_BY_STATION');" auth="PM_MC_WEEKPLAN_WORKORDER_SEND_STATION"><span>发送航站任务</span></a>
+                    <a class="excelBtn" type="button"
+                       onclick="exportList('MCC_EXPORT_MR_WEEK');" auth="PM_MC_WEEKPLAN_WORKORDER_SEND_STATION"><span>导出下周到期任务</span></a>
+                </td>
+            </tr>
+        </table>
+        <table id="dg1"></table>
+        <!--<table class="table table-bordered table-info">
+            <tr>
+                <th style="width: 480px;text-align: left" colspan="4" id="djhCount">
+                </th>
+                <th style="width: 480px;text-align: left" colspan="4" id="dclCount">
+                </th>
+            </tr>
+        </table>-->
+
+        <table class="table table-bordered table-info">
+            <tr>
+                <th style="text-align: left" colspan="4" id="djhCount"></th>
+                <td align="right" style="padding-top: 6px;padding-bottom: 6px;padding-right:20px" colspan="6">
+                    <a class="ridoBtn" type="button" onclick="overDateFlow();" auth="PM_MC_WEEKPLAN_WORKORDER_CQ"><span>超期设置</span></a>
+                    <a class="addBtn" type="button" onclick="batchAp();" auth="PM_MC_WEEKPLAN_WORKORDER_AP"><span>任务安排</span></a>
+                    <a class="clearBtn" type="button" onclick="batchTh();" auth="PM_MC_WEEKPLAN_WORKORDER_TH"><span>任务退回</span></a>
+                    <a class="ridoBtn" type="button" onclick="rematchPlan();" auth="PM_MC_WEEKPLAN_WORKORDER_MATCH_PLAN"><span>重新匹配计划</span></a>
+                </td>
+            </tr>
+        </table>
+        <table id="dg2"></table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th style="text-align: left;padding-top: 6px;padding-bottom: 6px;" colspan="4"
+                    id="cqCount">超期任务清单
+                    <input class="btn btn-success" type="button" onclick="CqReload('CqallCount','');"
+                           id="CqallCount" value=""/>
+                    <input class="btn" type="button" onclick="CqReload('CqAllow','allowOver');" id="CqAllow"
+                           value=""/>
+                    <input class="btn" type="button" onclick="CqReload('CqNotAllow','notAllowOver');" id="CqNotAllow"
+                           value=""/>
+                </th>
+            </tr>
+        </table>
+        <table id="dgCq"></table>
+        <table class="table table-bordered table-info">
+            <tr>
+                <th style="text-align: left;padding-top: 6px;padding-bottom: 6px;" colspan="4"
+                    id="dclCount"></th>
+            </tr>
+        </table>
+        <table id="dg3"></table>
+    </form>
+    <form id="mform4" style="width:100%;">
+        <table class="table table-bordered table-info">
+            <tr>
+                <th style="text-align: left;padding-top: 6px;padding-bottom: 6px;" colspan="2">工作包列表（不包含零散包）：</th>
+                <th style="width: 60px;"> 机号：</th>
+                <td class="tdr">
+                    <input class="easyui-combobox" id="acReg2" name="acReg2" data-options="" style="width:120px;"/>
+                </td>
+                <th style="width: 60px;"> 日期从：</th>
+                <td class="tdr" style="width: 80px">
+                    <input class="easyui-datebox" id="planstd" name="planstd"
+                           data-options="editable:false"/>
+                </td>
+                <th style="width: 60px;"> 至：</th>
+                <td class="tdr" style="width: 80px">
+                    <input class="easyui-datebox" id="planend" name="planend"
+                           data-options="editable:false"/>
+                </td>
+                <td class="tdr" style="width: 80px" nowrap>
+                    <input type="radio" name="thisWeekAndNextWeek2" checked="checked" value="thisWeek"/>本周
+                    <input type="radio" name="thisWeekAndNextWeek2" value="nextWeek"/>下周
+                </td>
+                <td class="tdr" colspan="2">
+                    <a class="searchBtn" type="button" onclick="searchData4();" auth="PM_MC_WEEKPLAN_WORKORDER_PPC_QUERY"><span>查询</span></a>
+                </td>
+            </tr>
+        </table>
+        <table id="dg4"></table>
+    </form>
+</div>
+<script type="text/javascript" src="/js/FileSaver.js"></script>
+<script src="/js/common/print_card_utils.js" type="text/javascript"></script>
+<script type="application/javascript">
+    var iparam;
+    var identity = 'dg';
+    var identity1 = 'dg1';
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        //监听div大小变化事件
+        /* $("#dg2Div").resize(function(){
+         console.log("触发了....");
+         InitDataGrid2();
+         });*/
+        $('#dd').dialog('close');
+        iparam = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_MP_ACTYPE,MSGRP,PM_MC_SUB_WORKTYPE,WORKORDER_STATUS,AIRLINE_TASK_TYPE,MCC_PACKAGE_TYPE,WORKORDER_CANCEL_TYPE,MCC_EXECUTION_COMPANY,PM_MC_TASK_MATE_BZST,DA_ACREG_STATUS,MCC_PACKAGE_STATUS"
+            },
+            successCallBack: function (jdata) {
+                // 机型
+                PAGE_DATA['actype'] = DomainCodeToMap_(jdata.data.DA_ACREG_MP_ACTYPE);
+                // 机号
+                PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data.MSGRP);
+                //任务类型
+                PAGE_DATA['taskType'] = DomainCodeToMap_(jdata.data.AIRLINE_TASK_TYPE);
+                //任务状态
+                PAGE_DATA['status'] = DomainCodeToMap_(jdata.data.WORKORDER_STATUS);
+                //工包类型
+                PAGE_DATA['revtp'] = DomainCodeToMap_(jdata.data.MCC_PACKAGE_TYPE);
+                //工包状态
+                PAGE_DATA['packageStatus'] = DomainCodeToMap_(jdata.data.MCC_PACKAGE_STATUS);
+                //退回原因类别
+                PAGE_DATA['cancelType'] = DomainCodeToMap_(jdata.data.WORKORDER_CANCEL_TYPE);
+                //执行部门
+                PAGE_DATA['zxbm'] = DomainCodeToMap_(jdata.data.MCC_EXECUTION_COMPANY);
+                //航材满足状态
+                PAGE_DATA['hcmzst'] = DomainCodeToMap_(jdata.data.PM_MC_TASK_MATE_BZST);
+                //飞机状态
+                PAGE_DATA['acStatus'] = DomainCodeToMap_(jdata.data.DA_ACREG_STATUS);
+                //生产任务子类型SAP_SUB_TASK_TYPE
+                PAGE_DATA['sapSubTaskType'] = DomainCodeToMap_(jdata.data.PM_MC_SUB_WORKTYPE);
+                // 初始化查询条件
+                //航站
+                $("#station").MyComboGrid({
+                    idField: 'STATION',  //实际选择值
+                    textField: 'STATION', //文本显示值
+                    panelHeight: '180px',
+                    width: 100,
+                    params: {FunctionCode: 'SELECT_STATION'},
+                    columns: [[
+                        {field: 'STATION', title: '航站三字码', width: 50},
+                        {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                        {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                        {field: 'FULLNAME_CN', title: '中文全称', width: 100},
+                    ]],
+                    onHidePanel: function () {
+                        var t = $(this).combogrid('getValue');
+                        if (t != null && t != '' & t != undefined) {
+                            if (selectRow == null || t != selectRow.STATION) {//没有选择或者选项不相等时清除内容
+                                alert('请选择，不要直接输入！');
+                                $(this).combogrid({value: ''});
+                            }
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        selectRow = row;
+                    }
+                });
+                $('#actype').combobox({
+                    panelHeight: '120px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data['DA_ACREG_MP_ACTYPE'],
+                    onSelect: function (item) {
+                        InitFuncCodeRequest_({
+                            data: {actype: item.VALUE, FunctionCode: "SELECT_ACNO_BY_ACTYPE"},
+                            successCallBack: function (jdata) {
+                                $('#acReg').combobox({
+                                    panelHeight: '160px',
+                                    valueField: 'VALUE',
+                                    textField: 'VALUE',
+                                    data: jdata.data
+                                });
+                            }
+                        })
+                    }
+                });
+                $('#acReg').combobox({
+                    panelHeight: '160px',
+                    multiple: true, //是否可多选
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                $('#actype1').combobox({
+                    panelHeight: '120px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data['DA_ACREG_MP_ACTYPE'],
+                    onSelect: function (item) {
+                        InitFuncCodeRequest_({
+                            data: {actype: item.VALUE, FunctionCode: "SELECT_ACNO_BY_ACTYPE"},
+                            successCallBack: function (jdata) {
+                                $('#acReg1').combobox({
+                                    panelHeight: '160px',
+                                    valueField: 'VALUE',
+                                    textField: 'VALUE',
+                                    data: jdata.data
+                                });
+                            }
+                        })
+                    }
+                });
+                $('#acReg1').combobox({
+                    panelHeight: '160px',
+                    multiple: true, //是否可多选
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                $('#acReg2').combobox({
+                    panelHeight: '160px',
+                    multiple: true, //是否可多选
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                $("input[type='radio'][name='thisWeekAndNextWeek1']").change(function () {
+                    var weekValue = $("input[type='radio'][name='thisWeekAndNextWeek1']:checked").val();
+                    if (weekValue == "thisWeek") {
+                        var Nowdate = new Date();
+                        var WeekFirstDay = new Date(Nowdate - (Nowdate.getDay() - 1) * 86400000);
+                        var WeekLastDay = new Date((WeekFirstDay / 1000 + 6 * 86400) * 1000);
+                        $("#flightDateBegin").datebox({value: formatterDate(WeekFirstDay)});
+                        $("#flightDateEnd").datebox({value: formatterDate(WeekLastDay)});
+                    } else if (weekValue == "nextWeek") {
+                        var Nowdate = new Date();
+                        var thisWeekFirstDay = new Date(Nowdate - (Nowdate.getDay() - 1) * 86400000);
+                        var WeekFirstDay = new Date((thisWeekFirstDay / 1000 + 7 * 86400) * 1000);
+                        var WeekLastDay = new Date((WeekFirstDay / 1000 + 6 * 86400) * 1000);
+                        $("#flightDateBegin").datebox({value: formatterDate(WeekFirstDay)});
+                        $("#flightDateEnd").datebox({value: formatterDate(WeekLastDay)});
+                    } else if (weekValue == "today") {
+                        $("#flightDateBegin").datebox({value: formatterDate(new Date())});
+                        $("#flightDateEnd").datebox({value: formatterDate(new Date())});
+                    }
+                });
+                var Nowdate = new Date();
+                var WeekFirstDay = new Date(Nowdate - (Nowdate.getDay() - 1) * 86400000);
+                var WeekLastDay = new Date((WeekFirstDay / 1000 + 6 * 86400) * 1000);
+                $("#planStartDateBegin").datebox({value: formatterDate(Nowdate)});
+                $("#planStartDateEnd").datebox({value: formatterDate(WeekLastDay)});
+                $("#flightDateBegin").datebox({value: formatterDate(WeekFirstDay)});
+                $("#flightDateEnd").datebox({value: formatterDate(WeekLastDay)});
+                $("#planstd").datebox({value: formatterDate(WeekFirstDay)});
+                $("#planend").datebox({value: formatterDate(WeekLastDay)});
+
+                $("input[type='radio'][name='thisWeekAndNextWeek2']").change(function () {
+                    var weekValue = $("input[type='radio'][name='thisWeekAndNextWeek2']:checked").val();
+                    if (weekValue == "thisWeek") {
+                        var Nowdate = new Date();
+                        var WeekFirstDay = new Date(Nowdate - (Nowdate.getDay() - 1) * 86400000);
+                        var WeekLastDay = new Date((WeekFirstDay / 1000 + 6 * 86400) * 1000);
+                        $("#planstd").datebox({value: formatterDate(WeekFirstDay)});
+                        $("#planend").datebox({value: formatterDate(WeekLastDay)});
+                    } else if (weekValue == "nextWeek") {
+                        var Nowdate = new Date();
+                        var thisWeekFirstDay = new Date(Nowdate - (Nowdate.getDay() - 1) * 86400000);
+                        var WeekFirstDay = new Date((thisWeekFirstDay / 1000 + 7 * 86400) * 1000);
+                        var WeekLastDay = new Date((WeekFirstDay / 1000 + 6 * 86400) * 1000);
+                        $("#planstd").datebox({value: formatterDate(WeekFirstDay)});
+                        $("#planend").datebox({value: formatterDate(WeekLastDay)});
+                    }
+                });
+                InitDataGrid();
+                InitDataGrid1();
+                InitDataGrid2();
+                InitDataGrid3();
+                InitDataGrid4();
+                InitDataCount();
+                InitDataChaoQi();
+                var timer = window.setInterval(function () {
+                    InitDataCount();
+                    onSearch_('dg2');
+                    onSearch_('dg3');
+                }, 1000 * 1200);//20分钟刷新一次
+
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            width: '2000px',
+            queryParams: {
+                planStartDateBegin: $("#planStartDateBegin").datebox('getValue'),
+                planStartDateEnd: $("#planStartDateEnd").datebox('getValue')
+            },
+            columns: {
+                param: {FunctionCode: 'MCC_TIME_PERIOD_LIST'},
+                alter: {
+                    FLIGHT_INFORMATION: {
+                        formatter: function (value, row, index) {
+                            var html = "";
+                            var info = row.FLIGHT_INFORMATION;
+                            if (info && info.length > 0) {
+                                var s1 = info.split(",");
+                                for (var i = 0; i < s1.length; i++) {
+                                    var obj = s1[i];
+                                    if (obj && obj.length > 0) {
+                                        var s2 = obj.split("~");
+                                        var flightNo = s2[0];
+                                        var gsxs = s2[1];//工时系数（人员与季度）
+                                        var rwgs = s2[2];//航段任务工时总计
+                                        var startDate = s2[3];//开始时间
+                                        var endDate = s2[4];//结束时间
+                                        var ysks = s2[5];//延伸夸水
+                                        var type = s2[6];//类别：航班段、非航班段（航前、航后、短停、停场）
+                                        var phase = s2[7];//阶段：航前、航后、短停、停场
+                                        var workorderId = s2[8];//顶级任务ID
+                                        var tcsj = s2[9];//航段非航段的时长
+                                        var hzrwgs = s2[10];//航站任务工时总计
+                                        var hzmrtczc = s2[11];//航站默认停场时长
+                                        var station = s2[12];//航站三字码
+                                        var isFly = s2[13];//是否已飞
+                                        //计算空白长度
+                                        var startDate1 = new Date(startDate);
+                                        var todayDate = row.PLAN_START_DATE + " 16:00:00"; //
+                                        var todayDate1 = new Date(todayDate);
+                                        var dateDiff = startDate1.getTime() - todayDate1.getTime();//时间差的毫秒数
+                                        var leave1 = dateDiff % (24 * 3600 * 1000);    //计算天数后剩余的毫秒数
+                                        var hour = leave1 / (3600 * 1000);//计算出小时数
+                                        if (i == 0) {
+                                            var blankWidth = hour * 20;
+                                            html += "<div style='background-color: ##FFFFFF;float: left;width: " + blankWidth + "px;' title=''>&nbsp;&nbsp;</div>";
+                                        }
+                                        //停场时间
+                                        var autoWidth = tcsj * 80;
+                                        if (autoWidth > 250) {
+                                            autoWidth = 250;
+                                        }
+                                        if (type == "FLIGHT") {
+                                            if (autoWidth < 80) {
+                                                autoWidth = 80;
+                                            }
+                                        }
+                                        if (type == "TC") {
+                                            if (autoWidth < 150) {
+                                                autoWidth = 150;
+                                            }
+                                        }
+                                        //航班号
+                                        if (type == "FLIGHT") {
+                                            if ("y" == ysks) {
+                                                if ("Y" == isFly) {
+                                                    html += "<div style='background-color: #80be09;float: left;text-align:center;border: 1px solid;width: " + autoWidth + "px;' title='航班号" + flightNo + "|计飞" + startDate + "|计落" + endDate + "'>" + "<font color='red'>跨</font>" + flightNo + "</div>";
+                                                } else {
+                                                    html += "<div style='background-color: #ADD8E6;float: left;text-align:center;border: 1px solid;width: " + autoWidth + "px;' title='航班号" + flightNo + "|计飞" + startDate + "|计落" + endDate + "'>" + "<font color='red'>跨</font>" + flightNo + "</div>";
+                                                }
+                                            } else {
+                                                if ("Y" == isFly) {
+                                                    html += "<div style='background-color: #80be09;float: left;text-align:center;border: 1px solid;width: " + autoWidth + "px;' title='航班号" + flightNo + "|计飞" + startDate + "|计落" + endDate + "'>" + flightNo + "</div>";
+                                                } else {
+                                                    html += "<div style='background-color: #ADD8E6;float: left;text-align:center;border: 1px solid;width: " + autoWidth + "px;' title='航班号" + flightNo + "|计飞" + startDate + "|计落" + endDate + "'>" + flightNo + "</div>";
+                                                }
+                                            }
+                                        }
+                                        if (type == "TC") {
+                                            var tcxnsc = Math.round(gsxs * tcsj,2); //停场效能时长 = 工时系数 * 停场时间
+                                            //任务工时总计-停场时间百分比
+                                            var perc = Math.round(rwgs / tcxnsc * 10000) / 100.00 + "%";
+                                            if (phase == "Po/F" || phase == "O/G") { //航后和停场，按照航站默认停场时长（航站工时系数模块中设置）小时算停场效能时长，任务工时总计为整个航站当天航后和停场的工时总计
+                                                tcxnsc = Math.round(gsxs * hzmrtczc,2);
+                                                if(hzmrtczc>0){
+                                                    perc = Math.round(hzrwgs / (gsxs * hzmrtczc) * 10000) / 100.00 + "%";
+                                                }else{
+                                                    perc = Math.round(hzrwgs / (gsxs * 8) * 10000) / 100.00 + "%"; //如果航站工时系数模块中没有设置，按照8小时计算
+                                                }
+                                            }
+                                            if (tcxnsc == 0) {
+                                                perc = '0%';
+                                            }
+                                            //根据百分比匹配背景颜色
+                                            if (parseFloat(perc) >= parseFloat('80%')) {
+                                                if (phase == "Po/F" || phase == "O/G") {
+                                                    html += "<div style='background-color: red;float: left;text-align:center;border: 1px solid;width:" + autoWidth + "px;' title='任务工时" + rwgs + "|工时容量" + tcxnsc + "|百分比" + perc + "'>" + station + "<a href='###' style='text-decoration:underline;' onclick='searchData1ByParentId(" + workorderId + ");'>" + "<b>" + phase + "</b>" + "<a/>" + "&nbsp;&nbsp;" + rwgs + "|" + tcxnsc + "|" + perc + "</div>";
+                                                } else{
+                                                    html += "<div style='background-color: orange;float: left;text-align:center;border: 1px solid;width:" + autoWidth + "px;' title='任务工时" + rwgs + "|工时容量" + tcxnsc + "|百分比" + perc + "'>" + station +"<a href='###' style='text-decoration:underline;' onclick='searchData1ByParentId(" + workorderId + ");'>" + "<b>" + phase + "</b>" + "<a/>" + "&nbsp;&nbsp;" + rwgs + "|" + tcxnsc + "|" + perc + "</div>";
+                                                }
+                                            } else {
+                                                html += "<div style='background-color: transparent;float: left;text-align:center;border: 1px solid;width:" + autoWidth + "px;' title='任务工时" + rwgs + "|工时容量" + tcxnsc + "|百分比" + perc + "'>" + station +"<a href='###' style='text-decoration:underline;' onclick='searchData1ByParentId(" + workorderId + ");'>" + "<b>" + phase + "</b>" + "<a/>" + "&nbsp;&nbsp;" + rwgs + "|" + tcxnsc + "|" + perc + "</div>";
+                                            }
+                                            /*var dateTime=new Date();
+                                             dateTime=dateTime.setDate(dateTime.getDate()-3);
+                                             dateTime=formatterDate(new Date(dateTime));*/
+
+                                        }
+                                    }
+                                }
+                            }
+                            return html;
+                        }
+                    },
+                }
+            },
+
+            onLoadSuccess: function (value, rowData, rowIndex) {
+                //取消气泡显示效果
+                var panel = $("#dg").datagrid('getPanel').panel('panel');
+                panel.find('.datagrid-body').undelegate('td', 'mouseover').undelegate('td', 'mouseout').undelegate('td', 'mousemove');
+            },
+            rowStyler: function (index, row) {
+                if (row.DURATION >= row.PLAN_DURATION) {
+                    return 'background-color:red;';
+                }
+            },
+            contextMenus: [],
+        });
+    }
+    function viewMRP(cardId,cardNo,taskNum){
+        ShowWindowIframe({
+            width: "1060",
+            height: "650",
+            title: "航材需求",
+            param: {taskNumber: taskNum,cardNo: cardNo, cardId: cardId, type: 'A'},
+            url: "/views/pm/mc/task/weekPlan_mate_list.shtml"
+        });
+    }
+    function InitDataCount() {
+        var queryParams = $("#mform1").serializeObject();
+        queryParams.flightDateBegin = $("#flightDateBegin").datebox('getValue').substring(0, 10) + " 00:00:00";
+        queryParams.flightDateEnd = $("#flightDateEnd").datebox('getValue').substring(0, 10) + " 23:59:59";
+        //机号多选
+        var acReg1 = $("#acReg1").combobox('getText');
+        queryParams.acReg1 = acReg1;
+        queryParams = $.extend({}, queryParams, {FunctionCode: 'MCC_WORKORDER_LIST_COUNT'});
+        // queryParams.thisWeekAndNextWeek1 = "";
+        delete queryParams.thisWeekAndNextWeek1;
+        InitFuncCodeRequest_({
+            data: queryParams,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    var allCount = jdata.data.ywcCount + jdata.data.yxfCount + jdata.data.yjhCount;
+                    $("#allCount").val("全部" + allCount);
+                    $("#ywcCount").val("已完成" + jdata.data.ywcCount);
+                    $("#yxfCount").val("已下发" + (jdata.data.yxfCount));
+                    $("#yjhCount").val("已计划" + jdata.data.yjhCount);
+                    if(jdata.data.yjhCount>0){
+                        $("#yjhCount").removeClass("blackColor").addClass("redColor");
+                    }else{
+                        $("#yjhCount").removeClass("redColor").addClass("blackColor");
+                    }
+                    //$("#djhCount").html(" 待计划任务清单（" + jdata.data.djhCount + "）：");
+                    $("#dclCount").html("待处理退回任务清单（" + jdata.data.dclCount + "）：");
+                }
+            }
+        });
+        queryParams2 = $.extend({}, queryParams, {FunctionCode: 'MCC_WORKORDER_OVERDUE_COUNT'});
+        InitFuncCodeRequest_({
+            data: queryParams2,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#CqallCount").val("全部" + jdata.data[0].SUMCOUNT);
+                    $("#CqAllow").val("允许超期" + jdata.data[0].ALLOWCOUNT);
+                    $("#CqNotAllow").val("不允许超期" + (jdata.data[0].NOTALLOWCOUNT));
+                    if(jdata.data[0].ALLOWCOUNT>0){
+                        $("#CqAllow").removeClass("blackColor").addClass("redColor");
+                    }else{
+                        $("#CqAllow").removeClass("redColor").addClass("blackColor");
+                    }
+                }
+            }
+        })
+    }
+    function InitDataGrid1() {
+        $("#dg1").MyDataGrid({
+            identity: 'dg1',
+            sortable: true,
+            singleSelect: true,
+            queryParams: {
+                status: 'ALL',
+                flightDateBegin: $("#flightDateBegin").datebox('getValue').substring(0, 10) + " 00:00:00",
+                flightDateEnd: $("#flightDateEnd").datebox('getValue').substring(0, 10) + " 23:59:59"
+            },
+            columns: {
+                param: {FunctionCode: 'MCC_WORKORDER_LIST'},
+                alter: {
+                    STATION: {
+                        formatter: function (value, row, index) {
+                            var isSpecialJob = row.IS_SPECIAL_JOB;
+                            if ("X" == isSpecialJob) {
+                                var greenHtml = "<span style='background-color: green'>" + value + "</span>";
+                                return greenHtml;
+                            }
+                            return value;
+
+                        }
+                    },
+                    review: {
+                        sortable : false,
+                        formatter: function (value, row) {
+                            var cardId = row.CARD_ID;
+                            var workType = row.WORK_TYPE;
+                            var workorderId = row.ID;
+                            var acId = row.AC_ID;
+                            var sapTaskId = row.SAP_TASK_ID;
+                            if (workType == 'DEFECT' || workType == 'DEFECT_REVIEW' ) {
+                                return ''
+                            }else{
+                                return `<img src="/img/icon_pdf.gif" style="cursor:pointer" onClick="previewPdf('${row.CARD_ID}','${row.WORK_TYPE}','${row.ID}','${row.AC_ID}','${row.SAP_TASK_ID}')"/>`;
+                            }
+                        }
+                    },
+                    JOB_DATE: {
+                        type: 'date'
+                    },
+                    EXPIRE_DATE: {
+                        type: 'date'
+                    },
+                    PPC_PLAN_DATE: {
+                        type: 'date'
+                    },
+                    REVTP: {
+                        formatter: function (value, row, index) {
+                            if (row.PACKAGE_NUMBER == undefined) {
+                                return "";
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP == undefined) {
+                                return row.PACKAGE_NUMBER;
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP != undefined) {
+                                return row.PACKAGE_NUMBER + PAGE_DATA['revtp'][value];
+                            }
+                        }
+                    },
+                    MR: {
+                        formatter: function (value, row, index) {
+                            if (!row.MR) {
+                                return "";
+                            }
+                            var html = "";
+                            var mrs = row.MR.split(',');
+                            for (var i = 0; i < mrs.length; i++) {
+                                let mr = mrs[i].split('~');
+                                let mrNum = "MR"+mr[0].substring(1,mr[0].length);
+                                let mrstatus = mr[1];
+                                html += `<a href="###" style="text-decoration:underline;" onclick="viewDet('${mr[0]}','undefined','undefined')">${mrNum}</a>` + "(" + mrstatus + ")" + ",";
+                            }
+                            return html.substring(0, html.length - 1);
+                        }
+                    },
+                    BZST: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['hcmzst'][value];
+                        }
+                    },
+                    PA_WORK_TYPE: {
+                        formatter: function (value, rowData, index) {
+                            if (value) {
+                                return "<a href='###' style='text-decoration:underline;'" +
+                                    "onclick='openDetail(&apos;" + value + "&apos;,&apos;" + rowData.PARENT_ID
+                                    + "&apos;,&apos;" + rowData.AC_REG + "&apos;,&apos;" + rowData.FLIGHT_NO
+                                    + "&apos;,&apos;" + '' + "&apos;,&apos;" + rowData.FLIGHT_ID
+                                    + "&apos;,&apos;" + '' + "&apos;,&apos;" + ''
+                                    + "&apos;,&apos;" + rowData.IS_RELEASED + "&apos;,&apos;" + rowData.STATION + "&apos;,&apos;" + rowData.JOB_DATE + "&apos;)'>" + value + "</a>";
+                            }
+                        }
+                    },
+                    TOOL_FLAG: {
+                        formatter: function (value, rowData, index) {
+                            if (value == 'Y') {
+                                return "<a href='###' style='text-decoration:underline;'" +
+                                    "onclick='viewTool(&apos;" + rowData.CARD_NUMBER + "&apos;)'>" + "有" + "</a>";
+                            } else {
+                                return "";
+                            }
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value, rowData, index) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    SAP_SUB_TASK_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['sapSubTaskType'][value];
+                        }
+                    }
+                    /*WORK_TYPE: {
+                     formatter: function (value, row, index) {
+                     return PAGE_DATA['taskType'][row.WORK_TYPE];
+                     }
+                     }*/
+                }
+            },
+            contextMenus: [
+                /*{
+                 id: "mm-enable", i18nText: "任务下发", auth: "",
+                 onclick: function () {
+                 //获取pkid
+                 var rowData = $('#dg1').datagrid('getSelected');
+                 var pkid = rowData.ID;
+                 var taskNumber = rowData.TASK_NUMBER == undefined ? "" : rowData.TASK_NUMBER;
+                 InitFuncCodeRequest_({
+                 data: {taskNumber: taskNumber, FunctionCode: 'WORKORDER_XF_CHECK_MATE_BZST'},
+                 successCallBack: function (jdata) {
+                 if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                 if (jdata.data.BZST_COUNT > 0) {
+                 if (!confirm("有" + jdata.data.BZST_COUNT + "条保障状态为部分满足或完全不满足的航材需求，是否下发")) {
+                 return;
+                 }
+                 }
+                 InitFuncCodeRequest_({
+                 data: {pkid: pkid, flag: "XF", FunctionCode: 'UPDATE_WORKORDER_STATUS'},
+                 successCallBack: function (jdata) {
+                 if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                 InitDataCount();
+                 searchData1();
+                 MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                 }
+                 }
+                 })
+                 }
+                 }
+                 })
+                 }
+                 },*/
+                /*{
+                 id: "mm-enable", i18nText: "任务调整", auth: "",
+                 onclick: function () {
+                 var rowData = $('#dg1').datagrid('getSelected');
+                 ShowWindowIframe({
+                 width: "650",
+                 height: "350",
+                 title: "任务调整",
+                 param: {pkid: rowData.ID},
+                 url: "/views/pm/mc/task/weekPlan_update.shtml"
+                 });
+                 }
+                 },*/
+                /*{
+                 id: "mm-enable", i18nText: "任务撤回", auth: "",
+                 onclick: function () {
+                 var rowData = $('#dg1').datagrid('getSelected');
+                 ShowWindowIframe({
+                 width: "650",
+                 height: "220",
+                 title: "任务撤回",
+                 param: {pkid: rowData.ID, flag: 'CH'},
+                 url: "/views/pm/mc/task/weekPlan_turnBack_reason.shtml"
+                 });
+                 }
+
+                 },*/
+                /*{
+                 id: "mm-enable", i18nText: "任务退回", auth: "",
+                 onclick: function () {
+                 var rowData = $('#dg1').datagrid('getSelected');
+                 if (rowData.PACKAGE_NUMBER == undefined || rowData.PACKAGE_NUMBER == "") {
+                 MsgAlert({content: "自有任务不可退回", type: 'error'});
+                 return;
+                 }
+                 ShowWindowIframe({
+                 width: "650",
+                 height: "340",
+                 title: "任务退回",
+                 param: {pkid: rowData.ID},
+                 url: "/views/pm/mc/task/weekPlan_th_reason.shtml"
+                 });
+                 }
+                 },*/
+                {
+                    id: "mm-enable", i18nText: "航材需求", auth: "PM_MC_WEEKPLAN_WORKORDER_HCXQ",
+                    onclick: function () {
+                        var rowData = $('#dg1').datagrid('getSelected');
+                        ShowWindowIframe({
+                            width: "1060",
+                            height: "650",
+                            title: "航材需求",
+                            param: {taskNumber: rowData.TASK_NUMBER, cardId: rowData.CARD_ID, type: 'A'},
+                            url: "/views/pm/mc/task/weekPlan_mate_list.shtml"
+                        });
+                    }
+                },
+                {
+                 id: "mm-enable", i18nText: "任务操作日志", auth: "",
+                 onclick: function () {
+                 var rowData = $('#dg1').datagrid('getSelected');
+                 ShowWindowIframe({
+                         width: "500",
+                         height: "300",
+                         title: "任务操作日志",
+                         param: {workorderid: rowData.ID},
+                         url: "/views/pm/mc/task/weekPlan_task_status_log_list.shtml"
+                     });
+                   }
+                 }
+            ],
+            rowStyler: function (index, row) {
+                //是否置顶标识
+                if(row.ZDBS == 1){
+                    return 'background-color:green;';
+                }else{
+                    var deadLine = row.EXPIRE_DATE;
+                    if (deadLine && deadLine != null && deadLine != '' && row.STATUS != 'COMPLETED') {
+                        var days = diffDays(deadLine);
+                        if (days < 7) {
+                            return 'background-color:#FF0000;';//红色
+                        } else if (days >= 7 && days <= 14) {
+                            return 'background-color:#FFBB77;';//橙黄FFA500
+                        }
+                    }
+                }
+            },
+            validAuth: function (row, items) {
+                if (row.STATUS == 'ISSUED') {
+                    //items['任务下发'].enable = false;
+                    /*items['任务调整'].enable = false;
+                     items['任务退回'].enable = false;*/
+                }
+                if (row.STATUS == 'TO_PLAN') {
+                    //items['任务下发'].enable = false;
+                    //items['任务调整'].enable = false;
+                    //items['任务撤回'].enable = false;
+                }
+                if (row.STATUS == 'COMPLETED') {
+                    //items['任务下发'].enable = false;
+                    //items['任务调整'].enable = false;
+                    //items['任务撤回'].enable = false;
+                    //items['任务退回'].enable = false;
+                }
+                return items;
+            }
+        });
+    }
+
+    function InitDataGrid2() {
+        $("#dg2").MyDataGrid({
+            fit: true,
+            identity: 'dg2',
+            singleSelect: true,
+            sortable: true,
+            queryParams: {
+                status: 'TO_PLAN',
+                flightDateBegin: $("#flightDateBegin").datebox('getValue').substring(0, 10) + " 00:00:00",
+                flightDateEnd: $("#flightDateEnd").datebox('getValue').substring(0, 10) + " 23:59:59"
+            },
+            columns: {
+                param: {FunctionCode: 'MCC_WORKORDER_DJH_LIST'},
+                alter: {
+                    STATION: {
+                        formatter: function (value, row, index) {
+                            var isSpecialJob = row.IS_SPECIAL_JOB;
+                            if ("X" == isSpecialJob) {
+                                var greenHtml = "<span style='background-color: green'>" + value + "</span>";
+                                return greenHtml;
+                            }
+                            return value;
+
+                        }
+                    },
+                    review: {
+                        sortable : false,
+                        formatter: function (value, row) {
+                            var cardId = row.CARD_ID;
+                            var workType = row.WORK_TYPE;
+                            var workorderId = row.ID;
+                            var acId = row.AC_ID;
+                            var sapTaskId = row.SAP_TASK_ID;
+                            if (workType == 'DEFECT' || workType == 'DEFECT_REVIEW' ) {
+                                return ''
+                            }else{
+                                return `<img src="/img/icon_pdf.gif" style="cursor:pointer" onClick="previewPdf('${row.CARD_ID}','${row.WORK_TYPE}','${row.ID}','${row.AC_ID}','${row.SAP_TASK_ID}')"/>`;
+                            }
+                        }
+                    },
+                    JOB_DATE: {
+                        type: 'date'
+                    },
+                    EXPIRE_DATE: {
+                        type: 'date'
+                    },
+                    PPC_PLAN_DATE: {
+                        type: 'date'
+                    },
+                    //是否允许超期
+                    ALLOW_OVERDUE_TYPE: {
+                        formatter: function (value, row, index) {
+                            var allowOverShow = "";
+                            if(value === "1"){
+                                allowOverShow = "PPC同意超期";
+                            }else if(value === "2"){
+                                allowOverShow = "MCC同意超期";
+                            }else if(value === "3"){
+                                allowOverShow = "TMC同意超期";
+                            };
+                            return allowOverShow;
+                        }
+                    },
+                    //超期原因
+                    ALLOW_OVERDUE_REASON: {
+                        formatter: function (value, row, index) {
+                            return value;
+                        }
+                    },
+                    //超期允许人
+                    ALLOW_OVERDUE_SN: {
+                        formatter: function (value, row, index) {
+                            var allowMan = "";
+                            if(row.ALLOW_OVERDUE_SN && row.ALLOW_OVERDUE_NAME ){
+                                allowMan = row.ALLOW_OVERDUE_NAME + "("+row.ALLOW_OVERDUE_SN+")";
+                            }
+                            return allowMan;
+                        }
+                    },
+                    REVTP: {
+                        formatter: function (value, row, index) {
+                            if (row.PACKAGE_NUMBER == undefined) {
+                                return "";
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP == undefined) {
+                                return row.PACKAGE_NUMBER;
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP != undefined) {
+                                return row.PACKAGE_NUMBER + PAGE_DATA['revtp'][value];
+                            }
+                        }
+                    },
+                    //航材需求
+                    BZST: {
+                        formatter: function (value, row, index) {
+                            let a = '';
+                            if (value && value>0){
+                                switch (row.WORK_TYPE) {
+                                    case "NRC":
+                                        a = `<a onclick="viewMRP('${row.CARD_ID}','${row.CARD_NUMBER}','')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                        break;
+                                    case "NRCT":
+                                        a = `<a onclick="viewMRP('${row.CARD_ID}','${row.CARD_NUMBER}','')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                        break;
+                                    case "TO":
+                                        a = `<a onclick="viewMRP('${row.CARD_ID}','${row.CARD_NUMBER}','')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                        break;
+                                    case "CCO":
+                                        a = `<a onclick="viewMRP('','','${row.TASK_NUMBER}')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                        break;
+                                    default:
+                                        a = `<a onclick="viewMRP('','${row.CARD_NUMBER}','${row.TASK_NUMBER}')" href="javascript:;" style="cursor: pointer;color: #f60; ">查看MRP</a>`;
+                                }
+                            }
+                            return a;
+                        }
+                    },
+                    //工具需求
+                    TOOL_FLAG: {
+                        formatter: function (value, rowData, index) {
+                            if (value == 'Y') {
+                                return "<a href='###' style='text-decoration:underline;'" +
+                                    "onclick='viewTool(&apos;" + rowData.CARD_NUMBER + "&apos;)'>" + "有" + "</a>";
+                            } else {
+                                return "";
+                            }
+                        }
+                    },
+                    MR: {
+                        formatter: function (value, row, index) {
+                            if (!row.MR) {
+                                return "";
+                            }
+                            var html = "";
+                            var mrs = row.MR.split(',');
+                            for (var i = 0; i < mrs.length; i++) {
+                                let mr = mrs[i].split('~');
+                                let mrNum = "MR"+mr[0].substring(1,mr[0].length);
+                                let mrstatus = mr[1];
+                                html += `<a href="###" style="text-decoration:underline;" onclick="viewDet('${mr[0]}','undefined','undefined')">${mrNum}</a>` + "(" + mrstatus + ")" + ",";
+                            }
+                            return html.substring(0, html.length - 1);
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    SAP_SUB_TASK_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['sapSubTaskType'][value];
+                        }
+                    }
+                    /*WORK_TYPE: {
+                     formatter: function (value, row, index) {
+                     return PAGE_DATA['taskType'][row.WORK_TYPE];
+                     }
+                     }*/
+                }
+            },
+            onLoadSuccess: function (data) {
+                if(data){
+                    $("#djhCount").html(" 待计划任务清单（" + data.total + "）：");
+                }
+                //$("#dg2").datagrid("hideColumn", 'CHECKBOX');
+            },
+            rowStyler: function (index, row) {
+                var deadLine = row.EXPIRE_DATE;
+                if (deadLine && deadLine != null && deadLine != '') {
+                    var days = diffDays(deadLine);
+                    if (days < 7) {
+                        return 'background-color:#FF0000;';//红色
+                    } else if (days >= 7 && days <= 14) {
+                        return 'background-color:#FFBB77;';//橙黄FFA500
+                    }
+                }
+            },
+            contextMenus: [
+                /*{
+                 id: "mm-enable", i18nText: "任务安排", auth: "",
+                 onclick: function () {
+                 var rowData = $('#dg2').datagrid('getSelected');
+                 ShowWindowIframe({
+                 width: "650",
+                 height: "300",
+                 title: "任务安排",
+                 param: {pkid: rowData.ID, flag: 'AP'},
+                 url: "/views/pm/mc/task/weekPlan_update.shtml"
+                 });
+                 }
+                 },
+                 {
+                 id: "mm-enable", i18nText: "退回PPC", auth: "",
+                 onclick: function () {
+                 var rowData = $('#dg2').datagrid('getSelected');
+                 /!*if (rowData.PACKAGE_NUMBER == undefined || rowData.PACKAGE_NUMBER == "") {
+                 MsgAlert({content: "自有任务不可退回", type: 'error'});
+                 return;
+                 }*!/
+                 ShowWindowIframe({
+                 width: "650",
+                 height: "340",
+                 title: "退回PPC",
+                 param: {pkid: rowData.ID, flag: 'TH'},
+                 url: "/views/pm/mc/task/weekPlan_th_reason.shtml"
+                 });
+                 }
+                 }*/
+                {
+                    id: "mm-enable", i18nText: "任务操作日志", auth: "",
+                    onclick: function () {
+                        var rowData = $('#dg2').datagrid('getSelected');
+                        ShowWindowIframe({
+                            width: "500",
+                            height: "300",
+                            title: "任务操作日志",
+                            param: {workorderid: rowData.ID},
+                            url: "/views/pm/mc/task/weekPlan_task_status_log_list.shtml"
+                        });
+                    }
+                }
+            ],
+        });
+    }
+    function InitDataGrid3() {
+        $("#dg3").MyDataGrid({
+            fit: true,
+            identity: 'dg3',
+            singleSelect: true,
+            sortable: true,
+            queryParams: {status: 'RETURNED'},
+            columns: {
+                param: {FunctionCode: 'MCC_WORKORDER_YTH_LIST'},
+                alter: {
+                    STATION: {
+                        formatter: function (value, row, index) {
+                            var isSpecialJob = row.IS_SPECIAL_JOB;
+                            if ("X" == isSpecialJob) {
+                                var greenHtml = "<span style='background-color: green'>" + value + "</span>";
+                                return greenHtml;
+                            }
+                            return value;
+
+                        }
+                    },
+                    review: {
+                        sortable : false,
+                        formatter: function (value, row) {
+                            var cardId = row.CARD_ID;
+                            var workType = row.WORK_TYPE;
+                            var workorderId = row.ID;
+                            var acId = row.AC_ID;
+                            var sapTaskId = row.SAP_TASK_ID;
+                            if (workType == 'DEFECT' || workType == 'DEFECT_REVIEW' ) {
+                                return ''
+                            }else{
+                                return `<img src="/img/icon_pdf.gif" style="cursor:pointer" onClick="previewPdf('${row.CARD_ID}','${row.WORK_TYPE}','${row.ID}','${row.AC_ID}','${row.SAP_TASK_ID}')"/>`;
+                            }
+                        }
+                    },
+                    JOB_DATE: {
+                        type: 'date'
+                    },
+                    EXPIRE_DATE: {
+                        type: 'date'
+                    },
+                    REVTP: {
+                        formatter: function (value, row, index) {
+                            if (row.PACKAGE_NUMBER == undefined) {
+                                return "";
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP == undefined) {
+                                return row.PACKAGE_NUMBER;
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP != undefined) {
+                                return row.PACKAGE_NUMBER + PAGE_DATA['revtp'][value];
+                            }
+                        }
+                    },
+                    CANCEL_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['cancelType'][value];
+                        }
+                    },
+                    BZST: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['hcmzst'][value];
+                        }
+                    },
+                    PPC_PLAN_DATE: {
+                        type: 'date'
+                    },
+                    MR: {
+                        formatter: function (value, row, index) {
+                            if (!row.MR) {
+                                return "";
+                            }
+                            var html = "";
+                            var mrs = row.MR.split(',');
+                            for (var i = 0; i < mrs.length; i++) {
+                                let mr = mrs[i].split('~');
+                                let mrNum = "MR"+mr[0].substring(1,mr[0].length);
+                                let mrstatus = mr[1];
+                                html += `<a href="###" style="text-decoration:underline;" onclick="viewDet('${mr[0]}','undefined','undefined')">${mrNum}</a>` + "(" + mrstatus + ")" + ",";
+                            }
+                            return html.substring(0, html.length - 1);
+                        }
+                    },
+                    TOOL_FLAG: {
+                        formatter: function (value, rowData, index) {
+                            if (value == 'Y') {
+                                return "<a href='###' style='text-decoration:underline;'" +
+                                    "onclick='viewTool(&apos;" + rowData.CARD_NUMBER + "&apos;)'>" + "有" + "</a>";
+                            } else {
+                                return "";
+                            }
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    SAP_SUB_TASK_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['sapSubTaskType'][value];
+                        }
+                    }
+                    /*WORK_TYPE: {
+                     formatter: function (value, row, index) {
+                     return PAGE_DATA['taskType'][row.WORK_TYPE];
+                     }
+                     }*/
+                }
+            },
+            onLoadSuccess: function (data) {
+                $("#dg3").datagrid("hideColumn", 'CHECKBOX')
+            },
+            contextMenus: [
+                {
+                    id: "mm-enable", i18nText: "接受退回", auth: "PM_MC_WEEKPLAN_WORKORDER_JSTH",
+                    onclick: function () {
+                        //获取pkid
+                        var rowData = $('#dg3').datagrid('getSelected');
+                        var pkid = rowData.ID;
+                        var index = getDG("dg3").datagrid('getRowIndex', rowData);
+                        InitFuncCodeRequest_({
+                            data: {pkid: pkid, flag: "JSTH", FunctionCode: 'UPDATE_WORKORDER_STATUS'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    InitDataCount();
+                                    reloadDjh();
+                                    reloadYth();
+                                    reloadCq();
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                } else {
+                                    MsgAlert({content: jdata.msgData[0]});
+
+                                }
+                            }
+                        })
+                    }
+
+                },
+                {
+                    id: "mm-enable", i18nText: "驳回退回", auth: "PM_MC_WEEKPLAN_WORKORDER_BHTH",
+                    onclick: function () {
+                        //获取pkid
+                        var rowData = $('#dg3').datagrid('getSelected');
+                        ShowWindowIframe({
+                            width: "650",
+                            height: "220",
+                            title: "驳回退回",
+                            param: {pkid: rowData.ID},
+                            url: "/views/pm/mc/task/weekPlan_bhth_reason.shtml"
+                        });
+                    }
+                }
+            ],
+        });
+    }
+    function InitDataGrid4() {
+        $("#dg4").MyDataGrid({
+            fit: true,
+            identity: 'dg4',
+            singleSelect: true,
+            sortable: true,
+            queryParams: {
+                planstd: $("#planstd").datebox('getValue').substring(0, 10) + " 00:00:00",
+                planend: $("#planend").datebox('getValue').substring(0, 10) + " 23:59:59"
+            },
+            columns: {
+                param: {FunctionCode: 'MCC_DJ_ZX_PACKAGE_LIST'},
+                alter: {
+                    PLANSTD: {
+                        type: 'date'
+                    },
+                    PLANEND: {
+                        type: 'date'
+                    },
+                    PACKAGE_STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['packageStatus'][value];
+                        }
+                    },
+                    REVNO: {
+                        formatter: function (value, rowData, index) {
+                            if (value) {
+                                return "<a href='###' style='text-decoration:underline;'" +
+                                    "onclick='fixed_edit(&apos;" + value + "&apos;)'>" + value + "</a>";
+                            }
+                        }
+                    },
+                    REVTP: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['revtp'][value];
+                        }
+                    },
+                    ZXBM: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['zxbm'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['acStatus'][value];
+                        }
+                    },
+                    /*WORK_TYPE111: {
+                     formatter: function (value, row, index) {
+                     return PAGE_DATA['taskType'][row.WORK_TYPE];
+                     }
+                     }*/
+                }
+            },
+            onLoadSuccess: function (data) {
+                //$("#dg2").datagrid("hideColumn", 'CHECKBOX');
+            },
+            rowStyler: function (index, row) {
+            },
+            contextMenus: [],
+        });
+    }
+    function InitDataChaoQi() {
+        $("#dgCq").MyDataGrid({
+            fit: true,
+            identity: 'dg4',
+            singleSelect: true,
+            sortable: true,
+            queryParams: {
+                status: 'ALL',
+                flightDateBegin: $("#flightDateBegin").datebox('getValue').substring(0, 10) + " 00:00:00",
+                flightDateEnd: $("#flightDateEnd").datebox('getValue').substring(0, 10) + " 23:59:59"
+            },
+            columns: {
+                param: {FunctionCode: 'MCC_WORKORDER_OVERDUE_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    MR: {
+                        formatter: function (value, row, index) {
+                            if (!row.MR) {
+                                return "";
+                            }
+                            var html = "";
+                            var mrs = row.MR.split(',');
+                            for (var i = 0; i < mrs.length; i++) {
+                                let mr = mrs[i].split('~');
+                                let mrNum = "MR"+mr[0].substring(1,mr[0].length);
+                                let mrstatus = mr[1];
+                                html += `<a href="###" style="text-decoration:underline;" onclick="viewDet('${mr[0]}','undefined','undefined')">${mrNum}</a>` + "(" + mrstatus + ")" + ",";
+                            }
+                            return html.substring(0, html.length - 1);
+                        }
+                    },
+                    PPC_PLAN_DATE: {
+                        type: 'date'
+                    },
+                    //是否允许超期
+                    ALLOW_OVERDUE_TYPE: {
+                        formatter: function (value, row, index) {
+                            var allowOverShow = "";
+                            if(value === "1"){
+                                allowOverShow = "PPC同意超期";
+                            }else if(value === "2"){
+                                allowOverShow = "MCC同意超期";
+                            }else if(value === "3"){
+                                allowOverShow = "TMC同意超期";
+                            };
+                            return allowOverShow;
+                        }
+                    },
+                    //超期原因
+                    ALLOW_OVERDUE_REASON: {
+                        formatter: function (value, row, index) {
+                            return value;
+                        }
+                    },
+                    //超期允许人
+                    ALLOW_OVERDUE_SN: {
+                        formatter: function (value, row, index) {
+                            var allowMan = "";
+                            if(row.ALLOW_OVERDUE_SN && row.ALLOW_OVERDUE_NAME ){
+                                allowMan = row.ALLOW_OVERDUE_NAME + "("+row.ALLOW_OVERDUE_SN+")";
+                            }
+                            return allowMan;
+                        }
+                    },
+                    //预览
+                    review: {
+                        sortable : false,
+                        formatter: function (value, row) {
+                            var cardId = row.CARD_ID;
+                            var workType = row.WORK_TYPE;
+                            var workorderId = row.ID;
+                            var acId = row.AC_ID;
+                            var sapTaskId = row.SAP_TASK_ID;
+                            if (workType == 'DEFECT' || workType == 'DEFECT_REVIEW' ) {
+                                return ''
+                            }else{
+                                return `<img src="/img/icon_pdf.gif" style="cursor:pointer" onClick="previewPdf('${row.CARD_ID}','${row.WORK_TYPE}','${row.ID}','${row.AC_ID}','${row.SAP_TASK_ID}')"/>`;
+                            }
+                        }
+                    },
+                    //航材需求
+                    BZST: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['hcmzst'][value];
+                        }
+                    },
+                    //工具需求
+                    TOOL_FLAG: {
+                        formatter: function (value, rowData, index) {
+                            if (value == 'Y') {
+                                return "<a href='###' style='text-decoration:underline;'" +
+                                    "onclick='viewTool(&apos;" + rowData.CARD_NUMBER + "&apos;)'>" + "有" + "</a>";
+                            } else {
+                                return "";
+                            }
+                        }
+                    },
+                    SAP_SUB_TASK_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['sapSubTaskType'][value];
+                        }
+                    },
+                    JOB_DATE: {
+                        type: 'date'
+                    },
+                    EXPIRE_DATE: {
+                        type: 'date'
+                    },
+                    REVTP: {
+                        formatter: function (value, row, index) {
+                            if (row.PACKAGE_NUMBER == undefined) {
+                                return "";
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP == undefined) {
+                                return row.PACKAGE_NUMBER;
+                            }
+                            if (row.PACKAGE_NUMBER != undefined && row.REVTP != undefined) {
+                                return row.PACKAGE_NUMBER + PAGE_DATA['revtp'][value];
+                            }
+                        }
+                    } ,
+                    PA_WORK_TYPE: {
+                        formatter: function (value, rowData, index) {
+                            if (value) {
+                                return "<a href='###' style='text-decoration:underline;'" +
+                                    "onclick='openDetail(&apos;" + value + "&apos;,&apos;" + rowData.PARENT_ID
+                                    + "&apos;,&apos;" + rowData.AC_REG + "&apos;,&apos;" + rowData.FLIGHT_NO
+                                    + "&apos;,&apos;" + '' + "&apos;,&apos;" + rowData.FLIGHT_ID
+                                    + "&apos;,&apos;" + '' + "&apos;,&apos;" + ''
+                                    + "&apos;,&apos;" + rowData.IS_RELEASED + "&apos;,&apos;" + rowData.STATION + "&apos;,&apos;" + rowData.JOB_DATE + "&apos;)'>" + value + "</a>";
+                            }
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                //$("#dg2").datagrid("hideColumn", 'CHECKBOX');
+            },
+            rowStyler: function (index, row) {
+            },
+            contextMenus: [
+                {
+                    id: "mm-enable", i18nText: "任务操作日志", auth: "",
+                    onclick: function () {
+                        var rowData = $('#dgCq').datagrid('getSelected');
+                        ShowWindowIframe({
+                            width: "500",
+                            height: "300",
+                            title: "任务操作日志",
+                            param: {workorderid: rowData.ID},
+                            url: "/views/pm/mc/task/weekPlan_task_status_log_list.shtml"
+                        });
+                    }
+                }
+            ],
+        });
+    }
+    //focFlightPlan
+    function focFlightPlan() {
+        MsgAlert({content: $.i18n.t('待单点登录功能启用后，将直接链接到FOC航班计划页面'), type: 'warn'});
+    }
+
+    //批量下发
+    function batchXf() {
+        var rows = $('#dg1').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: $.i18n.t('请至少选择一行数据'), type: 'error'});
+            return;
+        }
+        if (!confirm("是否确认下发")) {
+            return;
+        }
+        var pkids = "";
+        var error = "";
+        var isBzst = true;
+        //判断是否都是已计划状态
+        //判断当前任务中“航段”字段是否为空，如果空，不能下发
+        for (var i = 0; i < rows.length; i++) {
+            pkids += rows[i].ID + ",";
+            var status = rows[i].STATUS;
+            var hd = rows[i].PA_WORK_TYPE;
+            if (status != 'PLANNED') {
+                error = "只有已计划状态可以进行下发操作";
+            }
+            if (!hd) {
+                error = "航段为空，不能下发";
+            }
+            if ("NONE" == rows[i].BZST || "PARTIAL" == rows[i].BZST) {
+                isBzst = false;
+            }
+        }
+        if (error != "") {
+            MsgAlert({content: error, type: 'error'});
+            return;
+        }
+        if (!isBzst) {
+            if (!confirm("存在保障状态为部分满足或完全不满足的航材需求，是否下发")) {
+                return;
+            }
+        }
+        /*if (!confirm("相同任务编号，以及相关EO任务将同时下发，请知悉")) {
+         return;
+         }*/
+        MaskUtil.mask("正在处理中...");
+        InitFuncCodeRequest_({
+            data: {pkid: pkids, flag: "PLXF", FunctionCode: 'UPDATE_WORKORDER_STATUS'},
+            successCallBack: function (jdata) {
+                MaskUtil.unmask();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if(jdata.msgData && jdata.msgData.length > 0){
+                        MsgAlert({content: jdata.msgData[0], type: 'error'});
+                    }else{
+                        InitDataCount();
+                        searchData1();
+                        if(jdata.msg && "操作成功" != jdata.msg){
+                            MsgAlert({content: jdata.msg.substring(8),type:'error'});
+                        }else{
+                            MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msgData ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    //批量撤回
+    function batchCh() {
+        var rows = $('#dg1').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: $.i18n.t('请至少选择一行数据'), type: 'error'});
+            return;
+        }
+        var pkids = "";
+        var error = "";
+        //判断是否都是已下发或者已计划状态
+        for (var i = 0; i < rows.length; i++) {
+            pkids += rows[i].ID + ",";
+            var status = rows[i].STATUS;
+            if (status != 'ISSUED' && status != 'PLANNED') {
+                error = "只有已下发或者已计划状态可以进行撤回操作";
+                break;
+            }
+            /*以下两种任务在MCC短期计划不允许撤回任务：
+             1、 WORKORDER字段WORKTYPE为DEFECT_REVIEW
+             2、 WORKORDER字段TYPE为DEFECT_TASK*/
+            var workType = rows[i].WORK_TYPE;
+            var type = rows[i].TYPE;
+            if (workType == 'DEFECT_REVIEW') {
+                error = "不允许撤回WORK_TYPE为DEFECT_REVIEW的任务";
+                break;
+            }
+            if (type == 'DEFECT_TASK') {
+                error = "不允许撤回TYPE为DEFECT_TASK的任务";
+                break;
+            }
+        }
+        if (error != "") {
+            MsgAlert({content: error, type: 'error'});
+            return;
+        }
+
+        ShowWindowIframe({
+            width: "650",
+            height: "220",
+            title: "任务撤回",
+            param: {pkid: pkids, flag: 'PLCH'},
+            url: "/views/pm/mc/task/weekPlan_turnBack_reason.shtml"
+        });
+    }
+
+    //批量安排
+    function batchAp() {
+        var rows = $('#dg2').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: $.i18n.t('请至少选择一行数据'), type: 'error'});
+            return;
+        }
+        var pkids = "";
+        var error = "";
+        var acno = rows[0].AC_REG;
+        var station = rows[0].STATION;
+        var isSpecialJob;
+        var expireDate;
+        for (var i = 0; i < rows.length; i++) {
+            //判断是否是同一机号
+            if (acno != rows[i].AC_REG) {
+                MsgAlert({content: "批量任务安排只能针对同一机号任务进行操作", type: 'error'});
+                return;
+            }
+            //判断是否是同一航站
+            if (station != rows[i].STATION) {
+                MsgAlert({content: "批量任务安排只能针对同一航站任务进行操作", type: 'error'});
+                return;
+            }
+            //查询最小到期日期
+            if (rows[i].EXPIRE_DATE) {
+                if (expireDate == undefined) {
+                    expireDate = rows[i].EXPIRE_DATE;
+                } else {
+                    if (rows[i].EXPIRE_DATE < expireDate) {
+                        expireDate = rows[i].EXPIRE_DATE;
+                    }
+                }
+            }
+            //查询是否存在专项工作
+            if (rows[i].IS_SPECIAL_JOB && isSpecialJob != "X") {
+                isSpecialJob = "X";
+            }
+            //判断是否都是待计划
+            var status = rows[i].STATUS;
+            if (status != 'TO_PLAN') {
+                MsgAlert({content: "只有待计划状态可以进行任务安排操作", type: 'error'});
+                return;
+            }
+            pkids += rows[i].ID + ",";
+        }
+        ShowWindowIframe({
+            width: "650",
+            height: "350",
+            title: "任务安排",
+            param: {
+                pkid: pkids,
+                flag: 'PLAP',
+                acno: acno,
+                isSpecialJob: isSpecialJob,
+                station: station,
+                expireDate: expireDate
+            },
+            url: "/views/pm/mc/task/weekPlan_update.shtml"
+        });
+    }
+
+    //批量退回PPC
+    function batchTh() {
+        var rows = $('#dg2').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: $.i18n.t('请至少选择一行数据'), type: 'error'});
+            return;
+        }
+        var pkids = "";
+        var error = "";
+        var ifCheck = true;
+        //判断是否都是待计划
+        for (var i = 0; i < rows.length; i++) {
+            var status = rows[i].STATUS;
+            if (status != 'TO_PLAN') {
+                MsgAlert({content: "只有待计划状态可以进行退回PPC操作", type: 'error'});
+                return;
+            }
+            //如果勾选的记录中，“sap_task_id”字段不为空时，需要判断当前操作是否在“1013”这个角色中，
+            // 如果不在，提示“如需退回PPC任务，请联系维修任务控制席”，程序终止。
+            if (rows[i].SAP_TASK_ID) {
+                if((rows[i].SAP_TASK_ID).indexOf("T")==0){ //增加判断条件，SAP_TASK_ID字段T开头的数据非SAP下发的任务，无需判断是否在角色1013中
+                    ifCheck = true;
+                }else{
+                    var accountId = getLoginInfo().accountId;
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: 'MCC_CHECK_RETURN_USER', userId: accountId},
+                        async: false,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                if (jdata.data.length == 0) {
+                                    MsgAlert({content: '您没有任务退回操作权限，如需进行任务退回，请联系维修任务控制席! ', type: 'error'});
+                                    ifCheck = false;
+                                }
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                                ifCheck = false;
+
+                            }
+                        }
+                    })
+                }
+
+            }
+            pkids += rows[i].ID + ",";
+        }
+        if (!ifCheck) {
+            return;
+        }
+        ShowWindowIframe({
+            width: "650",
+            height: "340",
+            title: "退回PPC",
+            param: {pkid: pkids, flag: 'PLTH'},
+            url: "/views/pm/mc/task/weekPlan_th_reason.shtml"
+        });
+    }
+
+    //重新匹配计划
+    function rematchPlan() {
+        InitFuncCodeRequest_({
+            data: {FunctionCode: 'MCC_REMATCH_PLAN'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: "重新匹配成功，共" + jdata.total + "条任务"});
+                }
+            }
+        })
+    }
+
+    //TjJobcardXf特检工卡下发
+    function TjJobcardXf() {
+        MaskUtil.mask("正在处理...");
+        InitFuncCodeRequest_({
+            data: {FunctionCode: 'MCC_TJ_JOBCARD_XF'},
+            successCallBack: function (jdata) {
+                MaskUtil.unmask();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg.substring(8) : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                    searchData1();
+                }
+            }
+        })
+    }
+
+    //自定义导出清单
+    function exportList(functionCode) {
+        if ("MCC_EXPORT_WORKORDER_LIST_BY_STATION" == functionCode) {
+            //MsgAlert({content: "等待ME迁移生成Excel方法", type: 'warn'});
+            MaskUtil.mask("正在处理...");
+            InitFuncCodeRequest_({
+                data: {FunctionCode: 'MCC_SEND_STATION_WORKORDER'},
+                successCallBack: function (jdata) {
+                    MaskUtil.unmask();
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        MsgAlert({content: '操作成功'});
+                    }
+                }
+            });
+            return;
+        }
+        //导出航站3文件到本地
+        if ("MCC_EXPORT_STATION_3_FILE" == functionCode) {
+            MaskUtil.mask("正在处理...");
+            var form = $("<form method='post' style='display:none' action='/api/v1/workorder/exportStationTaskTool'></form>");
+            form.append($("<input name='fileType' value = 'excel'/>"));
+            form.append($("<input name='endDate' value = ''/>"));
+            $("#tt").append(form);
+            form.submit();
+            form.remove();
+            setTimeout(function () {
+                var form = $("<form method='post' style='display:none' action='/api/v1/workorder/exportStationMr'></form>");
+                form.append($("<input name='fileType' value = 'excel'/>"));
+                $("#tt").append(form);
+                form.submit();
+                form.remove();
+                setTimeout(function () {
+                    var form = $("<form method='post' style='display:none' action='/api/v1/workorder/exportStationTask'></form>");
+                    form.append($("<input name='fileType' value = 'excel'/>"));
+                    $("#tt").append(form);
+                    form.submit();
+                    form.remove();
+                    MaskUtil.unmask();
+                }, 5000);
+            }, 5000);
+            return;
+        }
+        //导出截至日期航站3文件到本地
+        if ("MCC_EXPORT_STATION_3_FILE2" == functionCode) {
+            MaskUtil.mask("正在处理...");
+            var endDate = $("#flightDateEnd").datebox('getValue').substring(0, 10);
+            var form = $("<form method='post' style='display:none' action='/api/v1/workorder/exportStationTaskTool'></form>");
+            form.append($("<input name='fileType' value = 'excel'/>"));
+            form.append($("<input name='endDate' value = '" + endDate + "'/>"));
+            $("#tt").append(form);
+            form.submit();
+            form.remove();
+            setTimeout(function () {
+                var form = $("<form method='post' style='display:none' action='/api/v1/workorder/exportStationMr'></form>");
+                form.append($("<input name='fileType' value = 'excel'/>"));
+                form.append($("<input name='endDate' value = '" + endDate + "'/>"));
+                $("#tt").append(form);
+                form.submit();
+                form.remove();
+                setTimeout(function () {
+                    var form = $("<form method='post' style='display:none' action='/api/v1/workorder/exportStationTask'></form>");
+                    form.append($("<input name='fileType' value = 'excel'/>"));
+                    form.append($("<input name='endDate' value = '" + endDate + "'/>"));
+                    $("#tt").append(form);
+                    form.submit();
+                    form.remove();
+                    MaskUtil.unmask();
+                }, 5000);
+            }, 5000);
+            return;
+        }
+
+        //导出下周到期任务及航材
+        if ("MCC_EXPORT_MR_WEEK" == functionCode) {
+            MaskUtil.mask("正在处理...");
+            var form = $("<form method='post' style='display:none' action='/api/v1/workorder/exportStationTaskWeek'></form>");
+            form.append($("<input name='fileType' value = 'excel'/>"));
+            $("#tt").append(form);
+            form.submit();
+            form.remove();
+            setTimeout(function () {
+                var form = $("<form method='post' style='display:none' action='/api/v1/workorder/exportStationMrWeek'></form>");
+                form.append($("<input name='fileType' value = 'excel'/>"));
+                $("#tt").append(form);
+                form.submit();
+                form.remove();
+                MaskUtil.unmask();
+
+            }, 2000);
+            return;
+        }
+
+        ajaxLoading();
+        var url = "/api/v1/plugins/" + functionCode;
+        var xhr = new XMLHttpRequest();//创建新的XHR对象
+        xhr.open('post', url);//指定获取数据的方式和url地址
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded;");
+        xhr.responseType = 'blob';//以blob的形式接收数据，一般文件内容比较大
+        xhr.onload = function (e) {
+            var blob = this.response;//Blob数据
+            if (this.status == 200) {
+                ajaxLoadEnd();
+                if (blob.size < 200) {
+                    MsgAlert({content: "导出失败", type: 'error'});
+                } else {
+                    if (blob && blob.size > 0) {
+                        if ("MCC_EXPORT_WORKORDER_LIST_BY_STATION" == functionCode) {
+                            saveAs(blob, "导出次日航班日任务清单.xlsx");//处理二进制数据，让浏览器认识它
+                        }
+                        if ("MCC_EXPORT_WEEKPLAN_LIST" == functionCode) {
+                            saveAs(blob, "导出周计划工卡清单.xlsx");//处理二进制数据，让浏览器认识它
+                        }
+                    }
+                }
+
+            }
+        };
+        var weekValue = $("input[type='radio'][name='thisWeekAndNextWeek1']:checked").val();
+        xhr.send("weekValue=" + weekValue); //post请求传的参数
+    }
+
+    //字符串转日期
+    function stringToDate(str) {
+        str = str.substr(0, 10);
+        var arr = str.split('-');
+        var date = new Date(arr[0], arr[1] - 1, arr[2]);
+        return date;
+    }
+    //计算当前日期和今天差的天数
+    function diffDays(deadLine) {
+        var evaDate = stringToDate(deadLine);
+        var nowDate = new Date();
+        var year = nowDate.getFullYear();
+        var month = nowDate.getMonth();
+        var day = nowDate.getDate();
+        var now = new Date(year, month, day);
+        var time_diff = evaDate.getTime() - now.getTime();
+        var days = Math.floor(time_diff / (24 * 3600 * 1000));
+        return days;
+    }
+    //增加任务
+    function add() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 650, height: 400,
+            url: "/views/pm/mc/task/mcc_task_add_edit.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        var queryParams = $('#mform').serializeObject();
+        //机号多选
+        var acReg = $("#acReg").combobox('getText');
+        queryParams.acReg = acReg;
+        $('#dg').datagrid('load', queryParams);
+        //onSearch_('dg', '#mform');
+    }
+    function searchData1() {
+        var queryParams = $('#mform1').serializeObject();
+        queryParams.flightDateBegin = $("#flightDateBegin").datebox('getValue').substring(0, 10) + " 00:00:00";
+        queryParams.flightDateEnd = $("#flightDateEnd").datebox('getValue').substring(0, 10) + " 23:59:59";
+        // queryParams.thisWeekAndNextWeek1 = "";
+        delete queryParams.thisWeekAndNextWeek1;
+        //机号多选
+        var acReg1 = $("#acReg1").combobox('getText');
+        queryParams.acReg1 = acReg1;
+        $('#dg1').datagrid('load', queryParams);
+        $('#dg2').datagrid('load', queryParams);
+        $('#dgCq').datagrid('load', queryParams);
+        InitDataCount();
+    }
+    function searchData4() {
+        var queryParams = $('#mform4').serializeObject();
+        queryParams.planstd = $("#planstd").datebox('getValue').substring(0, 10) + " 00:00:00";
+        queryParams.planend = $("#planend").datebox('getValue').substring(0, 10) + " 23:59:59";
+        $('#dg4').datagrid('load', queryParams);
+    }
+
+    function searchData1ByParentId(parentId) {
+        $('#dg1').datagrid('load', {parentId: parentId, status: 'ALL'});
+    }
+
+    /** 刷新列表数据 */
+    function reloadDjh() {
+        $("#dg2").datagrid("reload");
+    }
+    function reloadYth() {
+        $("#dg3").datagrid("reload");
+    }
+
+    /** 刷新列表数据 */
+    function reloadDjh() {
+        $("#dg2").datagrid("reload");
+    }
+    function reloadYth() {
+        $("#dg3").datagrid("reload");
+    }
+    function reloadCq() {
+        $("#dgCq").datagrid("reload");
+    }
+
+    //根据状态刷新dataGrid
+    function reloadByStatus(id, status) {
+        //getDG('dg1').datagrid('load', {status: status});
+        $(".btn-success").attr("class", "btn");
+        $("#" + id).attr("class", "btn btn-success");
+        $("#status").val(status);
+        var queryParams = $('#mform1').serializeObject();
+        queryParams.flightDateBegin = $("#flightDateBegin").datebox('getValue').substring(0, 10) + " 00:00:00";
+        queryParams.flightDateEnd = $("#flightDateEnd").datebox('getValue').substring(0, 10) + " 23:59:59";
+        delete queryParams.thisWeekAndNextWeek1;
+        //机号多选
+        var acReg1 = $("#acReg1").combobox('getText');
+        queryParams.acReg1 = acReg1;
+        $('#dg1').datagrid('load', queryParams);
+        //onSearch_('dg1', '#mform1');
+    }
+    function CqReload(id,status) {
+        //getDG('dg1').datagrid('load', {status: status});
+        $(".btn-success").attr("class", "btn");
+        $("#" + id).attr("class", "btn btn-success");
+        $("#allowStatus").val(status);
+        var queryParams = $('#mform1').serializeObject();
+        queryParams.flightDateBegin = $("#flightDateBegin").datebox('getValue').substring(0, 10) + " 00:00:00";
+        queryParams.flightDateEnd = $("#flightDateEnd").datebox('getValue').substring(0, 10) + " 23:59:59";
+        delete queryParams.thisWeekAndNextWeek1;
+        //机号多选
+        var acReg1 = $("#acReg1").combobox('getText');
+        queryParams.acReg1 = acReg1;
+        $('#dgCq').datagrid('load', queryParams);
+        //onSearch_('dg1', '#mform1');
+    }
+    //打开MR详细页面
+    function viewDet(mrNo, rev, REQUIREDDATE) {
+        if (rev == "undefined") {
+            rev = 0;
+        }
+        var curWidth = ($(window).width() * 0.8).toString();
+        var curheight = $(window).height().toString();
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: '',
+            param: {
+                mrNo: mrNo,
+                rev: rev,
+                REQUIREDDATE: REQUIREDDATE,
+            },
+            url: "/views/mr/viewMr.shtml"
+        });
+    }
+
+    function previewPdf(cardId, workType, wkId, acId, sapId) {
+        if(acId == "undefined"){
+            acId = null;
+        }
+        if(sapId == "undefined"){
+            sapId = null;
+        }
+        // udpate by yy 抽取PTF预览代码JS  print_card_utils.js
+        let ops = {cardId: cardId, workType: workType, wkId: wkId, acId: acId, sapId: sapId};
+        return preView_Pdf(ops);
+    }
+
+    function fixed_edit(revno) {
+        if (!revno) {
+            window.alert("定检不存在，数据有误");
+            return;
+        }
+        var curWidth = ($(window).width() * 0.6).toString();
+        var curheight = $(window).height().toString();
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: "",
+            param: {
+                packageNumber: revno
+            },
+            url: "/views/fixed/fixed_inspection.shtml"
+        });
+    }
+
+    //打开航站任务详细页面
+    function openDetail(operation, orderId, acReg, flightNo, flightDate, flightId, departure, arrival, isReleased,station,jobDate) {
+        if(acReg == "undefined" || acReg == "null"){
+            acReg = null;
+            operation = station;
+        }
+        if(flightNo == "undefined"){
+            flightNo = null;
+        }
+        if(flightId !="" && flightId != "undefined" && flightId != "null"){
+            InitFuncCodeRequest_({
+                data: {flightId: flightId,FunctionCode: 'MCC_SELECT_FLB'},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        var url = "/views/tbm/flb/flb_station_task_detail.shtml?operation=" + operation + "&orderId=" + orderId +
+                            "&acReg=" + acReg + "&flightNo=" + flightNo + "&jobDate=" + jdata.data.FLIGHT_DATE + "&flightId=" + flightId +
+                            "&departure=" + jdata.data.FROM_STATION+ "&arrival=" + jdata.data.TO_STATION + "&isReleased=" + isReleased + "&searchList=''";
+                        //window.open(url);
+                        window.openTabMessage(url, "航线任务", '2652', true, 0);
+                    }
+                }
+            });
+        }else{
+            jobDate = (jobDate.substring(0, 10)).trim() + " 10:00:00";
+            var url = "/views/tbm/flb/flb_station_task_detail.shtml?operation=" + operation + "&orderId=" + orderId +
+                "&acReg=" + acReg + "&flightNo=" + flightNo + "&jobDate=" + jobDate + "&flightId=" + flightId +
+                "&departure=" + ''+ "&arrival=" + '' + "&isReleased=" + isReleased + "&searchList=''";
+            //window.open(url);
+            window.openTabMessage(url, "航线任务", '2652', true, 0);
+        }
+
+    }
+    //查看工卡涉及工具清单
+    function viewTool(cardNumber) {
+        ShowWindowIframe({
+            width: 800,
+            height: 300,
+            title: '工具需求',
+            param: {
+                cardNumber: cardNumber
+            },
+            url: "/views/pm/mc/task/weekPlan_tool_list.shtml"
+        });
+    }
+
+    function overDateFlow() {
+        var rows = $('#dg2').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: $.i18n.t('请选择一行数据'), type: 'error'});
+            return;
+        }
+        if (rows.length > 1) {
+            MsgAlert({content: $.i18n.t('请只选择一行数据(不要选择多行)'), type: 'error'});
+            return;
+        }
+        var pkids = "";
+        pkids = rows[0].ID ;
+        if (!rows[0].ALLOW_OVERDUE_TYPE || rows[0].ALLOW_OVERDUE_TYPE == "2" ) {
+            ShowWindowIframe({
+                width: "650",
+                height: "340",
+                title: "超期设置",
+                param: {pkid: pkids, flag: 'PLTH'},
+                url: "/views/pm/mc/task/weekPlan_over_date.shtml"
+            });
+        }else{
+            MsgAlert({content: "只有MCC允许超期和未设置的任务才可以设置", type: 'error'});
+
+        }
+
+
+    }
+</script>
+</body>
+</html>

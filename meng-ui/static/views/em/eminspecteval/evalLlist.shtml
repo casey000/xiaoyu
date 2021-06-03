@@ -1,0 +1,549 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="emmpdeval">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">引进检管理</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">机号：</th>
+                    <td>
+                        <input class="easyui-combobox" name="acno" id="acno" data-options="editable: false"
+                               style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">上一营运人:</th>
+                    <td>
+                        <input class="easyui-combobox" name="formerOperator" id="formerOperator"
+                               data-options="editable: false" style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">机队：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fleet" id="fleet" data-options="editable: false"
+                               style="width:80px"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">飞机小时：</th>
+                    <td>
+                        <input class="easyui-textbox" name="fh" id="fh" data-options="editable: true"
+                               style="width:80px"/>
+                    </td>
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">飞机循环：</th>
+                    <td>
+                        <input class="easyui-textbox" name="fc" id="fc" data-options="editable: true"
+                               style="width:80px"/>
+                    </td>
+
+                    <th data-i18n="" style="width:80px;padding-right: 6px;" align="right">天数：</th>
+                    <td>
+                        <input class="easyui-textbox" name="dates" id="dates" data-options="editable: true"
+                               style="width:80px"/>
+                    </td>
+                    <td style="right: auto" colspan="2">&nbsp;&nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()"
+                           data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a class="clearBtn" onclick="uploadTemplate()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">模板上传下载</span></a>
+                    </td>
+
+
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+
+<table id="dg"></table>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var evalNo;
+    var FLEET;
+    var PKID;
+    var flag = true;
+    var userName;
+    var accountId;
+    var PAGE_DATA = {};
+    var acnoArr = {};
+    var formerOperatorArr = {};
+    var fhArr = {};
+    var fcArr = {};
+    var datesArr = {};
+    var executionId = ""; //流程实例ID
+    function i18nCallBack() {
+        userName = getLoginInfo().userName;
+        accountId = getLoginInfo().accountId;
+        //机号
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "EM_AC_IN_CHECK_FOR_ACNO"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    acnoArr = jdata.data;
+                }
+            }
+        });
+        //上一营运人
+        /*InitFuncCodeRequest_({
+            data: {FunctionCode: "EM_AC_IN_CHECK_FOR_FOP"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    formerOperatorArr = jdata.data;
+                }
+            }
+        });*/
+        //飞行小时
+        /*InitFuncCodeRequest_({
+            data: {FunctionCode: "EM_AC_IN_CHECK_FOR_FH"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    fhArr = jdata.data;
+                }
+            }
+        });
+        //飞行信息
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "EM_AC_IN_CHECK_FOR_FC"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    fcArr = jdata.data;
+                }
+            }
+        });
+        //天数
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "EM_AC_IN_CHECK_FOR_DATES"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    datesArr = jdata.data;
+                }
+            }
+        });*/
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_AC_IN_CHECK_STATUS,DA_FLEET,DM_COMPANY_CODE2"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA ["status"] = DomainCodeToMap_(jdata.data["EM_AC_IN_CHECK_STATUS"]);
+                    PAGE_DATA ["DM_COMPANY_CODE2"] = DomainCodeToMap_(jdata.data["EM_AC_IN_CHECK_STATUS"]);
+                    $('#fleet').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    $('#acno').combobox({
+                        panelHeight: '150px',
+                        data: acnoArr,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    $('#formerOperator').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.DM_COMPANY_CODE2,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    /*$('#fc').combobox({
+                        panelHeight: '150px',
+                        data: fcArr,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    $('#dates').combobox({
+                        panelHeight: '150px',
+                        data: datesArr,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });*/
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    $(document).ready(function (e) {
+        $(this).keydown(function (e) {
+            if (e.which == "13") {
+                searchData();//触发该事件
+            }
+        })
+    });
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'EM_AC_IN_CHECK_LIST'},
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    FORMER_OPERATOR: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['DM_COMPANY_CODE2'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        var docPkid = row.PKID;
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: docPkid,
+                                CATEGORY: "EMINSPECTCHECK",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === 200) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            },
+            contextMenus: [
+
+                {
+                    id: "m-upload", i18nText: "上传附件",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        var pkid = rowdata.PKID;
+                        ShowWindowIframe({
+                            width: 600,
+                            height: 450,
+                            param: {
+                                pkid: pkid
+                            },
+                            title: "上传",
+                            url: "/views/em/eminspecteval/upload.shtml"
+                        });
+                    }
+                }, /*{
+                    id: "m-evalTime", i18nText: "评估时限",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        var pkid = rowdata.PKID;
+                        ShowWindowIframe({
+                            width: 700,
+                            height: 180,
+                            param: {
+                                pkid: pkid
+                            },
+                            title: "评估时限",
+                            url: "/views/em/eminspecteval/evalCheck.shtml"
+                        });
+
+                    }
+                }, */{
+                    id: "m-evalItem", i18nText: "评估条目",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        var pkid = rowdata.PKID;
+                        ShowWindowIframe({
+                            width: 1200,
+                            height: 620,
+                            param: {
+                                pkid: pkid,
+                                type: "EDIT",
+                            },
+                            title: "评估条目",
+                            url: "/views/em/eminspecteval/evalItem.shtml"
+                        });
+
+                    }
+                }, {
+                    id: "m-rev", i18nText: "改版", auth: "",
+                    onclick: function () {
+                        $.messager.confirm('', '确认改版该记录？', function (r) {
+                            if (!r) {
+                                return;
+                            }
+                            var rowData = $("#dg").datagrid('getSelected');
+                            var pkid = rowData.PKID;
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: pkid,
+                                    FunctionCode: 'EM_AC_IN_CHECK_REV'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        });
+                    }
+                }, {
+                    id: "m-submit", i18nText: "提交", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        var evapkid = rowData.PKID;
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        if (typeof (rowData.FH) == "undefined" && typeof (rowData.FC) == "undefined" && typeof (rowData.DATES) == "undefined") {
+                            MsgAlert({content: "飞行小时、飞行循环、天数不能同时为空。", type: 'warn'});
+                            return;
+                        }
+
+                        var evalResultMsg = null;
+                        //评价结论，过渡措施不能为空。
+                        InitFuncCodeRequest_({
+                            data: {pkid: evapkid, FunctionCode: "EM_AC_IN_CHECK_FOR_EVAL_RESULT"},
+                            async: false,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE && jdata.data != null) {
+                                    console.info(jdata.data);
+                                    evalResultMsg = "前营运人方案号:【" + jdata.data.FORMER_MP_NO + "】评估结论、过渡措施不能为空。"
+                                }
+                            }
+                        });
+                        if (evalResultMsg != null) {
+                            MsgAlert({content: evalResultMsg, type: 'warn'});
+                            return;
+                        }
+
+                        common_add_edit_({
+                            identity: '', isEdit: '', width: 520, height: 300, title: $.i18n.t('选择审批人'),
+                            param: {
+                                roleId: '',
+                                otherParam: rowData.PKID,
+                                FunctionCode_: 'EM_AC_IN_CHECK_SUMBIT',
+                                successCallback: reload_,
+                                flowKey:'emAcInCheckFlow'
+                            },
+                            url: "/views/flow/work_flow_account_select.shtml"
+                        });
+                    }
+                },{
+                    id: "m-flowReturn",
+                    i18nText: "流程退回", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var evalByid = rowData.CREATE_BYID;
+                        if(accountId !=evalByid){
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        wfDoReturn(rowData.PKID,"EM_AC_IN_CHECK","#dg");
+
+                    }
+                }
+                ,
+                {
+                    id: "m-view", i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        var execid = validWorkFlow("EM_AC_IN_CHECK", rowData.PKID);
+                        if (execid != null && execid != "") {
+                            ShowWindowIframe({
+                                width: 1100,
+                                height: 600,
+                                title: $.i18n.t('审批轨迹'),
+                                param: {objNo: rowData.PKID, objKey: "EM_AC_IN_CHECK"},
+                                url: '/views/em/workflow/work_flow_history_task_list.shtml'
+                            });
+                        } else {
+                            MsgAlert({content: '尚未产生流程', type: 'warn'});
+                            return false;
+                        }
+                    }
+                }, {
+                    id: "m-export", i18nText: "导出Excel", auth: "",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        exportExcel(rowData.PKID);
+                    }
+                },
+
+            ],
+            validAuth: function (row, items) {
+
+                if (row.UPLOAD || row.REV_CODE != "N") {
+                    items['上传附件'].enable = false;
+                } else {
+                    items['上传附件'].enable = true;
+                }
+
+                if (row.STATUS == "PGZ" || row.STATUS == "TURNBACK") {
+                    //items['评估时限'].enable = true;
+                    items['评估条目'].enable = true;
+                } else {
+                    //items['评估时限'].enable = false;
+                    items['评估条目'].enable = false;
+                }
+
+                if (row.STATUS == "YWC") {
+                    items['改版'].enable = true;
+                    items['导出Excel'].enable = true;
+                } else {
+                    items['改版'].enable = false;
+                    items['导出Excel'].enable = false;
+                }
+
+                if (row.STATUS == "PGZ") {
+                    items['提交'].enable = true;
+                } else {
+                    items['提交'].enable = false;
+                }
+
+                if(row.STATUS == "JDZ"||row.STATUS == "SHZ"){
+                    items['流程退回'].enable = true;
+                }else{
+                    items['流程退回'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                ShowWindowIframe({
+                    width: 1200,
+                    height: 620,
+                    param: {
+                        pkid: value.PKID,
+                        type: "VIEW"
+                    },
+                    title: "评估条目",
+                    url: "/views/em/eminspecteval/evalItem.shtml"
+                });
+            }
+
+        });
+
+    }
+
+    function exportExcel(pkid) {
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_AC_IN_CHECK_EXPORT"},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ajaxLoadEnd();
+                    window.location.href = jdata.data;
+                }
+            }
+        });
+        // doPost(Constant.API_URL + "/EM_AC_IN_CHECK_EXPORT", {pkid: pkid});
+        // 导出excel
+        // ajaxLoading();
+        // var url = "/api/v1/plugins/EM_AC_IN_CHECK_EXPORT";
+        // var xhr = new XMLHttpRequest();//创建新的XHR对象
+        // xhr.open('post', url);//指定获取数据的方式和url地址
+        //
+        // //  xhr.setRequestHeader('Content-Type', 'application/json; charset=UTF-8');
+        // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded;");
+        // xhr.responseType = 'blob';//以blob的形式接收数据，一般文件内容比较大
+        // xhr.onload = function (e) {
+        //     var blob = this.response;//Blob数据
+        //     if (this.status == 200) {
+        //         ajaxLoadEnd();
+        //         /*if (blob.size < 200) {
+        //             MsgAlert({content: "下载失败"});
+        //         } else {
+        //             if (blob && blob.size > 0) {
+        //                 saveAs(blob, "维修方案差异评估表" + oid + ".xlsx");//处理二进制数据，让浏览器认识它
+        //             }
+        //         }*/
+        //
+        //     }
+        // };
+        // xhr.send("pkid=" + pkid); //post请求传的参数
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    /**
+     * 校验工作流是否已经存在
+     *
+     **/
+    function validWorkFlow(objKey, objNo) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {objKey: objKey, objNo: objNo, FunctionCode: 'VALID_WORK_FLOW'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        executionId = jdata.data.EXECUTION_ID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return executionId;
+    }
+    function uploadTemplate() {
+        ShowWindowIframe({
+            width: 970,
+            height: 150,
+            title: $.i18n.t('模版管理'),
+            url: '/views/em/eminspecteval/mpdFilesTemplate.shtml'
+        });
+    }
+</script>
+</body>
+
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用对象</title>
+</head>
+
+<body class="ibody">
+<div style="" id="tt">
+    <fieldset class="fieldset_eui">
+        <form class="form-horizontal m-t" id="ffSearch">
+            <input type="hidden" id="pkid" name="pkid"/>
+            <table class="table table-bordered table-info">
+                <tr id="view">
+                    <th class="th" id="pn" style="width:50px;" align="right">飞机号：</th>
+                    <td class="tdr" id="pn1">
+                        <input class="easyui-textbox" name="app1" id="app1" style="width:100px"/>
+                    </td>
+                    <th class="th" id="sn" style="width:40px;" align="right">序号：</th>
+                    <td class="tdr" id="sn1">
+                        <input class="easyui-textbox" name="app2" id="app2" style="width:100px"/>
+                    </td>
+                    <td align="right">
+                        <input class="btn btn-primary" type="button" onclick="onSearchFor()" value="查询"
+                               style="width: 40px;margin:5px;"/>
+                        <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                               style="width: 40px;margin:5px;"/>
+                        <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                               style="width: 40px;margin:5px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+</div>
+<div>
+    <table id="dg" aligh="center"></table>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var evapkid;
+    var pkid;
+    var PAGE_DATA = {};
+    var evapkid;
+    var applyType;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        evapkid = param.evapkid;
+        pkid = param.pkid;
+        applyType = param.applyType;
+        if (applyType == "APL") {
+            $("#pn").html("飞机号:");
+            $("#pn").show();
+            $("#pn1").show();
+            $("#sn").hide();
+            $("#sn1").hide();
+        } else {
+            $("#pn").html("件号:");
+            $("#pn").show();
+            $("#pn1").show();
+            $("#sn").show();
+            $("#sn1").show();
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                }
+
+                if (param.pkid) {
+                }
+
+                InitDataGrid();
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var func = "";
+        if (applyType == "APL") {
+            func = "EM_FILE_DETAIL_LIST";
+        } else if (applyType == "ENG") {
+            func = "EM_FILE_DETAIL_ENG_LIST";
+        } else if (applyType == "PART") {
+            func = "EM_FILE_DETAIL_PART_LIST";
+        }
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            pageSize: 15,
+            fitcolumn: true,
+            pagination: false,
+            queryParams: {evapkid: evapkid},
+            columns: {
+                param: {FunctionCode: func},
+                alter: {}
+            },
+            onLoadSuccess: function (index, row) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+
+    // 保存
+    function save() {
+        //序列化列表数据
+        var acPkids = "";
+        var rows = $('#dg').datagrid('getChecked');
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+            acPkids = acPkids + "、" + rows[i].acPkid;
+        }
+        acPkids = acPkids.substring(1, acPkids.length);
+        var detailData = JSON.stringify(rows);
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        InitFuncCodeRequest_({
+            data: {
+                detailData: detailData,
+                evapkid: evapkid,
+                acPkids: acPkids,
+                FunctionCode: "EM_FILE_EVAL_CLAIM_OBJ_SAVE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_("#dg8");
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+</script>
+</html>

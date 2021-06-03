@@ -1,0 +1,285 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>正文及反馈</title>
+</head>
+
+<body class="ibody">
+<div class="ibox-content">
+    <form id="mform" class="form-horizontal m-t">
+        <input type="hidden" id="pkid" name="pkid" />
+        <input type="hidden" id="srPkid" name="srPkid" />
+
+        <table class="table table-bordered table-info">
+            <tr id="id_btn_row">
+                <td colspan="9" align="right">
+                    <input class="btn btn-primary" type="button" id="sendBtn" onclick="send()" value="发送邮件"/>
+                    <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                    <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                           style="margin-left:3px;margin-right: 18px;"/>
+                    <br/>
+                </td>
+            </tr>
+        </table>
+        <fieldset class="fieldset_eui">
+            <legend>正文</legend>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="td5 hs" align="right" width="100">描述：</th>
+                    <td class="tdr hs" style="padding: 3px">
+                        <input id="description" name="description"
+                               class="easyui-textbox" style="width: 650px; height: 100px"
+                               data-options="required:true,multiline:true" />
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5 hs" align="right" width="100">期望措施：</th>
+                    <td class="tdr hs" style="padding: 3px">
+                        <input id="desiredAction" name="desiredAction"
+                               class="easyui-textbox" style="width: 650px; height: 100px"
+                               data-options="multiline:true" />
+                    </td>
+                </tr>
+                <tr id="id-att-row-1">
+                    <th class="td5 hs" align="right" style="width: 100px;">上传附件：</th>
+                    <td class="tdr hs" style="padding: 3px;">
+                        <input id="file-1" name="file"
+                               class="easyui-filebox" style="width: 650px">
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5 hs" align="right" style="width: 100px;">附件：</th>
+                    <td class="tdr hs" style="padding: 3px;">
+                        <ul id="att-block-1"></ul>
+                    </td>
+                </tr>
+            </table>
+        </fieldset>
+        <fieldset id="id-reply" class="fieldset_eui">
+            <legend>回复</legend>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="td5 hs" align="right" width="100">厂家回复：</th>
+                    <td class="tdr hs" style="padding: 3px">
+                        <input id="mfrReply" name="mfrReply"
+                               class="easyui-textbox" style="width: 650px; height: 100px"
+                               data-options="multiline:true" />
+                    </td>
+                </tr>
+                <tr id="id-att-row-2">
+                    <th class="td5 hs" align="right" style="width: 100px;">上传附件：</th>
+                    <td class="tdr hs" style="padding: 3px;">
+                        <input id="file-2" name="file"
+                               class="easyui-filebox" style="width: 650px">
+                    </td>
+                </tr>
+                <tr>
+                    <th class="td5 hs" align="right" style="width: 100px;">附件：</th>
+                    <td class="tdr hs" style="padding: 3px;">
+                        <ul id="att-block-2"></ul>
+                    </td>
+                </tr>
+            </table>
+        </fieldset>
+    </form>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var param; // operation[add,edit,view]
+    var pkid = null;//主表PKID
+    var op = null;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        op = param.operation;
+
+        if (op == "add" || op == "edit") {
+            $('#id-reply').hide();
+        } else if (op == "view") {
+            $('#sendBtn').hide();
+            $('#saveBtn').hide();
+            $('#id-att-row-1').hide();
+            $('#id-att-row-2').hide();
+            $('#description').textbox('readonly', true);
+            $('#desiredAction').textbox('readonly', true);
+            $('#mfrReply').textbox('readonly', true);
+        } else if (op == "reply") {
+            $('#sendBtn').hide();
+            $('#id-att-row-1').hide();
+            $('#description').textbox('readonly', true);
+            $('#desiredAction').textbox('readonly', true);
+            $('#mfrReply').textbox({'required': true});
+        }
+
+        if (! pkid) {
+            $('#srPkid').val(param.srPkid);
+        } else {
+            InitDataForm(pkid);
+            initAttachment('#att-block-1', 'emsrcontent', pkid);
+            if (op == "view" || op == "reply") {
+                initAttachment('#att-block-2', 'emsrreply', pkid);
+            }
+        }
+
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SR_CONTENT_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function initAttachment(blockId, category, pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ATTACHMENT_LIST",
+                category: category,
+                sourceId: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    var attachments = jdata.data;
+                    $(blockId).empty();
+                    for (var i = 0; i < attachments.length; i++) {
+                        var fileId = attachments[i].FILE_ID;
+                        var filename = attachments[i].ORG_NAME;
+                        var strs = [
+                            '<li>',
+                            i + 1,
+                            '--<a onclick="downFile(' + fileId + ')" href="javascript:void(0);">' + filename + '</a>',
+                        ];
+                        if (op != "view" && !(op == "reply" && category == "emsrcontent")) {
+                            strs.push('&nbsp;');
+                            strs.push('<span onclick="deleteFile(' + fileId + '); initAttachment(' + pkid + '); return false;" class="icon-cross">&nbsp;&nbsp;&nbsp;&nbsp;</span>');
+                        }
+                        strs.push('</li>');
+                        $(blockId).append(strs.join(''));
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function save() {
+        var isValidate = $('#mform').form('validate');
+        if (! isValidate) {
+            return;
+        }
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SR_CONTENT_ADD",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.initDgContent();
+                    if (! pkid) {
+                        $('#pkid').val(jdata.data.pkid);
+                        pkid = jdata.data.pkid;
+                    }
+                    if (!! $('#file-1').filebox('getValue')) {
+                        upload('filebox_file_id_1', 'emsrcontent', pkid, '#file-1', '#att-block-1');
+                    }
+                    if (!! $('#file-2').filebox('getValue')) {
+                        upload('filebox_file_id_2', 'emsrreply', pkid, '#file-2', '#att-block-2');
+                    }
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function upload(fileId, category, pkid, eleId, blockId) {
+        $.ajaxFileUpload({
+            url: Constant.API_URL + "ATTACHMENT_UPLOAD",
+            secureuri: false,
+            fileElementId: fileId,
+            dataType: "json",
+            type: "post",
+            data: {
+                "fileCategory": category,
+                "sourceId": pkid
+            },
+            success: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    $(eleId).filebox('clear');
+                    initAttachment(blockId, category, pkid);
+                } else {
+                    MsgAlert({
+                        content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_FAILED') + jdata.msg,
+                        type: "error"
+                    })
+                }
+            },
+            error: function (data, status, e) {
+                MsgAlert({
+                    content: e,
+                    type: "error"
+                })
+            }
+        });
+    }
+
+    function send() {
+        if (! pkid) {
+            MsgAlert({
+                content: "请先保存数据！",
+                type: "warn"
+            });
+            return;
+        }
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SR_CONTENT_SEND",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.$('#dg_content').datagrid('reload');
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

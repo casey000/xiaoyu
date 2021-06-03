@@ -1,0 +1,374 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html
+>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <title></title>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div>
+            <form class="form-horizontal m-t" id="mform">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="8" align="right">
+                            <input class="btn btn-primary" type="submit" value="保存" style="margin:5px;"/>
+                            <input class="btn btn-primary" value="关闭" type="button" onclick="CloseWindowIframe();"
+                                   style="margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+                <fieldset class="fieldset_eui">
+                    <legend data-i18n="">部件信息</legend>
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <input id="itemPkid" name="itemPkid" type="hidden">
+                            <input id="pkid" name="pkid" type="hidden">
+
+                        </tr>
+
+                        <tr>
+                            <th class="tdl">部件清单：</th>
+                            <td class="tdr" colspan="4">
+                                <input class="easyui-textbox easyui-validatebox" id="partList" name="partList"
+                                       style="width:700px;height: 40px"
+                                       data-options="required:true"/>
+                            </td>
+                            <input id="yqpkid" name="yqpkid" type="hidden">
+                        </tr>
+                    </table>
+                    <fieldset class="fieldset_eui">
+                        <legend data-i18n="">维护要求列表</legend>
+                        <table id="dg3"></table>
+                    </fieldset>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var isEdit_;
+    var param = {};
+    var PKID;
+    /* var itemPkid;*/
+    var Add;
+    var type;
+    param = getParentParam_();
+    PKID = param.PKID;
+    itemPkid = param.itemPkid;
+    Add = param.Add;
+    isEdit_ = param.isEdit;
+    var PAGE_DATA = {};
+    console.log(param);
+    if (Add == "1") {
+        /* $("#ZJ").hide();
+         $("#KC").hide();*/
+        $("#ZJ").attr("disabled", "true");
+        $("#KC").attr("disabled", "true");
+    }
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_IF_EVAL_APL,EM_START_DATE,EM_MPD_THRINTERVAL,EM_MP_PN_WORKMODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['startDate'] = DomainCodeToMap_(jdata.data.EM_START_DATE);
+                    PAGE_DATA['tiType'] = DomainCodeToMap_(jdata.data.EM_MPD_THRINTERVAL);
+                    $('#workMode').combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.EM_MP_PN_WORKMODE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                    });
+                    $("#itemPkid").val(param.itemPkid);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+        InitEditForm_();
+        if (isEdit_) {
+            InitFuncCodeRequest_({
+                data: {PKID: PKID, FunctionCode: "EM_CMP_PNTL_GETONE"},
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                        //$("#workMode").combobox({value: jdata.data.WORK_MODE});
+
+                        InitFuncCodeRequest_({
+                            data: {PKID: jdata.data.PKID, FunctionCode: "EM_CMP_EVAL_PN_WHYQ_SHOW"},
+                            successCallBack: function (jdata2) {
+                                if (jdata2.code == RESULT_CODE.SUCCESS_CODE) {
+                                    console.log(jdata2.data);
+                                    if (jdata2.data) {
+                                        $("#yqpkid").val(jdata2.data.PKID);
+                                    }
+                                    InitDataGrid1();
+                                }
+                            }
+                        });
+
+
+                    }
+                }
+            });
+        }
+        else {
+            InitDataGrid1();
+        }
+    }
+
+    function InitEditForm_() {
+        var $form = $("#mform");
+        $form.form({
+            onSubmit: function () {
+                var $form = $("#mform");
+                var data = $form.serializeObject();
+                var yqpkid = $("#yqpkid").val();
+                if (isEdit_) {
+                    itemPkid = $("#itemPkid").val();
+                    data.itemPkid = itemPkid;
+                    data.PKID = PKID;
+                } else {
+                    data.itemPkid = itemPkid;
+                }
+                data = $.extend({}, data, {
+                    FunctionCode: (isEdit_ ? 'EM_CMP_PNTL_UPDATE' : 'EM_CMP_PNTL_ADD')
+                });
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            /*  $("ZJ").attr("disabled", "true");
+                              $("KC").attr("disabled", "true");*/
+                            $('#ZJ').removeAttr("disabled");
+                            $('#KC').removeAttr("disabled");
+                            isEdit_ = jdata.data.emCmpPntl.pkid;
+                            $("#pkid").val(jdata.data.emCmpPntl.pkid);
+                            $("#yqpkid").val(jdata.data.emCmpEvalPnWhyq.pkid);
+                            InitDataGrid1();
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                            param.OWindow.reload_();
+
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+                return false;
+            }
+        });
+    }
+
+
+    //关闭关闭窗口
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                CloseWindowIframe();
+                param.OWindow.reload_();
+                $("#dg").form('clear');
+            }
+        });
+    }
+
+    //删除一行记录
+    /*    function deleteinterval() {
+            var rowData = $('#dg3').datagrid('getChecked');
+            rowData = toCamelCaseArray(rowData);
+            var rowDatas = JSON.stringify(rowData)
+            common_delete_R({
+                cfmI18next: "msg_tip:TIP.COMMON.DEL_CONFIRM",
+                param: {data: {rowDatas: rowDatas}},
+                FunctionCode: "EM_CMP_EVAL_PN_INTERVAL_DELETE",
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        param.OWindow.reload_();
+
+                    }
+                }
+            });
+        }*/
+    //调用通用删除的方法
+    function common_delete_R(copt) {
+        common_confirm_(copt);
+    }
+
+
+    /** 刷新列表数据 */
+    function reload11_() {
+        //每次刷新页面时触发一次执行插入回填描述操作
+        //filetheDesc();
+        $("#dg3").datagrid("reload");
+    }
+
+
+    function InitDataGrid1() {
+
+        var pkidls = $("#yqpkid").val();
+        if (!pkidls) {
+            pkidls = -1;
+        }
+        var identity = 'dg3';
+        $("#dg3").MyDataGrid({
+            identity: identity,
+            singleSelect: false,
+            sortable: true,
+            // firstLoad: false,
+            queryParams: {PKID: pkidls},
+            columns: {
+                param: {FunctionCode: 'EM_CMP_EVAL_PN_INTERVAL_LIST'},
+                alter: {
+                    'TI_TYPE': {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                panelHeight: 80,
+                                queryParams: {domainCode: "EM_MPD_THRINTERVAL"},//RSPL_PRSPL
+                                url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                                loadFilter: function (jdata) {
+                                    return jdata.data.EM_MPD_THRINTERVAL;
+                                },
+                            }
+                        }, formatter: function (value) {
+                            return PAGE_DATA['tiType'][value];
+                        }
+                    },
+                    'INTERVAL': {
+                        editor: {
+                            type: 'textbox',
+                            options: {tipPosition: 'top', required: true, validType: ['maxLength[100]']}
+                        }
+                    },
+                    'INTERVAL_UNIT': {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                panelHeight: 80,
+                                queryParams: {domainCode: "EM_CMP_TICHK_UNIT"},//RSPL_PRSPL
+                                url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                                loadFilter: function (jdata) {
+                                    return jdata.data.EM_CMP_TICHK_UNIT;
+                                },
+                            }
+                        }, formatter: function (value) {
+                            return value;
+                        }
+                    },
+                    'START_DATE': {
+                        editor: {
+                            type: 'combobox',
+                            options: {
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                panelHeight: 80,
+                                queryParams: {domainCode: "EM_START_DATE"},//RSPL_PRSPL
+                                url: Constant.API_URL + 'ANALYSIS_DOMAIN_BYCODE',
+                                loadFilter: function (jdata) {
+                                    return jdata.data.EM_START_DATE;
+                                },
+                            }
+                        }, formatter: function (value) {
+                            return PAGE_DATA['startDate'][value];
+                        }
+                    },
+                },
+            },
+            resize: function () {
+                return {width: 800, height: 200};
+            },
+            enableLineEdit: true,
+            onBeginEdit: function (index, row) {
+                if (
+                    (typeof (row.isadd__) == 'undefined') || (
+                    row.isadd__ == 1 && row.___editcount > 1)
+                ) ;
+
+            },
+            onEndEdit: function (index, row, changes) {
+                row = toCamelCase(row);
+                if (row.pkid) {
+                    row = $.extend({}, row, {FunctionCode: 'EM_CMP_EVAL_PN_INTERVAL_UPDATE'});
+                } else {
+                    row.whyqPkid = pkidls;
+                    row = $.extend({}, row, {FunctionCode: 'EM_CMP_EVAL_PN_INTERVAL_ADD'});
+                }
+                InitFuncCodeRequest_({
+                    data: row,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            reload11_();
+                            param.OWindow.reload_();
+                            MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            },
+            toolbar: [
+                {
+                    key: "COMMON_ADD", id: 'btnAdd',
+                    text: $.i18n.t(
+                        'common:COMMON_OPERATION.ADD'),
+                    handler: function () {
+                        var forTotal = $('#' + identity).datagrid('getRows');
+                        var pkidls = $("#yqpkid").val();
+
+                        if (!pkidls) {
+                            MsgAlert({content: "请先保存主数据", type: 'error'});
+                            return false;
+                        }
+                        var row = {
+                            isAdd__: 1,
+                        };
+                        $('#' + identity).datagrid('appendRow', row);
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var deldata = getDG('dg3').datagrid('getSelected');
+                        console.log(deldata);
+                        InitFuncCodeRequest_({
+                            data: {
+                                PKID: deldata.PKID,
+                                FunctionCode: "EM_CMP_EVAL_PN_INTERVAL_DEL"
+                            },
+
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    reload11_();
+                                    param.OWindow.reload_();
+                                }
+                                else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+
+                    }
+                },]
+
+        });
+    }
+
+
+</script>
+</html>

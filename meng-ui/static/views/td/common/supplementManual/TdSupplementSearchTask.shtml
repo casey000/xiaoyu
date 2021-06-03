@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">选取波音手册</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">手册片段：</th>
+                    <td width="310">
+                        <input type="hidden" id="pkid" name="pkid" />
+                        <input class="easyui-textbox" id="taskCode" name="taskCode" data-options="required:false"
+                               style="width: 300px"/>
+                    </td>
+                    <td align="left" style="padding: 3px;">
+                        <!--<a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"-->
+                           <!--onclick="searchData()">-->
+                            <!--<span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>-->
+                        <!--<a class="clearBtn" href="javascript:void(0)" onclick="doClear_()"-->
+                           <!--data-options="iconCls:'icon-clear'">-->
+                            <!--<span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>-->
+
+                        <!--!!!!!!!!!!!!!!!!!!!!!!!!注意!!!!!!!!!!!!!!!!!!!!!!!!!!-->
+                        <!--!!!!!!!!!!!!!!!!!!!!!!!!如果要开启 查询  和  重置 功能 !!!!!!!!!!!!!!!!!!!!!!!!!!-->
+                        <!--!!!!!!!!!!!!!!!!!!!!!!!!需要对tdSupplementService.handManualTask()中的 taskCode=tdOemRevDiff.getTaskCode()+"-A01"; 这段代码做处理 !!!!!!!!!!!!!!!!!!!!!!!!!!-->
+                        <!--!!!!!!!!!!!!!!!!!!!!!!!!此时是按当前OEM TASK 的Taskcode来获取的需要处理 !!!!!!!!!!!!!!!!!!!!!!!!!!-->
+                        <!--!!!!!!!!!!!!!!!!!!!!!!!!注意!!!!!!!!!!!!!!!!!!!!!!!!!!-->
+                        <!--!!!!!!!!!!!!!!!!!!!!!!!!注意!!!!!!!!!!!!!!!!!!!!!!!!!!-->
+
+
+                        <a href="javascript:void(0)" class="addBtn"   data-options="iconCls:'icon-search'"
+                           onclick="doOption()">
+                            <span>确定</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript">
+    var param;
+    var pkid;
+    var companyCode;
+    var fleet;
+    var manualType;
+    var taskCode;
+    var pgblock="";
+    var ver;
+    var oemTaskCode;
+    var func = "TD_SELECT_TASK_LIST_S";
+    function i18nCallBack() {
+        //绑定回车查询事件
+        param = getParentParam_();
+        pkid = param.pkid;
+        companyCode=param.companyCode;
+        fleet=param.fleet;
+        manualType=param.manualType;
+        taskCode=param.taskCode;
+        ver = param.ver;
+        oemTaskCode = param.oemTaskCode;
+
+        //硬解码
+        if(manualType=="SAMM"){
+            manualType="AMM";
+        }
+        if(manualType=="SIPC"){
+            manualType="IPC";
+        }
+
+
+
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData();
+        });
+
+        InitDataForm(pkid);
+        if (manualType == "IPC") {
+            func = "TD_SELECT_TASK_LIST_S_SIPC";
+            InitDataGrid();
+        } else {
+            if (ver != 0 && oemTaskCode != null) {
+                InitDataGrid();
+            } else {
+                InitDataGrid1();
+            }
+        }
+    }
+
+    //精确查找
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            queryParams: {
+                companyCode: companyCode,
+                fleet: fleet,
+                manualType: manualType,
+                taskCode: taskCode,
+                pgblock: pgblock,
+                ver: ver,
+                oemTaskCode: oemTaskCode
+            },
+            columns: {
+                param: {FunctionCode: func}
+            },
+            onLoadSuccess: function (row) {
+            }
+        });
+    }
+
+    //模糊查找
+    function InitDataGrid1() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            queryParams: {
+                companyCode: companyCode,
+                fleet: fleet,
+                manualType: manualType,
+                taskCode: taskCode,
+                pgblock: pgblock,
+                ver: ver,
+                oemTaskCode: oemTaskCode
+            },
+            columns: {
+                param: {FunctionCode: 'TD_SELECT_TASK_LIST_S_LIKE'}
+            },
+            onLoadSuccess: function (row) {
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/online-manual/supplement/selectById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var taskcode = jdata.obj.taskCode;
+                    var chapter_=jdata.obj.chapter;
+                    var section_=jdata.obj.section;
+                    var subject_=jdata.obj.subject;
+                    var pgblock_=jdata.obj.pgblock;
+                    var function_=jdata.obj.function;
+                    var seq_ =jdata.obj.seq;
+                    fleet=jdata.obj.fleet;
+                    // if (chapter_!=null) {
+                    //     taskcode = chapter_;
+                    // }
+                    // if (section_!=null) {
+                    //     taskcode = taskcode + "-" + section_;
+                    // }
+                    // if (subject_!=null) {
+                    //     taskcode = taskcode + "-" + subject_;
+                    // }
+                    // if (function_!=null) {
+                    //     taskcode = taskcode + "-" + function_;
+                    // }
+                    // if (seq_!=null) {
+                    //     taskcode = taskcode + "-" + seq_;
+                    // }
+                    // manualType=jdata.obj.dataType;
+                    pgblock=pgblock_;
+                    taskCode=taskcode;
+                    $("#taskCode").textbox({value:taskcode});
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    // function searchData() {
+    //     onSearch_('dg', '#ffSearch');
+    // }
+
+    //重置
+    // function doClear_() {
+    //     $("#ffSearch").form('clear');
+    //     searchData();
+    // }
+
+
+    function doOption() {
+        var rowData = getDG('dg').datagrid('getSelected');
+        if (rowData==null || rowData.PKID==null || rowData.PKID=="" ) {
+            MsgAlert({content: "请选择数据！", type: 'error'});
+            return;
+        }
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {pkid: rowData.PKID,parentId:pkid,FunctionCode: 'TD_MANUAL_TASK_DO'},
+            successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reloadNew(rowData.OEM_TASKCODE);
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.data, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+
+</script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<div class="row border-bottom">
+    <nav class="navbar navbar-static-top" role="navigation" style="margin-bottom: 0">
+        <div class="navbar-header"><a class="navbar-minimalize minimalize-styl-2 btn btn-primary "
+                                      style="margin-top:10px;" href="#"><i class="fa fa-bars"></i> </a>
+            <div class="navbar-form-custom"> <!-- method="post" action="/theme/hplus/search_results.html">-->
+                <div class="form-group formGroup">
+                    <img src="/img/fdj.png" alt="">
+                    <input type="text" placeholder="请输入您需要查找的内容 …" class="" name="top-search" id="top-search">
+                </div>
+            </div>
+        </div>
+        <ul class="nav navbar-top-links navbar-right">
+            <!--<li class="dropdown">
+                <a href="javascript:void(0);"
+                        onclick="reFunc_()">刷新FUNCTION</a>
+            </li>-->
+            <li class="dropdown">
+                <a class="dropdown-toggle count-info" data-toggle="dropdown" href="#">
+                    <i class="fa fa-bell"></i> <span class="label label-primary" id="lingdang">0</span>
+                </a>
+                <ul class="dropdown-menu dropdown-alerts">
+                    <!--<li>-->
+                    <!--<a href="mailbox.html">-->
+
+                    <!--<div>-->
+                    <!--<i class="fa fa-envelope fa-fw" ></i> 您有16条未读消息-->
+                    <!--<span class="pull-right text-muted small">4分钟前</span>-->
+                    <!--</div>-->
+                    <!--</a>-->
+                    <!--</li>-->
+                    <li class="divider"></li>
+                    <li>
+                        <a href="javascript:void(0)">  <!--href="profile.html"-->
+                            <div onclick="showmessage()">
+                                <i class="fa fa-qq fa-fw"></i> <span id="qq"></span>
+                                <span class="pull-right text-muted small" id="time"></span>
+                            </div>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <div class="text-center link-block">
+                            <a class="J_menuItem" onclick="showAllmessage()">
+                                <strong>查看所有 </strong>
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        </div>
+                    </li>
+                </ul>
+            </li>
+            <li class="dropdown hidden-xs">
+                <a class="right-sidebar-toggle" aria-expanded="false">
+                    <i class="fa fa-tasks"></i> 主题
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<div id="winpop">
+    <div class="title">您有新的消息<span class="close" onclick="tips_pop()">X</span></div>
+    <div class="con">你有未读信息(0)</div>
+</div>
+<style type="text/css">
+    #winpop {
+        width: 200px;
+        height: 0px;
+        position: absolute;
+        right: 5px;
+        bottom: 5px;
+        border: 1px solid #999999;
+        margin: 0;
+        padding: 1px;
+        overflow: hidden;
+        display: none;
+        background: url(http://www.niutw.com/images/bg.png) #FFFFFF
+    }
+
+    #winpop .title {
+        width: 100%;
+        height: 20px;
+        line-height: 20px;
+        background: #FFCC00;
+        font-weight: bold;
+        text-align: center;
+        font-size: 12px;
+    }
+
+    #winpop .con {
+        width: 100%;
+        height: 80px;
+        line-height: 80px;
+        font-weight: bold;
+        font-size: 12px;
+        color: #FF0000;
+        text-decoration: underline;
+        text-align: center
+    }
+
+    #silu {
+        font-size: 13px;
+        color: #999999;
+        position: absolute;
+        right: 0;
+        text-align: right;
+        text-decoration: underline;
+        line-height: 22px;
+    }
+
+    .close {
+        position: absolute;
+        right: 4px;
+        top: -1px;
+        color: #FFFFFF;
+        cursor: pointer
+    }
+</style>
+<script type="text/javascript">
+
+    function selectlatesttime() {
+        InitFuncCodeRequest_({
+            url: Constant.API_V1_URL + "message/count",
+            data: {},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#qq").html("您有" + jdata.data.count + "条新信息");
+                    $("#lingdang").text(jdata.data.count);
+                    /*if(jdata.data.message){
+                        popMessageWindow(jdata.data.message);
+                    }*/
+                } else {
+                    layer.msg(jdata.msg, {icon: 5});
+                }
+            }
+        });
+    }
+
+    /**
+     * 弹出Message信息
+     * @param message
+     */
+    function popMessageWindow(message) {
+        if ($('#0_msg').length != 0) {
+            return;
+        }
+        var title = message.msgTitle;
+        var content = message.msgBody;
+        if (message.sourceType == 'W') {
+            jQuery.messager.show({
+                id: '0_msg',
+                width: 280, height: 150,
+                title: "<span style='color: red;'>预警信息</span>",
+                msg: "<span style='color: red;'>" + "<b>" + title + "</b><br/><br/>" + content + "</span>",
+                timeout: 0,
+                showType: 'slide',
+                onClose: function () {
+                    updMessageStatus(message.pkid);
+                }
+            });
+        } else {
+            jQuery.messager.show({
+                id: '0_msg',
+                title: "消息提醒",
+                width: 280, height: 150,
+                msg: "<b>" + title + "</b><br/><br/>" + content,
+                timeout: 0,
+                showType: 'slide',
+                onClose: function () {
+                    updMessageStatus(message.pkid);
+                }
+            });
+        }
+    }
+
+    /**
+     * 设置消息已读，并且不再提醒
+     * @param pkid
+     */
+    function updMessageStatus(pkid) {
+        InitFuncCodeRequest_({
+            url: Constant.API_V1_URL + "message/updStatus",
+            data: {pkid: pkid, state: 'R', tipFlag: '2'},
+            successCallBack: function (jdata) {
+                selectlatesttime();
+            }
+        });
+    }
+
+
+    function showmessage() {
+        ShowWindowIframe({
+            width: 1000,
+            height: 450,
+            //param: {SEG_PKID: PKID},
+            title: "消息列表",
+            url: "/views/ws/message/message_list.shtml"
+        });
+    }
+
+    function showAllmessage() {
+        createOrSelectTab_("/views/ws/message/message_list.shtml", '0', '消息列表', true, true);
+    }
+
+    function reFunc_() {
+        AjaxCall_("/api/v1/system/fdict", "", function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                alert("ok");
+            } else {
+                alert("操作失败!");
+            }
+        });
+    }
+</script>

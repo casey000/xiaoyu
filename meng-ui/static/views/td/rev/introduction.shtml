@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>前言详细页面</title>
+    <link rel="stylesheet" href="/js/kindeditor/themes/default/default.css"/>
+    <script charset="utf-8" src="/js/kindeditor/kindeditor-all.js"></script>
+    <script charset="utf-8" src="/js/kindeditor/lang/zh_CN.js"></script>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="createBy" name="createBy"/>
+                <input type="hidden" id="createTime" name="createTime"/>
+                <input type="hidden" id="typeCode" name="typeCode"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">片段编号：</th>
+                        <td class="td5" style="width:380px;">
+                            <input class="easyui-textbox" id="chapter" data-options="editable:true" name="chapter"
+                                   style="width:50px;"/>
+                            -
+                            <input class="easyui-textbox" id="section" data-options="editable:true" name="section"
+                                   style="width:50px;"/>
+                            -
+                            <input class="easyui-textbox" id="subject" data-options="editable:true" name="subject"
+                                   style="width:50px;"/>
+                            -
+                            <input class="easyui-textbox" id="pgblock" data-options="editable:true" name="pgblock"
+                                   style="width:50px;"/>
+                            -
+                            <input class="easyui-textbox" id="function" data-options="editable:true" name="function"
+                                   style="width:50px;"/>
+                            -
+                            <input class="easyui-textbox" id="seq" data-options="editable:true" name="seq"
+                                   style="width:50px;"/>
+                        </td>
+                        <th class="th" align="right" style="width: 100px;">是否适用：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="ifApply" name="ifApply" data-options="required:true"
+                                   data-options="editable:true" style="width: 60px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <table style="margin:10px;" class="table table-bordered table-info">
+                            <tr>
+                                <th class="th" align="left">前言内容</th>
+                            </tr>
+                            <tr>
+                                <td colspan="3">
+                                    <textarea id="editor" style="width:600px;height:400px;visibility:hidden;">
+
+                                    </textarea>
+                                </td>
+                            </tr>
+                        </table>
+                    </tr>
+                    <tr id="view">
+                        <td colspan="4" align="right">
+                            <input style="margin-left: 10px" class="btn btn-primary" type="button" onclick="save()"
+                                   value="保存"
+                                   style="width: 50px;margin:5px;"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="width: 50px;margin:5px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var ue1;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        if (operation == "view") {
+            $("#view").hide();
+        }
+
+        //详情编辑器
+        KindEditor.ready(function (K) {
+            this.editor
+                = K.create('textarea[id="editor"]', {
+                items: ['source', '|', 'undo', 'redo', '|', 'preview', 'print', 'template', 'code', 'cut', 'copy', 'paste',
+                    'plainpaste', 'wordpaste', '|', 'justifyleft', 'justifycenter', 'justifyright',
+                    'justifyfull', 'insertorderedlist', 'insertunorderedlist', 'indent', 'outdent', 'subscript',
+                    'superscript', 'clearhtml', 'quickformat', 'selectall', '|', 'fullscreen', '/',
+                    'formatblock', 'fontname', 'fontsize', '|', 'forecolor', 'hilitecolor', 'bold',
+                    'italic', 'underline', 'strikethrough', 'lineheight', 'removeformat', '|', 'multiimage',
+                    'table', 'hr', 'emoticons', 'baidumap', 'pagebreak',
+                    'anchor', 'link', 'unlink'],
+                uploadJson: '/images',//指定上传图片的服务器端程序
+                fileManagerJson: '/images',//指定浏览远程图片的服务器端程序
+                allowFileManager: true
+            });
+        });
+
+        InitFuncCodeRequest_({
+            data: {domainCode: "YESORNO", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#ifApply').combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                }
+                if (param.pkid) {
+                }
+            }
+        })
+    }
+
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var content = editor.html();
+        console.log(content);
+
+        /*   var $form = $("#mform");
+           var datas = $form.serializeObject();
+           datas = $.extend({}, datas, {FunctionCode: 'DM_DATA_TYPE_ADD'});
+           InitFuncCodeRequest_({
+               data: datas, successCallBack: function (jdata) {
+                   if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                       if (param.OWindow.onSearch_) {
+                           param.OWindow.onSearch_('dg', '#ffSearch');
+                       }
+                       param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                       CloseWindowIframe();
+                   } else {
+                       MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                   }
+               }
+           });*/
+
+        /*     var datas = $form.serializeObject();
+             datas = $.extend({},{receive:p}, datas, {FunctionCode: 'TD_SUPPLEMENT_ADD'});
+             InitFuncCodeRequest_({
+                 data: datas, successCallBack: function (jdata) {
+                     if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                         if (param.OWindow.onSearch_) {
+                             param.OWindow.onSearch_('dg', '#ffSearch');
+                         }
+                         param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                         CloseWindowIframe();
+
+                     } else {
+                         MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                     }
+                 }
+             });*/
+    }
+</script>
+</html>

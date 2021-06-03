@@ -1,0 +1,237 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">章节维护</title>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">ATA：</th>
+                        <td class="td5">
+                            <input class="easyui-textbox" id="ata" name="ata" style="width:100px;"/>
+                        </td>
+                        <td class="td5">
+                            <a class="searchBtn" type="button" onclick="searchData()"
+                               data-options="iconCls:'icon-search'">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        </td>
+                        <!-- <td class="td5">
+                             <a class="addBtn" id="submit" onclick="editDetailData('add')"
+                                data-options="iconCls:'icon-add'">
+                                 <span data-i18n="common:COMMON_OPERATION.ADD">增加</span></a>                  </td>
+                         </td>-->
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var companyCode;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "WS_USER_F",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    PAGE_DATA['editor'] = DomainCodeToMap_(jdata.data["WS_USER_F"]);
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                }else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        queryParams.companyCode = companyCode,
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            // enableLineEdit: true,
+            // enableCellEdit: true,
+            //queryParams: {companyCode: companyCode},
+            queryParams:queryParams,
+            path: "/online-manual/partManualChapterMaintenance/listByPage",
+            pagination: true,
+            columns: {
+                param: {FunctionCode: 'DM_CM_ATA_LIST'},
+                alter: {
+                    // ATA: {
+                    //     editor: {type: 'textbox', options: {tipPosition: 'top', validType: ['maxLength[300]']}}
+                    // },
+
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                formatterUpperDataGrid(data,"dg");
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowData.PKID);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/online-manual/partManualChapterMaintenance/deleteById/" + rowData.PKID,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'})
+                                }
+                            }
+                        });
+                        // InitFuncCodeRequest_({
+                        //     data: {pkid: rowData.PKID, FunctionCode: 'DM_CM_ATA_DELETE'},
+                        //     successCallBack: function (jdata) {
+                        //         if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        //             MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        //             reload_();
+                        //         } else {
+                        //             MsgAlert({content: jdata.msg, type: 'error'});
+                        //         }
+                        //     }
+                        // });
+                    }
+                }
+            ],
+            toolbar:[{
+                id:'btnAdd',
+                text:$.i18n.t('增加'),
+                iconCls:'icon-add',
+                handler:function(){
+                    editDetailData('add');
+                }
+            }],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        openDetai(operation, '');
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid) {
+        var title_ = $.i18n.t('章节号相关人员维护');
+        ShowWindowIframe({
+            width: "550",
+            height: "280",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/data_manager/dm/cm/dmCmATADetail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+//        dateFormatter_();
+        //onSearch_('dg', '#ffSearch');
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+
+    //新增ATA
+    function addDatagridRow() {
+        $('#dg').datagrid('appendRow', {});
+    }
+
+    //新增或修改ATA
+    function editDate(index, row, changes) {
+        if(!val(row.ATA)){
+            alert("请输入6位数字");
+            reload_();
+            return;
+        }
+        row = toCamelCase(row);
+        row = $.extend({}, row, {FunctionCode: 'DM_CM_ATA_ADD'});
+        InitFuncCodeRequest_({
+            data: row,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'})
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

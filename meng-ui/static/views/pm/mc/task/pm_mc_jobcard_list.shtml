@@ -1,0 +1,134 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>航线工时系数列表</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<fieldset class="fieldset_eui">
+    <legend>搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th style="width: 80px;" align="right">机型：</th>
+                    <td>
+                        <input class="easyui-combobox" id="actype" name="actype" data-options="" style="width:120px"/>
+                    </td>
+                    <th style="width: 80px;" align="right">工卡类型：</th>
+                    <td>
+                        <input class="easyui-combobox" id="jobcardType" name="jobcardType" data-options="" style="width:120px"/>
+                    </td>
+                    <th style="width: 80px;" align="right">标题：</th>
+                    <td>
+                        <input class="easyui-textbox" id="jobcardTitle" name="jobcardTitle" data-options="" style="width:120px"/>
+                    </td>
+                    <td style="width:50%;text-align:left; padding-right:5px">
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" auth="PM_MC_JOBCARD_QUERY" onclick="onSearch_()"><span>查询</span></a>
+                        <!--<a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="onClear_()"><span>重置</span></a>-->
+                        <a class="addBtn" data-options="" onclick="add()" auth="PM_MC_JOBCARD_ADD" ><span>新增</span></a>
+                    </td>
+                </tr>
+
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "DA_ACREG_MP_ACTYPE,PM_JOBCARD_TYPE"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['actype'] = DomainCodeToMap_(jdata.data.DA_ACREG_MP_ACTYPE);
+                PAGE_DATA['type'] = DomainCodeToMap_(jdata.data.PM_JOBCARD_TYPE);
+                //机型
+                $('#actype').combobox({
+                    panelHeight: '120px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data['DA_ACREG_MP_ACTYPE'],
+                });
+                $('#jobcardType').combobox({
+                    panelHeight: '120px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data['PM_JOBCARD_TYPE'],
+                });
+                InitDataGrid();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            columns: {
+                param: {FunctionCode: 'PM_MC_JOBCARD_LIST'},
+                alter: {
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                    JOBCARD_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['type'][value];
+                        }
+                    }
+                    /*POSITION : { formatter: function(value,row,index){
+                     return PAGE_DATA['position'][row.POSITION];
+                     }}*/
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT",auth:"PM_MC_JOBCARD_EDIT",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 650, height: 380,
+                            url: "/views/pm/mc/task/pm_mc_jobcard_add_edit.shtml"
+                        })
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL",auth:"PM_MC_JOBCARD_DEL",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "确认删除吗",
+                            param: {data: {pkid: rowData.PKID}},
+                            FunctionCode: "PM_MC_JOBCARD_DEL"
+                        })
+                    }
+                }
+            ],
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 15)
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    function add() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 650, height: 380,
+            url: "/views/pm/mc/task/pm_mc_jobcard_add_edit.shtml"
+        });
+    }
+</script>
+</body>
+</html>

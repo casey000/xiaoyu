@@ -1,0 +1,364 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_work_flow">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script src="/js/workflow/activiti_workflow.js" type="text/javascript"></script>
+    <script src="/js/workflow/formtemplet.js" type="text/javascript"></script>
+    <script src="/js/datagrid_utils.js" type="text/javascript"></script>
+    <title></title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+
+
+</head>
+<body class="ibody">
+
+<div id="tabs" style="width: 100%; height: 100%;">
+    <div id="tab01" title="业务表单数据" style="">
+        <div class="ibox float-e-margins">
+            <div class="ibox-content">
+                <form class="form-horizontal m-t" id="mform" style="margin-top: 0px;">
+
+                    <input type="hidden" id="isFirstNode" name="isFirstNode">
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <!-- 审核人 -->
+                    <input type="hidden" id="emUser" name="emUser"/>
+                    <input type="hidden" id="chiefUser" name="chiefUser"/>
+                    <input type="hidden" id="managerUser" name="managerUser"/>
+                    <input type="hidden" id="ceoUser" name="ceoUser"/>
+                    <input type="hidden" id="ifEndFlow" name="ifEndFlow" value="N"/>
+
+                    <input type="hidden" id="status" name="status"/>
+
+                    <div style="height: 580px;">
+                        <iframe scrolling="auto" id="iframe01" frameborder="0" src=""
+                                style="width:100%;height:100%;"></iframe>
+                    </div>
+
+                    <!-- 业务数据展示end-->
+                    <h5 style="margin-bottom: 4px;">流程处理：</h5>
+                    <input name="taskId" type="hidden"/>
+                    <table class="table table-bordered table-info">
+                        <tbody id="custom_options"></tbody>
+                    </table>
+                    <table class="table table-bordered table-info" id="mtable">
+                        <tr>
+                            <th class="tdl dealNote" style="width: 100px;">处理意见：</th>
+                            <td class="tdr dealNote">
+                                <input id="notes" name="notes" class="easyui-textbox easyui-validatebox"
+                                       data-options="multiline:true,validType:['maxLength[200]']"
+                                       style="height:55px; width: 100%;"/>
+                            </td>
+                            <th class="tdl xmclass" style="width: 100px">下一级办理人：</th>
+                            <td class="tdr xmclass">
+                                <input id="authId" name="authId" class="easyui-textbox easyui-validatebox"
+                                       data-options="validType:['maxLength[20]'] " style="height:25px; width:150px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="6" align="center">
+                                <input id="canSubmit" class="btn" disabled="disabled" type="button"
+                                       onclick="submitEngCostApplyFlow()" value="提交"/>
+                                <input id="canTrunTo" class="btn" disabled="disabled" type="button"
+                                       onclick="doTurnTo();" value="转办"/>
+                                <input id="canReturn" class="btn" disabled="disabled" type="button"
+                                       onclick="doReturn();" value="退回"/>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div title="流程信息" style="">
+        <table class="table table-bordered table-info" id="processInfo">
+            <tr>
+                <th class="tdl" style="width: 145px;">流程业务Key ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="businessKey"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程业务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="executionName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程创建时间 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="createTime"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">流程创建人 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="userName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务名称 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="nodeName"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+                <th class="tdl" style="width: 145px;">是否会签任务 ：</th>
+                <td class="tdr">
+                    <input class="easyui-textbox easyui-validatebox" name="isJoint"
+                           data-options="multiline:true, onlyview: true " style="height:25px; width: 60%;"/>
+                </td>
+            </tr>
+            <tr>
+                <th class="tdl" style="width: 145px;">流程任务-配置 ：</th>
+                <td class="tdr" colspan="3" style="vertical-align: middle;">
+                    <input type="checkbox" name="canReturn" value="" disabled/> 可退回
+                    <input type="checkbox" name="canTrunTo" value="" disabled/> 可转办
+                    <input type="checkbox" name="canTerminate" value="" disabled/> 可终止
+                    <input type="checkbox" name="canHangUp" value="" disabled/> 可挂起
+                </td>
+            </tr>
+        </table>
+        <div id="workflow" style="overflow-x: scroll;"></div>
+    </div>
+    <div id="tab02" title="历史任务信息" style="">
+        <table id="historyDg"></table>
+    </div>
+</div>
+
+<script type="text/javascript">
+    /**
+     *
+     * @param resource  业务数据
+     * @param execution 流程实例数据
+     * @param node 节点配置数据
+     * @constructor
+     */
+    let type, jcPkid, jcNo, pageCount;
+    const PAGE_DATA = {};
+    let pkid;
+    let userLogin;
+    let operation;
+    let taskProcessId;
+    let userId;
+    let costSum;
+    let fleet;
+
+    function InitLoadResource(resource, execution, node) {
+        pageCount = 1;
+        pkid = resource.pkid;
+        userLogin = getLoginInfo();
+        userId = userLogin.accountId;
+        type = "view";
+        operation = "view";
+        taskProcessId = node.taskPropId;
+        costSum = resource.costSum;
+        //编辑中*可以编辑
+        if ("7" == resource.status) {
+            type = "edit";
+            operation = "edit";
+        }
+
+        $("#iframe01").attr("src", "/views/engine/engCostApply/eng_cost_apply_add_edit.shtml?pkid=" + pkid + "&operation=" + operation + "&taskId=" + node.taskPropId + "&userId=" + userLogin.accountId + "&type=" + type + "&userName=" + userLogin.userName);
+
+        //下个审批人选择初始化
+        $("#authId").MyComboGrid({
+            idField: 'ACCOUNT_ID',  //实际选择值
+            textField: 'USER_NAME', //文本显示值
+            panelHeight: '180px',
+            required: true,
+            width: 140,
+            params: {userId: userId, FunctionCode: 'FLOW_WORK_ACCOUNT'},
+            columns: [[
+                {field: 'ACCOUNT_NUMBER', title: '工号', width: 50},
+                {field: 'USER_NAME', title: '审核人', width: 50}
+            ]],
+            onHidePanel: function () {
+                var t = $(this).combogrid('getValue');
+                if (t != null && t != '' & t != undefined) {
+                    if (selectRow == null || t != selectRow.ACCOUNT_ID) {//没有选择或者选项不相等时清除内容
+                        alert('请选择，不要直接输入！');
+                        $(this).combogrid({value: ''});
+                    }
+                }
+            },
+            onSelect: function (index, row) {
+                selectRow = row;
+                //当前在审核页面中选择下一位审核人
+                if ('ENG_COST_APPLY_BACK_TASK' == node.taskPropId) {//任务退回提交
+                    $("#emUser").val(row.ACCOUNT_ID);
+                } else if ('ENG_COST_APPLY_EM_TASK' == node.taskPropId) {//流程节点：部门经理审批
+                    $("#chiefUser").val(row.ACCOUNT_ID);
+                } else if ('ENG_COST_APPLY_CHIEF_TASK' == node.taskPropId) {//流程节点：总工审批
+                    $("#managerUser").val(row.ACCOUNT_ID);
+                } else if ('ENG_COST_APPLY_MANAGER_TASK' == node.taskPropId) {//流程节点：工程部经理审批
+                    $("#ceoUser").val(row.ACCOUNT_ID);
+                }
+
+            }
+        });
+
+        //第一个节点
+        if ('ENG_COST_APPLY_EM_TASK' == node.taskPropId) {
+            $("#isFirstNode").val('Y');
+        } else if ('ENG_COST_APPLY_BACK_TASK' == node.taskPropId) {
+            // 任务退回节点只能提交
+            $("#canReturn").hide();
+            $("#isFirstNode").val('N');
+        } else {
+            $("#isFirstNode").val('N');
+        }
+        //判断是否为最后一级办理点
+        if (isEndProcess()) {
+            $("#ifEndFlow").val('Y');
+            $(".xmclass").hide();
+            $("#authId").combogrid({required: false})
+        }
+    }
+
+    //判断是否为最后一个节点
+    function isEndProcess() {
+        if (('ENG_COST_APPLY_EM_TASK' == taskProcessId && costSum < 20000)
+            || ('ENG_COST_APPLY_CHIEF_TASK' == taskProcessId && costSum < 100000)
+            || ('ENG_COST_APPLY_MANAGER_TASK' == taskProcessId && costSum < 1000000)
+            || ('ENG_COST_APPLY_CEO_TASK' == taskProcessId)) {
+            return true;
+        }
+        return false;
+    }
+
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //退回
+    function doReturn() {
+        const msg = '您确定要退回吗?<br/> <input name="rdo_return" type="radio" value="top" checked="checked"/> 退回到开始';
+        $.messager.confirm('提示', msg, function (data) {
+            if (data) {
+                const notes = $("#notes").textbox('getValue');
+                if ($.trim(notes) == '') {
+                    MsgAlert({content: '请输入您的退回意见', type: 'error'});
+                    return;
+                }
+                const dore = $("input[name='rdo_return']:checked").val();
+                if ($.trim(dore) == '') {
+                    MsgAlert({content: '请选择退回项', type: 'error'});
+                    return;
+                }
+                const data = {
+                    FunctionCode: 'WS_FLOW_TURNBACK', reSelect: "top",
+                    taskId: param.TASK_ID, procDefId: param.PROC_DEF_ID, notes: notes
+                };
+                if (!PAGE_EVENTS.beforeTurnBack(data)) {
+                    return;
+                }
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: data,
+                    successCallBack: function (jdata) {
+                        MaskUtil.unmask();
+                        PAGE_EVENTS.afterTurnBack(jdata);
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            if (typeof (param.OWindow.reload_ == 'function')) {
+                                param.OWindow.reload_();
+                            }
+                            param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                            CloseWindowIframe();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    //提交
+    function submitEngCostApplyFlow() {
+        const $form = $("#mform");
+        const isValidate = $form.form('validate');
+        if (!isValidate) {
+            return false;
+        }
+        //退回后提交
+        if ('ENG_COST_APPLY_BACK_TASK' == taskProcessId) {
+            const engCostApplyFromIsValidate = document.getElementById('iframe01').contentWindow.checkFromIsValidate();
+            if (!engCostApplyFromIsValidate) {
+                return;
+            }
+
+            const saveEngCostApplyParam = $(document.getElementById('iframe01').contentWindow.document.getElementById("mform")).serializeObject();
+            const appls = saveEngCostApplyParam.appls.toString();
+            const acRegs = saveEngCostApplyParam.acRegs.toString();
+            const atas = saveEngCostApplyParam.atas.toString();
+            saveEngCostApplyParam['appls'] = appls;
+            saveEngCostApplyParam['acRegs'] = acRegs;
+            saveEngCostApplyParam['atas'] = atas;
+            InitGatewayRequest_({
+                async: false,
+                path: "/meng-engine/engCostApply/saveEngCostApply",
+                data: saveEngCostApplyParam,
+                error: function (jData) {
+                    MsgAlert({content: jData.errorMessage ? jData.errorMessage : "更新工程费用申请失败", type: 'error'});
+                },
+                successCallBack: function (jData) {
+                    if (jData.success == true) {
+                        doSubmit();
+                    } else {
+                        MsgAlert({content: jData.errorMessage ? jData.errorMessage : "更新工程费用失败", type: 'error'});
+                    }
+                }
+            });
+        } else {
+            doSubmit();
+        }
+    }
+
+</script>
+
+
+<script id="tempCombobox" type="text/html">
+    <tr>
+        <th class="tdl">{{d.titleName }} ：</th>
+        <td class="tdr">
+            <select name="{{d.fieldName}}" class="easyui-combobox"
+                    data-options="required:true, editable: false" panelHeight="120" style="width:180px">
+                {{#
+                for(var i = 0; i < d.options.length; i++){
+                }}
+                <option value="{{d.options[i]['value']}}">{{d.options[i]['text']}}</option>
+                {{# } }}
+            </select>
+        </td>
+    </tr>
+</script>
+<script id="tempTextbox" type="text/html">
+    <tr>
+        <th class="tdl">{{d.titleName }} ：</th>
+        <td class="tdr">
+            <input name="{{d.fieldName}}" class="easyui-textbox"
+                   data-options="required:true, editable: true" style="width:180px"/>
+        </td>
+    </tr>
+</script>
+
+</body>
+</html>

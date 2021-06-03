@@ -1,0 +1,479 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">EOEA符合性</title>
+</head>
+<body class="ibody">
+<div id="tt" class="title" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <div id="searchBar">
+
+
+            <form id="ffSearch" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">EO/EA类型：</th>
+                        <td style="width:120px">
+                            <input class="easyui-combobox" id="eoEa" name="eoEa" style="width:98%;"/>
+                        </td>
+
+                        <th class="th" style="width:80px;" align="right">EO/EA编号：</th>
+                        <td style="width:120px">
+                            <input class="easyui-textbox" id="eoNo" name="eoNo" style="width:98%;"/>
+                        </td>
+                        <th class="th" style="width:60px;" align="right">适用类型：</th>
+                        <td style="width:120px">
+                            <input class="easyui-combobox" id="applyType" name="applyType" style="width:98%;"/>
+                        </td>
+
+
+                        <th class="th" style="width:60px;" align="right">工作性质：</th>
+                        <td style="width:120px">
+                            <input class="easyui-combobox" id="jobCategory" name="jobCategory" style="width:98%;"/>
+                        </td>
+                        <td class="th">
+                            <a class="searchBtn" type="button" onclick="searchData()"
+                               data-options="iconCls:'icon-search'">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            <a class="excelBtn" data-options="iconCls:'icon-page_excel'"
+                               onclick="excelExport('dg','EOEA符合性状态','EM_TD_ACTIVE_CARD_COMPLIANCE_LIST')"><span>导出</span></a>
+                        </td>
+                    </tr>
+                    <tr>
+
+
+                        <th class="th" style="width:60px;" align="right">飞机注册号：</th>
+                        <td style="width:120px">
+                            <input class="easyui-textbox" id="acno" name="acno" style="width:98%;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">件号：</th>
+                        <td style="width:120px">
+                            <input class="easyui-textbox" id="partno" name="partno" style="width:98%;"/>
+                        </td>
+
+                        <th class="th" style="width:60px;" align="right">序号：</th>
+                        <td style="width:120px">
+                            <input class="easyui-textbox" id="serialnum" name="serialnum" style="width:98%;"/>
+                        </td>
+
+                        <td colspan="3">
+                        </td>
+
+
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var flag = "";
+    var companyCode;
+    var name = getLoginInfo().userName;
+    var accountId = getLoginInfo().accountId;
+    var executionId = ""; //流程实例ID
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EOEA,EM_APPL_TYPE,EM_EO_STATUS,EMTB_ATA,EM_MPD_REPAIR_LEVAL,EM_LIMIT_TYPE,EO_APPLY_MODEL,EM_EO_MONITOR_STATUS,EM_EO_NUMBER_WORK_TYPE,YESORNO,DA_ACREG_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //适用类型
+                    $('#applyType').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.EM_APPL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    // 状态status
+                    $('#status').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.EM_EO_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //章节
+                    $('#eoEa').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.EOEA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    let APPLYMODEL = [];
+                    $('#applyModel').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.EO_APPLY_MODEL,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //工作性质
+                    $('#jobCategory').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.EM_EO_NUMBER_WORK_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_EO_STATUS"]);
+                    PAGE_DATA['applyType'] = DomainCodeToMap_(jdata.data["EM_APPL_TYPE"]);
+                    PAGE_DATA['jobCategory'] = DomainCodeToMap_(jdata.data["EM_EO_NUMBER_WORK_TYPE"]);
+                    PAGE_DATA['yesorno'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA['monitorState'] = DomainCodeToMap_(jdata.data["EM_EO_MONITOR_STATUS"]);
+                    PAGE_DATA['repairLevel'] = DomainCodeToMap_(jdata.data["EM_MPD_REPAIR_LEVAL"]);
+                    PAGE_DATA['tlimitType'] = DomainCodeToMap_(jdata.data["EM_LIMIT_TYPE"]);
+                    PAGE_DATA['DA_ACREG_STATUS'] = DomainCodeToMap_(jdata.data["DA_ACREG_STATUS"]);
+                    //获取CompanyCode
+                    InitFuncCodeRequest_({
+                        data: {FunctionCode: "COMMON_COMPANY_CODE"},
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                companyCode = jdata.data;
+                                $("#writeMan").textbox("setValue", name);
+                                $("#status").combobox("setValue", "00");
+                                var fromId = fromId || "#ffSearch";
+                                var queryParams = $(fromId).serializeObject();
+                                let radis = {};
+                                $(":radio").each(function () {
+                                    let radioName = $(this).attr('name');
+                                    radis[radioName] = $("input[name='" + radioName + "']:checked").val();
+                                });
+
+                                $(":checkbox").each(function () {
+                                    radis[$(this).attr('name')] = $(this).is(':checked') ? "Y" : "";
+                                });
+                                companyCode = $.extend({}, queryParams, radis);
+                                InitDataGrid();
+                            }
+                        }
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var pageSize = Math.floor(($(document.body).height() - $("fieldset").height() - 50) / 20);
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            queryParams: companyCode,
+            pageSize: pageSize, pageList: [pageSize],
+            resize: function () {
+                return tabs_standard_resize($("#tt"), 0.1, 0.0001, 0, 0);
+            },
+            columns: {
+                param: {FunctionCode: 'EM_TD_ACTIVE_CARD_COMPLIANCE_LIST'},
+                alter: {
+                    SPARK: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesorno'][value];
+                        }
+                    },
+                    IF_ELECTRICAL_LOAD: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesorno'][value];
+                        }
+                    },
+
+
+                    IF_INFLUENCE_EO: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesorno'][value];
+                        }
+                    },
+
+                    IF_EVA_PRODUCE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesorno'][value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    APPLY_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['applyType'][value];
+                        }
+                    },
+                    JOB_CATEGORY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['jobCategory'][value];
+                        }
+                    },
+                    IF_INFLUENCE_EO: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesorno'][value];
+                        }
+                    },
+                    MONITOR_STATE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['monitorState'][value];
+                        }
+                    },
+                    REPAIR_LEVEL: {
+                        formatter: function (value) {
+                            return PAGE_DATA['repairLevel'][value];
+                        }
+                    },
+                    TLIMIT_TYPE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['tlimitType'][value];
+                        }
+                    },
+                    REVERSAL_DATE : {
+                        /*formatter: function (value) {
+                            if(value){
+                                return value.substr(0,10);
+                            }else{
+                                return '';
+                            }
+                        }*/
+                    },
+                    AC_STATUS : {
+                        formatter: function (value) {
+                            return PAGE_DATA['DA_ACREG_STATUS'][value];
+                        }
+                    },
+                    //符合性状态C为T
+//                    COM_STATUS:{
+//                        formatter: function (value) {
+//                            var retValue = '';
+//                            if(value && value == 'C'){
+//                                retValue = 'T';
+//                            }else{
+//                                retValue = value;
+//                            }
+//                            return retValue;
+//                        }
+//                    }
+
+
+                }
+            },
+            onDblClickRow: function (index, field, value) {
+                //openDetai("view", value.PKID);
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "dmDataRecExter",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFileLocal(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * 校验工作流是否已经存在
+     *
+     **/
+    function validWorkFlow(objKey, objNo) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {objKey: objKey, objNo: objNo, FunctionCode: 'VALID_WORK_FLOW'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        executionId = jdata.data.EXECUTION_ID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return executionId;
+    }
+
+    //改版
+    function copy(mpkid) {
+        if (!confirm("确定要改版")) {
+            return;
+        }
+        //发布前，需先验证是否上传附件，如果没有，则不能发布
+        var datas = $.extend({}, {pkid: mpkid, FunctionCode: 'EM_EO_COPY'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_()
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //发布
+    function issue(mpkid) {
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {mpkid: mpkid, FunctionCode: 'DM_DATA_REC_EXTER_ISS'});
+        //发布前，需先验证是否上传附件，如果没有，则不能发布
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    searchData();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function tranHis(eoPkid) {
+        var title_ = $.i18n.t('转发记录列表');
+        ShowWindowIframe({
+            width: "790",
+            height: "519",
+            title: title_,
+            param: {eoPkid: eoPkid},
+            url: "/views/em/emea/emEa_tran_list.shtml"
+        });
+    }
+
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        flag = "A";
+        openDetai(operation, '');
+    }
+
+    //打开资料类型详细页面
+    function openDetai(operation, pkid, ifEvaProduce, evalApplyType) {
+        var title_ = $.i18n.t('EA详细页');
+        ShowWindowIframe({
+            width: "1248",
+            height: "720",
+            title: title_,
+            param: {operation: operation, pkid: pkid, ifEvaProduce: ifEvaProduce, evalApplyType: evalApplyType},
+            url: "/views/em/emea/eaEdit.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        var fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts('dg');
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            let radis = {};
+            $(":radio").each(function () {
+                let radioName = $(this).attr('name');
+                radis[radioName] = $("input[name='" + radioName + "']:checked").val();
+            });
+
+            $(":checkbox").each(function () {
+
+                radis[$(this).attr('name')] = $(this).is(':checked') ? "Y" : "";
+            });
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams, radis);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    //上传
+    function common_uploadFile(edopt) {
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        ShowWindowIframe({
+            width: 575,
+            height: 200,
+            title: title_,
+            param: $.extend({}, edopt.param),
+            url: "/views/data_manager/dm/upload/attachment_add.shtml"
+        });
+    }
+
+    //工时系数维护
+    function coefficient() {
+        var title_ = $.i18n.t('工时系数维护');
+        ShowWindowIframe({
+            width: 575,
+            height: 200,
+            title: title_,
+            url: "/views/em/emeo/EmEoCoefficientEdit.shtml"
+        });
+    }
+
+    function jcPreview(url) {
+        ShowWindowIframe({
+            width: 1200,
+            height: 650,
+            param: {url: url},
+            title: "EA预览PDF",
+            url: "/views/em/emeo/emeo_add_pdf.shtml"
+        });
+    }
+
+    function hints(mgs) {
+        ShowWindowIframe({
+            width: 300,
+            height: 300,
+            param: {mgs: mgs},
+            title: "EA提示",
+            url: "/views/em/emeo/eoHints.shtml"
+        });
+    }
+</script>
+</body>
+</html>

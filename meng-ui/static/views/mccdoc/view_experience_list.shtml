@@ -1,0 +1,281 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <script src="/js/plugins/ajaxfileupload/ajaxfileupload.js" type="text/javascript"></script>
+    <title data-i18n=""></title>
+    <style type="text/css">
+        #tt{
+            padding: 0 10px;
+        }
+       .tit{
+           font-size: 14px;
+           margin-bottom: 20px;
+       }
+        dd{
+            margin-bottom: 10px;
+        }
+        dd span.tit{
+            display: inline-block;
+            min-width: 60px;
+            vertical-align: top;
+            text-align: right;
+        }
+        dd textarea{
+            width: 400px;
+        }
+        .upload{
+            border: none;
+            padding: 3px 15px;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .uploadBlock{
+            margin-bottom: 5px;
+        }
+        b{
+            font-weight: 600;
+        }
+        .editdiv{
+            width: 600px;
+            height: 200px;
+            overflow-y: scroll;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 3px;
+            outline: 0;
+            border: 1px solid #a0b3d6;
+            font-size: 12px;
+            line-height: 24px;
+            word-wrap: break-word;
+            overflow-x: hidden;
+            overflow-y: auto;
+            border-color: rgba(82, 168, 236, 0.8);
+            /*box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 8px rgba(82, 168, 236, 0.6);*/
+
+        }
+        .bot_btn{
+            width: 90%;
+            margin: 20px auto;
+            text-align: right;
+        }
+        .bot_btn span{
+            display: inline-block;
+            padding: 3px 20px;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        span.cancel{
+            background-color: #DDDDDD;
+            color: #333;
+            margin-left: 10px;
+        }
+        #attachmengtList tr{
+            height: 30px;
+            /*line-height: 30px;*/
+        }
+    </style>
+</head>
+<body class="ibody">
+
+<div class="" id="tt" style="width:100%; height: 100%">
+    <p class="tit">TMC经验><span id="expNo"></span></p>
+    <dl>
+        <dd>
+            <span class="tit">机型<font color="red">*</font>：</span>
+            <input class="easyui-textbox" id="jixing" name="jixing" readonly style="width:280px;" />
+        </dd>
+        <dd>
+            <span class="tit">章节<font color="red">*</font>：</span>
+            <input class="easyui-textbox" id="ata" name="ata" readonly style="width:280px;"/>
+        </dd>
+        <dd>
+            <span class="tit">标题<font color="red">*</font>：</span>
+            <input class="easyui-textbox" id="title" name="title" readonly style="width:280px;"/>
+        </dd>
+        <dd>
+            <span class="tit">关键字<font color="red">*</font>：</span>
+            <input class="easyui-textbox" id="keyword" name="keyword" readonly style="width:280px;"/>
+        </dd>
+        <dd class="clear">
+            <span class="tit" style="float: left">现象：</span>
+            <div style="float: left">
+
+                <div class="editdiv look_edit"  id="look_content" ></div>
+
+            </div>
+        </dd>
+        <dd class="clear">
+            <span class="tit" style="float: left;">措施：</span>
+            <div style="float: left">
+
+                <div class="editdiv measure_edit"  id="measure_content" ></div>
+
+
+
+            </div>
+        </dd>
+        <dd class="clear">
+            <span class="tit"  style="float: left;">附件：</span>
+            <div class="" style="float: left;">
+                <div id="attachmengtList" style="margin-bottom: 5px">
+
+                </div>
+<!--                <a class="searchBtn" data-options="iconCls:'icon-clear'" id="upload_button" onclick="open_upload()"-->
+<!--                   style="" type="button">-->
+<!--                    <span data-i18n="common:COMMON_OPERATION.UPLOAD"></span>-->
+<!--                </a>-->
+            </div>
+           
+        </dd>
+    </dl>
+<!--    <div class="bot_btn">-->
+<!--        <span class="submit">提交</span>-->
+<!--        <span class="cancel">取消</span>-->
+<!--    </div>-->
+</div>
+</body>
+<script type="text/javascript" src="/js/statistics.js"></script>
+<script type="text/javascript">
+    function filterNull(val) {
+        return val == null ? "" : val;
+    }
+    const params = getParentParam_();
+    const Id = params.id;
+    console.log(Id);
+
+    (function InitData() {
+        ajaxLoading();
+        var datas = {};
+        datas = $.extend({}, {id: Id}, {FunctionCode: 'TMC_EXPERICE_DETAIL'});
+        InitFuncCodeRequest_({
+            data: datas,
+            successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    $('#expNo').text(jdata.data.expNo);
+                    $('#jixing').textbox('setValue',jdata.data.model);
+                    $('#ata').textbox('setValue',jdata.data.ata);
+                    $('#title').textbox('setValue',jdata.data.title);
+                    $('#keyword').textbox('setValue',jdata.data.keyword);
+                    $('#look_content').html(filterNull(jdata.data.phenomenon));
+                    $('#measure_content').html(filterNull(jdata.data.treatmentMeasures));
+                    for (var i = 0; i < jdata.data.attachments.length; i++) {
+                        var trHTML = '<tr align="left"><td class="td5" align="left" style="text-align:left;"><a style="color: #FF6600" target="_blank" onclick="downFile(' + jdata.data.attachments[i].pkid + ',' + jdata.data.attachments[i].pkid + ')">' + jdata.data.attachments[i].orgName + '</a></td><td class="td5" align="left" style="text-align:left;"></td></tr>';
+                        $("#attachmengtList").append(trHTML);//在table最后面添加一行
+                        // downFile(jdata.data[i].PKID,jdata.data[i].PKID);
+                    }
+                    $('#attachmengtList')
+                } else {
+                    MsgAlert({content: jdata.msgData[0] ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    })();
+    var  text,textStart,textEnd;
+    function getRangeIndex (index){
+        if (window.getSelection) {
+            var selectObject = window.getSelection()
+            console.log(selectObject,'213')
+            var preText = getpreviousNode(selectObject.anchorNode.previousSibling)
+            text = selectObject.toString()
+            textEnd= selectObject.anchorOffset + preText;
+            textStart= selectObject.focusOffset + preText;
+            if(index == 1){
+                boldingText()
+            }else if(index == 2){
+                boldingText2()
+            }
+        }
+    }
+
+    function getpreviousNode(ele) {
+        var preText = 0
+        for(var element = ele; element !== null; element = element.previousSibling) {
+            if (element.nodeType === 1) {
+                preText += element.outerHTML.length
+            } else if (element.nodeType === 3) {
+                var textString = element.nodeValue
+                if (element.nodeValue !== null) {
+                    preText += element.nodeValue.length
+                }
+            }
+        }
+        return preText
+
+    }
+    var textarea = document.getElementById('look_content')
+    function boldingText (){
+        var inputText = textarea.innerHTML
+        var copytext = inputText.substring(0, textStart) + '<b>' + text + '</b>' + inputText.substring(textEnd)
+        textarea.innerHTML = copytext
+    }
+    var mea_textarea = document.getElementById('measure_content')
+    function boldingText2 (){
+        var inputText = mea_textarea.innerHTML
+        var copytext = inputText.substring(0, textStart) + '<b>' + text + '</b>' + inputText.substring(textEnd)
+        mea_textarea.innerHTML = copytext
+    }
+    var PAGE_DATA = {}
+    //上传照片
+    function uploadImg() {
+        photo_upload_({
+            // param: {cat: 'photo', sourceId: PKID, PKID: PKID, successCallBack: "aa", failCallBack: "bb"}
+            param: {}
+
+        });
+
+    }
+    function i18nCallBack() {
+
+
+
+    }
+    //上传照片跳转新的页面
+    function photo_upload_(edopt) {
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        ShowWindowIframe({
+            width: 575,
+            height: 400,
+            title: title_,
+            param: $.extend({}, edopt.param),
+            url: '/views/ws/infra_struct/lmHrUser/upImage.shtml'
+        });
+    }
+
+
+
+
+
+
+    //底部上传按钮打开上传页面
+    function open_upload() {
+        var catType = 'feedback';
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        let param = {
+            cat: catType,//文件夹
+            // sourceId: sonId,
+        };
+        ShowWindowIframe({
+            width: "1000",
+            height: "700",
+            title: title_,
+            param: param,
+            url: "/views/data_manager/dm/upload/attachment_add.shtml"
+        });
+    }
+    $(function () {
+
+    })
+</script>
+</html>

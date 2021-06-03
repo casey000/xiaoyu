@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript">
+
+        var param = {};
+        var isEdit_;
+        var PKID;
+        var roleIds = '';
+        param = getParentParam_();
+        isEdit_ = param && param.PKID;
+        PKID = param.PKID;
+        /*数据回填*/
+        $(function () {
+            if (isEdit_) {
+                InitFuncCodeRequest_({
+                    async: false,
+                    data: {pkid: PKID, FunctionCode: "WS_SYS_ACCOUNT_EDIT"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);//这个是把data的值返回到页面上；
+                            $('#state').combobox({value: jdata.data.account.data.STATE});//回显状态
+                            $('#accountNumber').combobox({value: jdata.data.account.data.ACCOUNT_NUMBER});
+                            //回显角色信息
+                            roleIds = "," + ArrayCollect_(jdata.data.UserRoleList.data, "ROLE_ID") + ",";
+                        }
+                    }
+                });
+            }
+            InitDataGrid();
+            InitFuncCodeRequest_({
+                data: {
+                    domainCode: "WS_SYS_ACCOUNT_STATE",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        state = DomainCodeToMap_(jdata.data["WS_SYS_ACCOUNT_STATE"]);
+                        $('#state').combobox({
+                            panelHeight: '150px',
+                            data: jdata.data['WS_SYS_ACCOUNT_STATE'],
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                        });
+                    }
+                }
+            });
+            InitEditForm_();
+        });
+
+        /*基础信息编辑和保存*/
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $("#mform").form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+                    var data1 = $("#mform").serializeObject();
+                    var nodes_ = $("#roleIds").datagrid('getChecked');
+                    data2 = $.extend({}, data, data1);
+                    data2.roleIds = ArrayCollect_(nodes_, "PKID");
+                    data2.PKID = PKID;
+                    data2.FunctionCode = "WS_SYS_ACCOUNT_UPDATE";
+                    InitFuncCodeRequest_({
+                        data: data2,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                param.OWindow.reload_();
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+        /**
+         * 角色
+         *
+         * @constructor
+         */
+        function InitDataGrid() {
+            $("#roleIds").MyDataGrid({
+                pagination: false, fit: true,
+                columns: {
+                    param: {FunctionCode: 'WS_ROLES_LIST'},
+                    alter: {
+                        SERV_STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['servStatus'][value];
+                            }
+                        },
+                    },
+                },
+                onLoadSuccessOnce: function () {
+                    var rows = $('#roleIds').datagrid('getRows');
+                    $.each(rows, function (k, row) {
+                        if (roleIds.indexOf("," + row.PKID + ",") > -1) {
+                            $('#roleIds').datagrid('checkRow', k);
+                        }
+                    });
+                },
+                resize: function () {
+                    return {width: 400};
+                }
+            })
+        }
+    </script>
+</head>
+<body class="ibody">
+<div id="tabs" class="easyui-tabs" style="width: 100%; height: 100%;">
+    <div id="tab" title="账号信息" style="display: none; padding: 2px">
+        <form class="form-horizontal m-t" id="mform">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="tdl">用户账号：</th>
+                    <td class="tdr">
+                        <input class="easyui-textbox " id="accountNumber" name="accountNumber" style="width: 170px"
+                               data-options="required:true,editable:true, prompt:'谨慎修改...',validType:['length[1,20]']"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="tdl">状态：</th>
+                    <td class="tdr">
+                        <input class="easyui-combobox " id="state" name="state" style="width: 170px"
+                               data-options="required:true,editable:true, validType:['length[1,20]']"/>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th class="tdl">用户角色：</th>
+                    <td class="tdr">
+                        <div style="width:400px;height:400px">
+                            <table id="roleIds" name='roleIds'></table>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="6" align="center"><input class="bcBtn" type="submit" id="tijiao" value="提交"/></td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+
+</html>

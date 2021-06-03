@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>件号申请禁用/激活列表</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend>搜索</legend>
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                    <tr>
+                        <th style="width: 80px;" nowrap align="right">申请单号：</th>
+                        <td>
+                            <input class="easyui-textbox" id="zno" name="zno" data-options=""
+                                   style="width:120px"/>
+                        </td>
+                        <th style="width: 80px;" nowrap align="right">申请件号：</th>
+                        <td>
+                            <input class="easyui-textbox" id="matnr" name="matnr" data-options=""
+                                   style="width:120px"/>
+                        </td>
+                        <th style="width: 80px;" nowrap align="right">申请日期：</th>
+                        <td>
+                            <input class="easyui-datebox" id="jhsqrqB" name="jhsqrqB" data-options="editable:false"
+                                   style="width:120px"/>
+                        </td>
+                        <th style="width: 40px;" nowrap align="right">至：</th>
+                        <td>
+                            <input class="easyui-datebox" id="jhsqrqE" name="jhsqrqE" data-options="editable:false"
+                                   style="width:120px"/>
+                        </td>
+                        <td style="width:40%;text-align:left; padding-right:5px">
+                            <a class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="onSearch_()"><span>查询</span></a>
+                            <a class="clearBtn" onclick="onClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            <a class="ridoBtn" data-options=""
+                               onclick="helpQuery('dg', 'MM_VPN_JYJH_LIST');"><span
+                                    data-i18n="">高级查询</span></a>
+                            <a class="addBtn" data-options="" onclick="add()" ><span>禁用/激活</span></a>
+                            <a class="excelBtn" style="margin-left: 3px;" id="excelExport"
+                               onclick="excelExport('dg', '件号禁用激活')"
+                               data-options="iconCls:'icon-page_excel'" >
+                                <span data-i18n="common:COMMON_OPERATION.EXPORT">导出</span>
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "YESORNO,MM_VPN_JYJH_STATUS,MM_DIC_PART_STATUS"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['yesorno'] = DomainCodeToMap_(jdata.data.YESORNO);
+                PAGE_DATA['status'] = DomainCodeToMap_(jdata.data.MM_VPN_JYJH_STATUS);
+                PAGE_DATA['jyjh'] = DomainCodeToMap_(jdata.data.MM_DIC_PART_STATUS);
+                InitDataGrid();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'MM_VPN_JYJH_LIST'},
+                alter: {
+                    JHSQRQ:{
+                        type:'date'
+                    },
+                    JHSPRQ:{
+                        type:'date'
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    ZZPNZT: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['jyjh'][value];
+                        }
+                    },
+
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",auth:"",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 750, height: 320,
+                            url: "/views/mm/pnJyjh/mm_pn_jyjh_add_edit.shtml"
+                        })
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "删除",auth:"",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "确认删除吗",
+                            param: {data: {pkid: rowData.PKID}},
+                            FunctionCode: "MM_VPN_JYJH_DEL"
+                        })
+                    }
+                },
+                {
+                    id: "m-sub",
+                    i18nText: "提交",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG('dg').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        if(confirm("确认提交吗？")){
+                            InitFuncCodeRequest_({
+                                data: {pkid:rowdata.PKID, FunctionCode: 'MM_VPN_JYJH_WORKFLOW_DEAL'},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload_();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                },
+                {
+                    id: "m-flowTjt",
+                    i18nText: "办理轨迹", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+
+                        }
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 400,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "MM_VPN_JYJH"},
+                            url: '/views/flow/work_flow_history_task_list.shtml'
+                        });
+
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.STATUS != 'BXZ' || row.JHSQRID != getLoginInfo().accountId) {
+                    items['删除'].enable = false;
+                    items['编辑'].enable = false;
+                    items['提交'].enable = false;
+                }
+                if (row.STATUS != 'BXZ' || row.JHSPRID) {
+                    items['办理轨迹'].enable = true;
+                }else{
+                    items['办理轨迹'].enable = false;
+                }
+                return items;
+            },
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 15)
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    function add() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 750, height: 320,
+            url: "/views/mm/pnJyjh/mm_pn_jyjh_add_edit.shtml"
+        });
+    }
+</script>
+</body>
+</html>

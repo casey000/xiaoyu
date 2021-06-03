@@ -1,0 +1,345 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">故障确认</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">故障跟踪号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="defectNo" name="defectNo" style="width:120px;"/>
+                    </td>
+                    <th class="th" align="right" style="width:100px;">故障日期从：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="dateFoundS" name="dateFoundS" data-options="editable:false" style="width: 100px;"/>
+                    </td>
+                    <th class="th" align="right" style="width:20px;">至：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-datebox" id="dateFoundE" name="dateFoundE" data-options="editable:false" style="width: 108px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">故障标签：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="tagName" name="tagName" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn"  data-options="iconCls:'icon-search'" onclick="searchData();"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:60px;" align="right">机型：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="model" name="model" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">机号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="acId" name="acId" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">章节号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="ata" name="ata" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">确认状态：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="conStatus" name="conStatus" style="width:100px;"/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var loginUser;
+    var loginName;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData();
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_FAU_TAG_COM_STA,YESORNO,DM_ATA",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#conStatus').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_FAU_TAG_COM_STA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ata').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.DM_ATA,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        multiple: true
+                    });
+
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/engBsiReport/getMpActypes",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#model').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                    onSelect: function (item) {
+                                        var datas =  {"mpActype":item.value};
+                                        InitGatewayRequest_({
+                                            async: false,
+                                            data: datas,
+                                            path: "/meng-engine/engBsiReport/getAcnos",
+                                            successCallBack: function (jdata) {
+                                                if (jdata.success == true) {
+                                                    $('#acId').combobox({
+                                                        data: jdata.obj,
+                                                        valueField: 'value',
+                                                        textField: 'text',
+                                                        panelHeight: '150px',
+                                                    });
+                                                } else {
+                                                    MsgAlert({content: '获取机号列表失败', type: 'error'});
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            } else {
+                                MsgAlert({content: '获取机型列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {},
+                        path: "/meng-engine/engBsiReport/getAcnos",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#acId').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取机号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //初始化根据登录人过滤章节（取分工位置 工程文件的）
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {},
+                        path: "/meng-engine/engFauConfirm/getAtas",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                var ata = jdata.obj;
+                                if(!ata){
+                                    ata = '';
+                                }
+                                $('#ata').combobox('setValues',ata);
+                            } else {
+                                MsgAlert({content: '获取机号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    PAGE_DATA['conStatus'] = DomainCodeToMap_(jdata.data["ENG_FAU_TAG_COM_STA"]);
+                    PAGE_DATA['yesorno'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function InitDataGrid() {
+        var data_ = [];
+        //验证网关查询接口
+        var queryParams = $("#ffSearch").serializeObject();
+        var ata = $('#ata').combobox('getValues');
+        queryParams.ata = ata.join();
+        $('#dg').GatewayDataGrid({
+            path: "/meng-engine/engFauConfirm/listByPage",
+            async: false,
+            queryParams: queryParams,
+            identity: 'dg',
+            idField: "pkid",
+            pagination: true,
+            title: $.i18n.t(''),
+            columns: {
+                param: {FunctionCode: 'ENG_FAU_CONFIRM_LIST'},
+                alter: {
+                    category:{
+                        formatter : function(cellvalue){
+                            if(cellvalue == 'PEND' || cellvalue == 'DFRL' || cellvalue == 'MCC'){
+                                return cellvalue;
+                            }else{
+                                return '无'
+                            }
+                        }
+                    },
+                    engineType:{
+                        formatter : function(cellvalue){
+                            if(cellvalue){
+                                cellvalue = cellvalue.replace('1','ENG1');
+                                cellvalue = cellvalue.replace('2','ENG2');
+                                cellvalue = cellvalue.replace('3','APU');
+                                return cellvalue;
+                            }
+                        }
+                    },
+                    defectNo: {
+                        formatter: function (value, row, index) {
+                            return '<a href="javascript:void(0);" onclick="viewFau(\'' + row.id + '\',\'' + row.defectNo + '\');">' + value + '</a>';
+                        }
+                    },
+                    conStatus: {
+                        formatter: function (value) {
+                            return PAGE_DATA['conStatus'][value];
+                        }
+                    },
+                    ifRelated: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesorno'][value];
+                        }
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    },
+                    dateFound: {
+                        type: 'date'
+                    },
+                    logUpdateTime: {
+                        type: 'date'
+                    },
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "确认",
+                    auth: "ENG_FAU_CONFIRM1",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        confirmFau(rowData);
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+               
+                return items;
+            },
+        });
+    }
+
+    function confirmFau(rowData){
+        var flag = 'N';
+        if(rowData.pkid == '' || rowData.pkid == null ){
+            flag = 'Y';
+        }
+        var pkid = "";
+        if(rowData){
+            pkid = rowData.id
+        }
+        var faultReportChn = rowData.faultReportChn;
+        var title_ = $.i18n.t('故障确认');
+        ShowWindowIframe({
+            width: "800",
+            height: "500",
+            title: title_,
+            param: {pkid:pkid,flag:flag,faultReportChn:faultReportChn},
+            url: "/views/engine/engFau/confirm/eng_fau_confirm_add_edit.shtml"
+        });
+    }
+
+
+    //查询
+    function searchData() {
+        InitDataGrid();
+    }
+
+    //刷新列表
+    function reload_(){
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        InitGatewayRequest_({
+            async: false,
+            data: {},
+            path: "/meng-engine/engBsiReport/getAcnos",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#acId').combobox({
+                        data: jdata.obj,
+                        valueField: 'value',
+                        textField: 'text',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取机号列表失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+    function viewFau(defectId,defectNo){
+        var curWidth = '1000';
+        var curheight = '650';
+        var title_ = $.i18n.t('');
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: title_,
+            param: {defectId: defectId, defectNo: defectNo},
+            url: "/views/engine/engFau/confirm/eng_fau_detail.shtml"
+        });
+    }
+
+</script>
+</body>
+</html>

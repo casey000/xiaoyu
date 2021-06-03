@@ -1,0 +1,412 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">新增改变量</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="mform" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <td colspan="6" >
+                        <input class="btn btn-primary" type="button" onclick="save()" value="保存" style="margin-left: 720px"/>
+                        <input class="btn btn-primary" type="button" onclick="submitA()" value="提交" style="margin:6px;"/>
+                    </td>
+                </tr>
+                <input type="hidden" id="pkid" name="pkid">
+                <tr>
+                    <th data-i18n="" style="width: 90px">报告编号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="reportNo" id="reportNo" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">称重日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="weighDate" id="weighDate" data-options="required:true"
+                               style="width:150px;" />
+                    </td>
+                    <th data-i18n="" style="width: 90px">机号：</th>
+                    <td>
+                        <input class="easyui-combobox" name="acno" id="acno" data-options="required:true,validType:'comboBoxEditvalid[\'acno\']'"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 90px">机型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="fleet" id="fleet" data-options="editable:false,onlyview:true"
+                               style="width:150px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 90px">称重地点：</th>
+                    <td colspan="5">
+                        <input class="easyui-textbox" name="weighPlace" id="weighPlace" data-options="required:true"
+                               style="width:730px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 90px">称重原因：</th>
+                    <td colspan="5">
+                        <input class="easyui-textbox" name="weighReason" id="weighReason" data-options="multiline:true,required:false"
+                               style="width:730px; height: 60px"/>
+                    </td>
+                </tr>
+
+
+                <tr>
+                    <th data-i18n="" style="width: 90px">基本空重(LB)：</th>
+                    <td>
+                        <input class="easyui-validatebox textbox" name="bew" id="bew"
+                               style="width:150px;" data-options="" />
+                    </td>
+                    <th data-i18n="" style="width: 90px">基本空重(KG)：</th>
+                    <td>
+                        <input class="easyui-validatebox textbox" name="bewKg" id="bewKg"
+                               style="width:150px;" data-options="" />
+                    </td>
+                    <th data-i18n="" style="width: 90px">力矩(LB.IN)：</th>
+                    <td>
+                        <input class="easyui-numberbox" name="moment" id="moment"
+                               style="width:150px;" disabled="disabled"
+                               data-options="min:0,max:999999999999,precision:8"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 90px">平衡力臂(IN)：</th>
+                    <td>
+                        <input class="easyui-textbox" name="harm" id="harm"
+                               style="width:150px;" data-options=""/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">空气动力弦长：</th>
+                    <td>
+                        <input class="easyui-textbox" name="mac" id="mac"
+                               style="width:150px;" data-options="" disabled="disabled"/>
+                    </td>
+                    <th data-i18n="" style="width: 90px">报告人：</th>
+                    <td>
+                        <input class="easyui-textbox" name="reportMan" id="reportMan" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th data-i18n="" style="width: 90px">报告日期：</th>
+                    <td>
+                        <input class="easyui-datebox" name="reportDate" id="reportDate" data-options=""
+                               style="width:150px;" disabled="disabled"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<script type="text/javascript">
+var PAGE_DATA = {};
+var param;
+var acno;
+var pkid;
+var reportNo;
+var operation;
+
+function i18nCallBack() {
+    param = getParentParam_();
+    acno = param.acno ? param.acno : '';
+    pkid = param.pkid ? param.pkid : '';
+    reportNo = param.reportNo? param.reportNo : '';
+    operation = param.operation;
+    var userName = getLoginInfo().userName;
+    $('#reportMan').textbox('setValue', userName);
+    $('#reportDate').datebox('setValue',formatterDate(new Date()));
+
+    InitFuncCodeRequest_({
+        async: false,
+        data: {
+            domainCode: "DA_ACREG_MAN_ACNO",
+            FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+        },
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data["DA_ACREG_MAN_ACNO"]);
+                $("#acno").combobox({onlyview: true, editable: false});
+                $('#acno').combobox({
+                    panelHeight: '140px',
+                    data: jdata.data.DA_ACREG_MAN_ACNO,
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    onChange:function (newValue, oldValue) {
+                        queryFleet(newValue);
+                    }
+                });
+                if(operation == 'add'){
+                    $('#acno').combobox('setValue',acno);
+                    queryFleet(acno);
+                }
+
+                $('#weighDate').datebox('calendar').calendar({
+                    validator: function(date){
+                        var now = new Date();
+                        var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                        return d>=date;
+                    }
+                });
+
+
+                if(pkid && operation == 'edit'){
+                    initForm(pkid);
+                }
+            }
+            else {
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+}
+
+function queryFleet(acno) {
+    InitFuncCodeRequest_({
+        async : false,
+        data: {acno : acno, FunctionCode: 'SELECT_DA_ACREG_BY_ACNO'},
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                $('#fleet').combobox('setValue', jdata.data.MP_ACTYPE);
+            }
+            else {
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+}
+
+//基本空重LB
+$('#bew').keyup(function(){
+    var bew = $('#bew').val();
+    if(regBew(bew)){
+        var bewkg = bew * 0.4535924;
+        bewkg = bewkg.toFixed(8);
+        $('#bewKg').val(bewkg);
+        $('#bewKg').attr("disabled",true);
+    }else{
+        $('#bewKg').val('');
+        $('#bewKg').attr("disabled",false);
+    }
+});
+
+//基本空重KG
+$('#bewKg').keyup(function(){
+    var bewKg = $('#bewKg').val();
+    if(regBew(bewKg)){
+        var bew = bewKg * 2.2046226;
+        bew = bew.toFixed(8);
+        $('#bew').val(bew);
+    }else{
+        $('#bew').val('');
+    }
+});
+
+function initForm(pkid) {
+    InitFuncCodeRequest_({
+        async : false,
+        data: {pkid : pkid, FunctionCode: 'EM_WB_REPORT_PKID'},
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+            }
+            else {
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+}
+
+//保存
+function save() {
+    var isValidate = $("#mform").form('validate');
+    if (!isValidate) {
+        return false;
+    }
+    var bew = $('#bew').val();
+    var bewKg = $('#bewKg').val();
+    if(!bew || !bewKg){
+        MsgAlert({content: '请输入正确的数字', type:'error'});
+        return;
+    }
+    compute();
+    var data = $("#mform").serializeObject();
+    data.harm = $('#harm').textbox('getValue');
+    data.mac = $('#mac').textbox('getValue');
+    data.bew = $('#bew').val();
+    data.bewKg = $('#bewKg').val();
+    data.moment = $('#moment').numberbox('getValue');
+    data = $.extend({}, data, {FunctionCode: 'EM_WB_REPORT_ADD'});
+    InitFuncCodeRequest_({
+        async: false,
+        data: data,
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                pkid = jdata.data.pkid;
+                $('#reportNo').textbox('setValue', jdata.data.reportNo);
+                reportNo = jdata.data.reportNo;
+                $('#pkid').val(pkid);
+                param.OWindow.reload_();
+                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                //CloseWindowIframe();
+                //$("#mform").form('clear');
+            }
+            else {
+                MsgAlert({content: jdata.msg, type: 'error'});
+            }
+        }
+    });
+}
+
+//上传
+function upload(){
+    if(!pkid){
+        MsgAlert({content: '请先保存数据', type: 'error'});
+        return;
+    }
+    common_uploadFile({
+        identity: 'dg',
+        param: {
+            cat: "emWbReport",
+            sourceId: rowData.PKID,
+            successCellBack: "",
+            fialCellBack: ""
+        },
+    });
+    param.OWindow.reload_();
+
+}
+
+//提交
+function submitA(){
+
+    if (confirm("请确定是否已保存修改")) {
+        if(!pkid){
+            MsgAlert({content: '请先保存数据', type: 'error'});
+            return;
+        }
+        var size = 0;
+        InitFuncCodeRequest_({
+            data: {    SOURCE_ID: pkid,
+                CATEGORY:"emWbReport",
+                FunctionCode: 'ATTACHMENT_RSPL_GET'},
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        size = jdata.data.length;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+        if (!(size > 0)) {
+            if (!confirm("称重报告未上传附件，确认是否提交？")) {
+                return;
+            }else{
+                common_add_edit_({
+                    identity: '', isEdit: '', width: 520, height : 300,title:$.i18n.t('选择审批人'),
+                    param: {pkid : pkid, roleId: '',otherParam: reportNo,FunctionCode_:'EM_WB_REPORT_SUBMIT',successCallback: reload_},
+                    url: "/views/em/workflow/work_flow_account_select.shtml"
+                });
+            }
+        }
+    }
+}
+
+//计算平衡力矩和动力弦长
+function compute() {
+    var acno = $('#acno').combobox('getValue');
+    var bew = $('#bew').val();//基本空重(LB)
+    var harm = $("#harm").textbox('getValue');//
+//    var moment = $('#moment').textbox('getValue');//力矩(LB.IN)
+    if (!acno || !bew || !harm) {
+        $('#moment').textbox('setValue', '');//平衡力臂(IN)
+        $('#mac').textbox('setValue', '');//空气动力弦长
+    }else{
+        InitFuncCodeRequest_({
+            async: false,
+            data: {acno: acno, bew: bew, harm: harm, FunctionCode: 'EM_WB_REPORT_COMPUTE'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#moment').numberbox('setValue', jdata.data.moment);
+                    $('#mac').textbox('setValue', jdata.data.mac);
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+}
+
+function reload_(){
+    param.OWindow.reload_();
+    CloseWindowIframe();
+}
+
+
+formatterDate = function(date) {
+    var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+    var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+        + (date.getMonth() + 1);
+    return date.getFullYear() + '-' + month + '-' + day;
+};
+
+function regBew(value){
+    var reg1 = /^(0\.0*[1-9]+[0-9]*$|[1-9]+[0-9]*\.[0-9]*[0-9]$|[1-9]+[0-9]*$)/.test(value);
+    var reg2 =  (value <= 9999999999);
+    return reg1 && reg2;
+}
+
+
+$.extend($.fn.validatebox.defaults.rules, {
+    intOrFloat: {// 验证正整数或小数
+        validator: function (value) {
+            return /^(0\.0*[1-9]+[0-9]*$|[1-9]+[0-9]*\.[0-9]*[0-9]$|[1-9]+[0-9]*$)/.test(value);
+        },
+        message: '请输入大于0的数字'
+    },
+    maxValue: {
+        validator: function (value) {
+            return value <= 9999999999;
+        },
+        message: '请输入0~9999999999范围的数字'
+    },
+    comboBoxEditvalid: { //校验下拉菜单
+        validator: function (value, param) {
+            var $combobox = $("#" + param[0]);
+            if (value) {
+                /*if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                    return false;*/
+                var result = true;
+                var allData = $combobox.combobox('getData');
+                for(var i = 0; i< allData.length; i++){
+                    if(value == allData[i].TEXT){
+                        result = false;
+                        break;
+                    }
+                }
+                if(result){
+                    return false;
+                }else{
+                    return true;
+                }
+
+            }
+            return false;
+
+        },
+        message: '请选择下拉框选项，不要直接使用输入内容'
+    },
+
+});
+
+</script>
+</body>
+</html>

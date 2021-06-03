@@ -1,0 +1,274 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>CAAC AMOC 申请任务</title>
+    <style type="text/css">
+        .accaApplyTask{
+            width: 90%;
+            margin: 10px auto;
+        }
+
+        .accaApplyTask h5{
+            text-align: center;
+            font-size: 14px;
+            line-height: 30px;
+        }
+
+        .accaApplyTask table{
+            border-width: 1px;
+            display: table;
+            border-collapse: collapse;
+            text-align: center;
+        }
+
+        .accaApplyTask table td{
+            height: 25px;
+            line-height: 25px !important;
+            background: rgb(245, 245, 246);
+            border: 0.5px solid #ccc;
+            word-break: break-all;
+            width: 18%;
+            padding: 8px;
+        }
+
+        .accaApplyTask td >span{
+           color:red;
+        }
+
+        .accaApplyTask .cont{
+            background: #fff;
+        }
+
+        #buttom a {
+            display: inline-block;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px 20px;
+            border: none;
+            font-size: 14px;
+        }
+
+        #buttom {
+            text-align: right;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+<div style="">
+    <div class="accaApplyTask">
+        <h5>CAAC AMOC申请任务</h5>
+        <table>
+            <tbody>
+                <tr>
+                    <td>AMOC编号：</td>
+                    <td class="cont">
+                        <div id="amocNo"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>AMOC附件：</td>
+                    <td class="cont">
+                        <div id="amocList"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>相关资料：</td>
+                    <td class="cont">
+                        <div id="crossData"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>飞机号：</td>
+                    <td class="cont">
+                        <div id="ac"></div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>CAAC AMOC编号<span>*</span></td>
+                    <td class="cont">
+                        <input class="easyui-textbox" data-options="editable:true" id="caacAmocNo" name="caacAmocNo"
+                               style="width: 80%"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>CAAC AMOC附件<span>*</span></td>
+                    <td class="cont" colspan="3">
+                        <div id="caacList"></div>
+                        <a class="searchBtn" data-options="iconCls:'icon-clear'" id="upload_button" onclick="open_upload()"
+                           style="margin-right: 10px;float: right" type="button">
+                            <span data-i18n="common:COMMON_OPERATION.UPLOAD"></span>
+                        </a>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div id="buttom">
+            <a href="javascript:" onclick="closeTask()">关闭任务</a>
+            <a href="javascript:" onclick="cancel()">取消</a>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var recordId;
+    var curInfo;
+    var caacFile = [];
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        recordId = param.pkid;//存的评估单主键
+        queryData(recordId);
+        reload_();
+    }
+
+    //获取数据
+    function queryData(id) {
+        $.ajax({
+            type: "GET",
+            url: "/api/v1/amoc/dmDataRecSrCaac/findCaacById/"+id,
+            contentType: "application/json;charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+                if (data.code == 200) {
+                    //填充数据
+                    curInfo = data.data;
+                    initData(data.data);
+                }
+            },
+            error: function () {
+                MsgAlert({content: '获取CAAC AMOC任务信息失败！', type: 'error'});
+            }
+        });
+    }
+
+    //填充数据
+    function initData(data){
+        $("#amocNo").text(data.amocNo);
+        $("#crossData").text(data.crossData);
+        $("#ac").text(data.ac);
+        //附件列表信息 todo
+        if(data.dmDataRecAttachList && data.dmDataRecAttachList.length > 0){
+            $("#amocList").empty();
+            $.each(data.dmDataRecAttachList,function(index,item){
+                addFileRow(item);
+            });
+        }
+    }
+
+    //AMOC附件
+    function addFileRow(item){
+        var trHTML = `<div style="text-align: center"><div style="display: inline-block"><a target="_blank" style="cursor:pointer;color: #f60" onclick="downAmocFile('${item.pkid}','${item.orgName}')">${item.orgName}</a></div></div>`;
+        $("#amocList").append(trHTML);//在table最后面添加一行
+    }
+
+    function downAmocFile(pkid,filename){
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, filename: filename, FunctionCode: 'ATTACHMENT_DOWN'},
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    doPost(Constant.API_URL + "/ATTACHMENT_DOWN", {pkid: pkid, filename: filename, down: 'Y'});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //上传CAAC AMOC文件
+    function open_upload(){
+        var catType = 'feedback';
+        var title_ = $.i18n.t('common:COMMON_OPERATION.UPLOAD');
+        let param = {
+            cat: catType,//文件夹
+            sourceId: recordId,//
+            successCellBack: "",
+            fialCellBack: "",
+        };
+        ShowWindowIframe({
+            width: "1000",
+            height: "700",
+            title: title_,
+            param: param,
+            url: "/views/data_manager/dm/upload/attachment_add.shtml"
+        });
+    }
+
+    //上传组件的回调
+    function reload_() {
+        $("#caacList").empty();
+        var catType = 'feedback';
+        InitDataGrid(recordId, catType)
+    }
+
+    function InitDataGrid(pkid, category) {
+        InitFuncCodeRequest_({
+            data: {
+                SOURCE_ID: pkid,
+                CATEGORY: category,
+                FunctionCode: 'ATTACHMENT_RSPL_GET'
+            },
+            successCallBack: function (jdata) {
+                caacFile = JSON.parse(JSON.stringify(jdata));
+                for (var i = 0; i < jdata.data.length; i++) {
+                    var trHTML = '<div style="text-align: left"><div style="display: inline-block"><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span><input class="btn btn-primary" type="button"  value="删除" style="width: 50px;margin:5px;" onclick="deleteFile(' + jdata.data[i].PKID + ');return false;"/></span></div></div>';
+                    $("#caacList").append(trHTML);//在table最后面添加一行
+                }
+            }
+        });
+    }
+
+    //关闭任务
+    function closeTask(){
+        let data = {};
+        data.caacAmocNo = $("#caacAmocNo").textbox('getValue');
+        data.pkid = recordId;
+        if(!data.caacAmocNo){
+            MsgAlert({content: '请填写CAAC AMOC编号！', type: 'error'});
+            return ;
+        }
+        if(!caacFile.data || !caacFile.data.length){
+            MsgAlert({content: '请上传CAAC AMOC附件！', type: 'error'});
+            return ;
+        }
+        $.ajax({
+            type: "POST",
+            url: "/api/v1/amoc/dmDataRecSrCaac/closeCaac",
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify(data),
+            dataType: "json",
+            success: function (data) {
+                if (data.code == 200) {
+                    MsgAlert({content: '关闭任务成功！', type: 'success'});
+
+                    //关闭任务后 代办任务刷新
+                    if (param && param.OWindow) {
+                        param.OWindow.reloadTodo && param.OWindow.reloadTodo();
+                        // param.OWindow.Refresh && param.OWindow.Refresh();
+                    }
+                    window.close();
+                }
+            },
+            error: function () {
+                MsgAlert({content: '关闭任务失败！', type: 'error'});
+                window.close();
+            }
+        });
+    }
+
+    //取消
+    function cancel(){
+        $("#caacAmocNo").textbox('setValue','');
+        window.close();
+    }
+
+
+</script>
+</html>

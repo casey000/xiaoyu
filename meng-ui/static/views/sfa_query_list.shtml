@@ -1,0 +1,269 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <title>无标题文档</title>
+    
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/ui.jqgrid.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_new.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/dialog_default.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/easyui.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/ztree/zTreeStyle.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/easyui/gray/easyui.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_qc.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/jquery-ui-multiselect/jquery.multiselect.css" rel="stylesheet" type="text/css"/>
+
+    <link href="/css/mccdoc/to_commons.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/mccdoc/mcc_doc_commons.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/mccdoc/to_list.css" rel="stylesheet" type="text/css"/>
+
+    <!-- 这段已经写在common里面但是不知道为什么不生效, js引入结构太混乱了无从考证, 先加在这里解决一下问题 -->
+    <!--
+    <script type="text/javascript">
+        /**
+         日期格式化：
+         var date = new Date(long time);
+         date.Format("yyyy-MM-dd");
+         date.Format("yyyy-MM-dd HH:mm:ss");
+         var weekStr = "星期" + date.Format("w");
+         */
+        Date.prototype.Format = function (formatStr) {
+            var str = formatStr;
+            var Week = ['日', '一', '二', '三', '四', '五', '六'];
+
+            str = str.replace(/yyyy|YYYY/, this.getFullYear());
+            str = str.replace(/yy|YY/, (this.getYear() % 100) > 9 ? (this.getYear() % 100).toString() : '0' + (this.getYear() % 100));
+
+            str = str.replace(/MM/, (this.getMonth() + 1) > 9 ? (this.getMonth() + 1).toString() : '0' + (this.getMonth() + 1));
+            str = str.replace(/M/g, (this.getMonth() + 1));
+
+            str = str.replace(/w|W/g, Week[this.getDay()]);
+
+            str = str.replace(/dd|DD/, this.getDate() > 9 ? this.getDate().toString() : '0' + this.getDate());
+            str = str.replace(/d|D/g, this.getDate());
+
+            str = str.replace(/hh|HH/, this.getHours() > 9 ? this.getHours().toString() : '0' + this.getHours());
+            str = str.replace(/h|H/g, this.getHours());
+            str = str.replace(/mm/, this.getMinutes() > 9 ? this.getMinutes().toString() : '0' + this.getMinutes());
+            str = str.replace(/m/g, this.getMinutes());
+
+            str = str.replace(/ss|SS/, this.getSeconds() > 9 ? this.getSeconds().toString() : '0' + this.getSeconds());
+            str = str.replace(/s|S/g, this.getSeconds());
+
+            return str;
+        };
+
+        function ShowWindowIframe(opts) {
+            if (SHOW_WINDOW_TYPE == '1') {
+                ShowWindowIframe1(opts);
+            } else if (SHOW_WINDOW_TYPE == '2') {
+                ShowWindowIframe2(opts);
+            }
+        }
+
+        function ShowWindowIframe1(opts) {
+            var time_ = new Date().getTime();
+            var url_ = opts.url; //"";
+            /*var i = opts.url.indexOf("?");
+            if (i > -1) {
+                url_ = opts.url + (i == opts.url.length - 1 ? "" : "&") + "_v_=" + time_
+            } else {
+                url_ = opts.url + "?_v_=" + time_
+            }*/
+            opts = $.extend({}, opts, {url: url_});
+            var win_key_ = 'win_0_' + time_;
+            var GParam = getParentParam1_();
+            var PWindow = GParam['PWindow'] || window.top;
+            var OWindow = window;
+            opts.param = opts.param || {};
+
+            var caKey = encodeBase64_(opts.url + "@" + JSONstringify(opts.param));
+            window.top.SWIN = window.top.SWIN || {};
+            if (window.top.SWIN[caKey]) {
+                if (window.top.SWIN[caKey].closed) {
+                    delete (window.top.SWIN[caKey]);
+                } else {
+                    window.top.SWIN[caKey].blur();
+                    setTimeout(window.top.SWIN[caKey].focus(), 0);
+                    return;
+                }
+            }
+
+            var w_ = $(PWindow.document).width() - 20;
+            var h_ = $(PWindow.document).height();
+            opts.width = typeof(opts.width) == 'string' && opts.width.indexOf('px') > -1 ? parseInt(opts.width.replace('px')) : opts.width;
+            opts.height = typeof(opts.height) == 'string' && opts.height.indexOf('px') > -1 ? parseInt(opts.height.replace('px')) : opts.height;
+            var width_ = typeof(opts.width) == 'string' && opts.width.indexOf('%') > -1 ? w_ * (parseInt(opts.width.replace('%')) / 100) : opts.width;
+            var height_ = typeof(opts.height) == 'string' && opts.height.indexOf('%') > -1 ? h_ * (parseInt(opts.height.replace('%')) / 100) : opts.height;
+            var l_ = (w_ - width_) / 2;
+            var t_ = (h_ - height_) / 2;
+            var SWindow = window.open(opts.url, win_key_, 'toolbar=no,scrollbars=yes,status=no,menubar=no,directories=no,resizable=no,height=' + height_ + ',width=' + width_ + ',left=' + l_ + ',top=' + t_);
+            window.top.SWIN[caKey] = SWindow;
+
+            opts.param = $.extend({}, {OWindow: OWindow, PWindow: PWindow, SWindow: SWindow, WIN_KEY: win_key_}, opts.param);
+            window['WindowParam'] = window['WindowParam'] || {};
+            window['WindowParam']['K' + win_key_] = opts.param;
+
+            window.onunload = function () {
+                CloseWindowIframe1(false);
+            };
+
+            var wkey = $("iframe[name='" + OWindow.name + "']", PWindow.document).data('id');
+            var warry = PWindow.P_WINDOWS[wkey] || [];
+            warry.push({WINDOW: SWindow});
+            PWindow.P_WINDOWS[wkey] = warry;
+            setTimeout(function () {
+                try {
+                    $(SWindow.document).attr('title', i18n.t(opts.title)? i18n.t(opts.title): opts.title);
+                } catch (e) {
+                    alert(e)
+                }
+            }, 200);
+        }
+    </script>
+-->
+
+    <script src="/js/global_var.js"></script>
+
+    <script src="/js/jquery/easyui/jquery-1.8.0.min.js" type="text/javascript"></script>
+    <!-- multiSelect -->
+    <script src="/js/jquery-ui-1.8.16.custom.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jquery-ui-multiselect/src/jquery.multiselect.js" type="text/javascript"></script>
+
+    <script src="/js/jquery/easyui/jquery.easyui.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js" type="text/javascript"></script>
+
+    <script src="/js/jquery/ztree/jquery.ztree.core-3.4.js" type="text/javascript"></script>
+    <script src="/js/jquery/ztree/jquery.ztree.excheck-3.4.js" type="text/javascript"></script>
+
+    <script src="/js/jquery/jqGrid/jquery.jqGrid.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jqGrid/i18n/grid.locale-cn.js" type="text/javascript"></script>
+
+    <script src="/js/jquery/lhgdialog/lhgdialog.js" type="text/javascript"></script>
+
+    <script src="/js/sfa-query-1.0.js" type="text/javascript"></script>
+    <script src="/js/sfa-export.js" type="text/javascript"></script>
+    <script src="/js/base64.js" type="text/javascript"></script>
+    <script src="/js/constants.js" type="text/javascript"></script>
+    <script src="/js/common.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/views/defect/chooseFlight.js"></script>
+    <script src="/js/mccdoc/to_issued_close.js" type="text/javascript"></script>
+    
+    <style>
+        .select_width {
+            width: 110px;
+            border: 1px solid #9F9C93;
+        }
+    </style>
+</head>
+<body>
+<div id="qc_box"></div>
+<div id="qc_template_box"></div>
+<div id="qc_advance_box"></div>
+<div class="div_btn">
+    <ul>
+        <li class="li_btn_l" id="qc_ext_box"></li>
+        <li class="li_btn_r" style="padding-right: 15px">
+            <input class="btn" id="export_excel_btn" style="display: none;" type="button" value="Export"/>
+        </li>
+    </ul>
+</div>
+<div class="listbox">
+    <div class="gridbox">
+        <div class="grid_tab">
+            <table id="common_list_grid"></table>
+            <div id="gridPager"></div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var sub_win = frameElement.api, P = sub_win.opener;
+    var s_params = sub_win.data;
+    var methodType = s_params["methodType"];
+
+    if (s_params.exportOptions && s_params.exportOptions.showExport) {
+        $("#export_excel_btn").show();
+        $("#export_excel_btn").click(function () {
+            if ("V_NRC_MONITOR_LAGGER" == s_params.view && export_self) {
+                // 运行类NRC打印
+                export_self({
+                    fileName: '运行类NRC.xls',
+                    defaultParam: {
+                        'qname': ['runType'],
+                        'qoperator': ['equals'],
+                        'qvalue': ['1']
+                    }
+                }, this);
+            } else {
+                dynamicExport({
+                    sfaQuery: $(document).sfaQuery(),
+                    container: $(this).parent(),
+                    fileName: s_params.exportOptions.fileName,
+                    url: basePath + "/api/v1/desk_monitor/export"
+                });
+            }
+
+        });
+    }
+
+    $(function () {
+        setTimeout(function () {
+            $(document).sfaQuery(s_params);
+        }, 50);
+    });
+
+    function assignPend(defectNo, acreg, gid, refresh) {
+        //    var P = getOpener();
+        $.ajax({
+            url: basePath + "/tbm/tbm_flow_findIsAssignedDefect.action?defectInfo.defectNo=" + defectNo,
+            type: "get",
+            dataType: "json",
+            success: function (data) {
+                var data = JSON.parse(data);
+                if (data.ajaxResult == 'success') {
+                    assignDefectDialog({
+                        type: "DEFECT",
+                        no: defectNo,
+                        acReg: acreg,
+                        actionType: 'assign',
+                        gid: gid,
+                        callback: refresh
+                    })
+                } else {
+                    P.$.dialog.alert(data.msg);
+                }
+            }
+        });
+    }
+
+    /**
+     * type, no, station, actionType, description, callback
+     * 下发任务到航班
+     * @param type
+     * @param no
+     * @param acReg
+     * @param actionType
+     * @param callback
+     */
+    function assignDefectDialog(options) {
+        P.$.dialog({
+            id: 'assign_' + options.type,
+            title: 'Assign ' + options.type,
+            top: '60px',
+            width: '1070px',
+            height: '600px',
+            content: 'url:' + basePath + "/tbm/tbm_station_task.jsp",
+            data: options,
+            close: function () {
+                //options.callback(this);
+                if ($(document).sfaQuery()) {
+                    $(document).sfaQuery().reloadQueryGrid();
+                }
+            }
+        });
+    }
+</script>
+</body>

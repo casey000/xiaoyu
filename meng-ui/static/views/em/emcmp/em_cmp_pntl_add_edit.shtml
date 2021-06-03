@@ -1,0 +1,231 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="da_mm">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        var isEdit_;
+        var param = {};
+        var ifTmp = [{TEXT: '是', VALUE: 'Y'}, {TEXT: '否', VALUE: 'N'}];
+        var applType_bj = 'PART';
+        var applType_js = 'APL';
+        param = getParentParam_();
+        var isEdit_ = param.pkid;
+
+        function i18nCallBack() {
+            InitFuncCodeRequest_({
+                data: {
+                    domainCode: "EM_REV_CODE,EM_MP_APPLICABILITY,EM_MPD_ITEM_TYPE,EM_MP_CTRL_TYPE,EM_MP_CHK_LEVEL,EM_MP_INTERVAL_RULE,EM_MP_CALENDAR_UNIT,EM_MP_ATTACH_INFO",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+
+
+                        // $('#cmpPkid').val(param.itemPkid);
+
+                        if (isEdit_) {
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: param.pkid,
+                                    FunctionCode: "EM_CMP_PNTL_GETONE"
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        InitEditForm_();
+                                        ParseFormField_(jdata.data, null, Constant.CAMEL_CASE);
+                                        $('#pkid').val(jdata.data.PKID);
+                                        $('#itemPkid').val(jdata.data.ITEM_PKID);
+
+                                    } else {
+                                        MsgAlert({content: "信息错误", type: 'error'});
+                                    }
+                                }
+                            });
+
+                        } else {
+                            InitEditForm_();
+                            $('#itemPkid').val(param.itemPkid);
+
+                        }
+
+                    }
+                    else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+
+
+        }
+
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+
+
+                    data = $.extend({}, data, {
+                        FunctionCode: (param.pkid ? 'EM_CMP_PNTL_UPDATE' : 'EM_CMP_PNTL_ADD')
+                    });
+
+                    InitFuncCodeRequest_({
+                        data: data,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                $('#pkid').val(jdata.data.pkid);
+                                param.OWindow.reloadInitDataGrid2_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+
+        function zhuangJi() {
+            var pntlPkid = $('#pkid').val();
+            if (!pntlPkid) {
+                MsgAlert({content: "请先保存主目录", type: 'error'});
+                return false
+            }
+            ShowWindowIframe({
+                width: "90%",
+                height: "80%",
+                title: "增加要求",
+                param: {pntlPkid: pntlPkid},
+                url: "/views/em/emcmp/em_cmp_eval_pn_whyq_list.shtml"
+            });
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+
+                <input type="hidden" id="itemPkid" name="itemPkid" style="width: 100px;"/>
+                <input type="hidden" id="pkid" name="pkid" style="width: 100px;"/>
+
+
+                <table class="table table-bordered table-info">
+                    <caption style="padding-bottom: 7px;font-weight:bold;">增加部件信息</caption>
+
+                    <tr>
+                        <th class="td5" align="right">项次号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="partitemNo" name="partitemNo" data-options="required:true"
+                                   style="width: 300px;"/>
+                        </td>
+                        <th class="td5" align="right">OEM厂家：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="oemFactory" name="oemFactory" data-options=""
+                                   style="width: 300px;"/>
+                        </td>
+
+
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:80px" align="right">部件中文名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="partCnname" name="partCnname"
+                                   data-options="required:true" style="width: 300px;"/>
+                        </td>
+                        <th class="td5" style="width:80px" align="right">部件英文名称：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="partEnname" name="partEnname"
+                                   data-options="required:true" style="width: 300px;"/>
+                        </td>
+
+
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:80px" align="right">部件清单：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="partList" name="partList"
+                                   data-options="multiline:true,required:true" style="height:30px;width: 800px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">装机要求（中文）：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="installCnreq" name="installCnreq"
+                                   data-options="multiline:true,editable:false,onlyview:true"
+                                   style="height:100px;width: 300px;"/>
+                        </td>
+                        <th class="td5" style="width:100px" align="right">装机要求（英文）：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="installEnreq" name="installEnreq"
+                                   data-options="multiline:true,editable:false,onlyview:true"
+                                   style="height:100px;width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">库存要求（中文）：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="storeCnreq" name="storeCnreq"
+                                   data-options="multiline:true,editable:false,onlyview:true"
+                                   style="height:100px;width: 300px;"/>
+                        </td>
+                        <th class="td5" style="width:100px" align="right">库存要求（英文）：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="storeEnreq" name="storeEnreq"
+                                   data-options="multiline:true,editable:false,onlyview:true"
+                                   style="height:100px;width: 300px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+
+                        <th class="td5" style="width:80px" align="right">参考资料：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="refence" name="refence"
+                                   data-options="required:true" style="width: 400px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="td5" style="width:100px" align="right">说明：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" id="remark" name="remark"
+                                   data-options="" style="width: 100px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="right" style="padding-top: 6px;" colspan="4">
+                            <input class="btn btn-primary" onclick="zhuangJi()" type="button" value="结构化装机要求"
+                                   style="margin:5px;"/>
+                            <input class="btn btn-primary" onclick="saveFunction()" type="button" value="结构化库存要求"
+                                   style="margin:5px;"/>
+                            <input class="btn btn-primary" type="submit" id="submit" value="保存"/>&nbsp;&nbsp;
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+
+
+</script>
+
+</body>
+</html>

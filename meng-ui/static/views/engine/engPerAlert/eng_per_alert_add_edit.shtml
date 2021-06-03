@@ -1,0 +1,717 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>监控报警通知单</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <script type="text/javascript" src="/js/common_query_dialog.js"></script>
+    <script src="/js/lhgdialog/lhgdialog.js"></script>
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/plugins/dialog/dialog_default.css">
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="tt" style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="监控报警通知单" style="width: 100%"></div>
+                <input type="hidden" id="companyCode" name="companyCode" value="SFN">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <input type="hidden" id="dataSource" name="dataSource"/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr id ="btnTr">
+                        <td colspan="6" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" style="margin: 10px" value="保存"/>
+                            <input class="btn btn-primary" type="button" id="comBtn" onclick="commitAlert()" style="margin: 10px" value="提交"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 15px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 100px;">发动机序号：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-combobox" id="esn" name="esn" data-options="" style="width: 164px;"/>
+                        </td>
+                        <th style="width: 100px;">件号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="epn" name="epn" data-options="editable:false" style="width: 164px;"/>
+                        </td>
+                        <th style="width: 100px;">告警日期：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-datebox" id="alertDate" name="alertDate" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 100px;">装机位置：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-combobox" id="pos" name="pos" data-options="editable:false" style="width: 164px;"/>
+                        </td>
+                        <th style="width: 100px;">机号：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-combobox" id="acReg" name="acReg" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                        <th style="width: 100px;">机型：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="mpActype" name="mpActype" data-options="onlyview:true,required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 100px;">故障编号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="defectNo" name="defectNo" data-options="onlyview:true,editable:false" style="width: 164px;"/>
+                        </td>
+                        <th style="width: 100px;">编号：</th>
+                        <td class="tdr" style="width: 160px">
+                            <p><input class="easyui-textbox" id="alertNo" name="alertNo" data-options="editable:false,onlyview:true" style="width: 120px;"/>R
+                                <input class="easyui-textbox" id="ver" name="ver" data-options="editable:false,onlyview:true" style="width: 30px;"/></p>
+                        </td>
+                        <th style="width: 100px;">报告人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="reporterName" name="reporterName" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 100px;">来源类别：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="sourceType" name="sourceType" data-options="required: true,editable:false" style="width: 164px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 100px;">故障报告：</th>
+                        <td colspan="5">
+                                <textarea class="easyui-textbox " id="alertDesc" name="alertDesc" multiline="true"
+                                          style="height:80px;width: 98%;border: 1px solid #ddd;border-radius: 5px;"
+                                          data-options="required: true"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 131px;">FAULT REFORENCE：</th>
+                        <td colspan="5">
+                                <textarea class="easyui-textbox " id="faultReforence" name="faultReforence" multiline="true"
+                                          style="height:80px;width: 98%;border: 1px solid #ddd;border-radius: 5px;"
+                                          data-options="required: true"></textarea>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input class="btn btn-primary" type="button" id="upBtn" onclick="uploadAlert()" style="margin: 10px" value="上传附件"/>
+                        </td>
+                        <td>
+                            <table id="attach"></table>
+                        </td>
+                        <td>
+                            <input class="btn btn-primary" type="button" id="addBtn" onclick="addDef()" style="margin: 10px" value="新增故障"/>
+                        </td>
+                        <td>
+                            <input class="btn btn-primary" type="button" id="addToBtn" onclick="add_to()" style="margin: 10px" value="add TO"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6">
+                            <table id="dg"></table>
+                        </td>
+                    </tr>
+                    <tr class ="mea1">
+                        <th>后续监控：</th>
+                        <td colspan="5">
+                                <textarea class="easyui-textbox " id="followDesc" name="followDesc" multiline="true"
+                                          style="height:80px;width: 98%;border: 1px solid #ddd;border-radius: 5px;"
+                                          data-options=""></textarea>
+                        </td>
+                    </tr>
+                    <tr class ="mea1">
+                        <th style="width: 100px;">是否改版：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="ifRver" name="ifRver" style="width: 164px;" data-options="editable:false"/>
+                        </td>
+                        <th style="width: 100px;">填写人：</th>
+                        <td class="tdr" style="width: 160px">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                        <th style="width: 100px;">填写日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate" style="width: 164px;" data-options="onlyview:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <tr style="height:20px;">
+                        <td colspan="6">
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var operation;
+    var pkid;
+    var esn;
+    var isFlow;
+    var userId;
+    var userName;
+    var accountNumber;
+    var taskId;
+    var dataSource;
+    var flag;
+    var esn;
+    var sta;
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        operation = param.operation;
+        esn = param.esn;
+        isFlow = param.isFlow;
+        taskId = param.taskId;
+        flag = param.flag;
+        esn = param.esns;
+        if(isFlow || flag == 'bsiReport'){
+            userId = param.userId;
+            userName = param.userName;
+            accountNumber = param.accountNumber;
+        }else{
+            var userInfo = getLoginInfo();
+            userId = userInfo.userId;
+            userName = userInfo.userName;
+            accountNumber = userInfo.accountNumber;
+        }
+        dataSource = 'engPerAlert';//等后续有其他来源调整这个变量
+        $('#dataSource').val(dataSource);
+        $('.mea1').hide();
+        $('#addToBtn').hide();
+        $('#addBtn').hide();
+        $("#ifRver").combobox({required:false,editable:false,onlyview:true});
+        if(taskId == 'taskEngPerAlertPg1'){
+            $('#saveBtn').hide();
+            $('#addBtn').show();
+        }else if(taskId == 'taskEngPerAlertHx2'){
+            $('.mea1').show();
+            $("#followDesc").textbox({required:true,onlyview:false});
+            $("#ifRver").combobox({required:true,editable:false,onlyview:false});
+        }
+        if(isFlow){
+            $('#comBtn').hide();
+            if(taskId != 'taskEngPerAlertTh'){
+                $('#upBtn').hide();
+            }
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_PER_KEYLIST_SOURCE,ENG_POS,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },async:false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#sourceType').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.ENG_PER_KEYLIST_SOURCE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#pos').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.ENG_POS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ifRver').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.YESORNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        data:{matnr:""},
+                        path: "/meng-engine/baseOwn/getEngByType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#esn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                    onSelect: function (item) {
+                                        onEsn(item.VALUE);
+                                    }
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {},
+                        path: "/meng-engine/engBsiReport/getAcnos",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#acReg').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'value',
+                                    textField: 'text',
+                                    panelHeight: '150px',
+                                    onSelect: function (item) {
+                                        assAcinfo(item.text);
+                                    }
+                                });
+                            } else {
+                                MsgAlert({content: '获取机号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    if(operation == "view"){
+                        $(".easyui-textbox").textbox({required:false,editable:false,onlyview:true});
+                        $(".easyui-combobox").combobox({required:false,editable:false,onlyview:true});
+                        $(".easyui-datebox").datebox({required:false,editable:false,onlyview:true});
+                        $("#closeReason").textbox({required:false});
+                        $('#btnTr').hide();
+                        $('#upBtn').hide();
+                    }
+
+                    if(pkid){
+                        InitDataForm(pkid);
+                    }
+
+                    InitDataGrid();
+                    if(flag == 'over' || flag == 'trend'|| flag == 'per'|| flag == 'bsiReport'|| flag == 'mcdReport'){
+                        var sourceType = '';
+                        if(flag == 'bsiReport'){
+                            sourceType = '1';//孔探
+                        }else if(flag == 'mcdReport'){
+                            sourceType = '2';//磁堵
+                        }else if(flag == 'trend'){
+                            sourceType = '3';//滑耗趋势分析
+                        }else if(flag == 'per'){
+                            sourceType = '4';//性能
+                        }else if(flag == 'over'){
+                            sourceType = '5';//超限报文
+                        }else{
+                            sourceType = '6';//其他
+                        }
+                        if(esn){
+                            if(esn.indexOf(',') == -1){
+                                $('#esn').combobox('setValue',esn);
+                            }
+                        }
+                        $('#sourceType').combobox('setValue',sourceType);
+                        onEsn(esn);
+                    }
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+
+    }
+
+    //回显
+    function InitDataForm(pkid) {
+        $('#pkid').val(pkid);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engPerAlert/selectById" + "/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                    var sta = jdata.obj.status;
+                    if(operation != "view"){
+                        $("#modifyName").textbox('setValue',userName);
+                        $("#modifyUser").val(userId);
+                        $("#modifyDate").datebox('setValue',new Date().Format('yyyy-MM-dd'));
+                    }
+                    initAttachment(pkid);
+                    if(taskId == 'taskEngPerAlertPg1'){
+                        var defectNo = $('#defectNo').textbox('getValue');
+                        if(defectNo){
+                            $('#addToBtn').show();
+                        }
+                    }
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+    //保存
+    function save() {
+        if(operation == 'add'){
+            $("#alertNo").textbox('setValue', randomNumber());
+            $("#ver").textbox('setValue', '0');
+        }
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engPerAlert/addOrEditAlert",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var data = jdata.obj;
+                    if (data != null) {
+                        $('#pkid').val(data.pkid);
+                        pkid = data.pkid;
+                        operation = 'edit';
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        if(!isFlow && flag == 'key'){
+                            param.OWindow.reload_();
+                        }
+                    }
+                } else {
+                    MsgAlert({content: "保存失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function assAcinfo(acno){
+        InitGatewayRequest_({
+            async: false,
+            type:'get',
+            path: "/meng-engine/engMcdReport/selectDaAcregByAcno"+"/"+acno,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#mpActype').textbox('setValue',jdata.obj.mpActype);
+                } else {
+                    MsgAlert({content: '获取机型失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+    function onEsn(esn){
+        $('#pos').combobox('setValue','');
+        $('#mpActype').textbox('setValue','');
+        $('#acReg').combobox('setValue','');
+        InitGatewayRequest_({
+            async: false,
+            data:{serialnum:esn},
+            path: "/meng-engine/baseOwn/getSernrBySn",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    if(jdata.obj != null){
+                        $('#epn').combobox('setValue',jdata.obj.partno);
+                    }
+                } else {
+                    MsgAlert({content: '获取发动机型号失败', type: 'error'});
+                }
+            }
+        });
+        getMeasure(esn);
+    }
+
+    function getMeasure(esn){
+        var epn = $('#epn').combobox('getValue');
+        //获取 类型/机号/位置
+        InitGatewayRequest_({
+            async: false,
+            data:{matnr:epn,sernr:esn},
+            path: "/hanaMaterial/engInfo/getSubModel",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    if(jdata.obj != null){
+                        var acno = jdata.obj.msgrp;
+                        var status = jdata.obj.prio;
+                        var acId = jdata.obj.acid;
+                        var pos = jdata.obj.strno;
+                        if(pos != null){
+                            pos = pos.substring(pos.lastIndexOf("_")+1);
+                            if(pos != 'APU' && pos != 'TAIL'){
+                                pos = pos.substring(pos.length - 1);
+                            }
+                        }
+                        if(status == '2'){
+                            $('#mpActype').combobox('setValue',acId);
+                            $('#pos').combobox('setValue',pos);
+                            assAcinfo(acno);
+                        }
+                    }
+                } else {
+                    MsgAlert({content: '获取信息失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function randomNumber() {
+        //机型 + 年份 + 4位流水号  [B757-2020-0001]
+        var mpActype = $('#mpActype').textbox('getValue');
+        var curNum = '';
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engPerAlert/getCurNum",
+            data:{'mpActype':mpActype},
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    curNum = jdata.obj;
+                } else {
+                    MsgAlert({content: "获取编号失败!", type: 'error'});
+                    return;
+                }
+            }
+        });
+        return curNum;
+    }
+
+
+    function InitDataGrid() {
+        if(!pkid){
+            pkid = -1;
+        }
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: {"alertId":pkid},
+            pagination: true,
+            path: "/meng-engine/engPerAlertDetail/listByPage",
+            resize: function () {
+                return {width: 835, height: 370};
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_PER_ALERT_DETAIL_LIST'},
+                alter: {
+                    measureDate: {
+                        type: 'date'
+                    },
+                    measureLimit: {
+                        type: 'date'
+                    },
+                    feedbackDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+            ],
+            validAuth: function (row, items) {
+            },
+            onDblClickRow: function (index, field, value) {
+            }
+        });
+    }
+
+    function addDef(){
+        var defectNo = $('#defectNo').textbox('getValue');
+        if(defectNo){
+            MsgAlert({content: "已有故障信息，不能重复添加!", type: 'error'});
+            return;
+        }
+        if(pkid == -1 || !pkid){
+            MsgAlert({content: "请先保存报警通知单表单数据!", type: 'error'});
+            return;
+        }
+        var curWidth = ($(window).width()).toString();
+        var curheight = $(window).height().toString();
+        var acno = $('#acReg').combobox('getText');
+        var alertDate = $('#alertDate').datebox('getValue');
+        var alertDesc = $('#alertDesc').textbox('getValue');
+        var faultReforence = $('#faultReforence').textbox('getValue');
+        var esn = $('#esn').combobox('getValue');
+        var pos = $('#pos').combobox('getValue');
+        var alertParam = {"acno":acno,"alertDate":alertDate,"alertDesc":alertDesc,
+                            "faultReforence":faultReforence,"esn":esn,"pos":pos,"userName":userName,"accountNumber":accountNumber};
+        common_add_edit_({
+            identity: '',
+            isEdit: '',
+            width: curWidth,
+            height: curheight,
+            title: $.i18n.t('新增故障'),
+            param: {
+                operation: "add",
+                alertParam: alertParam,
+                engPerAlertId:pkid
+            },
+            url: "/views/defect/defectAddWindow.shtml"
+        });
+    }
+
+    function setDefectNo(defectNo){
+        $('#defectNo').textbox('setValue',defectNo);
+        if(taskId == 'taskEngPerAlertPg1' && defectNo){
+            $('#addToBtn').show();
+        }
+    }
+
+    function uploadAlert(){
+        if(pkid == -1  || !pkid){
+            MsgAlert({content: "请先保存报警通知单表单数据!", type: 'error'});
+            return;
+        }else{
+            common_upload_({
+                identity: 'dg',
+                param: {
+                    cat: "engPerAlert",
+                    sourceId: pkid,
+                    successCallBack: function () {
+                        initAttachment(pkid);
+                        if(taskId != 'taskEngPerAlertTh'){
+                            param.OWindow.reload_();
+                        }
+                    },
+                    fialCellBack: ""
+                }
+            });
+        }
+    }
+
+    function commitAlert(){
+        if(pkid == -1 || !pkid){
+            MsgAlert({content: "请先保存报警通知单表单数据!", type: 'error'});
+            return;
+        }
+        common_add_edit_({
+            identity: '',
+            isEdit: '',
+            width: 520,
+            height: 300,
+            title: $.i18n.t('选择审批人'),
+            param: {
+                operation: "flow",
+                roleId: '',
+                otherParam: '',
+                PKID: pkid,
+                FunctionCode_: 'ENG_PER_ALERT_SUBMIT',
+                successCallback: reload_1
+            },
+            url: "/views/flow/work_flow_account_select.shtml"
+        });
+    }
+
+    function reload_1(){
+        param.OWindow.reload_();
+        CloseWindowIframe();
+    }
+
+    function add_to() {
+        var defectNo = $('#defectNo').textbox('getValue');
+        var defectId = "";
+        var couTo = 0;
+        if(!defectNo){
+            MsgAlert({content: "新增TO前必须先新增故障信息!", type: 'error'});
+            return;
+        }else{
+            InitGatewayRequest_({
+                async: false,
+                path: "/meng-engine/engPerAlert/checkTo",
+                data:{'defectNo':defectNo},
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        couTo = jdata.obj;
+                    } else {
+                        MsgAlert({content: "校验TO失败!", type: 'error'});
+                        return;
+                    }
+                }
+            });
+            if(couTo == 0){
+                let url = "/views/mccdoc/edit/add_fault_isolate_to.shtml";
+                InitGatewayRequest_({
+                    async: false,
+                    path: "/meng-engine/engPerAlert/getDefectId",
+                    data:{'defectNo':defectNo},
+                    successCallBack: function (jdata) {
+                        if (jdata.success == true) {
+                            defectId = jdata.obj;
+                        } else {
+                            MsgAlert({content: "获取故障ID失败!", type: 'error'});
+                            return;
+                        }
+                    }
+                });
+                let parameters = {
+                    "defectId": defectId,
+                    "toType": "1",
+                    "pageType": "add",
+                    "id": 0
+                };
+                P.$.dialog({
+                    id: 'addToDialog1',
+                    title: 'Add TO',
+                    width: '1000px',
+                    height: '600px',
+                    left: '100%',
+                    top: '100%',
+                    esc: true,
+                    cache: false,
+                    max: false,
+                    min: false,
+                    parent: null,
+                    lock: true,
+                    content: "url:" + url,
+                    data: parameters,
+                    close: function () {
+                        location.reload();
+                    }
+                });
+            }else{
+                MsgAlert({content: "该故障已经新建TO，不可重复操作!", type: 'error'});
+                return;
+            }
+        }
+    }
+
+    function initAttachment(pkid) {
+        var category = 'engPerAlert';
+        InitFuncCodeRequest_({
+            data: {
+                SOURCE_ID: pkid,
+                CATEGORY: category,
+                FunctionCode: 'ATTACHMENT_RSPL_GET'
+            },async:false,
+            successCallBack: function (jdata) {
+                var tbody = window.document.getElementById("attach");
+                tbody.innerHTML = "";
+                if (operation == "view") {
+                    var trHTML = '';
+                    for (var i = 0; i < jdata.data.length; i++) {
+                        trHTML = trHTML + '<tr align="left"><td class="td5" align="left" style="text-align:left;"><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></td></tr>';
+                    }
+                } else {
+                    var trHTML = '';
+                    for (var i = 0; i < jdata.data.length; i++) {
+                        trHTML = trHTML + '<tr align="left"><td class="td5" align="left" style="text-align:left;"><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></td><td class="td5" align="left" style="text-align:left;"><input class="btn btn-primary" type="button"  value="删除" style="width: 50px;margin:5px;" onclick="deleteFile(' + jdata.data[i].PKID + ');return false;"/></td></tr>';
+                    }
+                }
+                tbody.innerHTML = trHTML;
+            }
+        });
+    }
+
+    function reload_(){
+        initAttachment(pkid);
+    }
+
+</script>
+</body>
+</html>

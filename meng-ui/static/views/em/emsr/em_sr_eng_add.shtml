@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用机身</title>
+</head>
+
+<body class="ibody">
+<div class="ibox-content">
+    <form id="mform" class="form-horizontal m-t">
+        <input type="hidden" id="pkid" name="pkid" />
+        <input type="hidden" id="srPkid" name="srPkid" />
+
+        <table class="table table-bordered table-info">
+            <tr id="id_btn_row">
+                <td colspan="9" align="right">
+                    <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                    <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                           style="margin-left:3px;margin-right: 18px;"/>
+                    <br/>
+                </td>
+            </tr>
+            <tr>
+                <th class="td5 hs" align="right" width="100">发动机序号：</th>
+                <td class="tdr hs" style="padding: 3px">
+                    <input id="esn" name="esn"
+                           class="easyui-textbox" style="width: 150px"
+                           data-options="required:true" />
+                </td>
+            </tr>
+            <tr>
+                <th class="td5 hs" align="right" width="100">TSN：</th>
+                <td class="tdr hs" style="padding: 3px">
+                    <input id="tsn" name="tsn"
+                           class="easyui-textbox" style="width: 150px" />
+                </td>
+            </tr>
+            <tr>
+                <th class="td5 hs" align="right" width="100">CSN：</th>
+                <td class="tdr hs" style="padding: 3px">
+                    <input id="csn" name="csn"
+                           class="easyui-textbox" style="width: 150px" />
+                </td>
+            </tr>
+            <tr>
+                <th class="td5 hs" align="right" width="100">TSO：</th>
+                <td class="tdr hs" style="padding: 3px">
+                    <input id="tso" name="tso"
+                           class="easyui-textbox" style="width: 150px" />
+                </td>
+            </tr>
+            <tr>
+                <th class="td5 hs" align="right" width="100">CSO：</th>
+                <td class="tdr hs" style="padding: 3px">
+                    <input id="cso" name="cso"
+                           class="easyui-textbox" style="width: 150px" />
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param; // operation[add,edit,view]
+    var pkid = null;//主表PKID
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+
+        if (!! pkid) {
+            $('#esn').textbox('readonly', true);
+            InitDataForm(pkid);
+        } else {
+            $('#esn').MyComboGrid({
+                params: {
+                    FunctionCode: 'EM_SR_ESN',
+                    srPkid: param.srPkid,
+                    model: param.model
+                },
+                columns: [[
+                    {field: 'ESN', title: '发动机序号', width: 150},
+                    {field: 'TSN', title: 'TSN', width: 80},
+                    {field: 'CSN', title: 'CSN', width: 80},
+                    {field: 'TSO', title: 'TSO', width: 80},
+                    {field: 'CSO', title: 'CSO', width: 80}
+                ]],
+                idField: 'ESN',
+                textField: 'ESN',
+                panelHeight: '200px',
+                width: '150',
+                pagination: false,
+                onSelect: function (index, row) {
+                    ParseFormField_(row, $("#mform"), Constant.CAMEL_CASE);
+                }
+            });
+
+            $('#srPkid').val(param.srPkid);
+        }
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SR_ENG_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+
+            }
+        });
+    }
+
+    function save() {
+        var isValidate = $('#mform').form('validate');
+        if (! isValidate) {
+            return;
+        }
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SR_ENG_ADD",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.$('#dg_eng').datagrid('reload');
+                    MsgAlert({
+                        content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                    });
+                    closeW();
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

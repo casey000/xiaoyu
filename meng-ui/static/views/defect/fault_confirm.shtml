@@ -1,0 +1,202 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <!--#include virtual="/views/defect/defect_js.shtml"-->
+    <meta charset="UTF-8">
+    <title></title>
+    <link href="/css/nrc/nrc_add.css" rel="stylesheet">
+    <style type="text/css">
+        .div_content{
+            width: auto;
+            height: auto;
+            margin: 0 auto;
+            margin-top: 20px;
+        }
+        .div_table{
+            width: 698px;
+            height: auto;
+            margin: auto;
+        }
+        .key-v{
+            padding: 8px;
+            height: 20px!important;
+        }
+        .button{
+            display: inline-block;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px 20px;
+            border: none;
+            font-size: 14px;
+            margin-right: 12px;
+            float: right;
+            margin-top: 15px;
+        }
+        .key{
+            width: 170px;
+        }
+        .div_no{
+            border: 1px solid;
+            background-color: #f2f2f2;
+            width: auto;
+            height: 40px;
+            float: left;
+            line-height: 35px;
+            margin-right: 10px;
+            margin-bottom: 5px;
+            border-radius: 3px;
+        }
+        .div_no .id_no{
+            color: limegreen;
+            padding: 10px;
+            font-size: 17px;
+        }
+        .x_{
+            font-size: 24px;
+            color: red;
+            margin-right: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="div_content">
+    <div class="div_table">
+        <table class="addnrc_table" style="margin-top: 5px">
+            <tbody>
+            <tr>
+                <td class="key" >Fault No:</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em"><span id="fault_no"></span></td>
+            </tr>
+            <tr>
+                <td class="key">Fault Type :</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em"><span id="descChn"></span></td>
+            </tr>
+            <tr>
+                <td class="key">Fault Source :</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em"><span id="rectChn"></span></td>
+            </tr>
+            <tr>
+                <td class="key">Defect Changed Info :</td>
+                <td class="key-v" style="text-align: left;text-indent: 1em"><span id="defe_inof"></span></td>
+            </tr>
+            <tr>
+                <td class="key">Defect Nos :</td>
+                <td class="key-v" id="key_div">
+<!--                    <div class="div_no"><span class="id_no">20181000483</span><span class="x_">×</span></div>-->
+
+                </td>
+            </tr>
+            <tr>
+                <td class="key">确认是多发性故障<span>*</span> :</td>
+                <td class="key-v"><input id="waiguan_y" name="defect" type="radio" value="y"><label for="waiguan_y">YES</label><input
+                        id="waiguan_n" name="defect" type="radio" value="n"><label for="waiguan_n">NO</label></td>
+            </tr>
+            <tr>
+                <td class="key">Remark :</td>
+                <td class="key-v"><textarea  name="descChn" id="remark"></textarea></td>
+            </tr>
+            <tr>
+                <td class="key">Reason :</td>
+                <td class="key-v"><textarea  name="descChn" id="reason"></textarea></td>
+            </tr>
+
+            </tbody>
+        </table>
+<!--        <a class="button" >关闭</a>-->
+        <a class="button" onclick="agency_button()">保存</a>
+    </div>
+
+</div>
+</body>
+<script src="/js/plugins/ajaxfileupload/ajaxfileupload.js" type="text/javascript"></script>
+<script src="../../../js/datagrid_utils.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+    let params = getParentParam_();
+    $(function () {
+        data_info(params.id);
+    });
+    function agency_button() {          //提交
+        let waiguan_y = "";
+        if ($("#waiguan_y").is(":checked")) {
+            waiguan_y = "y";
+        }
+        if ($("#waiguan_n").is(":checked")) {
+            waiguan_y = "n";
+        }
+        if(waiguan_y==""){
+            alert("请选择确认是多发性故障");
+            return
+        }
+        let id_date={
+            id:params.id,
+            defectNoList:defectNoList,
+            shif:waiguan_y,
+            remark:$("#remark").val(),
+            reason:$("#reason").val(),
+        };
+        $.ajax({
+            type: "POST",
+            url: "/api/v1/defect/verify",
+            contentType: "application/json;charset=utf-8",
+            data: JSON.stringify(id_date),
+            dataType: "json",
+            success: function (data) {
+                if (data.code == 200) {
+
+                } else {
+                    alert(data.msgData[0]);
+                }
+
+            },
+            error: function () {
+                window.alert("失败！");
+            }
+        });
+    }
+    var defectNoList=[];
+    function data_info(id) {
+        $.ajax({
+            type: "GET",
+            url: "/api/v1/defect/repeat/"+id+"/faults" ,
+            contentType: "application/json;charset=utf-8",
+            success: function (data) {
+                if (data.code == 200) {
+                    defectNoList=data.data.defectNoList;
+                    $("#fault_no").text(data.data.defectRepeatFaults.repeatFaults);
+                    $("#descChn").text(data.data.defectRepeatFaults.type);
+                    $("#rectChn").text(data.data.defectRepeatFaults.src);
+                    $("#defe_inof").text(data.data.defectRepeatFaults.repeatFaults);
+                    for(let a in data.data.defectNoList){
+                        let file = "<div class=\"div_no\" id=\"defectNo_"+data.data.defectNoList[a].defectNo+"\"><span class=\"id_no\">"+data.data.defectNoList[a].defectNo +"</span><span class=\"x_\" onclick=\"defectNoList_delete(defectNo_"+data.data.defectNoList[a].defectNo+","+data.data.defectNoList[a].defectNo+")\">×</span></div>";
+                        let html_row = $(file);
+                        $("#key_div").append(html_row);
+                    }
+                } else {
+                    alert(data.msg);
+                }
+            },
+            error: function () {
+                window.alert("失败！");
+            }
+        });
+    }
+     function defectNoList_delete(id,defectNo) {
+         for(let a in defectNoList){
+             if(defectNoList[a].defectNo==defectNo){
+                 defectNoList.splice(a,1);
+             }
+         }
+         let newP = $(id);
+         if (newP.length > 0) {
+             newP.remove();
+         }
+     }
+
+
+</script>
+</html>

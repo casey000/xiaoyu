@@ -1,0 +1,626 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">滑耗阈值设置</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <div title="滑耗阈值列表">
+        <fieldset class="fieldset_eui">
+            <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+            <form id="ffSearch" class="form-horizontal">
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">机型/组别：</th>
+                        <td style="width: 100px" class="td5">
+                            <input class="easyui-combobox" id="acTypeGroup" name="acTypeGroup" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">部位：</th>
+                        <td style="width: 100px" class="td5">
+                            <input class="easyui-combobox" id="engOrApu" name="engOrApu" style="width:100px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                        <td style="width: 150px" class="td5">
+                            <input class="easyui-combobox" id="applyModel" name="applyModel" style="width:120px;"/>
+                        </td>
+                        <th class="th" style="width:80px;" align="right">件号：</th>
+                        <td style="width: 150px" class="td5">
+                            <input class="easyui-combobox" id="engType" name="engType" style="width:110px;"/>
+                        </td>
+                        <td class="td5">
+                            <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="doSearch_()"><span>查询</span></a>
+                            <a href="javascript:void(0)" class="addBtn" auth="ENG_OIL_SET_SINGLE1"
+                               onclick="addOrEditOilSetSingle('add')"><span>新增</span></a>
+                            <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" style="width:80px;" align="right">状态：</th>
+                        <td style="width: 100px" class="td5">
+                            <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </fieldset>
+        <table id="dg"></table>
+    </div>
+    <div title="添加量阈值列表">
+        <fieldset class="fieldset_eui">
+            <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+            <form id="ffSearch1" method="post">
+                <div id="searchBar1">
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <th class="th" style="width:80px;" align="right">机型：</th>
+                            <td style="width: 100px" class="td5">
+                                <input class="easyui-combobox" id="acTypeGroup1" name="acTypeGroup" style="width:100px;"/>
+                            </td>
+                            <th class="th" style="width:80px;" align="right">件号：</th>
+                            <td style="width: 150px" class="td5">
+                                <input class="easyui-combobox" id="engType1" name="engType" style="width:150px;"/>
+                            </td>
+                            <td class="td5">
+                                <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                                   onclick="doSearchOther_()"><span>查询</span></a>
+                                <a href="javascript:void(0)" class="addBtn" auth="ENG_OIL_SET_ADD_LIST_ADD"
+                                   onclick="viewAddEditOilSetForTwoOrContinuous('add')"><span>新增</span></a>
+                                <a class="clearBtn" onclick="doClearOther_()" data-options="iconCls:'icon-clear'">
+                                    <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </form>
+        </fieldset>
+        <table id="dg1"></table>
+    </div>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var loginUser;
+    var loginName;
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_OIL_SET_GROUP,ENG_OR_APU,ENG_OIL_SET_STATUS,ENG_CHECK_RESULT,ENG_OIL_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //机型或组别
+                    $('#acTypeGroup').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_OIL_SET_GROUP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#acTypeGroup1').combobox({
+                        panelHeight: '100px',
+                        data: [
+                            {
+                                VALUE:"B737",
+                                TEXT:"B737"
+                            },
+                            {
+                                VALUE:"B747",
+                                TEXT:"B747"
+                            },
+                            {
+                                VALUE:"B757",
+                                TEXT:"B757"
+                            },
+                            {
+                                VALUE:"B767",
+                                TEXT:"B767"
+                            }
+                        ],
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //部位
+                    $('#engOrApu').combobox({
+                        panelHeight: '80px',
+                        data: jdata.data.ENG_OR_APU,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //状态
+                    $('#status').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_OIL_SET_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitGatewayRequest_({
+                        async: false,
+                        path: "/meng-engine/basTypeMapper/getEngtypesAll",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#applyModel').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '100px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#engType').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        type: "post",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getModelAndFleet",
+                        successCallBack: function (jdata) {
+                            var data = jdata.obj;
+                            var engTypeAcType = [];
+                            for(var i=0;i<data.length;i++){
+                                var pushData = {
+                                    VALUE:data[i].engType,
+                                    TEXT:data[i].engType,
+                                    engType:data[i].acType
+                                };
+                                engTypeAcType.push(pushData);
+                            };
+                            if (jdata.success == true) {
+                                $('#engType1').combobox({
+                                    data: engTypeAcType,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px'
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //状态
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["ENG_OIL_SET_STATUS"]);
+                    //定期核查结果
+                    PAGE_DATA['checkResult'] = DomainCodeToMap_(jdata.data["ENG_CHECK_RESULT"]);
+                    //滑耗类别
+                    PAGE_DATA['valueType'] = DomainCodeToMap_(jdata.data["ENG_OIL_TYPE"]);
+                    InitDataGrid();
+                    InitDataGridForOther();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    function doSearchOther_(){
+        InitDataGridForOther();
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/EngOilSetSingle/listByPage",
+            resize: function () {
+            return tabs_standard_resize($('#tt'), 86)
+            },
+            columns: {
+                param: {FunctionCode: 'ENG_OIL_SET_SINGLE_LIST'},
+                alter: {
+                    status: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    ver: {
+                        formatter: function (value) {
+                            return "R" + value;
+                        }
+                    },
+                    createDate: {
+                        type: 'date'
+                    },
+                    ammDate: {
+                        type: 'date'
+                    },
+                    proofDate: {
+                        type: 'date'
+                    },
+                    checkDate: {
+                        type: 'date'
+                    },
+                    checkResult: {
+                        formatter: function (value) {
+                            return PAGE_DATA['checkResult'][value];
+                        }
+                    },
+                    valueType: {
+                        formatter: function (value) {
+                            return PAGE_DATA['valueType'][value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view", i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditOilSetSingle('view', rowData.pkid, rowData.status);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_OIL_SET_SINGLE2",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditOilSetSingle('edit', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-proof", i18nText: "校核",
+                    auth: "ENG_OIL_SET_SINGLE4",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        proofOilSetSingle(rowData.pkid, rowData.status);
+                    }
+                },
+                {
+                    id: "m-check", i18nText: "复核",
+                    auth: "ENG_OIL_SET_SINGLE6",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/EngOilSetSingle/checkBeforeRevise/" + rowData.pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    var data = jdata.obj;
+                                    if (data > 0) {
+                                        MsgAlert({content: "当前记录已经存在修订版本，不能进行复核操作!", type: 'error'});
+                                        return;
+                                    }
+                                    checkOilSetSingle(rowData.pkid);
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-revise", i18nText: "修订",
+                    auth: "ENG_OIL_SET_SINGLE5",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/EngOilSetSingle/checkBeforeRevise/" + rowData.pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    var data = jdata.obj;
+                                    if (data > 0) {
+                                        MsgAlert({content: "当前记录已经存在修订版本，不能重复修订!", type: 'error'});
+                                        return;
+                                    }
+                                    reviseOilSetSingle(rowData.pkid);
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_OIL_SET_SINGLE3",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/EngOilSetSingle/deleteEngOilSetSingle/" + rowData.pkid + "/" + loginUser + "/" + loginName,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.status != "1") {
+                    items['编辑'].enable = false;
+                }
+                items['校核'].enable = false;
+                if (row.status == "1" || row.status == "4") {
+                    items['校核'].enable = true;
+                }
+                items['复核'].enable = false;
+                items['修订'].enable = false;
+                if (row.status == "2") {
+                    items['复核'].enable = true;
+                    items['修订'].enable = true;
+                }
+                items['删除'].enable = false;
+                if (row.status == "1" || row.status == "2") {
+                    items['删除'].enable = true;
+                }
+                if (loginUser != row.createUser) {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                } else {
+                    items['校核'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEditOilSetSingle("view", value.pkid);
+            }
+        });
+    }
+
+    var vauth_oil_edit = "ENG_OIL_SET_ADD_LIST_EDIT";
+    var vauth_oil_del = "ENG_OIL_SET_ADD_LIST_DEL";
+    var result_oil_edit = VALID_AUTH(vauth_oil_edit);
+    var result_oil_del = VALID_AUTH(vauth_oil_del);
+    function InitDataGridForOther() {
+        var queryParams = $("#ffSearch1").serializeObject();
+        $("#dg1").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engOilSetFuel/listByPage",
+            // path: "/meng-engine/EngOilSetSingle/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_OIL_SET_ADD_LIST'},
+                // param: {FunctionCode: 'ENG_OIL_SET_SINGLE_LIST'},
+                alter: {
+                    modifyDate: {
+                        type: 'date'
+                    },
+                    valueType: {
+                        formatter: function (value) {
+                            if(value === "1"){
+                                return "左右发加油量差值"
+                            }else if(value === "2"){
+                                return "连续N个航班总加油量"
+                            }
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view", i18nText: "查看",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        viewAddEditOilSetForTwoOrContinuous('view', rowData.pkid, rowData.status);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "ENG_OIL_SET_SINGLE2",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        viewAddEditOilSetForTwoOrContinuous('edit', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_OIL_SET_SINGLE3",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            data:{
+                                pkid:rowData.pkid
+                            },
+                            type: "post",
+                            async: false,
+                            path: "/meng-engine/engOilSetFuel/deleteFuel" ,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    doSearchOther_();
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if(!!result_oil_edit){
+                    items['编辑'].enable = true;
+                }else {
+                    items['编辑'].enable = false;
+                };
+                if(!!result_oil_del){
+                    items['删除'].enable = true;
+                }else {
+                    items['删除'].enable = false;
+                };
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                viewAddEditOilSetForTwoOrContinuous("view", value.pkid);
+            }
+        });
+    }
+    //添加或编辑--单段滑耗阈值设置
+    function addOrEditOilSetSingle(operation, pkid) {
+        var title_ = $.i18n.t('滑耗阈值设置');
+        ShowWindowIframe({
+            width: "620",
+            height: "430",
+            title: title_,
+            param: {pkid: pkid, operation: operation},
+            url: "/views/engine/engOilSetSingle/eng_oil_set_single_add_edit.shtml"
+        });
+    }
+    //添加,查看，编辑，双发滑油差异，连续航段阈值设置
+    function viewAddEditOilSetForTwoOrContinuous(operation, pkid) {
+        var title_ = $.i18n.t('滑耗阈值设置');
+        ShowWindowIframe({
+            width: "620",
+            height: "430",
+            title: title_,
+            param: {pkid: pkid, operation: operation},
+            url: "/views/engine/engOilSetSingle/eng_oil_set_single_threshold_add_edit.shtml"
+        });
+    }
+
+    //校核
+    function proofOilSetSingle(pkid, status) {
+        var title_ = $.i18n.t('滑耗阈值设置校核');
+        ShowWindowIframe({
+            width: "620",
+            height: "430",
+            title: title_,
+            param: {pkid: pkid, status: status},
+            url: "/views/engine/engOilSetSingle/eng_oil_set_single_proof.shtml"
+        });
+    }
+
+    //复核
+    function checkOilSetSingle(pkid) {
+        var title_ = $.i18n.t('滑耗阈值设置复核');
+        ShowWindowIframe({
+            width: "620",
+            height: "430",
+            title: title_,
+            param: {pkid: pkid},
+            url: "/views/engine/engOilSetSingle/eng_oil_set_single_check.shtml"
+        });
+    }
+
+    //修订
+    function reviseOilSetSingle(pkid) {
+        var title_ = $.i18n.t('滑耗阈值设置修订');
+        ShowWindowIframe({
+            width: "620",
+            height: "430",
+            title: title_,
+            param: {pkid: pkid},
+            url: "/views/engine/engOilSetSingle/eng_oil_set_single_revise.shtml"
+        });
+    }
+
+
+    //刷新列表
+    function reload_() {
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        reload_();
+    }
+    function doClearOther_() {
+        $("#ffSearch1").form('clear');
+        doSearchOther_();
+    }
+
+</script>
+</body>
+</html>

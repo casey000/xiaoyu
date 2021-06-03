@@ -1,0 +1,253 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">样式表配置管理</title>
+</head>
+<body class="ibody">
+
+<div id="div" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="formSerch" class="form-horizontal">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+
+                    <th class="th" align="right">机队：</th>
+                    <td style="width:100px; padding: 3px; ">
+                        <input class="easyui-combobox" id="fleet" name="fleet" style="width:100px;"/>
+                    </td>
+
+                    <th class="th">工卡类型：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="jcType" name="jcType" style="width:100px;"/>
+                    </td>
+
+                    <th class="th">样式表类型：</th>
+                    <td style="width:100px; padding: 3px;">
+                        <input class="easyui-combobox" id="styleType" name="styleType" style="width:100px;"/>
+                    </td>
+
+                    <td colspan="2">
+                        &nbsp;
+                        <a class="searchBtn" type="button" onclick="searchData()" data-options="iconCls:'icon-search'">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                        </a>
+                        &nbsp;&nbsp;
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span>
+                        </a>
+                    </td>
+
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+    //主方法入口
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#formSerch', function () {
+            searchData();
+        });
+
+        //数据字典
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DA_FLEET,TD_JCSTYLE_STYLETYPE",//字典码
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#fleet').combobox({
+                        panelHeight: '110px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onChange: function () {
+                            //获取选中的机队信息
+                            var fleetValue = $('#fleet').combobox('getValue');
+                            if (fleetValue == null || fleetValue == "") {
+                                return;
+                            }
+                            //ajax初始化工卡类型
+                            InitFuncCodeRequest_({
+                                data: {fleet: fleetValue, FunctionCode: 'TD_JC_STYLE_FLEETANDJCTYPE'},
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        //对工卡类型赋值
+                                        $('#jcType').combobox({
+                                            panelHeight: '140px',
+                                            data: jdata.data,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT'
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    });
+
+                    //样式表类型
+                    $('#styleType').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.TD_JCSTYLE_STYLETYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //机队
+                    PAGE_DATA['fleet'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+
+                    //样式表类型
+                    PAGE_DATA['styleType'] = DomainCodeToMap_(jdata.data["TD_JCSTYLE_STYLETYPE"]);
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'TD_JC_STYLE_LIST'},
+                alter: {
+                    FLEET: {
+                        formatter: function (value) {
+                            return PAGE_DATA['fleet'][value];
+                        }
+                    },
+                    IS_STRUCT: {
+                        formatter: function (value) {
+                            return PAGE_DATA['jcType'][value];
+                        }
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "common:COMMON_OPERATION.EDIT",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openSaveOrUpdate("edit", rowData.PKID);//打开修改页面
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "删除",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'TD_JC_STYLE_DELETE'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            toolbar: [
+                {
+                    key: "COMMON_ADD",
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    auth: "",
+                    handler: function () {
+                        openSaveOrUpdate("save", "");//打开新增页面
+                    }
+                },
+                {
+                    key: "COMMON_RELOAD",
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    handler: function () {
+                        reload_();
+                    }
+                }
+            ],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function (index, field, value) {
+                openView("view", value.PKID);//双击查看详情
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+
+    // 查看详情
+    function openView(type, pkid) {
+        var title_ = $.i18n.t('工卡类型详情');
+        ShowWindowIframe({
+            width: "450",
+            height: "180",
+            title: title_,
+            param: {type: type, pkid: pkid},
+            url: "/views/td/sysconfig/jcstyle/tdJCStyleDetail.shtml"
+        });
+    }
+
+    // 保存或修改
+    function openSaveOrUpdate(type, pkid) {
+        var title_ = $.i18n.t('工卡类型详情');
+        ShowWindowIframe({
+            width: "450",
+            height: "180",
+            title: title_,
+            param: {type: type, pkid: pkid},
+            url: "/views/td/sysconfig/jcstyle/tdJCStyleDetail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#formSerch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#formSerch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

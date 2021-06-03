@@ -1,0 +1,122 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>电气负载控制列表</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend>搜索</legend>
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                    <tr>
+                        <th style="width: 80px;" align="right">机&nbsp;&nbsp;&nbsp;&nbsp;号：</th>
+                        <td>
+                            <input class="easyui-combobox" id="acno" name="acno" data-options=""
+                                   style="width:120px"/>
+                            <a class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="onSearch_()"><span>查询</span></a>
+                        </td>
+                        <td style="width:60%;text-align:left; padding-right:5px">
+                            <a class="ridoBtn" data-options="iconCls:'icon-search'"
+                               onclick="elaInitData()"><span>初始化数据</span></a>
+                            <a class="clearBtn" data-options="iconCls:'icon-search'"
+                               onclick="elaAlertSet()"><span>预警设置</span></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "MSGRP,EM_EO_EL_DATA_SOURCE"},
+            successCallBack: function (jdata) {
+
+                $('#acno').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                PAGE_DATA['source'] = DomainCodeToMap_(jdata.data.EM_EO_EL_DATA_SOURCE);
+                InitDataGrid();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'EM_ELA_LIST'},
+                alter: {
+                    SOURCE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['source'] [value];
+                        }
+                    },
+                    POSITION: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['position'][row.POSITION];
+                        }
+                    },
+                    CONFIRM_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "查看改变量",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 1050, height: 630,
+                            param:{initialPkid:rowData.INITIAL_PKID},
+                            url: "/views/em/emela/emela_change_list.shtml"
+                        })
+                    }
+                }
+            ],
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 15)
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    //初始化数据
+    function elaInitData() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 1050, height: 700,
+            url: "/views/em/emela/emela_initial_data.shtml"
+        });
+    }
+    //预警设置
+    function elaAlertSet() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 650, height: 320,
+            url: "/views/em/emela/emela_alert_set.shtml"
+        });
+    }
+</script>
+</body>
+</html>

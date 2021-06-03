@@ -1,0 +1,301 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>软件构型-新飞机引进评估</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%; height: 100%">
+    <div class="ibox-content">
+        <table class="table table-bordered table-info">
+            <tr>
+                <td colspan="9" align="right">
+                    <input id="btnComplete" class="btn btn-primary" type="button" onclick="completeBtn();" value="完成评估"
+                           style="margin-left:3px;margin-right: 18px;"/>
+                    <input id="btnClose" class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                           style="margin-left:3px;margin-right: 18px;"/>
+                    <br/>
+                </td>
+            </tr>
+        </table>
+        <fieldset class="fieldset_eui">
+            <legend>新飞机信息</legend>
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">机队：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="fleet" name="fleet"
+                                   data-options="required:true" readonly />
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">注册号：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 150px;"
+                                   id="acno" name="acnos"
+                                   data-options="required:true" readonly />
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </fieldset>
+        <fieldset class="fieldset_eui">
+            <legend>涉及软件清单</legend>
+            <table id="dg"></table>
+        </fieldset>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param; // operation[add,edit,view]
+    var pkid = null;//主表PKID
+    var op = null;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        op = param.operation;
+
+        if (op === "view") {
+            $('#btnComplete').hide();
+        }
+
+        InitDataForm(pkid);
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_NEW_AC_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    var fleet = $('#fleet').textbox('getValue');
+                    InitDataGrid(pkid,fleet);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+
+            }
+        });
+    }
+
+    function InitDataGrid(pkid,fleet) {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,
+            enableLineEdit: op != "view",
+            resize: function () {
+                return {width: 980, height: 440};
+            },
+            queryParams: {newAcId: pkid,fleet:fleet},
+            columns: {
+                param: {FunctionCode: 'EM_SWCONFIG_NEW_AC_CONFIG_LIST'},
+                alter: {
+                    DEAL_METHOD: {
+                        editor: {
+                            type: 'textbox'
+                        }
+                    }
+                }
+            },
+            onBeginEdit: function (rowIndex, rowData) {
+                InitFuncCodeRequest_({
+                    data: {
+                        FunctionCode: "EM_SWCONFIG_NEW_AC_CONFIG_DICT",
+                        configId: rowData.CONFIG_ID
+                    },
+                    successCallBack: function (jdata) {
+                        $('#dg').datagrid("changeEditor", {
+                            index: rowIndex,
+                            field: "DEAL_METHOD",
+                            editor: {
+                                type: 'combobox',
+                                options: {
+                                    data: jdata.data,
+                                    valueField: "VALUE",
+                                    textField: "TEXT",
+                                    panelWidth: "500px",
+                                    panelHeight: "auto",
+                                    tipPosition: "top"
+                                }
+                            }
+                        });
+                    }
+                });
+            },
+            onEndEdit: function (index, row, changes) {
+                InitFuncCodeRequest_({
+                    data: {
+                        FunctionCode: "EM_SWCONFIG_NEW_AC_CONFIG_UPDATE",
+                        pkid:pkid,
+                        configNo:row.CONFIG_NO,
+                        status: row.DEAL_METHOD
+                    },
+                    successCallBack: function (jdata) {
+                        if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                            $('#dg').datagrid('reload');
+                        } else {
+                            MsgAlert({
+                                contetnt: jdata.msg,
+                                type: "warn"
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function completeBtn() {
+        if (! pkid) {
+            MsgAlert({
+                content: "数据异常！请刷新页面或者打开后再试。",
+                type: "error"
+            });
+        }
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_NEW_AC_CONFIG_SUM",
+                newAcId: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data.NUM > 0) {
+                        MsgAlert({
+                            content: "还有 " + jdata.data.NUM + " 个构型数据未判断，无法提交！"
+                        });
+                    } else {
+                        $.messager.confirm("", "是否确认完成评估，确认后无法再修改？", function (r) {
+                            if (r) {
+                                InitFuncCodeRequest_({
+                                    data: {
+                                        FunctionCode: "EM_SWCONFIG_NEW_AC_COMPLETE",
+                                        pkid: pkid
+                                    },
+                                    successCallBack: function (jdata) {
+                                        if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                            MsgAlert({content: jdata.msg});
+                                            param.OWindow.searchData();
+                                            closeW();
+                                        } else {
+                                            MsgAlert({content: jdata.msg, type: 'error'});
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+
+            }
+        });
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+
+    //扩展datagrid
+    $.extend($.fn.datagrid.methods, {
+        currentRowIndex: function (jq, obj) {
+            return $(obj).closest("tr.datagrid-row")[0].rowIndex;
+        },
+        changeEditor: function (jq, p) {
+            return jq.each(function () {
+                var dg = $(this);
+
+                var index = p.index;
+                if (typeof (index) != "number") {
+                    index = $(index).closest("tr.datagrid-row")[0].rowIndex;
+                }
+
+                var editor = dg.datagrid('getEditor', { index: index, field: p.field });
+                var diveitor = $(editor.target).closest("div.datagrid-cell");
+                var editortd = $(editor.target).parent();
+                var opts = dg.datagrid("options");
+                var _15d, _15e;
+                if (typeof p.editor == "string") {
+                    _15d = p.editor;
+                } else {
+                    _15d = p.editor.type;
+                    _15e = p.editor.options;
+                }
+                editortd.empty();
+                var _15f = opts.editors[_15d];
+                $.data(diveitor[0], "datagrid.editor", { actions: _15f, target: _15f.init(editortd, _15e), field: p.field, type: _15d, oldHtml: editor.oldHtml });
+                var row = opts.finder.getRow(dg[0], index);
+                var ed = $.data(diveitor[0], "datagrid.editor");
+                ed.actions.setValue(ed.target, row[p.field]);
+                ed.actions.resize(ed.target, diveitor.width());
+            });
+        },
+        getEditorValue: function (jq, p) {
+
+            var dg = jq;
+
+            var index = p;
+            if (typeof (index) != "number") {
+                index = $(index).closest("tr.datagrid-row")[0].rowIndex;
+            }
+            var opts = dg.datagrid("options");
+            var tr = opts.finder.getTr(dg[0], index);
+            var row = opts.finder.getRow(dg[0], index);
+
+
+
+            var _14d = $.extend({}, row);
+            tr.find("div.datagrid-editable").each(function () {
+                var _14e = $(this).parent().attr("field");
+                var ed = $.data(this, "datagrid.editor");
+                var t = $(ed.target);
+                var _14f = t.data("textbox") ? t.textbox("textbox") : t;
+                _14f.triggerHandler("blur");
+                var _150 = ed.actions.getValue(ed.target);
+                _14d[_14e] = _150;
+            });
+
+            return _14d;
+        },
+        setEditorValue: function (jq, p) {
+            return jq.each(function () {
+                var dg = $(this);
+
+                var index = p.index;
+                if (typeof (index) != "number") {
+                    index = $(index).closest("tr.datagrid-row")[0].rowIndex;
+                }
+                var opts = dg.datagrid("options");
+                var tr = opts.finder.getTr(dg[0], index);
+                var row = opts.finder.getRow(dg[0], index);
+                var value = p.value || {};
+
+
+                var _14d = $.extend({}, row);
+                tr.find("div.datagrid-editable").each(function () {
+                    var _14e = $(this).parent().attr("field");
+                    if (value[_14e] !== undefined) {
+                        var ed = $.data(this, "datagrid.editor");
+                        var t = $(ed.target);
+                        ed.actions.setValue(ed.target, value[_14e]);
+                    }
+                });
+
+            });
+        }
+    });
+</script>
+
+</html>

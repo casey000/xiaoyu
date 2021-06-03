@@ -1,0 +1,282 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">发动机引进评估</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="epn" name="epn" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">序号：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-textbox" id="esn" name="esn" style="width:100px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">状态：</th>
+                    <td style="width: 100px" class="td5">
+                        <input class="easyui-combobox" id="status" name="status" style="width:100px;"/>
+                    </td>
+                    <td class="td5">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="doSearch_()"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a href="javascript:void(0)" auth="ENG_INT_EVA1" class="addBtn"
+                           onclick="addOrEditEva('add','')"><span>新增</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            doSearch_();
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_INT_STATUS,ENG_INT_MOD_LEVEL,ENG_ZZFROM,YESORNO," +
+                "ENG_INT_EVA_POLICY",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["ENG_INT_STATUS"]);
+                    PAGE_DATA['yesorno'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    PAGE_DATA['zzfrom'] = DomainCodeToMap_(jdata.data["ENG_ZZFROM"]);
+                    PAGE_DATA['ifInt'] = DomainCodeToMap_(jdata.data["ENG_INT_EVA_POLICY"]);
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngType",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#epn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+
+                    $('#status').combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_INT_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engIntEva/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_INT_EVA_LIST'},
+                alter: {
+                    status:{
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    zzfrom:{
+                        formatter: function (value) {
+                            return PAGE_DATA['zzfrom'][value];
+                        }
+                    },
+                    ifInt:{
+                        formatter: function (value) {
+                            return PAGE_DATA['ifInt'][value];
+                        }
+                    },
+                    presDate: {
+                        type: 'date'
+                    },
+                    calDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEva('edit', rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "删除",
+                    auth: "ENG_INT_EVA3",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        delIntEva(rowData.pkid);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "评估完成",
+                    auth: "ENG_INT_EVA4",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        evaComplete(rowData.pkid);
+                    }
+                },
+            ],
+            validAuth: function (row, items) {
+                if ('1' != row.status || loginUser != row.createUser) {
+                    items['删除'].enable = false;
+                    items['评估完成'].enable = false;
+                }
+                if ('1' != row.status) {
+                    items['编辑'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEditEva('view',value.pkid);
+            }
+        });
+    }
+
+    //添加或编辑--发动机引进评估
+    function addOrEditEva(operation, pkid) {
+        var flag = 'key';
+        var title_ = $.i18n.t('添加或编辑--发动机引进评估');
+        ShowWindowIframe({
+            width: "910",
+            height: "680",
+            title: title_,
+            param: {pkid: pkid, operation: operation,flag:flag},
+            url: "/views/engine/engIntEva/eng_int_eva_add_edit.shtml"
+        });
+    }
+
+    //刷新列表
+    function reload_(){
+        $("#dg").datagrid("reload");
+    }
+
+    function doSearch_() {
+        InitDataGrid();
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    //删除
+    function delIntEva(pkid){
+        var cou = '';
+        var datas = {"pkid":pkid};
+        InitGatewayRequest_({
+            async: false,
+            data:datas,
+            path: "/meng-engine/engIntEva/delIntEva",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    cou = jdata.obj;
+                    if(cou > 0){
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                } else {
+                    MsgAlert({content: "删除失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+    //评估完成
+    function evaComplete(pkid){
+        var cou = '';
+        var datas = {"pkid":pkid};
+        InitGatewayRequest_({
+            async: false,
+            data:datas,
+            path: "/meng-engine/engIntEva/evaComplete",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    cou = jdata.obj;
+                    if(cou > 0){
+                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        reload_();
+                    }
+                } else {
+                    MsgAlert({content: "操作评估完成失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+
+</script>
+</body>
+</html>

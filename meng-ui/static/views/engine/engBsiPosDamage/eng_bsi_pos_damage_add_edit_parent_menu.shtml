@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>孔探结构化设置</title>
+
+</head>
+<body>
+
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="孔探结构化设置" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid" value=""/>
+                <input type="hidden" id="modifyUser" name="modifyUser" value=""/>
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="5" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">发动机型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="dataName" name="dataName" data-options="required:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <!-- 2020-7-28 用户要求去掉该字段
+                    <tr>
+                        <th class="tdl">子型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="childConfig" name="childConfig"
+                                   data-options="required:true,editable:false"/>
+                        </td>
+                    </tr>
+                    -->
+                    <tr>
+                        <th class="tdl">维护人：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var param = {};
+    var operation;
+    var pkid;
+
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        $("#modifyName").textbox('setValue', userLogin.userName);
+        $("#modifyUser").val(userLogin.accountId);
+        var currentDate = new Date();
+        var year = currentDate.getFullYear().toString();
+        var month = (currentDate.getMonth() + 1).toString();
+        var day = currentDate.getDate().toString();
+        $("#modifyDate").datebox('setValue', year + "-" + month + "-" + day);
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+        if ("view" == operation) { //查看
+            $(".easyui-combobox").combobox({editable: false, onlyview: true});
+            $(".easyui-textbox").textbox({editable: false, onlyview: true});
+            $("#saveBtn").hide();
+        }
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngTypeNew",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#dataName').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '100px'
+                    });
+
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_CHILD_CONFIG",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#childConfig').combobox({
+                        panelHeight: '60px',
+                        multiple: true, //是否可多选
+                        data: jdata.data.ENG_CHILD_CONFIG,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    if (pkid) {
+                        InitDataForm(pkid);
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        //var childConfig = $("#childConfig").combobox('getValues').join(",");//子型号型号
+        //if(childConfig.indexOf("N/A") > -1 && childConfig.length > 3){
+        //    MsgAlert({content: "N/A选项不能和其它选项同时选中。", type: 'error'});
+        //    return;
+       // }
+        saveOrEdit(operation);
+    }
+
+    function saveOrEdit(operation) {
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas['operation'] = $.trim(datas['operation']);
+        datas['operation'] = operation;
+
+        //var childConfig = $("#childConfig").combobox('getValues');//子型号型号
+        //datas['childConfig'] = childConfig.join(',');
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/addOrEditParentMenus",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        $('#pkid').val(pkid);
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/getEngBsiPosDamageById/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    if ("view" == operation) {
+                        ParseFormField_(jdata.obj, $("#mform"));
+                    } else {
+                        $("#dataName").combobox('setValue', jdata.obj.dataName);
+                    }
+                    //var array = jdata.obj.childConfig.split(",");
+                    //$('#childConfig').combobox({value: array});
+                } else {
+                    MsgAlert({content: "获取数据失败!", type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

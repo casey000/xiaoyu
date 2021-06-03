@@ -1,0 +1,194 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">工程审批查询</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form class="form-horizontal m-t" id="mform">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">审批单号：</th>
+                    <td>
+                        <input class="easyui-textbox" name="spaPkid" id="spaPkid" data-options="editable:false"
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">审批类型：</th>
+                    <td>
+                        <input class="easyui-combobox" name="approvalType" id="approvalType" data-options="editable: false, onlyview: true"
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px" id="fDeadlineTh">延期截止日期：</th>
+                    <td id="fDeadlineTd">
+                        <input class="easyui-datebox" name="fDeadline" id="fDeadline" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <!--<th data-i18n="" style="width: 70px">审批结论：</th>-->
+                    <!--<td>-->
+                        <!--<input class="easyui-combobox" name="approvalResult" id="approvalResult" data-options=""-->
+                               <!--style="width:120px;"/>-->
+                    <!--</td>-->
+                    <td>
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                    </td>
+                </tr>
+                <tr id="approvalLicenseTr">
+                    <th data-i18n="" style="width: 70px" id="approvalLicense1Th">执照号：</th>
+                    <td id="approvalLicense1Td">
+                        <input class="easyui-textbox" name="approvalLicense1" id="approvalLicense1" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <td id="approvalLicense2Td">
+                        <input class="easyui-textbox" name="approvalLicense2" id="approvalLicense2" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px" id="license1HolderTh">执照号归属人：</th>
+                    <td id="license1HolderTd">
+                        <input class="easyui-textbox" name="license1Holder" id="license1Holder" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <td id="license2HolderTd">
+                        <input class="easyui-textbox" name="license2Holder" id="license2Holder" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<script type="text/javascript">
+    var spaPkid;
+    var approvalType;
+    var approvalResult;
+    var pdfUrl;
+    var type;
+    var param;
+    var taskId;
+    function i18nCallBack() {
+        param = getParentParam_();
+        spaPkid=param.spaPkid;
+        approvalType= param.approvalType;
+        approvalResult=param.approvalResult;
+        pdfUrl=param.pdfUrl;
+        type =param.type;
+        taskId=param.taskId;
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_APPROVAL_TYPE,EM_APPROVAL_RESULT,EM_APPROVAL_STATUS"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    $('#approvalType').combobox({
+                        panelHeight: '300px',
+                        data: jdata.data.EM_APPROVAL_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#approvalResult').combobox({
+                        panelHeight: '200px',
+                        data: jdata.data.EM_APPROVAL_RESULT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#approvalStatus').combobox({
+                        panelHeight: '70px',
+                        data: jdata.data.EM_APPROVAL_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //隐藏延期截止日期
+                    $("#fDeadlineTd").hide();
+                    $("#fDeadlineTh").hide();
+
+                    if (approvalType=="A"){
+                        //偏离流程
+                       $("#approvalLicense2Td").hide();
+                        $("#license2HolderTd").hide();
+                    }else if (approvalType=="B"){
+
+                        //第一个节点隐藏第二个执照框
+                        if (taskId=="task1562893894149"){
+                            $("#approvalLicense2Td").hide();
+                            $("#license2HolderTd").hide();
+                        }else if(taskId=="task1562893906785"){
+                            $("#approvalLicense1Td").hide();
+                            $("#license1HolderTd").hide();
+                        }
+                    }else if(approvalType=="C"){
+                        //隐藏批准执照
+                        $("#approvalLicenseTr").hide();
+                        //隐藏保存按钮
+
+                        $("#saveBtn").hide();
+                        // $("#approvalLicense1Th").hide();
+                        // $("#approvalLicense1Td").hide();
+                        // $("#approvalLicense2Td").hide();
+                    }else if(approvalType=="D"){
+                        //显示延期截止日期
+                        $("#fDeadlineTd").show();
+                        $("#fDeadlineTh").show();
+                        //隐藏批准执照
+                        $("#approvalLicenseTr").hide();
+                       //除了第一个节点，其他隐藏保存按钮
+                        if (taskId=="task1562894868237"){
+                            $("#saveBtn").show();
+                        }else{
+                            $("#saveBtn").hide();
+                        }
+                        // $("#approvalLicense1Td").hide();
+                        // $("#approvalLicense2Td").hide();
+                    }
+                    InitDataForm(spaPkid);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {spaPkid: pkid, FunctionCode: "EM_APPROVAL_SEARCH_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#spaPkid').textbox({editable: false, onlyview: true, required: false});
+                    // $('#approvalType').combobox({editable: false, onlyview: true, required: false});
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        datas = $.extend({}, datas, {FunctionCode: 'EM_APPROVAL_SEARCH_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    // var approvalResult= $("#approvalResult").combobox("getValue");
+                    //设置父页面方法
+                    window.parent.setResult(jdata);
+                    // if (param.OWindow.onSearch_) {
+                    //     param.OWindow.onSearch_('dg', '#ffSearch');
+                    // }
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>

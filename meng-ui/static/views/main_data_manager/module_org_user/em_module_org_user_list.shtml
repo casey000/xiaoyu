@@ -1,0 +1,222 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>部门负责人</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <input type="hidden" id="selectType" name="selectType">
+                    <tr>
+                        <th data-i18n="" style="width:60px;" align="right">模块：</th>
+                        <td style="width:150px">
+                            <input class="easyui-textbox" name="menuId" id="menuId" style="width:150px"/>
+                        </td>
+                        <th align="right" data-i18n="" style="width:70px;">部门：</th>
+                        <td style="width:150px">
+                            <input class="easyui-textbox" name="orgId" id="orgId" style="width:150px"/>
+                        </td>
+                        <th align="right" data-i18n="" style="width:60px;">负责人：</th>
+                        <td style="width:150px">
+                            <input class="easyui-textbox" name="userId" id="userId" style="width:150px"/>
+                        </td>
+                        <td>
+                            <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="searchData()">
+                                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span>
+                            </a>
+                            <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="doClear_()">
+                                <span data-i18n="">重置</span>
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = [];
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "EM_MODULE_ORG_MENU_ID,EM_MODULE_ORG_ORG_ID,EM_MODULE_ORG_USER_ID,YESORNO"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['menuId'] = DomainCodeToMap_(jdata.data["EM_MODULE_ORG_MENU_ID"]);
+                    PAGE_DATA['orgId'] = DomainCodeToMap_(jdata.data["EM_MODULE_ORG_ORG_ID"]);
+                    PAGE_DATA['userId'] = DomainCodeToMap_(jdata.data["EM_MODULE_ORG_USER_ID"]);
+                    PAGE_DATA['yesOrNo'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+
+                    $('#menuId').combobox({
+                        data: jdata.data.EM_MODULE_ORG_MENU_ID,
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+
+                    });
+                    $('#orgId').combobox({
+                        data: jdata.data.EM_MODULE_ORG_ORG_ID,
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+
+                    });
+                    $('#userId').combobox({
+                        data: jdata.data.EM_MODULE_ORG_USER_ID,
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            columns: {
+                param: {FunctionCode: 'EM_MODULE_ORG_LIST'},
+                alter: {
+                    MENU_ID: {
+                        formatter: function (value) {
+                            return PAGE_DATA['menuId'][value];
+                        }
+                    },
+                    ORG_ID: {
+                        formatter: function (value) {
+                            return PAGE_DATA['orgId'][value];
+                        }
+                    },
+                    NOTIFY_ENTIRE_DEPT: {
+                        formatter: function (value) {
+                            return PAGE_DATA['yesOrNo'][value];
+                        }
+                    }
+                    ,
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            toolbar: [
+                {
+                    id: 'btnAdd',
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    auth: "EM_MODULE_ORG_ADD",
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        ShowWindowIframe({
+                            url: "/views/main_data_manager/module_org_user/em_module_org_user_add.shtml?operation=add",
+                            title: "新增部门负责人",
+                            width: 600,
+                            height: 420
+                        });
+                    }
+                },
+                '-',
+                {
+                    id: 'btnReload',
+                    text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                    iconCls: 'icon-reload',
+                    handler: function () {
+                        $("#dg").datagrid("reload");
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    auth: "EM_MODULE_ORG_EDIT",
+                    onclick: function () {
+                        var row = $('#dg').datagrid('getSelected');
+                        if (! row.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        common_add_edit_({
+                            url: "/views/main_data_manager/module_org_user/em_module_org_user_add.shtml?operation=edit&pkid=" + row.PKID,
+                            identity: "u_dg",
+                            isEdit: 0,
+                            width: 600,
+                            height: 420
+                        });
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "删除",
+                    auth: "EM_MODULE_ORG_DELETE",
+                    onclick: function () {
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (! rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_MODULE_ORG_DELETE',
+                                pkid: rowData.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: $.i18n.t(jdata.msg), type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ]
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+</script>
+</body>
+</html>

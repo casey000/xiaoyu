@@ -1,0 +1,187 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>查看改变量列表</title>
+    <style>
+        .datagrid-wrap {
+            height: 300px !important;
+        }
+
+    </style>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <!--<fieldset class="fieldset_eui">
+        <legend>搜索</legend>
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                    <tr>
+                        <th style="width: 100px;">初始化日期从：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="flightDateBegin" name="flightDateBegin" style="width:100px;"
+                                   data-options="editable:false"/>
+                        </td>
+                        <th style="width: 40px;"> 至：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="flightDateEnd" name="flightDateEnd" style="width:100px;"
+                                   data-options="editable:false"/>
+                        </td>
+                        <td style="text-align:left; padding-right:5px">
+                            <a class="searchBtn" data-options="iconCls:'icon-search'"
+                               onclick="onSearch_()"><span>查询</span></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>-->
+    <table id="dg"></table>
+    <table class="table table-bordered table-info">
+        <tr>
+            <th style="text-align: left;padding-top: 6px;padding-bottom: 6px;" colspan="4"></th>
+            <td style="text-align:right; padding:5px;">
+                <a class="addBtn" data-options="iconCls:'icon-search'"
+                   onclick="addElaChange()"><span>增加</span></a>
+            </td>
+        </tr>
+    </table>
+    <table id="dg1"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    var selectRow;
+    var initialPkid;
+    var clickInitialDataPkid;
+    var clickInitialDataSource;
+    var clickInitialDataUnit;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        initialPkid = param.INITIAL_PKID;
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "MSGRP"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['acno'] = DomainCodeToMap_(jdata.data.MSGRP);
+                $('#acno').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.MSGRP
+                });
+                InitDataGrid();
+                InitDataGrid1();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            queryParams: {initialPkid:initialPkid},
+            columns: {
+                param: {FunctionCode: 'EM_ELA_CHANGE_INITIAL_DATA_LIST'},
+                alter: {
+                    ACNO: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['acno'][row.ACNO];
+                        },
+                    },
+                    INITIAL_DATE: {
+                        type:'date'
+                    },
+                    WRITE_DATE: {
+                        type:'date',
+                    },
+                    AUDIT_DATE: {
+                        type:'date',
+                    },
+                    APPROVAL_DATE: {
+                        type:'date',
+                    }
+
+                }
+            },
+            onClickRow: function (rowIndex, rowData) {
+                clickInitialDataPkid = rowData.PKID;
+                clickInitialDataSource = rowData.SOURCE;
+                clickInitialDataUnit = rowData.LOAD_UNIT;
+                InitDataGrid1();
+            },
+        });
+    }
+
+    function InitDataGrid1() {
+        var pid;
+        if(clickInitialDataPkid){
+            pid = clickInitialDataPkid;
+        }else{
+            pid = -1;
+        }
+        $("#dg1").MyDataGrid({
+            identity: 'dg1',
+            queryParams: {initialDataPkid:pid},
+            columns: {
+                param: {FunctionCode: 'EM_ELA_CHANGE_LIST'},
+                alter: {
+                    EO_NO: {
+                        formatter: function (value, row, index) {
+                            return value+'R'+row.EO_VER;
+                        },
+                    },
+                    CN_TITLE: {
+                        formatter: function (value, row, index) {
+                            return "<span title='"+value+row.EN_TITLE+"'+>"+value+row.EN_TITLE+"</span>"
+                        },
+                    },
+                    CONFIRM_DATE:{
+                        type:'date'
+                    },
+
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-delete", i18nText: "删除",
+                    onclick: function () {
+                        var rowData = $("#dg1").datagrid('getSelected');
+                        common_delete_({
+                            identity: 'dg1',
+                            cfmI18next: "确认删除吗",
+                            param: {data: {pkid: rowData.PKID}},
+                            FunctionCode: "EM_ELA_CHANGE_DEL"
+                        })
+                    }
+                }
+            ],
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+        $("#dg1").datagrid("reload");
+    }
+
+    //增加
+    function addElaChange() {
+        if(clickInitialDataPkid){
+            common_add_edit_({
+                identity: identity, isEdit: 0, width: 650, height: 320,
+                param:{initialDataPkid:clickInitialDataPkid,initialDataSource: clickInitialDataSource,initialDataUnit: clickInitialDataUnit},
+                url: "/views/em/emela/emela_change_add_edit.shtml"
+            });
+        }else{
+            MsgAlert({content:'请选择初始化数据',type:'error'});
+        }
+    }
+</script>
+</body>
+</html>

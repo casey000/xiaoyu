@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">章节主数据维护</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th data-i18n="" style="width: 70px">CHAPTER：</th>
+                    <td>
+                        <input class="easyui-textbox" name="chapter" id="chapter" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">SECTION：</th>
+                    <td>
+                        <input class="easyui-textbox" name="section" id="section" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">SUBJECT：</th>
+                    <td>
+                        <input class="easyui-textbox" name="subject" id="subject" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()"
+                           auth="emallocation-view">查询</a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+        InitDataGrid();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "DM_REC_PRIVIDOR",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'BM_ATA_LIST'},
+                alter: {
+                    // DATA_FROM: {
+                    //     formatter: function (value) {
+                    //         return PAGE_DATA['dataFrom'][value];
+                    //     }
+                    // }
+                }
+            },
+            onLoadSuccess: function () {
+            },
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                auth: "BM_ATA_ADD",
+                iconCls: 'icon-add',
+                handler: function () {
+                    addBmAta('add');
+                }
+            }, '-', {
+                id: 'btnReload',
+                text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                iconCls: 'icon-reload',
+                handler: function () {
+                    $("#dg").datagrid("reload");
+                }
+            }],
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "BM_ATA_EDIT",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 500, height: 530,
+                            url: "/views/main_data_manager/bm_ata/bm_ata_edit.shtml"
+
+                        });
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "BM_ATA_DEL",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'BM_ATA_DEL'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                        // common_delete_({
+                        //     identity: identity,
+                        //     cfmI18next: "msg_tip:TIP.COMMON.DEL_CONFIRM",
+                        //     param: {pkid: "PKID"},
+                        //     FunctionCode: "BM_ATA_DEL"
+                        // });
+                    }
+                }
+            ]
+
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function addBmAta() {
+        ShowWindowIframe({
+            width: 500,
+            height: 530,
+            title: "新增章节主数据维护",
+            url: "/views/main_data_manager/bm_ata/bm_ata_edit.shtml"
+        });
+    }
+</script>
+</body>
+</html>

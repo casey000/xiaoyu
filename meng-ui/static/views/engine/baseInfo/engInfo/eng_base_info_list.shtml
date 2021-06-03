@@ -1,0 +1,343 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">发动机基础数据</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" class="form-horizontal">
+        <table class="table table-bordered table-info">
+            <tr>
+              <!--  <th class="th" style="width:80px;" align="right">发动机型号：</th>
+                <td style="width: 100px">
+                    <input class="easyui-combobox" id="engType" name="engType" style="width:120px;"/>
+                </td>-->
+                <th class="th" style="width:80px;" align="right">件号：</th>
+                <td style="width: 100px">
+                    <input class="easyui-combobox" id="matnr" name="matnr" style="width:100px;"/>
+                </td>
+                <th class="th" style="width:80px;" align="right">发动机序号：</th>
+                <td style="width: 100px">
+                    <input class="easyui-combobox" id="sernr" name="sernr" style="width:100px;"/>
+                </td>
+
+                <th class="th" style="width:60px;" align="right">设备类型：</th>
+                <td style="width: 100px">
+                    <input class="easyui-combobox" id="eqart" name="eqart" style="width:100px;"/>
+                </td>
+                <th class="th" style="width:60px;" align="right">机号：</th>
+                <td style="width: 100px">
+                    <input class="easyui-combobox" id="msgrp" name="msgrp" style="width:100px;"/>
+                </td>
+                <!-- <th class="th" style="width:60px;" align="right">状态：</th>
+                 <td style="width: 100px">
+                     <input class="easyui-combobox" id="prio" name="prio" style="width:100px;"/>
+                 </td>-->
+
+                <td>
+                    <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                       onclick="onSearchClick();"><span>查询</span></a>
+                    <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                        <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    <a href="javascript:void(0)" class="addBtn" onclick="onExcel()"><span>导出</span></a>&nbsp;
+                </td>
+            </tr>
+        </table>
+    </form>
+</fieldset>
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left">
+        <div>
+            <table id="dg"></table>
+        </div>
+    </div>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var address=window.location.origin; //url
+    var port=document.location.port;//ip:端口号
+    if(!port){
+        port = ':'+port;
+    }else{
+        port = '';
+    }
+    var ctx = address+port;
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+
+        /*$('#prio').combobox({
+            data: [{
+                TEXT: '删除',
+                VALUE: '1'
+            }, {
+                TEXT: '在翼',
+                VALUE: '2'
+            }, {
+                TEXT: '在高级设备',
+                VALUE: '3'
+            }, {
+                TEXT: '在库',
+                VALUE: '4'
+            }, {
+                TEXT: '其他',
+                VALUE: '5'
+            }],
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            panelHeight: '150px',
+        });*/
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            // path: "/meng-engine/baseOwn/getEngType",
+            path: "/meng-engine/baseOwn/getEngType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#matnr').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                        onSelect: function (item) {
+                            InitGatewayRequest_({
+                                async: false,
+                                data: {matnr: item.VALUE},
+                                path: "/meng-engine/baseOwn/getEngByType",
+                                successCallBack: function (jdata) {
+                                    if (jdata.success == true) {
+                                        $('#sernr').combobox({
+                                            data: jdata.obj,
+                                            valueField: 'VALUE',
+                                            textField: 'TEXT',
+                                            panelHeight: '150px',
+                                        });
+                                    } else {
+                                        MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        InitGatewayRequest_({
+            async: false,
+            data: {matnr: ""},
+            path: "/meng-engine/baseOwn/getEngByType",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#sernr').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        $('#eqart').combobox({
+            data: [{"TEXT": "ENGINE", "VALUE": "ENGINE"}, {"TEXT": "APU", "VALUE": "APU"}],
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            panelHeight: '60px',
+        });
+
+        $('#msgrp').combobox({
+            panelHeight: '100px',
+            queryParams: {acType: ''},
+            url: Constant.API_URL + 'DA_ACTYPE_GET_ACNOS',
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            loadFilter: function (jdata) {
+                return jdata.data;
+            }
+        });
+//        InitGatewayRequest_({
+//            async: false,
+//            path: "/meng-engine/basTypeMapper/getEngtypesAll",
+//            successCallBack: function (jdata) {
+//                if (jdata.success == true) {
+//                    $('#engType').combobox({
+//                        data: jdata.obj,
+//                        valueField: 'VALUE',
+//                        textField: 'TEXT',
+//                        panelHeight: '100px',
+//                    });
+//                } else {
+//                    MsgAlert({content: '获取型号列表失败', type: 'error'});
+//                }
+//            }
+//        });
+
+        InitDataGrid();
+    }
+
+    function InitDataGrid() {
+        var data_ = [];
+        //验证网关查询接口
+        var queryParams = $("#ffSearch").serializeObject();
+        InitGatewayRequest_({
+            path: "/meng-engine/baseOwn/listByPage",
+            async: false,
+            data: queryParams,
+            successCallBack: function (jdata) {
+                $("#dg").MyDataGrid({
+                    identity: 'dg',
+                    idField: "sernr",
+                    data: jdata.obj,
+                    pagination: false,
+                    columns: {
+                        param: {FunctionCode: 'ENG_BASE_INFO_LIST'},
+                        alter: {
+                            zzlidat: {
+                                formatter: function (value, row, index) {
+                                    var prio = row.prio;
+                                    if (prio == 'INSTALLED') {
+                                        if (value != "" && value != null)
+                                            return value.substr(0, 10);
+                                    } else {
+                                        return "";
+                                    }
+                                }
+                            },
+                            msgrp: {
+                                formatter: function (value, row, index) {
+                                    var prio = row.prio;
+                                    if (prio == 'INSTALLED') {
+                                        return value;
+                                    } else {
+                                        return "";
+                                    }
+                                }
+                            },
+                            strno: {
+                                formatter: function (value, row, index) {
+                                    var prio = row.prio;
+                                    if (prio == 'INSTALLED' && value) {
+                                        var pos = value.substr(value.length - 1, 1);
+                                        if (pos == 'U' || pos == 'L')
+                                            return 'APU';
+                                        else
+                                            return pos;
+                                    } else {
+                                        return "";
+                                    }
+                                }
+                            },
+                            prio: {
+                                formatter: function (value, row, index) {
+                                    if (value == 'INSTALLED') {
+                                        return "在位";
+                                    } else if (value == 'UNSERINSTO') {
+                                        return "不可用";
+                                    } else if (value == 'IMPORTING') {
+                                        return "引进中";
+                                    } else if (value == 'INREPAIR') {
+                                        return "送修中";
+                                    } else if (value == 'SERINSTOCK' || value == 'WINSPECT') {
+                                        return "可用";
+                                    } else
+                                        return "已退出";
+                                }
+                            }
+                        }
+                    },
+                    contextMenus: [
+                        {
+                            id: "m-view", i18nText: "自有属性维护",
+                            auth: "ENG_BASE_INFO1",
+                            onclick: function () {
+                                var rowData = getDG('dg').datagrid('getSelected');
+                                if (!rowData.equnr) {
+                                    MsgAlert({content: "请选择数据！", type: 'error'});
+                                    return;
+                                }
+                                addOrEditEngBaseOwn(rowData);
+                            }
+                        }
+                    ],
+                    resize: function () {
+                        return {
+                            height: $(document.body).height() - $("fieldset").height() - 30,
+                            width: $("#lay_left").width()
+                        };
+                    },
+                    /* onDblClickRow: function (index, field, value) {
+                     addOrEditEngMcdMate("view", value.pkid);
+                     }*/
+                });
+            }
+        });
+    }
+
+    function onSearchClick() {
+        InitDataGrid();
+    }
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        i18nCallBack();
+    }
+
+    function addOrEditEngBaseOwn(rowData) {
+        var title_ = $.i18n.t('自有工程属性维护');
+        ShowWindowIframe({
+            width: "690",
+            height: "370",
+            title: title_,
+            param: {rowData: rowData},
+            url: "/views/engine/baseInfo/engInfo/eng_base_own_add_edit.shtml"
+        });
+    }
+
+    function onExcel(url) {
+        var queryParams = $("#ffSearch").serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            data: queryParams,
+            path: "/meng-engine/baseOwn/genExcel",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    url = jdata.obj;
+                    window.location.href = ctx + url;
+
+                } else {
+                    MsgAlert({content:"导出失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

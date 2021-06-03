@@ -1,0 +1,120 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title></title>
+    <script type="text/javascript">
+        var param = {};
+        var isEdit_;
+        $(function () {
+            $('#roleIds').MyDatalist({
+                singleSelect: false,
+                url: "/api/v1/combobox/roleList"
+            });
+
+            param = getParentParam_();
+            isEdit_ = param && param.ACCOUNT_PKID;
+            if (isEdit_) {
+                InitFuncCodeRequest_({
+                    data: {pkid: param.ACCOUNT_PKID, FunctionCode: "WS_SYS_ACCOUNT_GET"},
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            ParseFormField_(jdata.data.UserInfo, null, Constant.CAMEL_CASE);
+                            var $roleIds = $('#roleIds');
+                            var rows = $roleIds.datalist('getRows');
+                            var roleIds = "," + ArrayCollect_(jdata.data.UserRoleList, "ROLE_ID") + ",";
+                            $.each(rows, function (k, row) {
+                                if (roleIds.indexOf("," + row.id + ",") > -1) {
+                                    $roleIds.datalist('checkRow', k);
+                                }
+                            });
+                            InitEditForm_();
+                        } else {
+                            MsgAlert({content: jdata.msg, type: 'error'});
+                        }
+                    }
+                })
+            } else {
+                InitEditForm_();
+            }
+        });
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        return false;
+                    }
+                    var data = $form.serializeObject();
+//                    data = $.extend({}, data, {});
+                    data.refIdentId = param.USER_ID;
+                    data.accountType = param.ACCOUNT_TYPE;
+                    var nodes_ = $("#roleIds").datalist('getChecked');
+                    data.roleIds = ArrayCollect_(nodes_, "id");
+                    if (data.roleIds == "") {
+                        layer.msg("请至少选择一个角色！", {icon: 5});
+                        return false;
+                    }
+                    InitFuncCodeRequest_({
+                        //url: (isEdit_ ? "/api/v1/sysuser/update" : "/api/v1/sysuser/save"),
+                        data: $.extend({}, data, {FunctionCode: 'WS_SYS_ACCOUNT_AEDIT'}),
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                param.OWindow.reload_();
+                                MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+                                CloseWindowIframe();
+                            } else {
+                                MsgAlert({content: jdata.msg, type: 'error'});
+                            }
+                        }
+                    });
+                    return false;
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <th class="tdl">用户姓名：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="realName"
+                                   data-options="required:true, onlyview:true"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="tdl">用户账号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox easyui-validatebox" name="accountNumber"
+                                   data-options="required:true, validType:['length[1,60]']"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th class="tdl">用户角色：</th>
+                        <td class="tdr">
+                            <!--<input id="roleIds" name="roleIds" panelHeight="100"/>-->
+                            <div id="roleIds" style="width:250px;height:126px"></div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="6" align="center"><input class="btn btn-primary" type="submit" value="提交"/></td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

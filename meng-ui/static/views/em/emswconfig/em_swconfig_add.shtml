@@ -1,0 +1,506 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>软件构型维护</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="ibox  float-e-margins" style="width:100%; height: 100%">
+    <div class="ibox-content">
+        <fieldset class="fieldset_eui">
+            <legend>构型基本信息</legend>
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr id="id_btn_row">
+                        <td colspan="9" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                                   style="margin-left:3px;margin-right: 18px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">构型编号：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-textbox" style="width: 120px;"
+                                   id="configNo" name="configNo" readonly/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">版本：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-textbox" style="width: 120px;"
+                                   id="ver" name="ver" readonly/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">机队：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-combobox" style="width: 120px;"
+                                   id="fleet" name="fleet"
+                                   data-options="required:true" />
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">章节：</th>
+                        <td style="width: 80px;  padding: 3px">
+                            <input class="easyui-combobox" style="width: 120px;"
+                                   id="ata" name="ata"
+                                   data-options="required:true" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">构型名称：</th>
+                        <td colspan="5" style="padding: 3px">
+                            <input class="easyui-textbox" style="width: 400px;"
+                                   id="configName" name="configName"
+                                   data-options="required:true" />
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">状态：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-combobox" style="width: 120px;"
+                                   id="status" name="status" readonly />
+                        </td>
+                    </tr>
+                    <tr id="id_create_line">
+                        <th class="th" align="right" style="width: 80px;">创建人：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-combobox" style="width: 120px;"
+                                   id="createBy" name="createBy" readonly />
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">创建时间：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-textbox" style="width: 120px;"
+                                   id="createDate" name="createDate" readonly />
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">审批人：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-combobox" style="width: 120px;"
+                                   id="approvedBy" name="approvedBy" readonly />
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">审批时间：</th>
+                        <td style="width: 80px; padding: 3px">
+                            <input class="easyui-combobox" style="width: 120px;"
+                                   id="approvedDate" name="approvedDate" readonly />
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </fieldset>
+        <fieldset class="fieldset_eui">
+            <legend>软件清单</legend>
+            <table id="dg1"></table>
+        </fieldset>
+        <fieldset class="fieldset_eui">
+            <legend>适用飞机清单</legend>
+            <table id="dg2"></table>
+        </fieldset>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var op = null;// operation[add,edit,view,flow]
+    var pkid = null;//主表PKID
+    var taskPropId = null;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        op = param.operation;
+        pkid = param.pkid;
+        taskPropId = param.taskPropId;
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode:
+                    "DA_FLEET," +
+                    "BM_ATA_CHAP_SECT," +
+                    "EM_SWCONFIG_STATUS," +
+                    "WS_USER"
+            },
+            successCallBack: function (jdata) {
+                PAGE_DATA['wsUser'] = DomainCodeToMap_(jdata.data.WS_USER);
+
+                $('#fleet').combobox({
+                    panelHeight: '100px',
+                    data: jdata.data.DA_FLEET,
+                    valueField: 'VALUE',
+                    textField: 'TEXT'
+                });
+                $('#ata').combobox({
+                    panelHeight: '150px',
+                    data: jdata.data.BM_ATA_CHAP_SECT,
+                    valueField: 'VALUE',
+                    textField: 'TEXT'
+                });
+                $('#createBy').combobox({
+                    panelHeight: '150px',
+                    data: jdata.data.WS_USER,
+                    valueField: 'VALUE',
+                    textField: 'TEXT'
+                });
+                $('#approvedBy').combobox({
+                    panelHeight: '150px',
+                    data: jdata.data.WS_USER,
+                    valueField: 'VALUE',
+                    textField: 'TEXT'
+                });
+                $('#status').combobox({
+                    panelHeight: '150px',
+                    data: jdata.data.EM_SWCONFIG_STATUS,
+                    valueField: 'VALUE',
+                    textField: 'TEXT'
+                });
+
+                if (op == "add" || op == "edit") {
+                    $('#id_create_line').hide();
+                } else if (op == "view") {
+                    $('#saveBtn').hide();
+                } else if (op == "flow") {
+                    $('#id_btn_row').hide();
+                }
+
+                if (op == "view" || param.taskPropId == "taskEmSwconfig1") {
+                    $('#fleet').textbox("readonly", true);
+                    $('#ata').textbox("readonly", true);
+                    $('#configName').textbox("readonly", true);
+                }
+                // dd.zhang 20200108 【软件构型重评任务】新飞机引进触发软件构型改版任务，在桌面生成的待办，右键处理弹出的窗口没有数据
+                if (op == "edit" || op == "view" || op == "flow"|| (op=="add" && typeof(pkid)!='undefined')) {
+                    InitDataForm(pkid);
+                }
+            }
+        });
+    }
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_REG_PKID",
+                pkid: pkid
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+
+                InitDataGrid1(pkid, jdata.data.FLEET);
+                InitDataGrid2(pkid, jdata.data.FLEET);
+            }
+        });
+    }
+
+    function InitDataGrid1(pkid) {
+        $("#dg1").MyDataGrid({
+            identity: 'dg1',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            resize: function () {
+                return {width: 780, height: 200};
+            },
+            queryParams: {
+                configId: pkid
+            },
+            columns: {
+                param: {FunctionCode: 'EM_SWCONFIG_SW_LIST'},
+                alter: {
+                    TEST_UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.TEST_UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    MODIFY_BY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['wsUser'][value];
+                        }
+                    }
+                }
+            },
+            toolbar: [
+                {
+                    id: 'btnAdd',
+                    text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        addSwWeb('add');
+                    }
+                }
+            ],
+            contextMenus: [
+                {
+                    id: "m-view",
+                    i18nText: "查看",
+                    onclick: function () {
+                        var rowdata = getDG('dg1').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        addSwWeb('view', rowdata.PKID);
+                    }
+                },
+                {
+                    id: "m-modify",
+                    i18nText: "编辑",
+                    onclick: function () {
+                        var rowdata = getDG('dg1').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        addSwWeb('edit', rowdata.PKID);
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "删除",
+                    onclick: function () {
+                        var rowdata = getDG('dg1').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: "EM_SWCONFIG_SW_DEL",
+                                pkid : rowdata.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload1();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                var pkid = row.PKID;
+                items['查看'].enable = !! pkid;
+                items['编辑'].enable = !! pkid && (op == "add" || op == "edit" || taskPropId == "taskEmSwconfig2");
+                items['删除'].enable = !! pkid && (op == "add" || op == "edit" || taskPropId == "taskEmSwconfig2");
+            },
+            onLoadSuccess: function () {
+                $('#btnAdd').linkbutton(op == 'view' || param.taskPropId == "taskEmSwconfig1" ? 'disable' : 'enable');
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg1").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'ATTACHMENT_LIST',
+                                category: "emswconfig",
+                                sourceId: row.PKID,
+                            },
+                            successCallBack: function (jdata) {
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                }, 'attach');
+            }
+        });
+    }
+
+    function addSwWeb(op, swId) {
+        var qs = "operation=" + op +
+            "&ver=" + $('#ver').textbox('getValue') +
+            "&fleet=" + $('#fleet').combobox('getValue') +
+            "&configId=" + pkid +
+            (!! swId ? "&pkid=" + swId : "");
+        ShowWindowIframe({
+            url: "/views/em/emswconfig/em_swconfig_sw_add.shtml?" + qs,
+            title: "软件构型-软件维护页面",
+            width: 600,
+            height: 400
+        });
+    }
+
+    function InitDataGrid2(pkid, fleet) {
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            sortable: true,
+            singleSelect: true,
+            pagination: false,
+            resize: function () {
+                return {width: 780, height: 200};
+            },
+            queryParams: {
+                configId: pkid,
+                fleet: fleet
+            },
+            columns: {
+                param: {FunctionCode: 'EM_SWCONFIG_APP_LIST'}
+            },
+            contextMenus: [
+                {
+                    id: "m-view",
+                    i18nText: "查看适用性",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG('dg2').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        var qs = "operation=view" +
+                            "&configId=" + param.pkid +
+                            "&pkid=" + rowdata.PKID;
+                        addAppWeb(qs);
+                    }
+                },
+                {
+                    id: "m-join",
+                    i18nText: "加入适用性",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata1 = getDG('dg1').datagrid('getSelected');
+                        var rowdata2 = getDG('dg2').datagrid('getSelected');
+                        var qs = "operation=add" +
+                            "&configId=" + param.pkid +
+                            (rowdata1 == null ? "" : "&curSwId=" + rowdata1.PKID) +
+                            "&acid=" + rowdata2.ACID;
+                        addAppWeb(qs);
+                    }
+                },
+                {
+                    id: "m-modify",
+                    i18nText: "维护适用性",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG('dg2').datagrid('getSelected');
+                        var qs = "operation=edit" +
+                            "&configId=" + param.pkid +
+                            "&pkid=" + rowdata.PKID;
+                        addAppWeb(qs);
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "移除适用性",
+                    auth: "",
+                    onclick: function () {
+                        var rowdata = getDG('dg2').datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: "EM_SWCONFIG_APP_DEL",
+                                pkid : rowdata.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                var pkid = row.PKID;
+                var taskPropId = param.taskPropId;
+                items['查看适用性'].enable = !! pkid;
+                items['加入适用性'].enable = ! pkid && (op == "add" || op == "edit" || taskPropId == "taskEmSwconfig2");
+                items['维护适用性'].enable = !! pkid && (op == "add" || op == "edit" || taskPropId == "taskEmSwconfig2");
+                items['移除适用性'].enable = !! pkid && (op == "add" || op == "edit" || taskPropId == "taskEmSwconfig2");
+            }
+        });
+    }
+
+    function addAppWeb(qs) {
+        common_add_edit_({
+            url: "/views/em/emswconfig/em_swconfig_app_add.shtml?" + qs,
+            identity: 'dg2',
+            isEdit: 1,
+            width: 600,
+            height: 400
+        });
+    }
+
+    function save() {
+        var isValidate = $('#mform').form('validate');
+        if (! isValidate) {
+            return;
+        }
+        var formData = JSON.stringify($('#mform').serializeObject());
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "EM_SWCONFIG_REG_ADD",
+                formData: formData
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"));
+                    param.pkid = jdata.data.pkid;
+                    pkid = jdata.data.pkid;
+
+                    if (param.operation != "flow") {
+                        param.OWindow.reload_();
+                        MsgAlert({
+                            content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')
+                        });
+                    }
+
+                    if (op == "add") {
+                        InitDataGrid1(pkid);
+                        InitDataGrid2(pkid, jdata.data.fleet);
+                    } else {
+                        $('#dg1').datagrid('load', {
+                            configId: pkid,
+                        });
+                        $('#dg2').datagrid('load', {
+                            configId: pkid,
+                            fleet: jdata.data.fleet
+                        });
+                    }
+
+                    op = "edit";
+                } else {
+                    MsgAlert({
+                        content: jdata.msg,
+                        type: 'error'
+                    });
+                }
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload1() {
+        $("#dg1").datagrid("reload");
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg2").datagrid("reload");
+    }
+
+    function closeW() {
+        CloseWindowIframe();
+    }
+</script>
+
+</html>

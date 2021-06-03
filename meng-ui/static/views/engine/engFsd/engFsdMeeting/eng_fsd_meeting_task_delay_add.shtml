@@ -1,0 +1,154 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>任务延期</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+
+        }
+
+        th {
+            width: 120px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+    </style>
+</head>
+<body onunload="closeByOnunloadAssess()">
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <div id="p0" class="easyui-panel" title="任务延期" style="width: 100%"></div>
+            <table class="table table-bordered table-info" style="width: 100%">
+                <tr>
+                    <td colspan="4" align="right" style="padding: 0;">
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="saveEngFsdMeetingTask()"
+                               value="保存"/>
+                        <input class="btn btn-primary" type="button" id="closeBtn" onclick="closeOrReloadMeetingTask()"
+                               value="关闭"
+                               style="margin-left:3px;margin-right: 20px;"/>
+                    </td>
+                </tr>
+            </table>
+
+            <div id='tt' class="ibox-content">
+                <form class="form-horizontal m-t" id="engFsdMeetingDelayFrom">
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <input type="hidden" id="refId" name="refId"/>
+                    <input type="hidden" id="feedbackProv" name="feedbackProv"/>
+                    <input type="hidden" id="feedbackDate" name="feedbackDate"/>
+                    <input type="hidden" id="feedbackStatus" name="feedbackStatus"/>
+                    <input type="hidden" id="taskStatus" name="taskStatus"/>
+                    <input type="hidden" id="meetingId" name="meetingId"/>
+                    <input type="hidden" id="followPerson" name="followPerson"/>
+                    <input type="hidden" id="limitDate" name="limitDate"/>
+                    <input type="hidden" id="taskTitle" name="taskTitle"/>
+                    <input type="hidden" id="taskDesc" name="taskDesc"/>
+                    <input type="hidden" id="createName" name="createName"/>
+                    <input type="hidden" id="createDate" name="createDate"/>
+                    <input type="hidden" id="createUser" name="createUser"/>
+                    <input type="hidden" id="followUser" name="followUser"/>
+                    <table class="table table-bordered table-info" style="width: 100%">
+                        <tr>
+                            <th style="width: 100px;">延期至：</th>
+                            <td class="tdr">
+                                <input class="easyui-datebox" id="delayDate" name="delayDate"
+                                       data-options="required:true,editable:true"
+                                       style="width: 200px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>延期说明：</th>
+                            <td class="tdr" colspan="3">
+                                <input class="easyui-textbox" id="delayReason" name="delayReason"
+                                       data-options="required:true,editable:true,multiline:true"
+                                       style="width: 435px;height: 60px;"/>
+                            </td>
+                        </tr>
+
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script>
+    let param = getParentParam_();
+    let operation = param.operation;
+    let rowData = param.rowData;
+    let meetingId = param.pkid;
+
+    function i18nCallBack() {
+        if (rowData) {
+            ParseFormField_(rowData, $("#engFsdMeetingDelayFrom"));
+        }
+
+    }
+
+
+    //检查表单值是否合规
+    function checkFromIsValidate() {
+        const isValidate = $("#engFsdMeetingDelayFrom").form('validate');
+        return isValidate;
+    }
+
+    //保存数据，修改或增加
+    function saveEngFsdMeetingTask() {
+        const isValidate = checkFromIsValidate();
+        if (!isValidate) {
+            return false;
+        }
+        const saveEngFsdMeetingTaskParam = $("#engFsdMeetingDelayFrom").serializeObject();
+
+        //状态更新为deplay
+        saveEngFsdMeetingTaskParam.taskStatus = '3';
+        saveEngFsdMeetingTaskParam.meetingId = meetingId;
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFsdMeetingTask/saveEngFsdMeetingTask",
+            data: saveEngFsdMeetingTaskParam,
+            error: function (jData) {
+                MsgAlert({content: jData.errorMessage ? jData.errorMessage : "延期失败", type: 'error'});
+                return false;
+            },
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    MsgAlert({content: jData.msg ? jData.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    closeOrReloadMeetingTask()
+                } else {
+                    MsgAlert({content: jData.errorMessage ? jData.errorMessage : "延期失败", type: 'error'});
+                }
+            }
+        });
+    }
+
+    //关闭当前窗口并且刷新进入界面
+    function closeOrReloadMeetingTask() {
+        CloseWindowIframe();
+        closeByOnunloadMeetingTask();
+    }
+
+    function closeByOnunloadMeetingTask() {
+        if (param.OWindow && param.OWindow.reload_) {
+            param.OWindow.reload_();
+        }
+    }
+
+</script>
+</body>
+</html>

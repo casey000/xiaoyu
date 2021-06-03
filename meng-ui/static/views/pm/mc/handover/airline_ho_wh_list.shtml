@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>航线交接班维护查询列表</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<fieldset class="fieldset_eui">
+    <legend>搜索</legend>
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                <tr>
+                    <th style="width: 60px;" align="right"> 日期：</th>
+                    <td class="tdr">
+                        <input class="easyui-datebox" id="airlineDateBegin" name="airlineDateBegin" style="width:100px;"
+                               data-options="editable:false"/>
+                    </td>
+                    <th style="width: 60px;" align="right"> 至：</th>
+                    <td class="tdr">
+                        <input class="easyui-datebox" id="airlineDateEnd" name="airlineDateEnd" style="width:100px;"
+                               data-options="editable:false"/>
+                    </td>
+                    <th style="width: 60px;" align="right">航站：</th>
+                    <td>
+                        <input class="easyui-combogrid" id="station" name="station" data-options=""
+                               style="width:200px"/>
+                    </td>
+                    <th style="width: 60px;" align="right">班组：</th>
+                    <td>
+                        <input class="easyui-textbox" id="team" name="team" data-options=""
+                               style="width:100px"/>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'" onclick="onSearch_()" auth="PM_MC_AIRLINE_WH_QUERY"><span>查询</span></a>
+                        <a href="javascript:void(0)" class="ridoBtn" data-options="iconCls:'icon-filter'"
+                           onclick="helpQuery('dg', 'ffSearch', function(){onSearch_(); });" auth="PM_MC_AIRLINE_WH_HIGH_QUERY"><span>高级查询</span></a>
+                        <a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="onClear_()"><span>重置</span></a>
+                        <a class="btn btn-primary" type="button"
+                           onclick="excelExport('dg','航线任务清单');" auth="PM_MC_AIRLINE_WH_EXPORT"><span>导出</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "AIRLINE_ITEM_TYPE"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['type'] = DomainCodeToMap_(jdata.data.AIRLINE_ITEM_TYPE);
+                //航站
+                $("#station").MyComboGrid({
+                    idField: 'STATION',  //实际选择值
+                    textField: 'STATION', //文本显示值
+                    panelHeight: '180px',
+                    width: 100,
+                    params: {FunctionCode: 'SELECT_STATION'},
+                    columns: [[
+                        {field: 'STATION', title: '航站三字码', width: 50},
+                        {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                        {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                        {field: 'FULLNAME_CN', title: '中文全称', width: 50},
+                    ]],
+                    onHidePanel: function () {
+                        var t = $(this).combogrid('getValue');
+                        if (t != null && t != '' & t != undefined) {
+                            if (selectRow == null || t != selectRow.STATION) {//没有选择或者选项不相等时清除内容
+                                alert('请选择，不要直接输入！');
+                                $(this).combogrid({value: ''});
+                            }
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        selectRow = row;
+                    }
+                });
+                InitDataGrid();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'PM_MC_AIRLINE_ITEM_WH_LIST'},
+                alter: {
+                    TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['type'][row.TYPE];
+                        }
+                    },
+                    AIRLINE_DATE: {
+                        type: 'date'
+                    },
+                    LSRZ: {
+                        formatter: function (value, row, index) {
+                            return "<a class='ridoBtn' onclick=\"history('" + row.PKID2 + "');\">history</a>";
+                        }
+                    },
+                }
+            },
+            contextMenus: [],
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 15)
+            }
+        });
+    }
+
+    //历史日志history
+    function history(pkid2) {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 650, height: 400,
+            param: {pkid2: pkid2},
+            url: "/views/pm/mc/handover/airline_ho_log_history.shtml"
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+</script>
+</body>
+</html>

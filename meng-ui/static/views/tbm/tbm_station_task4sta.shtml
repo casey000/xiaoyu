@@ -1,0 +1,328 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <title>FLB数据查询</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <link href="/css/jquery-ui-1.8.2.custom.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/ui.jqgrid.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/dialog_default.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/easyui.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/desk.css" rel="stylesheet" type="text/css"/>
+    <link href="/js/jquery/ztree/zTreeStyle.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/easyui/gray/easyui.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/common_qc.css" rel="stylesheet" type="text/css"/>
+    <link href="/css/flb/commons.css" rel="stylesheet" type="text/css"/>
+
+    <script src="/js/global_var.js"></script>
+    <script src="/js/jquery/easyui/jquery-1.8.0.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/easyui/jquery.easyui.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/easyui/locale/easyui-lang-zh_CN.js" type="text/javascript"></script>
+    <script src="/js/jquery/jqGrid/jquery.jqGrid.min.js" type="text/javascript"></script>
+    <script src="/js/jquery/jqGrid/i18n/grid.locale-cn.js" type="text/javascript"></script>
+    <script src="/js/jquery/lhgdialog/lhgdialog.js" type="text/javascript"></script>
+
+    <script src="/js/jquery.validate.js" type="text/javascript"></script>
+    <script src="/js/datetime_utils.js" type="text/javascript"></script>
+    <script src="/js/custom-validate.js" type="text/javascript"></script>
+    <script src="/js/jquery.maxlength.js" type="text/javascript"></script>
+
+    <script src="/js/sfa-query-1.0.js" type="text/javascript"></script>
+    <script src="/js/flb/sfa-query-flb-linejob.js" type="text/javascript"></script>
+
+    <script src="/js/jquery.form.js" type="text/javascript"></script>
+    <script src="/js/sfa-executor.js" type="text/javascript"></script>
+    <script src="/js/download.js" type="text/javascript"></script>
+
+    <style>
+        .select_width {
+            width: 90px;
+            border: 1px solid #9F9C93;
+        }
+
+        .div_background {
+            background: url("/images/ee_list_field.gif") repeat-x scroll 0 0 #CECECE;
+        }
+
+        .errorMessage {
+            color: red;
+        }
+
+        DIV.error {
+            color: red
+        }
+
+        DIV.unierror {
+            color: red
+        }
+    </style>
+</head>
+<body>
+<div class="listbox">
+    <div class="" style="width: 100%; background: #f2f2f2;">
+        <form id='searchForm' method="post">
+            <table bordercolor="#ccc" cellpadding="0" cellspacing="0" class="table-zi" id="ta"
+                   style="padding-top: 20px; margin-top: 2px; margin-bottom: 2px;"
+                   width="100%">
+                <tr>
+                    <td class="div_background" colspan="15">
+                        <div align="center">
+                            Date Range:
+                            <select class="select_width" id="date_range" name="dateRange">
+                                <option selected="selected" value="1">one day</option>
+                                <option value="2">two day</option>
+                            </select>
+                            Date: <input id="sta_date" name="flightDate" size="16" value=""/>
+                            Time: <input id="sta_time" name="flightTime" size="8" value=""/>
+                            Station: <input id="station_id" name="station" size="10" value=""/>
+                            <img class="search_btn_img" height="16" id="station_seach_btn"
+                                 src="/css/easyui/icons/search.png" style="cursor:pointer" title="Search" width="16"/>
+                            <input class="btn" id="search_btn" type="button" value="Search"/>
+                            <input class="btn" id="reset_btn" type="button" value="Reset"/>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+
+    <div class="listbox">
+        <div class="gridbox">
+            <div class="grid_tab">
+                <table id="common_list_grid"></table>
+                <div id="gridPager"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    gridPermissionMap.staTaskOperate = true;
+    if (frameElement != null) {
+        api = frameElement.api;
+    }
+    var actionType = (parentDialogParams != null ? parentDialogParams["actionType"] : "");
+    if (actionType == "assign" || actionType == "select") {
+        $("#batch_print_btn").hide();
+        $("#export_btn").hide();
+    }
+
+    $('#sta_date').datebox({});
+    var stationDate_init = $("#sta_date").datebox('getValue');
+    var dateTime_init = $.trim($("#sta_time").val());
+
+    var _cur_date = new Date();
+    if ($.trim(stationDate_init) == "") {
+        if (_cur_date.getHours() < 10) {
+            _cur_date.setTime(_cur_date.getTime() - 24 * 60 * 60 * 1000);
+        }
+        $("#sta_date").datebox('setValue',
+            _cur_date.getFullYear() + '-' + (_cur_date.getMonth() + 1) + '-' + _cur_date.getDate());
+    }
+
+    if ($.trim(dateTime_init) == "") {
+        $("#sta_time").val("10:00");
+    }
+
+
+    //接收从上一个页面传过来的数据
+    if (parentDialogParams != null && parentDialogParams["acReg"] != null && parentDialogParams["acReg"] != '') {
+        $("#acno_id").val(parentDialogParams["acReg"]);
+    }
+
+    var defaultParam = {};
+    if (parentDialogParams == null || parentDialogParams["actionType"] == null) {
+
+        defaultParam = {
+            'pageModel.qname': ['emptyOG'],
+            'pageModel.qoperator': ["equals"],
+            'pageModel.qvalue': [0]
+        };
+    } else {
+        defaultParam = {
+            'genOg': true
+        };
+    }
+
+    //初始化按钮
+    $(document).sfaQuery({
+        view: 'V_FLB_LINE_JOB_STA', //列表名称, 必填
+
+        defaultParam: defaultParam, //默认查询参数
+
+        extParam: function (postData) {
+            $.extend(postData, getTextArray());
+        },
+
+        //结果列表(可选配置)
+        gridOptions: {
+            gridId: 'common_list_grid' //列表Id
+        }
+    });
+
+    // 飞机号选择
+    $("#tail_seach_btn").click(function () {
+        var dlg = $(this).sfaQueryDialog({
+            dialogId: "tail_dlg",
+            dialogTitle: "tail Query",
+            view: "D_MINI_SPEC_BASE",
+            dialogWidth: 1000,
+            gridOptions: {
+                callback: function (rowdata, originalData) {
+                    var val = $(rowdata.tail).text();//处理HTML标签
+                    if (val == '') {
+                        val = rowdata.tail;
+                    }
+                    $("#acno_id").val(val);
+                    $("#acreg").val(val);
+                    dlg.close();
+                }
+            }
+        });
+    });
+
+    // 航站选择
+    $("#station_seach_btn").click(function () {
+        var dlg = $(this).sfaQueryDialog({
+            dialogId: "station_dlg",
+            dialogTitle: "Station Query",
+            view: "V_TBM_STA_STATION_COMMON",
+            dialogWidth: 1000,
+            qcOptions: {
+                qcBoxId: 'qc_box',
+                showSavedQueries: false
+            },
+            gridOptions: {
+                callback: function (rowdata, originalData) {
+                    var val = $(rowdata.station).text();//处理HTML标签
+                    if (val == '') {
+                        val = rowdata.station;
+                    }
+                    $("#station_id").val(val);
+                    dlg.close();
+                }
+            }
+        });
+    });
+
+    // 查询重置按钮
+    $("#reset_btn").click(function () {
+        var _cur_date = new Date();
+        if (_cur_date.getHours() < 10) {
+            _cur_date.setTime(_cur_date.getTime() - 24 * 60
+                * 60 * 1000);
+        }
+
+        $("#sta_date").datebox(
+            'setValue',
+            _cur_date.getFullYear() + '-'
+            + (_cur_date.getMonth() + 1) + '-'
+            + _cur_date.getDate());
+        $("#station_id").val("");
+        $("#acno_id").val("");
+        $("#sta_time").val("10:00");
+        $(".select_width").val("1");
+    });
+
+    //查询
+    $("#search_btn").click(function () {
+        reloadQuery();
+    });
+
+    $("#refresh_btn").click(function () {
+        reloadQuery();
+    });
+
+    function reloadQuery() {
+        $(document).sfaQuery().reloadQueryGrid();
+    }
+
+    function getTextArray() {
+        var stationDate = $("#sta_date").datebox('getValue');
+        var stationId = $("#station_id").val();
+        var dateRange = $("#date_range").val();
+        var dateTime = $.trim($("#sta_time").val());
+        var acReg = $.trim($("#acno_id").val());
+        if (acReg != "" && acReg.indexOf("B") == -1 && acReg.indexOf("b") == -1) {
+            $("#acno_id").val("B-" + acReg);
+        }
+
+        if ($.trim(stationDate) == "") {
+            // 发现日期不能为空
+            P.$.dialog.alert("Date field is required.");
+            return;
+        }
+
+        if (!isTimeVali(dateTime)) {
+            P.$.dialog.alert("Correct Time format is like this [01:01].");
+            return;
+        }
+
+        var arrars = $("#searchForm").serializeArray();
+        var text = getFormJson(arrars);
+        return text;
+    }
+
+    function isTimeVali(value) {
+        if ($.trim(value) == "") {
+            return false;
+        }
+
+        var tmp = value.split(":");
+        if (tmp.length != 2) {
+            return false;
+        }
+
+        if (!/^\d{2}$/.test(tmp[0]) || !/^\d{2}$/.test(tmp[1])) {
+            return false;
+        }
+
+        if (parseInt(tmp[0]) >= 24 || parseInt(tmp[1]) >= 60) {
+            return false;
+        }
+
+        return true;
+    }
+
+    //解析日期函数
+    function paserDate(dateStr) {
+        var dateArr = null;
+        var timeArr = null;
+        var arr1 = dateStr.split(" ");
+        if (arr1[0] != null) {
+            dateArr = arr1[0].split("-");
+        }
+        if (arr1[1] != null) {
+            timeArr = arr1[1].split(":");
+        }
+        if (timeArr == null) {
+            return new Date(dateArr[0], dateArr[1] - 1, dateArr[2]);
+        } else {
+            return new Date(dateArr[0], dateArr[1] - 1, dateArr[2], timeArr[0],
+                timeArr[1], timeArr[2]);
+        }
+    }
+
+    /**将form中的值转换为键值对。*/
+    function getFormJson(a) {
+        var o = {};
+        $.each(a, function () {
+            if (o[this.name] !== undefined) {
+                if (!o[this.name].push) {
+                    o[this.name] = [o[this.name]];
+                }
+                o[this.name].push(this.value || '');
+            } else {
+                o[this.name] = this.value || '';
+            }
+        });
+
+        o["flightDate"] += (" " + o["flightTime"]);
+        return o;
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,576 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+    <style>
+        #dgdiv {
+            margin: 0 auto;
+            width: 300px;
+            height: 170px;
+        }
+
+    </style>
+</head>
+
+<body class="ibody">
+<div style="" id="tt">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <form class="form-horizontal m-t" id="mform">
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <input type="hidden" id="evalNo" name="evalNo"/>
+                    <input type="hidden" id="spkid" name="spkid"/>
+                    <table class="table table-bordered table-info" width="30%">
+                        <tr id="view">
+                            <td colspan="6" align="right">
+                                <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                                       style="width: 50px;margin:5px;"/>
+                                <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                       style="width: 50px;margin:5px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th" align="right" style="width: 80px;">范围类型：</th>
+                            <td class="tdr" style="width: 150px">
+                                <input class="easyui-combobox" id="rangeType" name="rangeType"
+                                       data-options="editable:true,required:true,validType:'comboBoxEditvalid[\'rangeType\']'" style="width: 150px;"/>
+                            </td>
+                            <td class="tdr" id="pnQtd" disabled="disabled" style="width: 150px" >
+                                范围值：<input class="easyui-textbox" id="q" name="q"
+                                       data-options="editable:true" style="width: 120px;"/>
+                                <a href="javascript:" id="openSBList" onclick="openList();" class="easyui-linkbutton"
+                                   iconCls="icon-search"></a>
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+    <div id="dgdiv">
+        <table id="dg" aligh="center"></table>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="comto.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var rangValues;
+    var rfjzch = '';
+    var sflag = '';
+
+
+    function i18nCallBack() {
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        operation = param.operation;
+        rangValues = param.rvalues;
+        sflag = param.sflag;
+        setParam();
+        if(rangeType == 'FJZCH'){
+            rangValues = param.acids;
+        }
+        if (sflag != "add") {
+            $("#rangeType").combobox({onlyview: true, editable: false});
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EO_APL_RANGE_TYPE,EM_EO_APL_RANGE_TYPE_S,EM_EO_PART_RANGE_TYPE,EM_EO_ENG_RANGE_TYPE,DA_ACREG_AIR_CATEGORY,EM_EXP_OP,YESORNO,EM_FILE_APL_RANGE_TYPE,EM_FILE_PART_RANGE_TYPE,EM_FILE_ENG_RANGE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (applyType == "APL") {
+                        if (fleet == "B737" || fleet == "B757" || fleet=="B777") {
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_EO_APL_RANGE_TYPE,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        }else if(fleet == "B747" || fleet == "B767"){
+                            $("#rangeType").combobox({
+                                panelHeight: '135px',
+                                data: jdata.data.EM_EO_APL_RANGE_TYPE_S,
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                onSelect: function (data) {
+                                    var type = $("#rangeType").combobox('getValue');
+                                    setPages(type);
+                                }
+                            });
+                        }
+
+                    } else if (applyType == "PART") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_EO_PART_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    } else if (applyType == "ENG") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_EO_ENG_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    }
+                    $("#expOp").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_EXP_OP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                    PAGE_DATA['airCategory'] = DomainCodeToMap_(jdata.data["DA_ACREG_AIR_CATEGORY"]);
+                }
+                //给范围类型设置值
+                $('#rangeType').combobox('setValue', rangeType);
+
+                if (param.pkid) {
+//                    InitDataForm(param.pkid);
+                } else {
+//                    changeRangeType();
+                }
+
+                setFunc();
+                InitDataGrid();
+            }
+        });
+    }
+
+    function setFunc() {
+        if (rangeType == "JXXL") {
+            func = "EM_EO_FLEET_LISTS";
+        } else if (rangeType == "FJZCH") {
+            func = "EM_EO_ACNO_LISTS";
+        } else if (rangeType == "GZCS") {
+            func = "EM_EO_MRO_LIST";
+        } else if (rangeType == "FJKBH") {
+            func = "EM_EO_FJKBH_LIST";
+        } else if (rangeType == "LINENO") {
+            func = "EM_EO_LINENO_LIST";
+        } else if (rangeType == "ENG") {
+            func = "EM_EO_ENG_LISTS";
+        } else if (rangeType == "FDJXH") {
+            func = "EM_EO_ENG_LISTS";
+        } else if (rangeType == "ENGSUB") {
+            func = "EM_EO_ENGSUB_LIST";
+        } else if (rangeType == "APU") {
+            func = "EM_EO_APU_LIST";
+        } else if (rangeType == "APUSUB") {
+            func = "EM_EO_APUSUB_LIST";
+        } else if (rangeType == "PN") {
+            func = "EM_EO_PN_LIST";
+        }
+    }
+
+    function InitDataGrid() {
+        var pageis;
+        if(func == "EM_EO_PN_LIST"){
+            pageis=true;
+            $("#pnQtd").attr("disabled", false);
+        }else {
+            pageis=false;
+            $("#pnQtd").attr("disabled", true);
+        }
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            pagination: pageis,
+            pageSize: 15,
+            fitcolumn: true,
+            enableLineEdit: true,
+            enableCellEdit: true,
+            queryParams: {fleet: fleet},
+            resize: function () {
+                return tabs_standard_resize($('#tt'), -200, 0.4, 0, 1);
+            },
+            columns: {
+                param: {FunctionCode: func},
+                alter: {
+                    AIR_CATEGORY: {
+                        formatter: function (value) {
+                            return PAGE_DATA['airCategory'][value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (data) {
+                if (data && rangValues) {
+                    var rangValueArray = rangValues.split(';');
+                    $.each(data.rows, function (index, item) {
+                        var rvalue = '';
+                        if(rangeType == 'FJZCH'){
+                            rvalue = item.ACID;
+                        }else{
+                            rvalue = item.RANGE_VALUE;
+                        }
+                        for (var j = 0;j < rangValueArray.length; j++) {
+                            if (rangValueArray[j] == rvalue) {
+                                $('#dg').datagrid('checkRow', index);
+                            }
+                        }
+                    });
+                }
+            },
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+
+    function openList() {
+        var dgopt = getDgOpts('dg');
+        var $dg = $(dgopt.owner);
+        var queryParams = {q: $("#q").textbox("getValue")};
+        queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+        if (dgopt.treeField) {
+            $dg.treegrid('load', queryParams);
+        } else {
+            $dg.datagrid('load', queryParams);
+        }
+    }
+    // 保存
+    function save() {
+        if(applyType == 'ENG'){
+            MsgAlert({content: '暂时不实现', type: 'error'});
+            return;
+        }
+
+        //序列化列表数据
+        var mpTypes = "";
+        var pkids = "";
+        var rows = $('#dg').datagrid('getChecked');
+        for (var i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+            mpTypes = mpTypes + "、" + rows[i].rangeValue;
+            pkids = pkids + "," + rows[i].acid;
+        }
+        if(pkids){
+            pkids = pkids.substr(1, pkids.length);
+        }
+        mpTypes = mpTypes.substring(1, mpTypes.length);
+        var detailData = JSON.stringify(rows);
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        if (rangeType == 'FJZCH') { //飞机注册号
+            checkFjzch(pkids);
+        } else if (rangeType == 'FDJXH') { //发动机型号
+            checkEngA(mpTypes);
+        } else if (rangeType == 'GZCS') { //改装厂商
+            checkGzcs(mpTypes);
+        } else if (rangeType == 'JXXL') { //机型系列
+            checkJxxl(mpTypes);
+        }
+
+        if (rfjzch != "") {
+            MsgAlert({content: "以下飞机已经存在：" + rfjzch, type: 'error'});
+            return;
+        }
+        var mainData = JSON.stringify($('#mform').serializeObject());
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                detailData: detailData,
+                mainData: mainData,
+                appGroupPkid: param.appGroupPkid,
+                eoPkid: param.eoPkid,
+                ranPkid: param.ranPkid?param.ranPkid:'',
+                mpTypes: mpTypes,
+                fleet: fleet,
+                FunctionCode: "EM_EO_EVAL_GROUP_FLEET_SAVE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    CloseWindowIframe();
+                } else {
+                    var msg = jdata.msg ? jdata.msg.replace("msg_err:", "") : jdata.data;
+                    MsgAlert({content: msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function checkFjzch(pkids) {
+        InitFuncCodeRequest_({
+            data: {
+                eoPkid: param.eoPkid,
+                groupid: appGroupPkid,
+                pkids: pkids,
+                FunctionCode: 'EM_EO_CHECK_FJZCH'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            eoPkid: param.eoPkid,
+                                            groupId: appGroupPkid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_EO_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkEngA(mpTypes) {
+        InitFuncCodeRequest_({
+            data: {
+                eoPkid: param.eoPkid,
+                groupid: appGroupPkid,
+                mpTypes: mpTypes,
+                FunctionCode: 'EM_EO_CHECK_ENG_A'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            eoPkid: param.eoPkid,
+                                            groupId: appGroupPkid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_EO_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkGzcs(mpTypes) {
+        InitFuncCodeRequest_({
+            data: {
+                eoPkid: param.eoPkid,
+                groupid: appGroupPkid,
+                mpTypes: mpTypes,
+                FunctionCode: 'EM_EO_CHECK_GZCS'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            eoPkid: param.eoPkid,
+                                            groupId: appGroupPkid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_EO_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkJxxl(mpTypes) {
+        InitFuncCodeRequest_({
+            data: {
+                eoPkid: param.eoPkid,
+                groupid: appGroupPkid,
+                mpTypes: mpTypes,
+                FunctionCode: 'EM_EO_CHECK_JXXL'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            eoPkid: param.eoPkid,
+                                            groupId: appGroupPkid,
+                                            acno: taskArray[j].ACNO,
+                                            FunctionCode: 'EM_EO_CHECK_FJZCH_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].ACNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    //paraName 等找参数的名称
+    function getUrlParam(paraName) {
+        var url = document.location.toString();
+        var arrObj = url.split("?");
+        if (arrObj.length > 1) {
+            var arrPara = arrObj[1].split("&");
+            var arr;
+            for (var i = 0; i < arrPara.length; i++) {
+                arr = arrPara[i].split("=");
+                if (arr != null && arr[0] == paraName) {
+                    return arr[1];
+                }
+            }
+            return "";
+        }
+        else {
+            return "";
+        }
+    }
+
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;
+                    return true;
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        }
+
+    });
+</script>
+</html>

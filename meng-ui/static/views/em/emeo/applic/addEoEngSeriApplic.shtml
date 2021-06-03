@@ -1,0 +1,597 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>适用性类型</title>
+    <style>
+        /*#dgdiv {*/
+        /*margin: 0 auto;*/
+        /*width: 300px;*/
+        /*height: 170px;*/
+        /*}*/
+
+    </style>
+</head>
+
+<body class="ibody">
+<div style="" id="tt">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <fieldset class="fieldset_eui">
+                <form class="form-horizontal m-t" id="mform">
+                    <input type="hidden" id="pkid" name="pkid"/>
+                    <input type="hidden" id="evalNo" name="evalNo"/>
+                    <table class="table table-bordered table-info">
+                        <tr id="view">
+                            <td colspan="6" align="right">
+                                <input class="btn btn-primary" type="button" onclick="searchData();" value="查询"
+                                       style="width: 50px;margin:5px;"/>
+                                <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                       style="width: 50px;margin:5px;"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="th" align="right" style="width: 80px;">范围类型：</th>
+                            <td class="tdr" style="width: 150px">
+                                <input class="easyui-combobox" id="rangeType" name="rangeType"
+                                       data-options="editable:false,onlyview:true" style="width: 150px;"/>
+                            </td>
+                            <th class="th" align="right" style="width: 80px;">件号：</th>
+                            <td class="tdr" style="width: 150px">
+                                <input class="easyui-textbox" id="pn" name="pn"
+                                       data-options="editable:true" style="width: 150px;"/>
+                            </td>
+                            <th id="snTh" class="th" align="right" style="width: 80px;">序号：</th>
+                            <td id="snTd" class="tdr" style="width: 150px">
+                                <input class="easyui-textbox" id="sn" name="sn"
+                                       data-options="editable:true" style="width: 150px;"/>
+                            </td>
+
+                        </tr>
+                        <!--<tr>
+                            <th class="th" align="left" style="width: 80px;text-align:left">未选择：</th>
+                            <td></td>
+                            <th class="th" align="left" style="width: 80px;text-align:left">已选择：</th>
+                            <td></td>
+                        </tr>-->
+                    </table>
+                </form>
+            </fieldset>
+        </div>
+    </div>
+    <div id="mlayout" class="easyui-layout" style="height: 500px;">
+        <div id="lay_left" data-options="region:'west',split:false" style="width: 415px;">
+            <fieldset class="fieldset_eui">
+                <legend>未选择</legend>
+                <table id="dg"></table>
+            </fieldset>
+        </div>
+        <div data-options="region: 'center'" style="height: 500px; width: 40px">
+            <input id="saveBtn" class="btn btn-primary" type="button" onclick="save()" value=">>>"
+                   style="width:30px;margin:5px; margin-top: 200px"/>
+            <input id="cancelBtn" class="btn btn-primary" type="button" onclick="cancel()" value="<<<"
+                   style="width:30px;margin:5px; margin-top: 5px"/>
+        </div>
+
+        <div id="lay_right" data-options="region:'east'" style="width: 415px">
+            <fieldset class="fieldset_eui">
+                <legend>已选择</legend>
+                <table id="dg2"></table>
+            </fieldset>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="comto.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var func;
+    var rfjzch = "";
+    var pnValues = "";
+    var beforeExpValues = "";
+    var afterExpValues = "";
+    function i18nCallBack() {
+        window.moveTo(400, 200);
+        param = getParentParam_();
+        operation = param.operation;
+        setParamA();
+        $("#pkid").val(pkid);
+        if (operation == "view") {
+            $("#view").hide();
+        }
+        if(param.rangeType == 'PN' && param.applyType == 'PART'){
+            $('#snTh').hide();
+            $('#snTd').hide();
+        }
+        if(param.rangeType == 'SN' && param.applyType == 'PART'){
+            pnValues = param.pnValue;
+            beforeExpValues = param.beforeExpValue;
+            afterExpValues = param.afterExpValue;
+        }
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_EO_ENG_RANGE_TYPE,EM_EO_APL_RANGE_TYPE,EM_EO_PART_RANGE_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.applyType == "APL") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_EO_APL_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    } else if (param.applyType == "PART") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_EO_PART_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    } else if (param.applyType == "ENG") {
+                        $("#rangeType").combobox({
+                            panelHeight: '135px',
+                            data: jdata.data.EM_EO_ENG_RANGE_TYPE,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (data) {
+                                var type = $("#rangeType").combobox('getValue');
+                                setPages(type);
+                            }
+                        });
+                    }
+                    $("#expOp").combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_EXP_OP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+
+                    });
+                }
+                //setFunc();
+                //给范围类型设置值
+                $('#rangeType').combobox('setValue', param.rangeType);
+                /* if (param.pkid) {
+                     InitDataForm(param.pkid);
+                 } else {
+                     InitDataGrid();
+                     InitDataGrid2();
+                 }*/
+                InitDataGrid();
+                InitDataGrid2();
+            }
+        });
+    }
+
+    function openPnList() {
+        var dgopt = getDgOpts('dg');
+        var $dg = $(dgopt.owner);
+        var queryParams = {serialnum: $("#serialnum").textbox("getValue")};
+        queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+        if (dgopt.treeField) {
+            $dg.treegrid('load', queryParams);
+        } else {
+            $dg.datagrid('load', queryParams);
+        }
+    }
+
+    function setFunc() {
+        if (param.rangeType == "SN") {
+            func = "EM_EO_SN_LIST";
+        }else if (param.rangeType == "ENGSERI") {
+            func = "EM_EO_ENGSERI_LIST";
+        }else if(param.rangeType == 'PN'){
+            func = "EM_EO_PN_LIST_NEW";
+        }
+    }
+
+    function InitDataGrid(){
+        setFunc();
+        var pn = $('#pn').textbox('getValue');
+        var sn = $('#sn').textbox('getValue');
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            fitcolumn: true,
+            enableLineEdit: true,
+            queryParams: {
+                pkid: pkid? pkid:"-1", pnValues:pnValues,
+                beforeExpValues: beforeExpValues, afterExpValues: afterExpValues, pn: pn, sn: sn
+            },
+            enableCellEdit: true,
+            resize: function () {
+                return {width: 400, height: 460}
+            },
+            columns: {
+                param: {FunctionCode: func},
+                alter: {}
+            }
+        });
+    }
+
+    // 适用性
+    function reload2() {
+        $("#dg2").datagrid("reload");
+        param.OWindow.reload_();
+    }
+
+    function reload() {
+        $("#dg").datagrid("reload");
+    }
+
+    function InitDataGrid2() {
+        if (rangeType == "ENGSERI") {
+            func = "EM_EO_ENGSERI_RANGE_VALUE_LIST";
+        } else if (rangeType == "PN") {
+            func = "EM_EO_PN_RANGE_VALUE_LIST";
+        } else if (rangeType == "SN") {
+            func = "EM_EO_SN_RANGE_VALUE_LIST";
+        }
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            sortable: true,
+            // singleSelect: true,
+            // pageSize: 15,
+            fitcolumn: true,
+            enableLineEdit: true,
+            queryParams: {
+                pkid: pkid? pkid : '-1'
+            },
+            enableCellEdit: true,
+            resize: function () {
+                return {width: 400, height: 460}
+            },
+            columns: {
+                param: {FunctionCode: func},
+                alter: {}
+            },
+            onLoadSuccess: function (index, row) {
+            },
+            onBeforeLoad: function (data) {
+            },
+            contextMenus: [
+                /*{
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var row = $('#dg2').datagrid('getSelected');
+                        var rowIndex = $('#dg2').datagrid('getRowIndex', row);
+                        if (!row.PKID) {
+                            //如果没有保存，直接在datagrid移除该行
+                            $('#dg2').datagrid('deleteRow', rowIndex);
+                        } else {
+                            InitFuncCodeRequest_({
+                                data: {
+                                    pkid: row.PKID,
+                                    FunctionCode: 'EM_EO_APP_VALUE_DEL'
+                                },
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        $('#dg2').datagrid('deleteRow', rowIndex);
+                                        MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                        reload2();
+                                        reload();
+                                        // i18nCallBack();
+                                    } else {
+                                        MsgAlert({content: jdata.msg, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }*/
+            ],
+            onBeforeLoad: function (data) {
+            },
+            onEndEdit: function (index, row, changes) {
+                // editDate(index, row, changes);
+            },
+            onBeginEdit: function (index, row) {
+            }
+        });
+    }
+
+
+
+    // 保存
+    function save() {
+        $('#saveBtn').attr('disabled', true);
+        $('#cancelBtn').attr('disabled', true);
+        //范围类型验证
+        var rangTypeValid = $('#rangeType').combobox('isValid');
+        if(!rangTypeValid){
+            $('#saveBtn').attr('disabled', false);
+            $('#cancelBtn').attr('disabled', false);
+            return;
+        }
+        //序列化列表数据
+        var rows = $('#dg').datagrid('getChecked');
+        if(!rows || rows.length == 0){
+            MsgAlert({content: '请至少选择一条未选择的记录', type: 'error'});
+            $('#saveBtn').attr('disabled', false);
+            $('#cancelBtn').attr('disabled', false);
+            return;
+        }
+        setTimeout(function () {
+            var pkids = "";
+            var pns = "";
+            for (i = 0; i < rows.length; i++) {
+                rows[i] = toCamelCase(rows[i]);
+                pkids = pkids + "," + rows[i].engid;
+                pns = pns + "," + rows[i].rangeValue;
+            }
+            pkids = pkids.substring(1, pkids.length);
+            pns = pns.substring(1, pns.length);
+
+            if (rangeType == 'ENGSERI' || rangeType == 'SN') {
+                checkSeri(pkids);
+            } else if (rangeType == 'PN') {
+                checkPn(pns);
+            }
+            if (rfjzch != "" && rangeType != 'PN') {
+                MsgAlert({content: "以下序号已经存在：" + rfjzch, type: 'error'});
+                $('#saveBtn').attr('disabled', false);
+                $('#cancelBtn').attr('disabled', false);
+                return;
+            }
+            var detailData = JSON.stringify(rows);
+
+            var isValidate = $("#mform").form('validate');
+            if (!isValidate){
+                $('#saveBtn').attr('disabled', false);
+                $('#cancelBtn').attr('disabled', false);
+                return;
+            }
+            var $form = $("#mform");
+            var mainData = JSON.stringify($('#mform').serializeObject());
+            var mpTypes;
+            for (i = 0; i < rows.length; i++) {
+                rows[i] = toCamelCase(rows[i]);
+                mpTypes = mpTypes + "、" + rows[i].rangeValue;
+            }
+
+            mpTypes = mpTypes.substring(1, mpTypes.length);
+            ajaxLoading();
+            InitFuncCodeRequest_({
+                //async: false,
+                data: {
+                    detailData: detailData,
+                    mainData: mainData,
+                    appGroupPkid: param.appGroupPkid,
+                    eoPkid: param.eoPkid,
+                    mpTypes: mpTypes,
+                    rangePkid : pkid,
+                    rangeType: param.rangeType,
+                    FunctionCode: "EM_EO_APP_ASSET_SAVE"
+                },
+                successCallBack: function (jdata) {
+                    ajaxLoadEnd();
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        pkid = jdata.data.pkid;
+                        $("#pkid").val(pkid);
+                        InitDataGrid();
+                        InitDataGrid2();
+                        $('#saveBtn').attr('disabled', false);
+                        $('#cancelBtn').attr('disabled', false);
+                        param.OWindow.reload_();
+                        param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                        $('#saveBtn').attr('disabled', false);
+                        $('#cancelBtn').attr('disabled', false);
+                    }
+
+                }
+
+            });
+        }, 1000); //1s
+
+    }
+
+    function cancel(){
+        //范围类型验证
+        var rangTypeValid = $('#rangeType').combobox('isValid');
+        if(!rangTypeValid){
+            return;
+        }
+        //序列化列表数据
+        var rows = $('#dg2').datagrid('getChecked');
+        if(!rows || rows.length == 0){
+            MsgAlert({content: '请从已选择中至少选择一条记录', type: 'error'});
+            return;
+        }
+
+        var detailData = JSON.stringify(rows);
+        console.log(detailData);
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+        var $form = $("#mform");
+        var mainData = JSON.stringify($('#mform').serializeObject());
+        var mpTypes;
+        for (i = 0; i < rows.length; i++) {
+            rows[i] = toCamelCase(rows[i]);
+            mpTypes = mpTypes + "、" + rows[i].rangeValue;
+        }
+        mpTypes = mpTypes.substring(1, mpTypes.length);
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            //async: false,
+            data: {
+                detailData: detailData,
+                mainData: mainData,
+                appGroupPkid: param.appGroupPkid,
+                eoPkid: param.eoPkid,
+                mpTypes: mpTypes,
+                rangePkid : pkid,
+                rangeType: param.rangeType,
+                FunctionCode: "EM_EO_APP_ASSET_CANCEL"
+            },
+            successCallBack: function (jdata) {
+                ajaxLoadEnd();
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if(jdata.data){
+                        pkid = jdata.data.pkid;
+                    }else{
+                        pkid = '-1';
+                    }
+                    $("#pkid").val(pkid);
+                    if(pkid == '-1'){
+                        CloseWindowIframe();
+                    }else{
+                        InitDataGrid();
+                        InitDataGrid2();
+                    }
+                    param.OWindow.reload_();
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+    function checkSeri(pkids) {
+        InitFuncCodeRequest_({
+            data: {
+                eoPkid: param.eoPkid,
+                groupId: param.appGroupPkid,
+                pkids: pkids,
+                FunctionCode: 'EM_EO_CHECK_SERI'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            eoPkid: param.eoPkid,
+                                            groupId: param.appGroupPkid,
+                                            serialnum: taskArray[j].SERIALNUM,
+                                            FunctionCode: 'EM_EO_CHECK_SERI_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].SERIALNUM + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function checkPn(pns) {
+        InitFuncCodeRequest_({
+            data: {
+                eoPkid: param.eoPkid,
+                groupid: param.appGroupPkid,
+                pns: pns,
+                FunctionCode: 'EM_EO_CHECK_PN'
+            },
+            async: false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data != null) {
+                        rfjzch = "";
+                        var taskArray = jdata.data;
+                        if (Array.isArray(taskArray)) {
+                            if (taskArray.length > 0 && taskArray[0] != null) {
+                                for (var j = 0; j < taskArray.length; j++) {
+                                    InitFuncCodeRequest_({
+                                        data: {
+                                            eoPkid: param.eoPkid,
+                                            groupId: param.appGroupPkid,
+                                            partno: taskArray[j].PARTNO,
+                                            FunctionCode: 'EM_EO_CHECK_PN_S'
+                                        }, async: false, successCallBack: function (jdata) {
+                                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                                if (jdata.data != null) {
+                                                    var objArray = jdata.data;
+                                                    if (Array.isArray(objArray)) {
+                                                        if (objArray.length > 0 && objArray[0] != null) {
+                                                            for (var k = 0; k < objArray.length; k++) {
+                                                                rfjzch = rfjzch + "[" + objArray[k].GNAME + "：" + taskArray[j].PARTNO + "];";
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            } else {
+                                                MsgAlert({
+                                                    content: jdata.msg ? jdata.msg : jdata.data,
+                                                    type: 'error'
+                                                });
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#mform');
+    }
+
+    $.extend($.fn.validatebox.defaults.rules, {
+        comboBoxEditvalid: { //校验下拉菜单
+            validator: function (value, param) {
+                var $combobox = $("#" + param[0]);
+                if (value) {
+                    if ($combobox.combobox('getValue') == $combobox.combobox('getText'))
+                        return false;
+                    return true;
+                }
+                return false;
+
+            },
+            message: '请选择下拉框选项，不要直接使用输入内容'
+        }
+
+    });
+</script>
+</html>

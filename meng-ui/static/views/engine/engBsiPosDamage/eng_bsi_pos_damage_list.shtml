@@ -1,0 +1,449 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="PAGE.ENG_UNITS_MANAGE_LIST.TITLE">孔探结构化设置</title>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <!--<legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>-->
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                <tr>
+                    <th align="right">发动机型号：</th>
+                    <td style="width:110px">
+                        <input class="easyui-combobox" id="dataName" name="dataName"/>
+                    </td>
+                    <td colspan="6">
+                        &nbsp;&nbsp;
+                        <a href="javascript:void(0)" class="searchBtn" onclick="doSearch_()"><span>查询</span></a>
+                        <!--<a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">-->
+                        <!--<span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>-->
+                        <a href="javascript:void(0)" class="addBtn" auth="ENG_BSI_POS_DAMAGE_ADD_PARENT"
+                           onclick="addParentEngUnits('add')"><span>增加</span></a>&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left">
+        <div>
+            <table id="l_dg"></table>
+        </div>
+    </div>
+</div>
+
+<!-- 为 ECharts 准备一个具备大小（宽高）的 DOM -->
+<!--<div id="main" style="width: 600px;height:400px;"></div>-->
+
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var FuncCode_ = 'ENG_BSI_POS_DAMAGE_LIST';
+    var loginUser;
+    var loginName;
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+        var userLogin = getLoginInfo();
+        loginUser = userLogin.accountId;
+        loginName = userLogin.userName;
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngTypeNew",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#dataName').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                    value: 'CFM56-3'
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //是否转动、是否缺陷
+                    PAGE_DATA['yesOrNo'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    InitLeftDataGrid();
+                    //loadEcharts();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function loadEcharts() {
+        var series_data;
+        var xAxis_data;
+        //微服务获取数据
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/demoUser/selectDemoDataDto",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    debugger;
+                    //获取后台返回数据  转数组
+                    series_data = jdata.obj.seriesData.split(",");
+                    xAxis_data = jdata.obj.xAxisData.split(",");
+                } else {
+                    MsgAlert({content: "网关调用失败", type: 'error'});
+                }
+            }
+        });
+
+        // 基于准备好的dom，初始化echarts实例
+        var myChart = echarts.init(document.getElementById('main'));
+        // 指定图表的配置项和数据
+        var option = {
+            xAxis: {
+                type: 'category',
+                data: xAxis_data
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: [{
+                data: series_data,
+                type: 'line'
+            }]
+        };
+        // 使用刚指定的配置项和数据显示图表。
+        myChart.setOption(option);
+    }
+
+
+    function doSearch_() {
+        InitLeftDataGrid();
+
+    }
+
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        doSearch_();
+    }
+    //验证JINKENS 打包
+    function InitLeftDataGrid() {
+        var identity = 'l_dg';
+        var queryParams = $("#ffSearch").serializeObject();
+        $('#l_dg').GatewayDataGrid({
+            path: "/meng-engine/engBsiPosDamage/listByPage",
+            async: false,
+            queryParams: queryParams,
+            identity: identity,
+            idField: "pkid",
+            pagination: true,
+            title: $.i18n.t(''),
+            columns: {
+                param: {FunctionCode: 'ENG_BSI_POS_DAMAGE_LIST'},
+                alter: {
+                    pathName:{
+                        styler: function(value,row,index){
+                            if (row.flawFlag  == 'N' ){
+                                // return 'background-color:#888888;';//灰色
+                            }
+                        },
+                        formatter: function(value,row,index){
+                            var num =(value.split(">")).length-1;
+                            var val = value.split(">").join("");
+                            var empImg="<img src=\"/img/grid.png\" style=\"width:16px;height: 16px;visibility:hidden\"/>";
+                            var fileImg="<img src=\"/img/expand.gif\" />";
+                            var fileImg2="<img src=\"/images/IMG20201110_165417.png\" />";
+                            var sumImg="";
+                            for(var i=0;i<num;i++){
+                                sumImg=sumImg+empImg;
+                            }
+                            if(!row.manualDesc){//需要一个最内层flag
+                                return sumImg+fileImg+val;
+                            }else{
+                                return sumImg+fileImg2+val;
+                            }
+                        }
+                    },
+                    turnFlag: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['yesOrNo'][value];
+                        }
+                    },
+                    flawFlag: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['yesOrNo'][value];
+                        }
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    },
+                    proofDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    i18nText: "添加子项",
+                    auth: 'ENG_BSI_POS_DAMAGE_ADD_SON',
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        common_add_edit_({
+                            width: 847,
+                            height: 366,
+                            param: {
+                                pkid: rowData.pkid,
+                                dataName: rowData.dataName,
+                                operation: "add",
+                                flawFlag: rowData.flawFlag
+                            },
+                            url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_add_edit_son_menu.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "查看",
+                    auth: '',
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var title_ = "查看";
+                        if (rowData.parentId == 0) {
+                            ShowWindowIframe({
+                                width: "550",
+                                height: "250",
+                                title: title_,
+                                param: {operation: "view", pkid: rowData.pkid},
+                                url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_add_edit_parent_menu.shtml"
+                            });
+                        } else {
+                            ShowWindowIframe({
+                                width: "847",
+                                height: "360",
+                                title: title_,
+                                param: {operation: "view", pkid: rowData.pkid},
+                                url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_add_edit_son_menu.shtml"
+                            });
+                        }
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑",
+                    auth: 'ENG_ENG_BSI_POS_DAMAGE_EDIT',
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var title_ = "编辑";
+                        if (rowData.parentId == 0) {
+                            ShowWindowIframe({
+                                width: "550",
+                                height: "250",
+                                title: title_,
+                                param: {operation: "edit", pkid: rowData.pkid},
+                                url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_add_edit_parent_menu.shtml"
+                            });
+                        } else {
+                            ShowWindowIframe({
+                                width: "847",
+                                height: "360",
+                                title: title_,
+                                param: {operation: "edit", pkid: rowData.pkid},
+                                url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_add_edit_son_menu.shtml"
+                            });
+                        }
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "删除",
+                    auth: 'ENG_BSI_POS_DAMAGE_DELETE',
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var pkid = rowData.pkid;
+                        if (!confirm("是否确认删除？")) {
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/engBsiPosDamage/deleteEngBsiPosDamageById/" + pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+                , {
+                    id: "m-profAudit", i18nText: "校核",
+                    auth: 'ENG_BSI_POS_DAMAGE_PROOF',
+                    onclick: function () {
+                        var subFlag = 'N';
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var pkid = rowData.pkid;
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/engBsiPosDamage/checkBeforeProof/" + pkid,
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    if (jdata.obj > 0) {
+                                        if (confirm("当前数据存在下级子项，是否同时校核？")) {
+                                            subFlag = 'Y';
+                                        }
+                                    }
+                                    checkMenus(rowData.pkid, loginUser, loginName, subFlag);
+                                } else {
+                                    MsgAlert({content: jdata.errorMsg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-copy", i18nText: "复制",
+                    auth: 'ENG_BSI_POS_DAMAGE_COPY',
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var title_ = "结构化设置-复制";
+                        ShowWindowIframe({
+                            width: "350",
+                            height: "250",
+                            title: title_,
+                            param: {
+                                currentMenuId: rowData.pkid,
+                                parentId: rowData.parentId,
+                                flawFlag: rowData.flawFlag
+                            },
+                            url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_copy.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-desc", i18nText: "特征描述",
+                    auth: 'ENG_BSI_POS_DAMAGE_DESC',
+                    onclick: function () {
+                        var rowData = getDG(identity).datagrid('getSelected');
+                        var title_ = "特征描述";
+                        if (rowData.flawFlag == 'Y') {
+                            ShowWindowIframe({
+                                width: "1280",
+                                height: "530",
+                                title: title_,
+                                param: {pkid: rowData.pkid},
+                                url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_desc.shtml"
+                            });
+                        } else {
+                            MsgAlert({content: "只有【是否缺陷】为【是】的记录才可以维护特征描述！", type: 'error'});
+                        }
+                    }
+                }
+            ],
+
+            resize: function () {
+                return {
+                    height: $(document.body).height() - $("fieldset").height() - 30,
+                    width: $("#lay_left").width()
+                };
+            },
+            validAuth: function (row, items) {
+                if (row.proofName != null && row.proofDate != null) {
+                    items['校核'].enable = false;
+                }
+                if (loginUser != row.createUser) {
+                    items['编辑'].enable = false;
+                    items['删除'].enable = false;
+                } else {
+                    items['校核'].enable = false;
+                }
+                if ("0" == row.parentId) {
+                    items['特征描述'].enable = false;
+                } else {
+                    items['特征描述'].enable = true;
+                }
+                if ("Y" == row.flawFlag) {
+                    items['添加子项'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                viewEngBsiPosDamage('view', value);
+            }
+        });
+    }
+    //添加或编辑单元体(父)
+    function addParentEngUnits(operation) {
+        var title_ = $.i18n.t('孔探结构化设置');
+        ShowWindowIframe({
+            width: "400",
+            height: "250",
+            title: title_,
+            param: {operation: operation},
+            url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_add_edit_parent_menu.shtml"
+        });
+    }
+
+    //校核
+    function checkMenus(pkid, loginUser, loginName, subFlag) {
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/engBsiPosDamage/proof/" + pkid + "/" + loginUser + "/" + loginName + "/" + subFlag,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //刷新列表
+    function reload_() {
+        InitLeftDataGrid();
+    }
+
+    //查看
+    function viewEngBsiPosDamage(operation, value) {
+        var title_ = "查看";
+        if (value.parentId == 0) {
+            ShowWindowIframe({
+                width: "550",
+                height: "250",
+                title: title_,
+                param: {operation: operation, pkid: value.pkid},
+                url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_add_edit_parent_menu.shtml"
+            });
+        } else {
+            ShowWindowIframe({
+                width: "847",
+                height: "360",
+                title: title_,
+                param: {operation: operation, pkid: value.pkid},
+                url: "/views/engine/engBsiPosDamage/eng_bsi_pos_damage_add_edit_son_menu.shtml"
+            });
+        }
+    }
+
+</script>
+</body>
+</html>

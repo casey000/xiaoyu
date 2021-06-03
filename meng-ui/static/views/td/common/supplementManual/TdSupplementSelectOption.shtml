@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>选择编写方式</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<style type="text/css">
+    .buttonclass {
+        width: 45px;
+        height: 20px;
+        margin-left: 3px;
+        vertical-align: middle;
+        border: 1px solid #cfcfcf;
+        -moz-border-radius: 5px;
+        border-radius: 5px;
+        backgroud: #d5d5d5;
+    }
+</style>
+<body>
+<div>
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form>
+                <div style="margin-top: 10px;margin-right:10px;text-align: right">
+                    <input type="button" id="next" class="buttonclass" onclick="sureButton_onClick()" value="下一步"/>
+                </div>
+
+                <fieldset style="border: 1px solid #99BBE8; width:275px; margin-top:10px;margin-left:10px; padding:5px;">
+                    <legend style="color:#4E7FB6;margin-left:20px;">新增手册选项</legend>
+                    <p id="hideMP">
+                        <input type="radio" id="selectBOEING" name="selectNext" style="margin-left:10px;"
+                               class="easyui-validatebox" value="BOEING"><label>选取波音手册</label></input>
+                    </p>
+                    <p>
+                        <input type="radio" id="customerEdit" name="selectNext" style="margin-left:10px;margin-top:5px;"
+                               class="easyui-validatebox" value="UDF"><label>自编工序</label></input>
+                    </p>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+<script type="text/javascript">
+    var param;
+    var pkid;
+    var companyCode;
+    var fleet;
+    var manualType;
+    var taskCode;
+    var ver;
+    var oemTaskCode;
+    var cepFilePath="";
+    var checkout="N";//未检出
+    function i18nCallBack() {
+
+        //绑定回车查询事件
+        param = getParentParam_();
+        pkid = param.pkid;
+        companyCode=param.companyCode;
+        fleet=param.fleet;
+        manualType=param.manualType;
+        taskCode=param.taskCode;
+        ver = param.ver;
+        oemTaskCode = param.oemTaskCode;
+
+
+        //查询当前维护清单下时候已有手册信息
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "TD_SP_OPTION_CHECK"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if(jdata.data!=null){
+                        var list = jdata.data;
+                        // if(list!=null && list.length>=2){
+                        //     //已检出，并且有手册片段
+                        // }
+                        // if(list!=null && list.length>=1){
+                        //     //已检出，并且有手册片段
+                        // }
+                        if(list[0].CHECK_OUT!=null){
+                            checkout="Y";
+                        }
+                        if(list[0].PATH!=null){
+                            cepFilePath=list[0].PATH;
+                        }
+                        if(list[1].PATH!=null){
+                            cepFilePath=list[1].PATH;
+                        }
+                    }
+                }
+            }
+        });
+
+
+    }
+    function sureButton_onClick() {
+
+        var radioValue = $('input:radio:checked').val();
+        if (!radioValue) {
+            MsgAlert({content: "请选择编写方式！", type: 'error'});
+            return;
+        }
+
+        if (radioValue == "BOEING") {
+            if (checkout == "Y") {
+                MsgAlert({content: "当前手册已经检出，请检入或取消检出再执行此操作!", type: 'error'});
+                return;
+            }
+            if (cepFilePath!=null && cepFilePath!="") {
+                if (!confirm("该工卡下已经存在工序，是否替换原有工序再进行选取？")) {
+                    return;
+                }
+                openModalDialog();
+            } else {
+                openModalDialog();
+            }
+        }else if (radioValue == "UDF") {
+            if (checkout == "Y") {
+                MsgAlert({content: "当前手册已经检出，请检入或取消检出再执行此操作!", type: 'error'});
+                return;
+            }
+            if (cepFilePath) {
+                if (!confirm("该工卡下已经存在工序，是否替换原有工序进行自编？")) {
+                    return;
+                }
+                openUDFDialog();
+            } else {
+                openUDFDialog();
+            }
+
+        }
+    }
+
+    function openModalDialog(){
+        ShowWindowIframe({
+            width: "1000",
+            height: "400",
+            title: "选择手册片段",
+            param: {
+                pkid: pkid,
+                companyCode: companyCode,
+                fleet: fleet,
+                manualType: manualType,
+                taskCode: taskCode,
+                ver: ver,
+                oemTaskCode: oemTaskCode
+            },
+            url: "/views/td/common/supplementManual/TdSupplementSearchTask.shtml"
+        });
+    }
+
+    function openUDFDialog(){
+        ajaxLoading();
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: 'TD_MANUAL_UDF'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ajaxLoadEnd();
+                    reload_();
+                } else {
+                    MsgAlert({content: jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        param.OWindow.reload_();
+        param.OWindow.MsgAlert({content:$.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+        CloseWindowIframe();
+    }
+
+    function reloadNew(taskCode2) {
+        param.OWindow.reloadNew(taskCode2);
+        param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+        CloseWindowIframe();
+    }
+    function init() {
+        param.OWindow.InitDataForm(pkid);
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>送修要求模板</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="送修要求模板" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="status" name="status"/>
+                <input type="hidden" id="deleteFlag" name="deleteFlag" value="N"/>
+                <input type="hidden" id="createUser" name="createUser"/>
+                <input type="hidden" id="createName" name="createName"/>
+                <input type="hidden" id="createDate" name="createDate"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <input type="hidden" id="modifyName" name="modifyName"/>
+                <input type="hidden" id="modifyDate" name="modifyDate"/>
+
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="8" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                        </td>
+                    </tr>
+                    <tr>
+
+                        <th style="width: 120px;">发动机型号:</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="engType" name="engType"
+                                   data-options="required:true,editable:false"
+                                   style="width: 160px;"/>
+                        </td>
+
+                        <th style="width: 120px;">版本:</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="revNo" name="revNo" data-options="editable:false"
+                                   style="width: 200px;"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th style="width: 120px;">模板内容:</th>
+                        <td colspan="3">
+                            <textarea class="easyui-textbox " id="repairReq" name="repairReq" multiline="true"
+                                      data-options="required:true"
+                                      style="height:250px;width: 99%;border: 1px solid #ddd;border-radius: 5px;"></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var param = {};
+    var rowData;
+    var operation;
+    var user;
+    var pkid;
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngTypeNew",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#engType').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+
+        if ("view" == operation) {
+            $(".easyui-textbox").textbox({required: false, onlyview: true});
+            $(".easyui-combobox").combobox({required: false, onlyview: true});
+            $("#saveBtn").hide();
+        }
+
+
+        if ("edit" == operation) {
+            $("#engType").combobox({required: false, onlyview: true});
+        }
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/rxArgTemplate/selectByPrimaryKey/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    ParseFormField_(jdata.obj, $("#mform"));
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        saveOrUpdateData(operation);
+    }
+
+    function saveOrUpdateData(operation) {
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/rxArgTemplate/updateByPrimaryKey",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    MsgAlert({content: '操作成功', type: 'success'});
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+
+    }
+
+    //回显
+    function InitDataForm(rowData) {
+        ParseFormField_(rowData, $("#mform"));
+    }
+</script>
+</body>
+</html>

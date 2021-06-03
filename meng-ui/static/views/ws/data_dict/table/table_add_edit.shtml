@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_data_dict">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <script type="text/javascript" src="/js/plugins/ajaxfileupload/ajaxfileupload.js"></script>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <script type="text/javascript" src="/js/extra/edit_datagrid.js"></script>
+    <script type="text/javascript" src="/js/extra/table_field_datagrid.js"></script>
+    <script type="text/javascript" src="/js/extra/table_keys_datagrid.js"></script>
+    <script type="text/javascript" src="/js/extra/table_idxs_datagrid.js"></script>
+    <title></title>
+    <script type="text/javascript">
+        var param = {};
+        var isEdit_;
+
+        function i18nCallBack() {
+            param = getParentParam_();
+            isEdit_ = param && param.CODE;
+            InitEditForm_();
+            GetInitData();
+        }
+
+        $(function () {
+
+        });
+
+        var ResourceData = {};
+
+        function GetInitData() {
+            InitFuncCodeRequest_({
+                data: {FunctionCode: 'TABLE_EDIT_RESOUCE', tableCode: param.CODE || ""},
+                successCallBack: function (jdata) {
+                    if (jdata.code != RESULT_CODE.SUCCESS_CODE) {
+                        layer.msg(jdata.msg, {icon: 5});
+                        return;
+                    }
+                    ResourceData = jdata.data;
+                    ParseFormField_(jdata.data.WsTable, null, null);
+                    InitFieldDataGrid({TABLE_CODE: param.CODE, ResourceData: ResourceData});
+                    InitKeysDataGrid({TABLE_CODE: param.CODE, ResourceData: ResourceData});
+                    InitIdxsDataGrid({TABLE_CODE: param.CODE, ResourceData: ResourceData});
+                }
+            });
+        }
+
+        function InitEditForm_() {
+            var $form = $("#mform");
+            $form.form({
+                onSubmit: function () {
+                    validCancelEdit('dg');
+                    validCancelEdit('dgkey');
+                    validCancelEdit('dgidx');
+                    var isValidate = $(this).form('validate');
+                    if (!isValidate) {
+                        $("#tab").tabs('select', 0);
+                        return false;
+                    }
+
+                    var data = $form.serializeObject();
+                    data = $.extend({}, data, {
+                        FunctionCode: (isEdit_ ? 'WS_TABLE_EDIT' : 'WS_TABLE_ADD')
+                    });
+                    var fieldData = getFieldDgRowsData_();
+                    if (!fieldData || fieldData.length == 0) {
+                        MsgAlert({content: "请设置表的数据列!", type: 'error'});
+                        return;
+                    }
+                    var keysData = getKeysDgRowsData_();
+                    var idxsData = getIdxsDgRowsData_();
+                    data.fieldsJson = JSON.stringify(fieldData);
+                    data.keysJson = JSON.stringify(keysData.data);
+                    data.idxsJson = JSON.stringify(idxsData);
+                    if (!keysData.hasPkey) {
+                        layerConfirm_({
+                            content: "您未设置主键!确定继续吗？",
+                            yesFunc: function (index) {
+                                excDoSubmit(data);
+                            }
+                        });
+                    } else {
+                        excDoSubmit(data);
+                    }
+                    return false;
+                }
+            });
+        }
+
+        function excDoSubmit(data) {
+            var load = parent.layer.msg('处理中...', {time: 0, shade: [0.3, '#393D49'], icon: 16});
+            InitFuncCodeRequest_({
+                data: data,
+                successCallBack: function (jdata) {
+                    parent.layer.close(load);
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        param.OWindow.reload_();
+                        MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.SUCCESS_CODE')});
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : "操作异常!", type: 'error'});
+                        window.location.reload(true);
+                    }
+                }
+            });
+        }
+
+
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" name="code"/>
+                <div id="tab" class="easyui-tabs" data-option="fit:true" style="height: 320px;">
+                    <div title="数据表信息" style="padding:10px;display:none;">
+                        <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                            <tr>
+                                <th class="tdl">数据表名称：</th>
+                                <td class="tdr">
+                                    <input class="easyui-textbox easyui-validatebox" name="tableName"
+                                           style="width: 180px;"
+                                           data-options="required:true,validType:['field','length[1,40]']"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="tdl">数据表描述：</th>
+                                <td class="tdr">
+                                    <input class="easyui-textbox easyui-validatebox" name="tableDesc"
+                                           style="width: 180px;"
+                                           data-options="required:false,length:[0,100]"/>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th class="tdl">数据表类型：</th>
+                                <td class="tdr">
+                                    <select name="type" class="easyui-combobox"
+                                            data-options="required:true, editable:false" panelHeight="120"
+                                            style="width:80px">
+                                        <option value="1">系统表</option>
+                                        <option value="2">事务表</option>
+                                    </select>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div title="字段信息" style="overflow:auto;padding:2px;display:none;">
+                        <table id="dg"></table>
+                    </div>
+                    <div title="设置键" style="overflow:auto;padding:2px;display:none;">
+                        <table id="dgkey"></table>
+                    </div>
+                    <div title="设置索引" style="overflow:auto;padding:2px;display:none;">
+                        <table id="dgidx"></table>
+                    </div>
+                </div>
+                <div style="margin: 10px auto; text-align: center;">
+                    <input class="searchBtn" type="submit" value="提交" style="cursor: pointer;border: none"/>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="tb" style="height:auto">
+    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove',plain:true"
+       onclick="deleteRow('dg')">删除此行</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-undo',plain:true"
+       onclick="cancelEdit('dg')">取消编辑</a>
+</div>
+<div id="tbkey" style="height:auto">
+    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove',plain:true"
+       onclick="deleteRow('dgkey')">删除此行</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-undo',plain:true"
+       onclick="cancelEdit('dgkey')">取消编辑</a>
+</div>
+<div id="tbidx" style="height:auto">
+    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-remove',plain:true"
+       onclick="deleteRow('dgidx')">删除此行</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" data-options="iconCls:'icon-undo',plain:true"
+       onclick="cancelEdit('dgidx')">取消编辑</a>
+</div>
+</body>
+</html>

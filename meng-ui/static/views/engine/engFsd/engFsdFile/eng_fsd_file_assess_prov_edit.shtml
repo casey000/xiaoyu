@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">EO</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch2" method="post">
+            <input type="hidden" id="status" name="status" value="1"/>
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="tdl" style="width: 100px">措施编号：</th>
+                    <td class="tdr" width="150">
+                        <input class="easyui-textbox" name="provNo" id="provNo" style=" width:150px;"/>
+                    </td>
+                    <td align="left">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="searchData()">
+                            <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" href="javascript:void(0)" onclick="doClear_('#ffSearch2')"
+                           data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a class="searchBtn" href="javascript:void(0)" onclick="addAssessTech()"
+                           data-options="iconCls:'icon-search'">
+                            <span>确认</span></a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script>
+    let PAGE_DATA = {};
+    let user = getLoginInfo();
+    let param = getParentParam_();
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_FSD_PROV_STATUS,ENG_FSD_PROV_SOURCE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jData) {
+                if (jData.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    PAGE_DATA['status'] = DomainCodeToMap_(jData.data["ENG_FSD_PROV_STATUS"]);
+                    PAGE_DATA['source'] = DomainCodeToMap_(jData.data["ENG_FSD_PROV_SOURCE"]);
+
+                } else {
+                    MsgAlert({content: jData.msg, type: 'error'});
+                }
+            }
+        });
+        initDataGrid();
+    }
+
+
+    function initDataGrid() {
+        const queryParams = $("#ffSearch2").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            idField: "pkid",
+            sortable: true,
+            singleSelect: true,
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engFsdProv/listByPage",
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0, 0, 20, 0);
+            },
+            columns: {
+                param: {FunctionCode: 'CHOOSE_ENG_FSD_PROV_LIST'},
+                alter: {
+                    status: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    source: {
+                        formatter: function (value) {
+                            return PAGE_DATA['source'][value];
+                        }
+                    },
+                    createDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    auth: "ENG_FSD_PROV_EDIT",
+                    onclick: function () {
+                        const rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngFsdProv('edit', rowData);
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "失效",
+                    auth: "ENG_FSD_PROV_FAIL",
+                    onclick: function () {
+                        const rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngFsdProv('fail', rowData);
+                    }
+                },
+                {
+                    id: "m-edit",
+                    i18nText: "查看",
+                    onclick: function () {
+                        const rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditEngFsdProv("view", rowData);
+
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                if (row.createUser != user.accountId) {
+                    items['编辑'].enable = false;
+                    items['失效'].enable = false;
+                }
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                addOrEditEngFsdProv("view", value);
+            }
+        });
+    }
+
+
+    function searchData() {
+        initDataGrid();
+    }
+
+    function reload_() {
+        initDataGrid();
+    }
+
+    function doClear_(search) {
+        $(search).form('clear');
+        reload_();
+    }
+
+    function openDetai() {
+        const rows = $('#dg').datagrid('getChecked');
+        const objs = [];
+        const pkids = new Set();
+        if (rows.length == 0) {
+            MsgAlert({content: "请先选择明细数据！", type: 'error'});
+            return;
+        }
+        for (i = 0; i < rows.length; i++) {
+            let obj = {};
+            obj["eoPkid"] = param.eoPkid;
+            obj["sourceFilePkid"] = rows[i].PKID;
+            objs.push(obj);
+        }
+
+        const detailData = JSON.stringify(objs);
+        InitFuncCodeRequest_({
+            data: {
+                detailData: detailData,
+                FunctionCode: "EM_EO_SOURCE_FILE_ADD"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_();
+                    var adCou = 0;
+                    InitFuncCodeRequest_({
+                        data: {eoPkid: eoPkid, FunctionCode: 'EM_EO_GET_AD_COU'},
+                        async: false,
+                        successCallBack: function (jdata) {
+                            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                if (jdata.data != null) {
+                                    adCou = jdata.data.COUNT;
+                                }
+                            } else {
+                                MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                            }
+                        }
+                    });
+                    if (adCou > 0) {
+                        param.OWindow.parent.$('#ad').prop('checked', true);
+                    } else {
+                        param.OWindow.parent.$('#ad').prop('checked', false);
+                    }
+
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //增加措施库措施
+    function addAssessTech() {
+        const rows = $('#dg').datagrid('getChecked');
+        const objs = [];
+        if (rows.length == 0) {
+            MsgAlert({content: "请先选择明细数据！", type: 'error'});
+            return;
+        }
+        for (let i = 0; i < rows.length; i++) {
+            let obj = {};
+            obj["refPkid"] = param.refPkid;
+            obj["provPkid"] = rows[i].pkid;
+            objs.push(obj);
+        }
+
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/engFsdAssessProv/saveEngFsdAssessProv",
+            data: objs,
+            error: function (jData) {
+                MsgAlert({content: jData.errorMessage ? jData.errorMessage : "增加措施库措施失败", type: 'error'});
+            },
+            successCallBack: function (jData) {
+                if (jData.success == true) {
+                    param.OWindow.MsgAlert({content: jData.msg ? jData.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.reload_('dg2');
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jData.errorMessage ? jData.errorMessage : "增加措施库措施失败", type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+
+</body>
+</html>

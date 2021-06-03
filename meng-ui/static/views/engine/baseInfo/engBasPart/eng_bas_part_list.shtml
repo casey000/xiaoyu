@@ -1,0 +1,244 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">发动机基础数据</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+        <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:90px;" align="right">发动机型号：</th>
+                    <td style="width: 120px">
+                        <input class="easyui-combobox" id="engType" name="engType" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">发动机序号：</th>
+                    <td style="width: 120px">
+                        <input class="easyui-combobox" id="engSn" name="engSn" style="width:120px;"/>
+                    </td>
+
+                    <th class="th" style="width:90px;" align="right">附件类别：</th>
+                    <td style="width: 120px">
+                        <input class="easyui-combobox" id="eqart" name="eqart" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:60px;" align="right">附件件号：</th>
+                    <td style="width: 120px">
+                        <input class="easyui-textbox" id="llpPn" name="llpPn" style="width:120px;"/>
+                    </td>
+                    <th class="th" style="width:80px;" align="right">附件序号：</th>
+                    <td style="width: 120px">
+                        <input class="easyui-textbox" id="llpSn" name="llpSn" style="width:120px;"/>
+                    </td>
+                </tr>
+                <tr>
+                    <th class="th" style="width:90px;" align="right">中文附件名称：</th>
+                    <td style="width: 120px" colspan="3">
+                        <input class="easyui-textbox" id="llpName" name="llpName" style="width:350px;"/>
+                    </td>
+                    <th class="th" style="width:90px;" align="right">英文附件名称：</th>
+                    <td style="width: 120px" colspan="3">
+                        <input class="easyui-textbox" id="llpNameEn" name="llpNameEn" style="width:350px;"/>
+                    </td>
+                    <td colspan="2">
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchClick();"><span>查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        <a href="javascript:void(0)" class="ridoBtn" data-options="iconCls:'icon-search'"
+                           onclick="doSync()"><span>手动同步</span></a>
+                        <a href="javascript:void(0)" class="addBtn" onclick="onExcel()"><span>导出</span></a>&nbsp;
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    var address=window.location.origin; //url
+    var port=document.location.port;//ip:端口号
+    if(!port){
+        port = ':'+port;
+    }else{
+        port = '';
+    }
+    var ctx = address+port;
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "ENG_PART_TYPE,YESORNO",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $("#eqart").combobox({
+                        panelHeight: '100px',
+                        data: jdata.data.ENG_PART_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //获取发动机序号
+                    InitGatewayRequest_({
+                        async: false,
+                        data: {matnr: ''},
+                        path: "/meng-engine/baseOwn/getEngByTypeNew",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#engSn').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px'
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    InitGatewayRequest_({
+                        type: "get",
+                        async: false,
+                        path: "/meng-engine/baseOwn/getEngTypeNew",
+                        successCallBack: function (jdata) {
+                            if (jdata.success == true) {
+                                $('#engType').combobox({
+                                    data: jdata.obj,
+                                    valueField: 'VALUE',
+                                    textField: 'TEXT',
+                                    panelHeight: '150px',
+                                    onSelect: function (item) {
+                                        //获取发动机序号
+                                        InitGatewayRequest_({
+                                            async: false,
+                                            data: {matnr: item.VALUE},
+                                            path: "/meng-engine/baseOwn/getEngByTypeNew",
+                                            successCallBack: function (jdata) {
+                                                if (jdata.success == true) {
+                                                    $('#engSn').combobox({
+                                                        data: jdata.obj,
+                                                        valueField: 'VALUE',
+                                                        textField: 'TEXT',
+                                                        panelHeight: '150px'
+                                                    });
+                                                } else {
+                                                    MsgAlert({content: '获取发动机序号列表失败', type: 'error'});
+                                                }
+                                            }
+                                        });
+                                    }
+                                });
+                            } else {
+                                MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                            }
+                        }
+                    });
+                    //报告状态
+                    PAGE_DATA['eqart'] = DomainCodeToMap_(jdata.data["ENG_PART_TYPE"]);
+                    //是否LRU件
+                    PAGE_DATA['ifLru'] = DomainCodeToMap_(jdata.data["YESORNO"]);
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var data_ = [];
+        //验证网关查询接口
+        var queryParams = $("#ffSearch").serializeObject();
+        $('#dg').GatewayDataGrid({
+            identity: 'dg',
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/engBasPart/listByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_BAS_PART_LIST'},
+                alter: {
+                    eqart: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['eqart'][value];
+                        }
+                    },
+                    ifLru: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['ifLru'][value];
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function onSearchClick() {
+        InitDataGrid();
+    }
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        i18nCallBack();
+    }
+
+    function doSync() {
+        MaskUtil.mask('正在同步...');
+        InitGatewayRequest_({
+            path: "/meng-engine/rxForecast/syncLlp",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    InitDataGrid();
+                    MaskUtil.unmask();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function onExcel(url) {
+        var queryParams = $("#ffSearch").serializeObject();
+
+        InitGatewayRequest_({
+            async: false,
+            data: queryParams,
+            path: "/meng-engine/engBasPart/genExcel",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    url = jdata.obj;
+                    window.location.href = ctx + url;
+
+                } else {
+                    MsgAlert({content:"导出失败!", type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

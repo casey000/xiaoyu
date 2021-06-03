@@ -1,0 +1,357 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_work_flow">
+  <!--#include virtual="/views/items/resource_.shtml"-->
+  <script src="/js/workflow/activiti_workflow.js" type="text/javascript"></script>
+  <script src="/js/workflow/formtemplet.js" type="text/javascript"></script>
+  <script src="/js/plugins/ajaxfileupload/ajaxfileupload.js" type="text/javascript"></script>
+  <title>MCC处室反馈</title>
+</head>
+<body class="ibody">
+
+<div id="tabs" style="width: 100%; height: 100%;">
+  <div id="tab01" title="业务表单数据" style="">
+    <div class="ibox float-e-margins">
+      <div class="ibox-content">
+        <form class="form-horizontal m-t" id="mform" style="margin-top: 0px;">
+          <!-- 意见反馈区域-->
+          <div id="searchBar">
+            <table class="table table-bordered table-info">
+              <tr>
+                <th class="td5" style="height:28px">标题：</th>
+                <td class="tdr" style="padding-left:5px;">
+                  <span style="width:100%" id="title"></span>
+                </td>
+              </tr>
+              <tr>
+                <th class="td5">执行反馈：</th>
+                <td class="tdr">
+                  <input class="easyui-textbox" name="remark" id="remark"
+                         data-options="multiline:true, validType:['maxLength[400]'],required:true"
+                         style="height:120px;width:98%"/>
+                </td>
+              </tr>
+              <tr>
+                <input type="hidden" name="dutySuggest" id="dutySuggest"/>
+                <td class="td5" colspan="2" style="padding-left:100px">
+
+                </td>
+              </tr>
+              <tr id="uploadFileRow">
+                <th class="tdl">上传附件：</th>
+                <td class="td5" colspan="2">
+                  <input type="file" style="border: 1px solid #cccc;width:70%" id="fileName" name="file"/>
+                  <a href="#" class="easyui-linkbutton" id="fbUpload" data-options="iconCls:'icon-ok'"
+                     onclick="uploadFBFile()">上 传</a>
+                </td>
+              </tr>
+              <tr>
+                <th class="tdl">当前附件：</th>
+                <td>
+                  <ul id="attachesUl"></ul>
+                </td>
+              </tr>
+              <tr id="approveRow1">
+                <th class="tdl">Approving Result：</th>
+                <td>
+                  <input type="radio" name="approveResult" value="1" checked/>Pass
+                  <input type="radio" name="approveResult" value="0" style="margin-left:20px"/>Reject<span
+                        style="color:red">*</span>
+                </td>
+              </tr>
+              <tr id="approveRow2">
+                <th class="tdl">Remark：</th>
+                <td>
+                  <input class="easyui-textbox" name="notes" id="notes"
+                         data-options="multiline:true, required:true,validType:['maxLength[500]'] "
+                         style="height:65px; width: 90%;"/>
+                </td>
+              </tr>
+            </table>
+          </div>
+          <!-- 业务数据展示end-->
+
+          <h5 style="margin-bottom: 4px;">流程处理：</h5>
+          <input type="hidden" name="dutyManagerId"/>
+          <table class="table table-bordered table-info" id="mtable">
+            <tr>
+              <td colspan="6" align="center">
+                <input id="canSubmit" class="btn" type="button" onclick="flowToNextNode()" value="确认"/>
+                <input id="canReturn" class="btn" type="button" onclick="CloseWindowIframe();" value="取消"/>
+                <input id="viewButton" class="btn btn-primary " type="button" onclick="viewDetails()" value="查看详情">
+                <!--<input id="canTerminate" class="btn" disabled="disabled" type="button" onclick="javascript: ;"value="终止"/>
+                <input id="canHangUp" class="btn" disabled="disabled" type="button" onclick="javascript: ;"value="挂起"/>-->
+              </td>
+            </tr>
+          </table>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div title="流程信息">
+    <table class="table table-bordered table-info" id="processInfo">
+      <tr>
+        <th class="tdl" style="width: 145px;">流程业务Key ：</th>
+        <td class="tdr">
+          <input class="easyui-textbox easyui-validatebox" name="businessKey"
+                 data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+        </td>
+        <th class="tdl" style="width: 145px;">流程业务名称 ：</th>
+        <td class="tdr">
+          <input class="easyui-textbox easyui-validatebox" name="executionName"
+                 data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+        </td>
+      </tr>
+      <tr>
+        <th class="tdl" style="width: 145px;">流程创建时间 ：</th>
+        <td class="tdr">
+          <input class="easyui-textbox easyui-validatebox" name="createTime"
+                 data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+        </td>
+        <th class="tdl" style="width: 145px;">流程创建人 ：</th>
+        <td class="tdr">
+          <input class="easyui-textbox easyui-validatebox" name="userName"
+                 data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+        </td>
+      </tr>
+      <tr>
+        <th class="tdl" style="width: 145px;">流程任务名称 ：</th>
+        <td class="tdr">
+          <input class="easyui-textbox easyui-validatebox" name="nodeName"
+                 data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+        </td>
+        <th class="tdl" style="width: 145px;">是否会签任务 ：</th>
+        <td class="tdr">
+          <input class="easyui-textbox easyui-validatebox" name="isJoint"
+                 data-options="multiline:true, onlyview: true " style="height:25px; width: 90%;"/>
+        </td>
+      </tr>
+      <!--<tr>
+        <th class="tdl" style="width: 145px;">流程任务-配置 ：</th>
+        <td class="tdr" colspan="3" style="vertical-align: middle;">
+          <input type="checkbox" name="canReturn" value="" disabled/> 可退回
+          <input type="checkbox" name="canTrunTo" value="" disabled/> 可转办
+          <input type="checkbox" name="canTerminate" value="" disabled/> 可终止
+          <input type="checkbox" name="canHangUp" value="" disabled/> 可挂起
+        </td>
+      </tr>-->
+    </table>
+    <div id="workflow" style="overflow-x: scroll;"></div>
+  </div>
+  <div id="tab02" title="历史任务信息" style="">
+    <table id="historyDg"></table>
+  </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+/**
+ * 初始化流程业务处理页面
+ * @param resource  业务数据
+ * @param execution 流程实例数据
+ * @param node 节点配置数据
+ * @constructor
+ */
+ var currTaskNode;
+ var sourceId;
+ var cirId;
+function InitLoadResource(resource, execution, node) {
+    sourceId = resource.pkid;
+    cirId = resource.cirId;
+    ParseFormField_(resource, null, null);
+    //用suggetType 存储启动子流程的值班经理accountID
+    $("input[name=dutyManagerId]").val(resource.suggestType);
+
+    //显示标题
+    InitFuncCodeRequest_({
+        data: {'pkid':resource.cirId, FunctionCode: 'PM_MC_INCIDENT_LIST'},
+        successCallBack: function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE && jdata.data && jdata.data.length == 1) {
+                var data = jdata.data[0];
+                var titles = {isMcc: 'MCC监控群组', isTmc: '技术支援处监控群组', isPPC: 'PPC跟进群组', isProj: '工程评估群组', isTrain: '培训开展群组',
+                            isLine: '航线关注群组', isDj: '定检跟进群组', isQa: '质量调查群组', isMateria: '航材保障群组'};
+                var title = "重要事件[" + data.CI_NO + " " + data.FLIGHT_ID + "_" + data.ACNO + "]值班经理建议与要求[" +
+                      titles[resource.suggestGroup] + "]";
+
+                $("#title").html(title);
+            }
+        }
+    });
+
+    /*附件展示*/
+    showUploadedFiles();
+
+    if(node.taskPropId.startsWith('taskMccFBConfirm')){
+      /*值班经理审核反馈的意见*/
+      $("#uploadFileRow").remove();
+      $("#remark").textbox({editable:false});
+      currTaskNode = 'approve';
+    }else if(node.taskPropId.startsWith('taskMccFBCheck')){
+      /*反馈退回*/
+      $("#approveRow1").remove();
+      $("#approveRow2").remove();
+    }
+}
+
+function flowToNextNode(){
+  var isValidate = $("#mform").form('validate');
+  if (!isValidate){
+    return;
+  }
+
+  if (currTaskNode == 'approve' && $("input[name=approveResult]:checked").length == 0){
+    MsgAlert({content:'请选择Appoving Result'});
+    return;
+  }
+
+  if (currTaskNode == 'approve' && $("input[name=approveResult]:checked").val() == '0'){
+    doReturn();
+  }else{
+    doSubmit();
+  }
+}
+
+function doReturn(){
+  $.messager.confirm('提示?', "是否进行退回?", function(r){
+      if (r){
+          var notes = $("#notes").textbox('getValue');
+          if($.trim(notes) == ''){
+              MsgAlert({ content :'请输入您的退回意见',  type:'error' });
+              return;
+          }
+          var $form = $("#mform");
+          var data = $form.serializeObject();
+          data = $.extend({}, data, {
+              FunctionCode: 'WS_FLOW_TURNBACK', reSelect: "up",
+              taskId: param.TASK_ID, procDefId : param.PROC_DEF_ID, notes: notes
+          });
+          if(!PAGE_EVENTS.beforeTurnBack(data)){
+              return;
+          }
+          MaskUtil.mask("请求处理中...");
+          InitFuncCodeRequest_({
+              data: data,
+              successCallBack: function (jdata) {
+                  MaskUtil.unmask();
+                  PAGE_EVENTS.afterTurnBack(jdata);
+                  if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                      if(typeof(param.OWindow.reload_ == 'function')) {
+                          param.OWindow.reload_();
+                      }
+                      param.OWindow.MsgAlert({ content : jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')  });
+                      CloseWindowIframe();
+                  } else {
+                      MsgAlert({ content: jdata.msg, type: 'error'});
+                  }
+              }
+          });
+      }
+  });
+}
+//查看不正常事件信息
+function viewDetails(){
+    var title_ = $.i18n.t('不正常事件查看/编辑');
+    ShowWindowIframe({
+        width: "1105",
+        height: "650",
+        title: title_,
+        param: {operation: "view", pkid: cirId},
+        url: "/views/pm/mc/event/incident_detail.shtml"
+    });
+}
+
+/*文件上传*/
+function uploadFBFile(){
+  var fileName = $.trim($("#fileName").val());
+  if (!fileName){
+    MsgAlert({content: '请选择文件', type: 'error'});
+    return;
+  }
+
+  if (!sourceId){
+    MsgAlert({content: '缺失关键参数SOURCEID', type: 'error'});
+    return;
+  }
+
+  if (!checkUploadFileSize('fileName', 10 * 1024 * 1024)){
+    MsgAlert({content: '文件上传超过上限：10M', type: 'error'});
+    return;
+  }
+
+  $.ajaxFileUpload({
+      url: Constant.API_URL + 'ATTACHMENT_UPLOAD',
+      secureuri: false,
+      fileElementId: 'fileName', //file控件id
+      dataType: 'json',
+      data: {
+          "fileCategory": 'MCCFEEDBACK',
+          "sourceId": sourceId,
+          'repeat': 'repeat'
+      },
+      success: function (jdata) {
+          if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+              MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_SUCCESS')});
+              //清空文件列表
+              $("#fileName").val("");
+              //显示已上传的文件
+              showUploadedFiles();
+          } else {
+              MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.UPLOAD_FALIED') + jdata.msg, type: 'error'});
+          }
+      }
+  });
+}
+
+function showUploadedFiles(){
+  if (sourceId){
+    InitFuncCodeRequest_({
+        data: {
+            SOURCE_ID: sourceId,
+            CATEGORY: "MCCFEEDBACK",
+            FunctionCode: 'ATTACHMENT_RSPL_GET'
+        },
+        successCallBack: function (jdata) {
+          if (jdata.code == 200 && jdata.data.length > 0) {
+            var ulNode = $("#attachesUl");
+            ulNode.find("li").remove();
+            for (var i = 0; i < jdata.data.length; i++) {
+                var imgSrc = "/img/";
+                var fileName = jdata.data[i].ORG_NAME;
+                var fileType = fileName.substr(fileName.lastIndexOf(".") + 1);
+                if (!fileType)
+                  continue;
+
+                fileType = fileType.toLowerCase();
+                if (fileType == 'pdf'){
+                  imgSrc += 'icon_pdf.gif';
+                }else if(fileType == 'doc' || fileType == 'docx'){
+                  imgSrc += 'icon_word.png';
+                }else if(fileType == 'xls' || fileType == 'xlsx'){
+                  imgSrc += 'icon_excel.png';
+                }else if(fileType == 'zip' || fileType == 'rar'){
+                  imgSrc += 'icon_zip.png';
+                }else{
+                  imgSrc += 'icon_other.png';
+                }
+
+                var attachFile = '<li style="float:left;margin-left:10px;">' +
+                      '<a target="_blank" onclick="downFile(\'' + jdata.data[i].PKID + '\')">' +
+                      '<img src="' + imgSrc + '" border="0" style="width:25px;height:25px;"/>' +
+                      '<div>' + jdata.data[i].ORG_NAME + '</div></a>' +
+                      '<a aIndex=\'i' + jdata.data[i].PKID + '\' target="_blank" onclick="deleteFileBefore(\'' + jdata.data[i].PKID + '\');return false;">' +
+                      '<img src="/css/icons/cross.png" border="0" />' + '</a><li>';
+
+                ulNode.append(attachFile);
+            }
+          }
+        }
+    });
+  }
+}
+
+function deleteFileBefore(fileId){
+  deleteFile(fileId);
+  $("a[aIndex=" + "i" + fileId +"]").parent().remove();
+}
+</script>
+</body>
+</html>

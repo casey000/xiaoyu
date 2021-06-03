@@ -1,0 +1,174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head id="i18n_" module="">
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type"/>
+    <title>MEL Log</title>
+    <!-- load css -->
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link href="/css/mccdoc/mr_commons.css" rel="stylesheet" type="text/css"/>
+
+    <!--    <script src="/js/mccdoc/common/mr_common.js" type="text/javascript"></script>-->
+    <!--    <script src="/js/mccdoc/edit/mr_add.js" type="text/javascript"></script>-->
+    <script src="/views/common/select_store_mr.js" type="text/javascript"></script>
+    <style>
+        #buttom {
+            text-align: right;
+            margin-top: 30px;
+            display: none;
+        }
+
+        .btn {
+            background: #2465a8;
+            border: none;
+            color: #fff;
+        }
+
+        #buttom a {
+            display: inline-block;
+            cursor: pointer;
+            background: #2465a8;
+            color: #fff;
+            border-radius: 4px;
+            padding: 5px 20px;
+            border: none;
+            font-size: 14px;
+            margin-top: 50px;
+            margin-right: 12px;
+        }
+        .post_table #singleAcNotice .mrItem td{
+            /*height: 35px;*/
+            line-height: 22px;
+            padding: 2px;
+        }
+        .tabs li.tabs-selected a.tabs-inner{
+            color: #f60;
+        }
+        .chItem{
+            background-color: #ffffaa;
+        }
+        .newItem{
+            background-color: #aaffaa;
+        }
+        .delItem{
+            background-color: #ffaaaa;
+        }
+        #singleAcNotice {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+<div class="easyui-tabs" id="texttabs" style="width:100%;height:50px;">
+</div>
+<form id="addForm" method="get">
+    <table border="0" cellpadding="0" cellspacing="0" class="post_table">
+
+
+        <tr>
+            <td colspan="4">
+                <table id="logList"  width="100%">
+                    <tr>
+                        <td colspan="16" style="font-weight: 600;">Log</td>
+                    </tr>
+                    <tr>
+                        <td class="tab_title_bg" style="text-align: center; width : 10%;min-width: 80px;">字段</td>
+                        <td class="tab_title_bg" style="text-align: center; width : 20%;min-width: 80px;max-width: 200px;">新值</td>
+                        <td class="tab_title_bg" style="text-align: center; width : 20%;min-width: 80px;max-width: 200px;">旧值</td>
+                        <td class="tab_title_bg" style="text-align: center; width : 20%;min-width: 80px;">操作日期</td>
+                        <td class="tab_title_bg" style="text-align: center; width : 20%;min-width: 80px;">操作人</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+</form>
+
+</body>
+<script>
+    var param = getParentParam_();
+
+    function i18nCallBack() {
+        viewLogList(param.id);
+    }
+
+//    初始化
+    function viewLogList(id) {
+        let params = {
+            melId:id
+        };
+        let actionUrl = basePath + '/api/v1/mel_log/find';
+        $.ajax({
+            url: actionUrl,
+            type: "get",
+            cache: false,
+            dataType: "json",
+            data: params,
+            async: false,
+            success: function (data) {
+                if (data.code == 200) {
+                    attachments = data.data;
+                    // attachments =  modeData;
+                    var html = "";
+                    $.each(attachments, function (index,value) {
+                        html += "<tr class='mrItem'>"+
+                            "<td align='center' style='text-align: center; width : 10%;min-width: 80px;word-wrap:break-word;'>"+ value.fieldName+"</td>"+
+                            "<td align='center' style='text-align: center; width : 20%;min-width: 80px;max-width: 200px;word-wrap:break-word;'>"+ value.newValue+"</td>"+
+                            "<td align='center' style='text-align: center; width : 20%;min-width: 80px;max-width: 200px;word-wrap:break-word;'>"+  value.oldValue+"</td>"+
+                            "<td align='center' style='text-align: center; width : 20%;min-width: 80px;word-wrap:break-word;'>"+  timestampToTime(value.updateTime.toString().substring(0,10))+"</td>"+
+                            "<td align='center' style='text-align: center; width : 20%;min-width: 80px;word-wrap:break-word;'>"+  value.updaterName +"("+ value.updaterSn +")</td>"+
+                            "</tr>"
+                    });
+                    $("#logList").append(html);
+                }
+            }
+        });
+    };
+
+    //时间戳转换
+    function timestampToTime(timestamp) {
+        var date = new Date(timestamp * 1000);//时间戳为10位需*1000，时间戳为13位的话不需乘1000
+        var Y = date.getFullYear() + '-';
+        var M = (date.getMonth()+1 < 10 ? '0'+(date.getMonth()+1) : date.getMonth()+1) + '-';
+        var D = (date.getDate() < 10 ? '0'+date.getDate() : date.getDate()) + ' ';
+        var h = (date.getHours() < 10 ? '0'+date.getHours() : date.getHours()) + ':';
+        var m = (date.getMinutes() < 10 ? '0'+date.getMinutes() : date.getMinutes()) + ':';
+        var s = (date.getSeconds() < 10 ? '0'+date.getSeconds() : date.getSeconds());
+        return Y+M+D+h+m+s;
+    };
+
+
+    var modeData =  [
+        {
+            "field":"PVGS",
+            "date":"2515886",
+            "newValue":"newwwww",
+            "oldValue":"oldddddddddd",
+            "worker":"0"
+        },
+        {
+            "field":"PVGS",
+            "date":"2515886",
+            "newValue":"newwwww",
+            "oldValue":"dddfdfdfdfdf",
+            "worker":"0"
+        },
+        {
+            "field":"PVGS",
+            "date":"2515886",
+            "newValue":"newwwww",
+            "oldValue":"olddddddeeeedddd",
+            "worker":"0"
+        },
+        {
+            "field":"PVGS",
+            "date":"2515886",
+            "newValue":"newwwww",
+            "oldValue":"dgsdsgs",
+            "worker":"0"
+        }
+    ];
+
+</script>
+</html>

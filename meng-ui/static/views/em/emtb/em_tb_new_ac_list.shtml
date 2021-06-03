@@ -1,0 +1,260 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>TB失效管理</title>
+</head>
+
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info">
+                    <input type="hidden" id="selectType" name="selectType">
+                    <tr>
+                        <th data-i18n="" style="width:70px;" align="right">任务类型：</th>
+                        <td style="width:150px">
+                            <input class="easyui-textbox" name="taskType" id="taskType" style="width:150px"/>
+                        </td>
+                        <th align="right" data-i18n="" style="width:90px;">任务产生日期：</th>
+                        <td style="width:100px">
+                            <input class="easyui-datebox" name="taskProduceDate1" id="taskProduceDate1" style="width:100px"/>
+                        </td>
+                        <th align="right" data-i18n="" style="width:60px;">至：</th>
+                        <td style="width:100px">
+                            <input class="easyui-datebox" name="taskProduceDate2" id="taskProduceDate2" style="width:100px"/>
+                        </td>
+                        <th align="right" data-i18n="" style="width:40px;">引进类型：</th>
+                        <td style="width:100px">
+                            <input class="easyui-textbox" id="impType" name="impType" style="width:100px"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th data-i18n="" style="width:70px;" align="right">适用性：</th>
+                        <td>
+                            <input class="easyui-textbox" name="acid" id="acid" style="width:150px"/>
+                        </td>
+                        <th align="right" data-i18n="" style="width:70px;">评估单号：</th>
+                        <td style="width:100px">
+                            <input class="easyui-textbox" name="evaNo" id="evaNo"
+                                   style="width:100px"/>
+                        </td>
+                        <th align="right" data-i18n="" style="width:40px;">状态：</th>
+                        <td style="width:100px">
+                            <input class="easyui-textbox" id="status" name="status" style="width:100px"/>
+                        </td>
+                        <td>
+                            <a class="searchBtn" data-options="iconCls:'icon-search'"
+                               href="javascript:void(0)"
+                               onclick="onSearch_()">
+                               <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                            <a class="clearBtn" data-options="iconCls:'icon-clear'"
+                               onclick="doClear_()" >
+                               <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                        </td>
+                    </tr>
+
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var status = '';
+    var name = getLoginInfo().userName;
+    var flag = true;
+    var executionId = ""; //流程实例ID
+    var param = {};
+    var type = null;
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode:
+                    "EM_AC_TASK_TYPE," +
+                    "EM_TB_NEWAC_ACNO," +
+                    "EM_AC_STATUS,EM_TB_IMP_TYPE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_AC_STATUS"]);
+                    PAGE_DATA['impType'] = DomainCodeToMap_(jdata.data["EM_TB_IMP_TYPE"]);
+                    $('#taskType').combobox({
+                        data: jdata.data.EM_AC_TASK_TYPE,
+                        panelHeight: '100px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#acid').combobox({
+                        data: jdata.data.EM_TB_NEWAC_ACNO,
+                        panelHeight: '200px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        data: jdata.data.EM_AC_STATUS,
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#impType').combobox({
+                        data: jdata.data.EM_TB_IMP_TYPE,
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            columns: {
+                param: {FunctionCode: 'EM_AC_EEEOEATB_EVA_LIST'},
+                alter: {
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'] [value];
+                        }
+                    },
+                    IMP_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['impType'] [value];
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view",
+                    i18nText: "查看",
+                    onclick: function () {
+                        var row = $('#dg').datagrid('getSelected');
+                        if (!row.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        var url = "";
+                        if (row.TASK_TYPE == "工程文件评估单重评") {
+                            url = "/views/em/emfileeval/emfileeva_new_ac_add.shtml?operation=view&recordId=";
+                        } else if (row.TASK_TYPE == "TB重评") {
+                            url = "/views/em/emtb/em_tb_new_ac_add.shtml?operation=view&recordId=";
+                        } else {
+                            url = "/views/em/emeo/em_eo_new_ac_add.shtml?operation=view&recordId=";
+                        }
+
+                        common_add_edit_({
+                            url: url + row.PKID,
+                            identity: "dg",
+                            isEdit: 0,
+                            width: 1000,
+                            height: 630
+                        });
+                    }
+                },
+                {
+                    id: "m-transform",
+                    i18nText: "转发",
+                    onclick: function () {
+                        var row = $('#dg').datagrid('getSelected');
+                        if (!row.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        ShowWindowIframe({
+                            url: "/views/em/emtb/em_tb_new_ac_trans.shtml",
+                            param: {
+                                pkid: row.PKID
+                            },
+                            title: "转发",
+                            width: 550,
+                            height: 250
+                        })
+                    }
+                },
+                {
+                    id: "m-flow-track",
+                    i18nText: "办理轨迹",
+                    onclick: function () {
+                        var row = $('#dg').datagrid('getSelected');
+                        if (!row.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+
+                        ShowWindowIframe({
+                            url: "/views/em/workflow/work_flow_history_task_list.shtml",
+                            param: {
+                                objKey: "EM_AC_EEEOEATB_EVA",
+                                objNo: row.PKID
+                            },
+                            title: $.i18n.t("办理轨迹"),
+                            width: 1100,
+                            height: 400
+                        });
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                items["转发"].enable = row.STATUS === "PGZ";
+            }
+        });
+    }
+
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function reloadTodo() {
+
+    }
+    /**
+     * 校验工作流是否已经存在
+     **/
+    function validWorkFlow(objKey, objNo) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {objKey: objKey, objNo: objNo, FunctionCode: 'VALID_WORK_FLOW'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        executionId = jdata.data.EXECUTION_ID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return executionId;
+    }
+</script>
+</body>
+</html>

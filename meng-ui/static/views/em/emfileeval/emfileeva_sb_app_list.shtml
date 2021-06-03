@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <table class="table table-bordered table-info">
+            <tr>
+                <td class="tdr" colspan="6">
+                    <input class="btn btn-primary" type="button" onclick="save()" value="保存"
+                           style="width: 50px;margin-left: 447px"/>
+                    <input class="btn btn-primary" type="button" onclick="CloseWindowIframe()" value="关闭"
+                           style="width: 50px;margin:5px;"/>
+                </td>
+            </tr>
+        </table>
+    </form>
+</fieldset>
+<table id="dg">
+</table>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var param;
+    var evapkid;
+    var applyModel;
+    var dataType;
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        evapkid = param.evapkid;
+        applyModel = param.applyModel;
+        dataType = param.dataType;
+        if(dataType.indexOf("SB") != -1){
+            dataType = 'SB'
+        }
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EVA_RESULT,DM_URGENT_LEVEL,EM_APPLY_TYPE,EM_EVALUATE_STATUS",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_EVALUATE_STATUS"]);
+                    PAGE_DATA['evaResult'] = DomainCodeToMap_(jdata.data["EVA_RESULT"]);
+                    PAGE_DATA['urgentLevel'] = DomainCodeToMap_(jdata.data["DM_URGENT_LEVEL"]);
+                    $('#evaResult').combobox({
+                        panelHeight: '50px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EVA_RESULT
+                    });
+
+                    InitDataGrid();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+                identity: identity,
+                sortable: true,
+                pagination: false,
+            queryParams: {evaId: evapkid, applyModel: applyModel,dataType:dataType},
+                columns: {
+                    param: {FunctionCode: 'EM_SB_APP_LIST'},
+                    alter: {
+                        STATUS: {
+                            formatter: function (value, row, index) {
+                                return PAGE_DATA['status'] [value];
+                            }
+                        }
+                    }
+
+                },
+                onLoadSuccess: function (data) {
+                },
+
+                contextMenus: [],
+                onClickRow: function (rowIndex, rowData) {
+                },
+                onDblClickRow: function (index, field, value) {
+                }
+            }
+        );
+    }
+
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    function save() {
+        var rows = $('#dg').datagrid('getChecked');
+        if (rows.length == 0) {
+            MsgAlert({content: '请至少选择一行数据', type: 'error'});
+            return false;
+        }
+        if (rows.length > 1) {
+            MsgAlert({content: '请至多选择一行数据', type: 'error'});
+            return false;
+        }
+        InitFuncCodeRequest_({
+            data: {
+                evapkid: evapkid,
+                filePath: rows[0].MANUAL_FILE_PATH,
+                FunctionCode: "EM_FILE_SB_APP"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    param.OWindow.reload_("#dg4");
+                    param.OWindow.reload_("#dg5");
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

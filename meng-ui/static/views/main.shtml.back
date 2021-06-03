@@ -1,0 +1,406 @@
+
+
+<!DOCTYPE html>
+<html>
+<!-- Mirrored , Wed, 20 Jan 2016 14:19:52 GMT -->
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/main.css">
+    <title>欢迎来到AMRO</title>
+</head>
+
+<body class="ibody">
+    <div class="oulDiv">
+        <ul class="oul">
+            <li>
+                <img src="/img/one.png" alt="">
+                <p>待办任务</p>
+            </li>
+            <li>
+                <img src="/img/two.png" alt="">
+                <p>消息提醒</p>
+            </li>
+            <li>
+                <img src="/img/three.png" alt="">
+                <p>预警</p>
+            </li>
+            <li>
+                <img src="/img/four.png" alt="">
+                <p>航班动态</p>
+            </li>
+        </ul>
+    </div>
+    <div class="odiv">
+        <div class="botDiv">
+            <div id="tabs" class="easyui-tabs" style="width: 100%; height: 100%;">
+                <div id="tab01" title="待办任务" style="display: none; padding: 2px; overflow: hidden;">
+                    <table id="list1"></table>
+                </div>
+            </div>
+        </div>
+        <div class="botDiv">
+            <table id="dg"></table>
+        </div>
+        <div class="botDiv">
+            <div id="tabs22" class="easyui-tabs" style="width:100%; height: 100%">
+                <div id="" title="工具安全预存预警" style="display: none; padding: 2px; overflow: hidden;">
+                    <table id="y01"></table>
+                </div>
+                <div id="" title="航材安全库存预警" style="display: none; padding: 2px; overflow: hidden;">
+                    <table id="y02"></table>
+                </div>
+                <div id="" title="航材时限预警" style="display: none; padding: 2px; overflow: hidden;">
+                    <table id="y03"></table>
+                </div>
+                <div id="" title="工具时控件预警" style="display: none; padding: 2px; overflow: hidden;">
+                    <table id="y04"></table>
+                </div>
+                <div id="" title="回仓件监控" style="display: none; padding: 2px; overflow: hidden;">
+                    <table id="y05"></table>
+                </div>
+                <div id="" title="协议到期预警" style="display: none; padding: 2px; overflow: hidden;">
+                    <table id="y06"></table>
+                </div>
+            </div>
+        </div>
+        <div class="botDiv">
+            <table id="dg1" style="width: 500px;overflow: auto"></table>
+        </div>
+    </div>
+
+</body>
+</html>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    $('.oulDiv ul li').each(function(){
+        var index = $(this).index();
+        $('.botDiv').eq(0).show().siblings().hide();
+        $(this).click(function () {
+            reload_();
+            $('.botDiv').eq(index).show().siblings().hide();
+        })
+    })
+
+    var loginUserId
+    var PAGE_DATA = {}
+    function i18nCallBack(){
+
+        InitFuncCodeRequest_({
+            async: false,
+            data: {
+                domainCode: "WS_FROM_UID,WS_TO_UID",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#fromUid').combobox({
+
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.WS_FROM_UID,
+                    });
+                    $('#toUid').combobox({
+                        panelHeight: '150px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.WS_FROM_UID,
+                    });
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+
+        InitDataGrid();
+        InitDataGrid1();
+        //InitDataGrid2();
+        //InitDataGridY1();
+        //InitDataGridY2();
+        //InitDataGridY3();
+        //InitDataGridY4();
+        //InitDataGridY5();
+        loginUserId = getLoginInfo().accountId;
+
+
+    }
+
+    function InitDataGrid1(){
+        var identity = 'list1';
+        $("#list1").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: { FunctionCode: 'PROCESS_REMAIN_TASK_LIST' }
+            },
+            validAuth: function(row, items){
+                return items;
+            },
+
+            onLoadSuccess: function () {
+
+                setTimeout('setCount()',500);
+            },
+            resize: function(){
+                return tabs_standard_resize($('#tabs'), -12)
+            }
+        });
+    }
+    //tab 标题数量setCount
+    function setCount (){
+        var total;
+        total =    $("#list1").datagrid('getPager').pagination('options').total;
+
+    }
+
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            rowStyler: function (index, row) {
+                if (row.STATE == 'U') {
+                    return 'font-weight:bold;';
+                }
+            },//loginUserId
+            queryParams:{loginUserId:loginUserId},
+            columns: {
+                param: {FunctionCode: 'WS_SYS_MESSAGE_LIST'},
+                alter: {
+                    MSG_BODY: {
+                        formatter: function (value, row, index) {
+                            if (row.MSG_TYPE == 1) {
+                                return '<a href="javascript:void(0);" onclick="shwowDetail(\'' + index + '\')">' + value + '</a>';
+                            }
+                            if (row.MSG_TYPE == 2) {
+                                return '<a href="javascript:void(0);" onclick="shwowDetailType2(\'' + index + '\')">' + value + '</a>';
+                            }
+                            if (row.MSG_TYPE == 3) {
+                                return '<a href="javascript:void(0);" onclick="shwowDetailType3(\'' + index + '\')">' + value + '</a>';
+                            }
+                        },
+                    },
+
+                    STATE: {
+                        formatter: function (value, row, index) {
+                            switch (value) {
+                                case 'R':
+                                    return '已读';
+                                case 'U':
+                                    return "未读";
+
+                            }
+                        }
+                    },
+                    MSG_TYPE: {
+                        formatter: function (value, row, index) {
+                            switch (value) {
+                                case '1':
+                                    return '文本消息';
+                                case '2':
+                                    return "打开系统连接";
+                                case '3':
+                                    return "弹出新窗口";
+                                default:
+                                    return value;
+
+                            }
+                        }
+                    },
+                    TO_UID: {
+                        formatter: function (value, row, index) {
+                            switch (value) {
+                                case '0':
+                                    return '所有人';
+                                default:
+                                    return value;
+
+                            }
+                        }
+                    },
+                }
+
+            },
+
+            resize: function(){
+                return tabs_standard_resize($('#tabs'), -12)
+            }
+        });
+    }
+
+//航班动态
+    /**初始化数据表格*/
+    function InitDataGrid2() {
+        var identity = 'dg';
+        $("#dg1").MyDataGrid({
+            identity: identity,
+            /** 通过function功能去查找航班动态信息表（LM_PM_FLIGHT_MONITOR ）中的数据*/
+            columns: {param: {FunctionCode: 'ROUTE_FIIGHTSCHEDMOINTER_LIST'}},
+            validAuth: function (row, items) {
+                // || row.EVA_DATE
+                if (row.IF_WARNING == 'Y' ) {
+                    items["消红"].enable = true;
+                }else{
+                    items["消红"].enable = false;
+
+                }
+
+                return items;
+            },
+            resize: function(){
+                return tabs_standard_resize($('#tabs'), -12)
+            }
+        });
+    }
+
+    function InitDataGridY1() {
+        var identity = 'y01';
+        $("#y01").MyDataGrid({
+            identity: identity,
+            /*工具安全库存设置的列表展现功能*/
+            columns: {
+                param: {FunctionCode: 'ROUTE_MM_TOOL_SAFTY_SET_LIST'},
+                alter: {
+                    'TOOL_MODEL_PKID': {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['toolModelPkid'][value];
+                        }
+                    },
+                }
+            },
+            /*右键菜单栏*/
+            contextMenus: [
+
+            ],
+            resize: function(){
+                return tabs_standard_resize($('#tabs'), -12)
+            }
+        });
+    }
+
+    function InitDataGridY2() {
+        var identity = 'y02';
+        $("#y02").MyDataGrid({
+            identity: identity,
+            title: $.i18n.t('航材安全库存报警'),
+            columns: {
+                param: {FunctionCode: 'MM_STORE_SAFTY_WARN_LIST'},
+                alter: {
+                    COSTUMER_PKID: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['costumerPkid'][value];
+                        }
+                    },
+                }
+            },
+            contextMenus: [
+
+            ],
+            resize: function(){
+                return tabs_standard_resize($('#tabs'), -12)
+            }
+        });
+    }
+    function InitDataGridY3() {
+        //定义identity的值为dg
+        var identity = 'y03';
+        //根据表单的ID(dg)初始化列表，
+        $("#y03").MyDataGrid({
+            //
+            identity: identity,
+            //js页面标题
+            title: $.i18n.t('时控航材到限报警'),
+            //显示表格的列和列内容
+            columns: {
+                //从数据库中取LM_FILE_TYPE的内容
+                param: {FunctionCode: 'MM_TIME_CONTROL_WARN_LIST'},
+                //选中某一表格在鼠标处显示内容
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                }
+            },
+            resize: function(){
+                return tabs_standard_resize($('#tabs'), -12)
+            }
+        });
+    }
+    /*初始化数据表格*/
+    function InitDataGridY4() {
+        var identity = 'y04';
+        $("#y04").MyDataGrid({
+            identity: identity,
+            /*列表显示工具时控报警信息*/
+            columns: {
+                param: {FunctionCode: 'ROUTE_MM_TOOL_LLP_WARN_LIST'},
+                alter: {
+                    'STATUS': {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'][value];
+                        }
+                    },
+                    'CUSTOMER_PKID': {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['customerPkid'][value];
+                        }
+                    },
+                }
+            },
+            resize: function(){
+                return tabs_standard_resize($('#tabs'), -12)
+            }
+        });
+    }
+    function InitDataGridY5() {
+        //定义identity的值为dg
+        var identity = 'y05';
+        //根据表单的ID(dg)初始化列表，
+        $("#y05").MyDataGrid({
+            //
+            identity: identity,
+            //js页面标题
+            title: $.i18n.t('航材回仓件监控'),
+            //显示表格的列和列内容
+            columns: {
+                //从数据库中取LM_FILE_TYPE的内容
+                param: {FunctionCode: 'MM_RETURN_PAIRS_MONITER_LIST'},
+                //选中某一表格在鼠标处显示内容
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                }
+            },
+            resize: function(){
+                return tabs_standard_resize($('#tabs'), -12)
+            }
+        });
+    }
+    /** 刷新列表数据 */
+    function reload_(){
+        $("#list1").datagrid("reload");
+        $("#dg").datagrid("reload");
+        $("#dg1").datagrid("reload");
+        $("#y01").datagrid("reload");
+        $("#y02").datagrid("reload");
+        $("#y03").datagrid("reload");
+        $("#y04").datagrid("reload");
+        $("#y05").datagrid("reload");
+
+    }
+
+</script>

@@ -1,0 +1,280 @@
+<script type="text/javascript" src="/js/constants.js"></script>
+<!--<script src="/js/jquery.min.js?v=2.1.4"></script>-->
+<script type="text/javascript" src="/js/jquery-1.12.0.min.js"></script>
+
+<script src="/js/bootstrap.min.js?v=3.3.6"></script>
+<script src="/js/plugins/metisMenu/jquery.metisMenu.js"></script>
+<script src="/js/plugins/slimscroll/jquery.slimscroll.min.js"></script>
+<script type="text/javascript" src="/js/plugins/layer/layer.js?style=default"></script>
+<script src="/js/core.min.js?v=4.1.0"></script>
+<script type="text/javascript" src="/js/contabs.min.js"></script>
+<script src="/js/plugins/pace/pace.min.js"></script>
+
+<script type="text/javascript" src="/js/plugins/cookie/jquery.cookie.js"></script>
+<!-- i18next -->
+<script src="/js/plugins/i18next/i18next.min.js"></script>
+<script type="text/javascript" src="/js/plugins/laytpl/laytpl.js"></script>
+
+<script type="text/javascript" src="/js/plugins/easyui/jquery.easyui.custom.min.js"></script>
+<script type="text/javascript" src="/js/plugins/easyui/locale/easyui-lang-zh_CN.js"></script>
+<script type="text/javascript" src="/js/base64.js"></script>
+<script type="text/javascript" src="/js/common.js"></script>
+<script type="text/javascript" src="/js/am_auth.js"></script>
+<script type="text/javascript" src="/js/axios.min.js"></script>
+<script type="text/javascript" src="/js/sfa-query-1.0.js"></script>
+
+
+<!--add by doreen for 3D-->
+<script type="text/javascript" src="/js/modelIndex.js"></script>
+<script type="text/javascript" src="/js/qwebchannel.js"></script>
+<script type="text/javascript" src="/js/qt.chrome.js"></script>
+<script type="text/javascript" src="/js/bridgeBusiness.js"></script>
+<script type="text/javascript" src="/js/ASMS3DObject.js"></script>
+<!--#include virtual="/views/include/ex_resource_.shtml"-->
+<script>
+
+    function bindResource() {
+        /*var mainHeight = $(".J_mainContent").height();
+         $(".J_mainContent .J_iframe").css({height: mainHeight });*/
+        $('.lng_btn').on('click', function () {
+            var $this = $(this);
+            var lng = $(this).data("lngval");
+            window.top.document['_LNGVAL'] = lng;
+            i18n.setLng(lng, function () {
+                $(document).i18n();
+                $('.lng_btn').removeClass('active');
+                $this.addClass('active');
+                iframe_i18n_(window.document);
+            });
+        });
+    }
+
+    function iframe_i18n_(document_) {
+        $(document_).find("iframe").each(function () {
+            var win_ = window.frames[$(this).attr("name")];
+            win_.location.reload();
+        });
+    }
+
+    /** 安全退出*/
+    function logout_() {
+        layerConfirm_({
+            content: $.i18n.t('msg_err:ERRMSG.COMMON.LOGOUT_CONFIRM'),
+            yesFunc: function (index) {
+                window.location.href = "/logout";
+                // AjaxCall_("/api/v1/security/logout", "", function (jdata) {
+                //     if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                //         window.location.href = "/login.shtml"
+                //     } else {
+                //         layer.msg(jdata.msg, {icon: 5});
+                //     }
+                // });
+            }
+        });
+    }
+
+    /** 修改密码 */
+    function modifyPwd_() {
+        /**var rowData = $("#dg").datagrid('getSelected');
+         if (!rowData) {
+            layer.msg($.i18n.t('msg_err:ERRMSG.NO_SELECT_ROW_ERROR'), {icon: 5});
+            return;
+        }*/
+        var loginUserId = getLoginInfo().accountId;
+        ShowWindowIframe({
+            width: 600, height: 280,
+            title: "修改密码",
+            param: {pkid: loginUserId},
+            url: "/views/items/editPwd.shtml"
+        });
+    }
+</script>
+<script type="text/javascript">
+    var MenuData = [];
+
+    function i18nCallBack() {
+        //绑定数据资源
+        bindResource();
+        //绑定菜单
+        bindMenuData();
+    }
+
+    function bindMenuData() {
+        AjaxCall_("/api/v1/system/data/menu", {}, function (jdata) {
+            if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                //处理显示菜单
+                MenuData = jdata.data.menuData;
+                $("#side-menu li[ty='menu']").remove();
+                $("#side-menu").append(initMenuTree_(jdata.data.menuData));
+                $('#side-menu').metisMenu();
+                $("#side-menu>li").click(function () {
+                    $("body").hasClass("mini-navbar") && NavToggle();
+                }), $("#side-menu>li li a").click(function () {
+                    $(window).width() < 769 && NavToggle();
+                }), $(".nav-close").click(NavToggle);
+                $('#side-menu').i18n();
+
+                //权限数据
+                AuthPerm_(jdata.data.permKeys);
+                //菜单数据
+                AuthMenu_(jdata.data.menuKeys);
+                //处理页面权限
+                InitValidAuth();
+                //记录登录人员信息
+                setLoginInfo(jdata.data.loginUser);
+                var loginUser = getLoginInfo();
+                $("#uaccount").text(loginUser.userName);
+                $("#uname").text(loginUser.roleName);
+                //绑定Top SearchBox
+                BindTopSearchBox();
+                //$("iframe[name='iframe0']").attr("src", "/views/sysuser/sysuser_list.shtml");
+                createOrSelectTab_("/views/main.shtml", '0', '首页', true, false);
+                selectlatesttime(loginUser.accountId);
+                setInterval(function () {
+                    selectlatesttime(loginUser.accountId)
+                }, 60000);
+                InitWebSocket();
+            } else {
+                layer.msg(jdata.msg, {icon: 5});
+            }
+        });
+    }
+
+    var MenuDataMap = {};
+
+    function initMenuTree_(menus) {
+        if (!menus['0'] || menus['0'].length <= 0)
+            return;
+        var h = "";
+        $.each(menus['0'], function (k, item) {
+            h += '<li ty="menu">';
+            if (item.url && item.url != "" && item.url != "#") {
+                h += '<a href="' + item.url + '" class="J_menuItem" data-index="' + item.id + '">';
+                MenuDataMap['' + item.id] = item;
+            } else {
+                h += '<a href="#">';
+            }
+            h += '<i class="fa fa-table"></i> <span class="nav-label" data-i18n="common:RES.MENU.' + item.menuCode + '" title="' + item.name + '">' + item.name + '</span>';
+            h += '<span class="fa arrow"></span></a>';
+            h += warpMenuDataTree_(menus, item.id + "", item.pid + "", 2);
+            h += "</li>";
+        });
+        return h;
+    }
+
+    function warpMenuDataTree_(menus, key, pkey, level) {
+        if (!menus[key] || menus[key].length <= 0)
+            return "";
+        var lv = {2: "second", 3: "third", 4: "fourth"};
+        var m = '<ul class="nav nav-' + lv[level] + '-level">';
+        $.each(menus[key], function (k, item) {
+            m += '<li>';
+            if ( item.url && item.url != "" && item.url != "#" && item.url!= "null") {
+                m += '<a class="J_menuItem" href="' + item.url + '" data-index="' + item.id + '" > <i class="fa fa-file-o"></i>';
+                MenuDataMap['' + item.id] = item;
+            } else {
+                m += '<a href="#"> <i class="fa fa-table">';
+            }
+            m += '</i> <span data-i18n="common:RES.MENU.' + item.menuCode + '" style="  display: inline-block;width: 100px;text-overflow: ellipsis;overflow: hidden;white-space: nowrap;line-height:12px;" title="' + item.name + '" >' + item.name + '</span>';
+            m += ((item.url && item.url != "" && item.url != "#") ? '' : '<span class="fa arrow"></span>') + "</a>";
+            m += warpMenuDataTree_(menus, item.id + "", item.pid + "", level + 1);
+            m += "</li>";
+        });
+        m += "</ul>";
+        return m;
+    }
+
+    function BindTopSearchBox(thiz) {
+        $("#top-search").keyup(function () {
+            if (event.keyCode == 13) {
+                filterMenu($(this).val());
+            }
+        });
+    }
+
+    function filterMenu(value) {
+        var cloneData = {};
+        if (value && value != '') {
+            var tmp = [];
+            $.each(MenuData, function (k, v) {
+                $.each(v, function (k1, v1) {
+                    var name = v1.name;//$.i18n.t(v1.i18nText); //v1.name
+                    if (name && name.toLowerCase().indexOf(value.toLowerCase()) > -1
+                        && $.trim(v1.url) != '' && $.trim(v1.url) != '#') {
+                        v1.pid = 0;
+                        tmp.push(v1);
+                    }
+                });
+            });
+            if (tmp.length > 0)
+                cloneData['0'] = tmp;
+        } else {
+            cloneData = MenuData;
+        }
+        $("#side-menu li[ty='menu']").remove();
+        $("#side-menu").append(initMenuTree_(cloneData));
+        $('#side-menu').metisMenu();
+        $("#side-menu>li").click(function () {
+            $("body").hasClass("mini-navbar") && NavToggle();
+        }), $("#side-menu>li li a").click(function () {
+            $(window).width() < 769 && NavToggle();
+        }), $(".nav-close").click(NavToggle);
+        $('#side-menu').i18n();
+    }
+
+    function InitWebSocket() {
+        var websocket = null;
+        //判断当前浏览器是否支持WebSocket
+        if ('WebSocket' in window) {
+            websocket = new WebSocket(Constant.WEB_SOCKET_URL);
+        } else {
+            console.log('Not support websocket');
+            return;
+        }
+        //连接发生错误的回调方法
+        websocket.onerror = function () {
+        };
+
+        //连接成功建立的回调方法
+        websocket.onopen = function (event) {
+        };
+
+        //接收到消息的回调方法
+        websocket.onmessage = function (event) {
+            if (event.data == 'who') {
+                var msg = {action: 'who', data: JSON.stringify(getLoginInfo())};
+                sendMessage(JSON.stringify(msg));
+            } else {
+                eval('var msg = ' + event.data + ';');
+                /*if(msg.action == 'msg'){
+                    popMessageWindow(msg.data);
+                }*/
+            }
+        };
+
+        //连接关闭的回调方法
+        websocket.onclose = function () {
+        };
+
+        //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+        window.onbeforeunload = function () {
+            websocket.close();
+        };
+
+        //关闭连接
+        function closeWebSocket() {
+            websocket.close();
+        }
+
+        //发送消息
+        function sendMessage(message) {
+            websocket.send(message);
+        }
+    }
+    function openTab(path, title, k, y, _taskType) {
+        taskType = _taskType;
+        p_ifDsp = true;
+        p_isCreateMan = true;
+        createOrSelectTab_(path, '1', title, k, y);
+    }
+</script>

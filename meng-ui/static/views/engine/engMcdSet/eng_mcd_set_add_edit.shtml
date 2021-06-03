@@ -1,0 +1,204 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="ws_infra_struct">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>磁堵检查部位设置</title>
+    <script type="text/javascript">
+        var param = {};
+        var operation;
+        var pkid;
+        function i18nCallBack() {
+            var userLogin = getLoginInfo();
+            $("#modifyName").textbox('setValue', userLogin.userName);
+            $("#modifyUser").val(userLogin.accountId);
+            var currentDate = new Date();
+            var year = currentDate.getFullYear().toString();
+            var month = (currentDate.getMonth() + 1).toString();
+            var day = currentDate.getDate().toString();
+            $("#modifyDate").datebox('setValue', year + "-" + month + "-" + day);
+            param = getParentParam_();
+            operation = param.operation;
+            pkid = param.pkid;
+            if ("view" == operation) { //查看
+                $(".easyui-combobox").combobox({editable: false, onlyview: true});
+                $(".easyui-textbox").textbox({editable: false, onlyview: true});
+                $("#saveBtn").hide();
+            }
+            InitFuncCodeRequest_({
+                data: {
+                    domainCode: "ENG_MCD_CHECK_POS,MCD_CHECK_OBJECT",
+                    FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+                },
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        //检查部位 数据词典加ENG开头
+                        $('#checkPos').combobox({
+                            panelHeight: '120px',
+                            data: jdata.data.ENG_MCD_CHECK_POS,
+                            valueField: 'VALUE',
+                            textField: 'TEXT'
+                        });
+                        //检查对象类别
+                        $('#objectType').combobox({
+                            panelHeight: '60px',
+                            data: jdata.data.MCD_CHECK_OBJECT,
+                            valueField: 'VALUE',
+                            textField: 'TEXT',
+                            onSelect: function (item) {
+                                if (item.VALUE == "1") { //检查对象类别选择“本体”，该字段为空不可编辑
+                                    //连续上升次数为空
+                                    $("#itemNo").textbox('setValue', '');
+                                    $("#itemNo").textbox({required: false, editable: false, onlyview: true});
+                                } else {
+                                    $("#itemNo").textbox({required: true, editable: true, onlyview: false});
+                                }
+                            }
+                        });
+                        InitGatewayRequest_({
+                            type: "get",
+                            async: false,
+                            path: "/meng-engine/baseOwn/getEngTypeNew",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    $('#engType').combobox({
+                                        data: jdata.obj,
+                                        valueField: 'VALUE',
+                                        textField: 'TEXT',
+                                        panelHeight: '150px',
+                                    });
+                                } else {
+                                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                                }
+                            }
+                        });
+                        if (pkid) {
+                            InitDataForm(pkid);
+                        }
+                    } else {
+                        MsgAlert({content: jdata.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+        //保存
+        function save() {
+            var isValidate = $("#mform").form('validate');
+            if (!isValidate) {
+                return;
+            }
+            saveOrEditJobcard(operation);
+        }
+
+        function saveOrEditJobcard(operation) {
+            var $form = $("#mform");
+            var datas = $form.serializeObject();
+            datas['operation'] = operation;
+            InitGatewayRequest_({
+                async: false,
+                path: "/meng-engine/EngMcdSet/addOrEditEngMcdSet",
+                data: datas,
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                        param.OWindow.reload_();
+                        CloseWindowIframe();
+                    } else {
+                        MsgAlert({content: jdata.errorMessage, type: 'error'});
+                    }
+                }
+            });
+        }
+
+        function InitDataForm(pkid) {
+            $('#pkid').val(pkid);
+            InitGatewayRequest_({
+                type: "get",
+                async: false,
+                path: "/meng-engine/EngMcdSet/getEngMcdSetById/" + pkid,
+                successCallBack: function (jdata) {
+                    if (jdata.success == true) {
+                        if ("view" == operation) {
+                            ParseFormField_(jdata.obj, $("#mform"));
+                        } else {
+                            $("#engType").combobox('setValue', jdata.obj.engType);
+                            $("#checkPos").combobox('setValue', jdata.obj.checkPos);
+                            $("#objectType").combobox('setValue', jdata.obj.objectType);
+                            $("#itemNo").textbox('setValue', jdata.obj.itemNo);
+                        }
+                        if ("1" == jdata.obj.objectType) { //如果检查对象类别为本体
+                            $("#itemNo").textbox({required: false, editable: false, onlyview: true});
+                        }
+                    } else {
+                        MsgAlert({content: jdata.errorMessage, type: 'error'});
+                    }
+                }
+            })
+        }
+    </script>
+</head>
+<body>
+
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="磁堵检查部位设置" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="companyCode" name="companyCode" value="SFN"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <table cellspacing="0" cellpadding="2" class="table table-bordered table-info">
+                    <div>
+                        <input class="btn btn-primary" type="button" id="closeBtn" onclick="CloseWindowIframe();"
+                               value="关闭" style="float: right;margin-right: 10px;"/>
+                        <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"
+                               style="float: right;margin-right:10px;"/>
+                    </div>
+                    <tr>
+                        <th class="tdl">发动机型号：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="engType" name="engType"
+                                   data-options="required:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">检查部位：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="checkPos" name="checkPos"
+                                   data-options="required:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">检查对象类别：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" id="objectType" name="objectType"
+                                   data-options="required:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">构型编号：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="itemNo" name="itemNo" data-options="required:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">维护人：</th>
+                        <td class="tdr">
+                            <input class="easyui-textbox" id="modifyName" name="modifyName"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="tdl">维护日期：</th>
+                        <td class="tdr">
+                            <input class="easyui-datebox" id="modifyDate" name="modifyDate"
+                                   data-options="editable:false,onlyview:true"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">手册浏览</title>
+</head>
+<body class="ibody">
+<div id="mlayout" class="easyui-layout" style="height: 100%;">
+    <div id="lay_left" data-options="region:'west',split:true,collapsible:true" title="The SP Manual Tree." style="width: 23%;">
+        <ul id="locTree" class="easyui-tree"></ul>
+    </div>
+    <div id="lay_right" data-options="region:'center'" style="-webkit-overflow-scrolling:touch"  >
+        <span></span>
+        <div id="tt2" class="easyui-tabs" fit="true">
+            <div title="高级查询" style="padding:10px;display:none;">
+
+                <div id="tt" style="width:100%; height: 98%">
+                    <fieldset class="fieldset_eui">
+                        <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+                        <form id="ffSearch" class="form-horizontal">
+                            <table cellspacing="0" cellpadding="0" class="table table-bordered table-info">
+                                <tr>
+                                    <th class="tdl" style="width: 120px">文件标题：</th>
+                                    <td class="tdr" width="180">
+                                        <input class="easyui-textbox" id="fileTitle" name="model"
+                                               style=" width:180px;"/>
+                                    </td>
+
+                                    <td>
+                                        &nbsp;<a class="searchBtn" href="javascript:void(0)" onclick="searchData()"
+                                                 data-options="iconCls:'icon-search'"><span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                                        &nbsp;<a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                                        <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </form>
+                    </fieldset>
+                    <table id="dg"> </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var sql="";
+    var fileTitle = "";
+    var param;
+    var treeStatus = "default";// default:默认方式   jump:其他地方跳转过来
+    var jumpTaskCode = "";
+    var companyCode = "";//运营人
+    var fleet = "";//机队
+    var manualType = "";//手册类型
+    var dealOption = "";//编写方式
+
+    var fileId;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        getTree();
+        initDataGrid();
+    }
+    function handleTreeData(arry) {
+        var treeData = [];
+        arry = arry || [];
+        $.each(arry, function (k, it) {
+            if(it.sub!=null&&it.sub.length>0){
+                it.children = handleTreeData(it.sub);
+            }
+            treeData.push(it);
+        });
+        return treeData;
+    }
+    function getTree() {
+        //初始化树
+        ajaxLoading();
+        InitGatewayRequest_({
+            type: "post",
+            async: false,
+            path: "/online-manual/geSpmEngine/loadTree",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    loadTree(jdata.obj);
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function loadTree(treeData){
+        $("#locTree").tree({
+            data: treeData,
+            lines: true,
+            animate: true,
+            formatter: function (tdata_) {
+                return tdata_.title;
+            },
+            loadFilter : function(jdata) {
+                ajaxLoadEnd();
+                return handleTreeData(jdata);
+            },
+            onSelect: function (node) {
+                if (node.file) {
+                    if(node.file.endsWith(".chm")){
+                        window.open(ENVGlobal.manualServer + node.file);
+                    }else{
+                        addTab(node.title, ENVGlobal.manualServer + node.file);
+                    }
+                } else {
+                    var operate = node.state == "open"? "collapse": "expand";
+                    $("#locTree").tree(operate,node.target);
+                }
+            }
+        }).css({padding: '5px'});
+    }
+
+    function addTab(title, url) {
+        $('#tt2').tabs('close', 1);
+        var content = '<iframe scrolling="auto" frameborder="0" src="' + url + '" style="width:100%;height:100%;"></iframe>';
+        $('#tt2').tabs('add', {
+            title: title,
+            content: content,
+            closable: true
+        });
+    }
+
+    function dataGridFormatter(value,row,index){
+        if(fileTitle){
+            return value.replace(new RegExp(fileTitle,"ig"),"<font style='color: red; font-family: bold'>$&</font>");
+        }
+        return value;
+    }
+    function initDataGrid() {
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            sortable: true,
+            queryParams: queryParams.model,
+            singleSelect: true,
+            pageSize: 22,
+            pagination: true,
+            path: "/online-manual/geSpmEngine/selectTree",
+            columns: [[
+                {field:'key',title:'key',width:200,sortable:true,formatter:dataGridFormatter},
+                {field:'title',title:'title',width:600,sortable:true,formatter:dataGridFormatter},
+                {field:'revdate',title:'修订日期',width:80,sortable:true}
+            ]],
+            onClickRow:function(rowIndex, node){
+                if (node.file) {
+                    if(node.file.endsWith(".chm")){
+                        window.open(ENVGlobal.manualServer + node.file);
+                    }else{
+                        addTab(node.title, ENVGlobal.manualServer + node.file);
+                    }
+                } else {
+                    var operate = node.state == "open"? "collapse": "expand";
+                    $("#locTree").tree(operate,node.target);
+                }
+            }
+        });
+    }
+    //查询,保留搜索条件
+    function searchData() {
+        fileTitle = $.trim($("#fileTitle").textbox('getValue'));
+        onSearch_('dg', '#ffSearch');
+    }
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        onSearch_('dg', '#ffSearch');
+    }
+</script>
+</body>
+</html>

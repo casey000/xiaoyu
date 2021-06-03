@@ -1,0 +1,1063 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+</head>
+
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <input type="hidden" id="selectType" name="selectType">
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">TB编号：</th>
+                    <td style="width:150px">
+                        <input class="easyui-textbox" name="tbNo" id="tbNo" style="width:150px"/>
+                    </td>
+                    <th align="right" data-i18n="" style="width:70px;">适用类型：</th>
+                    <td style="width:100px">
+                        <input class="easyui-combobox" name="applyType" id="applyType"
+                               style="width:100px"/>
+                    </td>
+                    <th align="right" data-i18n="" style="width:40px;">状态：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="status" id="status" style="width:100px"/>
+                    </td>
+                    <th align="right" data-i18n="" style="width:70px;">当前操作人：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="quaManName" id="quaManName" style="width:100px"/>
+                    </td>
+                    <th align="right" data-i18n="" style="width:60px;">OWNER：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="writeMan" id="writeMan" style="width:100px"/>
+                    </td>
+
+                    <td>
+                        <a href="javascript:void(0)" class="searchBtn" data-options="iconCls:'icon-search'"
+                           onclick="onSearchFor('u_dg')"><span
+                                data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="">重置</span></a>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th data-i18n="" style="width:80px;" align="right">旧TB编号：</th>
+                    <td style="width:150px">
+                        <input class="easyui-textbox" name="oldTbNo" id="oldTbNo" style="width:150px"/>
+                    </td>
+                    <th align="right" data-i18n="" style="width:70px;">适用型号：</th>
+                    <td style="width:100px">
+                        <input class="easyui-combobox" name="applyModel" id="applyModel" style="width:100px"/>
+                    </td>
+                    <th align="right" data-i18n="" style="width:40px;">章节：</th>
+                    <td style="width:100px">
+                        <input class="easyui-textbox" name="ata" id="ata" style="width:100px"/>
+                    </td>
+                    <th align="right" data-i18n="" style="width:40px;">标题：</th>
+                    <td colspan="3" style="width:270px">
+                        <input class="easyui-textbox" id="title" name="title" style="width:270px"/>
+                    </td>
+                    <td colspan="5">
+                        <a class="searchBtn" onclick="add()" data-options="iconCls:'icon-clear'" auth="EM_TB_ADD">
+                            <span>增加</span></a>
+
+                        <a class="searchBtn" onclick="excelExport_('l_dg','反馈数据')"
+                           data-options="iconCls:'icon-clear'" auth="EM_TB_EXPORT">
+                            <span>导出反馈数据</span></a>
+                        <a class="excelBtn" id="excelExport"
+                           onclick="excelExport('u_dg', 'TB清单', '')"
+                           data-options="iconCls:'icon-page_excel'">
+                            <span data-i18n="common:COMMON_OPERATION.EXPORT">导出</span>
+                            &nbsp;&nbsp;
+                            <a class="clearBtn" onclick="sendSap()" auth="EM_TB_SAP_AUTH"
+                               data-options="">
+                                <span>批量推送SAP</span></a>
+                        </a>
+                        &nbsp;&nbsp;
+                   <!--     <a class="clearBtn" onclick="sendSap()" auth="EM_TB_SAP_AUTH"
+                           data-options="">
+                            <span>批量推送SAP</span></a>&nbsp;&nbsp;-->
+                        <a class="clearBtn" onclick="evaAgain()" auth="EM_TB_EVA_AGAIN"
+                           data-options="">
+                            <span>系统定时重评</span></a>
+                    </td>
+                </tr>
+
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="u_dg"></table>
+<table id="l_dg"></table>
+</div>
+
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var status = '';
+    var name = getLoginInfo().userName;
+    var accountId = getLoginInfo().accountId;
+    var flag = true;
+    var executionId = ""; //流程实例ID
+    var param = getParentParam_();
+    var type = param.type;
+    var eflag = '';
+    var ifQua = '';//第一个人的资质
+    $("#selectType").val(type);
+
+    function i18nCallBack() {
+        bindFormonSearch_('#ffSearch', function () {
+            onSearchFor('u_dg')
+        }); //绑定回车查询事件
+
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode:
+                    "APP_TYPE," +
+                    "EMTB_APPLY_TYPE," +
+                    "EMTB_APPLY_MODEL," +
+                    "DA_ENG_MODEL," +
+                    "EMTB_STATUS," +
+                    "EMTB_YESORNO," +
+                    "EMTB_FEEDBACK_STATUS,EMTB_FK_STATUS,EMTB_INVALID_TYPE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['fkStatus'] = DomainCodeToMap_(jdata.data["EMTB_FK_STATUS"]);
+                    PAGE_DATA['emtbFeedbackStatus'] = DomainCodeToMap_(jdata.data["EMTB_FEEDBACK_STATUS"]);
+                    PAGE_DATA['appType'] = DomainCodeToMap_(jdata.data["APP_TYPE"]);
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EMTB_STATUS"]);
+                    PAGE_DATA['applyType'] = DomainCodeToMap_(jdata.data["EMTB_APPLY_TYPE"]);
+                    PAGE_DATA['yesorno'] = DomainCodeToMap_(jdata.data["EMTB_YESORNO"]);
+                    PAGE_DATA['invatype'] = DomainCodeToMap_(jdata.data["EMTB_INVALID_TYPE"]);
+
+                    $('#status').combobox({
+                        panelHeight: '160px',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EMTB_STATUS
+                    });
+
+                    $('#applyType').combobox({
+                        panelHeight: 'auto',
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        data: jdata.data.EMTB_APPLY_TYPE,
+                        onSelect: function (item) {
+                            $('#applyModel').combobox('clear');
+                            $('#applyModel').combobox({
+                                panelHeight: 'auto',
+                                valueField: 'VALUE',
+                                textField: 'TEXT',
+                                multiple: true,
+                                data: item.VALUE == "APL" ? jdata.data.EMTB_APPLY_MODEL : jdata.data.DA_ENG_MODEL
+                            });
+                        }
+                    });
+
+                    // $('#status').combobox('setValue', '00');
+                    // $('#quaManName').textbox('setValue', getLoginInfo().userName);
+
+                    InitDataGrid();
+                    InitDataGrid2(-1);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'u_dg';
+
+        $("#u_dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            firstLoad: true,
+            singleSelect: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.35, 0, 70, -6);
+            },
+            queryParams: {
+                selectType: type,
+                tbMain: "03",
+                // status: "00",
+                // quaManName: $('#quaManName').textbox('getValue')
+            },
+            columns: {
+                param: {FunctionCode: 'EMTB_LIST'},
+                alter: {
+                    TEST_UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.TEST_UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    FROM_EVA: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['yesorno'] [value];
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['status'] [value];
+                        }
+                    },
+                    APP_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['appType'] [value];
+                        }
+                    },
+                    APPLY_TYPE: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['applyType'] [value];
+                        }
+                    },
+                    IF_INSET: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['yesorno']  [value];
+                        }
+                    },
+                    IF_INFLUENCE_TB: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['yesorno']  [value];
+                        }
+                    },
+                    FK_STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['fkStatus']  [value];
+                        }
+                    },
+                    WRITE_DEADLINE: {
+                        type: "date"
+                    },
+                    WRITE_DATE: {
+                        type: "date"
+                    },
+                    QUA_DATE: {
+                        type: "date"
+                    },
+                    AUDIT_DATE: {
+                        type: "date"
+                    },
+                    APPROVAL_DATE: {
+                        type: "date"
+                    },
+                    CLOSE_DATE: {
+                        type: "date"
+                    }
+
+                }
+            },
+            onLoadSuccess: function (data) {
+                $("#u_dg").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#u_dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'ATTACHMENT_LIST',
+                                category: "emTb",
+                                sourceId: row.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                var html = [];
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html.push('<li>');
+                                    html.push('<a target="_blank" onclick="downFile(' + jdata.data[i].FILE_ID + ')">' + jdata.data[i].ORG_NAME + '</a>');
+                                    if (row.STATUS === "00") {
+                                        html.push('<span onclick="deleteFile(\'' + jdata.data[i].FILE_ID + '\');return false;" class="icon-cross"></span>');
+                                    }
+                                    html.push('</li>');
+                                }
+                                callback(html.join(""));
+                            }
+                        });
+                    }
+                }, 'ident1');
+            },
+            contextMenus: [
+                {
+                    id: "m-edit",
+                    i18nText: "编辑",
+                    auth: "EM_TB_EDIT",
+                    onclick: function () {
+                        var row = $('#u_dg').datagrid('getSelected');
+                        if (!row.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        var cou = row.COU;
+                        if (row.QUA_MAN_ID != accountId) {
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+
+                        ShowWindowIframe({
+                            width: "940",
+                            height: "550",
+                            param: {pkid: row.PKID, cou: cou},
+                            url: "/views/em/emtb/Add.shtml"
+                        });
+                    }
+                },
+                {
+                    id: "m-upload",
+                    i18nText: "上传附件",
+                    auth: "EM_TB_UPLOAD",
+                    onclick: function () {
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        common_uploadFile({
+                            identity: 'dg',
+                            param: {
+                                cat: 'emTb',
+                                sourceId: rowData.PKID,
+                                successCellBack: "",
+                                fialCellBack: ""
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-delete",
+                    i18nText: "删除",
+                    auth: "EM_TB_DEL",
+                    onclick: function () {
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (rowData.QUA_MAN_ID != accountId) {
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        // if (rowData.QUA_MAN_ID != rowData.WRITE_MAN_ID) {
+                        //     MsgAlert({content: "当前操作人与OWNER不是同一个人，不允许操作！", type: 'error'});
+                        //     return;
+                        // }
+
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'EM_TB_DEL'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-issue",
+                    i18nText: "改版",
+                    auth: "EM_TB_REV",
+                    onclick: function () {
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_TB_COPY',
+                                pkid: rowData.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-transmit",
+                    i18nText: "转发",
+                    // auth: "EM_EO_SUBMIT_FLOW",
+                    onclick: function () {
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (rowData.QUA_MAN_ID != accountId) {
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        transTb(rowData);
+                    }
+                },
+                {
+                    id: "m-submit",
+                    i18nText: "提交",
+                    auth: "EM_TB_SUBMIT_FLOW",
+                    onclick: function () {
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        var ifEva = rowData.FROM_EVA;
+                        var pkid = rowData.PKID;
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        if (rowData.QUA_MAN_ID != accountId) {
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+
+                        var sendStr = rowData.SEND;
+                        if(sendStr){
+                            if((sendStr.indexOf("11") != -1 || sendStr.indexOf("12") != -1 || sendStr.indexOf("13") != -1
+                                    || sendStr.indexOf("16") != -1) && sendStr.indexOf("17") == -1){
+                                MsgAlert({
+                                    content: "勾选发往部门负责人时，必须勾选【运行标准部】！",
+                                    type: "warn"
+                                });
+                                return;
+                            }
+                        }
+                        var status = rowData.STATUS;
+                        if (status != "00") {
+                            MsgAlert({content: "只有编写状态才能提交！", type: 'error'});
+                            return;
+                        }
+
+                        var app = rowData.APP;
+                        if (!app) {
+                            MsgAlert({content: "提交前必须维护适用性！", type: 'error'});
+                            return;
+                        }
+                        if(ifEva == 'Y'){
+                            var reqCou = 0;
+                            InitFuncCodeRequest_({
+                                data: {tbPkid: pkid, FunctionCode: 'EM_EVA_TB_CHECK_APP'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        if (jdata.data != null) {
+                                            reqCou = jdata.data.COU;
+                                        }
+                                    } else {
+                                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                    }
+                                }
+                            });
+                            if (reqCou > 0) {
+                                MsgAlert({content: "评估单产生的TB的适用性必须包含关联评估单的适用性！", type: 'error'});
+                                return;
+                            }
+                        }
+                        checkQua(rowData);
+                    }
+                },
+                {
+                    id: "m-turn",
+                    i18nText: "驳回",
+                    auth: "EM_TB_TRANS",
+                    onclick: function () {
+                        var row = $('#u_dg').datagrid('getSelected');
+                        var evapkid = row.PKID;
+                        if (row.QUA_MAN_ID != accountId) {
+                            MsgAlert({content: "您不是此条记录的当前操作人，不允许操作！", type: 'error'});
+                            return;
+                        }
+                        if ('00' != row.STATUS) {
+                            MsgAlert({content: '状态不是编写中，不允许驳回！', type: 'error'});
+                            return;
+                        }
+                        turnTb(row);
+                    }
+                },
+                {
+                    id: "m-his",
+                    i18nText: "办理轨迹",
+                    onclick: function () {
+                        var row = $('#u_dg').datagrid('getSelected');
+                        var cou = row.COU;
+                        if (cou == 0) {
+                            MsgAlert({content: '没有办理轨迹！', type: 'error'});
+                            return;
+                        }
+                        tranHis(row.PKID);
+                    }
+                },
+                {
+                    id: "m-close",
+                    i18nText: "确认",
+                    auth: "EM_TB_CLOSE",
+                    onclick: function () {
+                        if (!confirm("是否确认该记录？")) {
+                            return;
+                        }
+
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        InitFuncCodeRequest_({
+                            data: {pkid: rowData.PKID, FunctionCode: 'EM_TB_CLOSE'},
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: $.i18n.t(jdata.msg), type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-invalid",
+                    i18nText: "终结",
+                    auth: "EM_TB_INVALID",
+                    onclick: function () {
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        var sta = '';
+                        var tbNo = rowData.TB_NO;
+                        InitFuncCodeRequest_({
+                            data: {tbNo: tbNo, FunctionCode: 'EM_TB_CHECK_ZJ'},
+                            async: false,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    if (jdata.data != null) {
+                                        sta = jdata.data.STATUS;
+                                    }
+                                } else {
+                                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                }
+                            }
+                        });
+                        if (sta != '03') {
+                            MsgAlert({content: "该文件存在高版数据，请先处理高版数据再提交终结流程！", type: 'error'});
+                            return;
+                        }
+
+                        common_add_edit_({
+                            url: "/views/em/emtb/em_tb_invalid_add.shtml?operation=add&pkid=" + rowData.PKID,
+                            identity: 'u_dg',
+                            isEdit: 0,
+                            width: 600,
+                            height: 400
+                        });
+                    }
+                },
+                {
+                    id: "m-print",
+                    i18nText: "打印",
+                    auth: "EM_TB_PRINT",
+                    onclick: function () {
+                        var rowData = getDG('u_dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        ajaxLoading();
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_TB_PRINT',
+                                pkid: rowData.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    let urls = jdata.data;
+                                    if (urls.indexOf(":") != -1) {
+                                        urls = urls.substring(urls.indexOf(":") + 1).replace("//", "/");
+                                    }
+                                    jcPreview(urls);
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: "error"});
+                                }
+                                ajaxLoadEnd();
+                            }
+                        });
+                    }
+                },
+                {
+                    id: "m-turn-act", i18nText: "流程退回", auth: "",
+                    onclick: function () {
+                        var row = $('#u_dg').datagrid('getSelected');
+                        var evapkid = row.PKID;
+                        if (row.WRITE_MAN_ID != accountId && row.NEW_WRITE_MAN != name) {
+                            MsgAlert({content: "您不是此条记录的OWNER或者处理人，不允许驳回！", type: 'error'});
+                            return;
+                        }
+                        if (row.STATUS != '01' && row.STATUS != '02') {
+                            MsgAlert({content: '只有流程中状态的数据才能退回！', type: 'error'});
+                            return;
+                        }
+                        turnEoAct(row);
+                    }
+                }
+            ],
+            validAuth: function (row, items) {
+                var status = row.STATUS;
+                var invasta = row.INVALID_STATUS;
+                var cou = row.COU;
+                if(status != "00"){
+                    items["编辑"].enable = false;
+                    items["驳回"].enable = false;
+                    items["删除"].enable = false;
+                    items["转发"].enable = false;
+                    items["提交"].enable = false;
+                    items["上传附件"].enable = false;
+                }
+                if(status != "03" || (invasta != "" && invasta != null)){
+                    items["改版"].enable = false;
+                    items["确认"].enable = false;
+                    items["终结"].enable = false;
+                }
+                items["驳回"].display = cou != 0;
+            },
+            onClickRow: function (rowIndex, rowData) {
+                if (rowData.PKID) {
+                    // InitDataGrid2(rowData.PKID)
+                    $('#l_dg').datagrid('reload', {
+                        tbPkid: rowData.PKID,
+                        normalInvalid: "N"
+                    });
+                }
+            },
+            onDblClickRow: function (e, rowIndex, rowData) {
+                if (rowData.PKID) {
+                    ShowWindowIframe({
+                        width: "940",
+                        height: "550",
+                        param: {pkid: rowData.PKID, cou: rowData.COU,operation:'view'},
+                        url: "/views/em/emtb/Add.shtml"
+                    });
+                }
+            }
+        });
+    }
+
+    function InitDataGrid2(tbPkid) {
+        $("#l_dg").MyDataGrid({
+            identity: 'l_dg',
+            sortable: true,
+            singleSelect: true,
+            resize: function () {
+                return tabs_standard_resize($('#tt'),0.63, 0, 10, -6);
+            },
+            queryParams: {
+                tbPkid: tbPkid,
+                normalInvalid: "N"
+            },
+            columns: {
+                param: {FunctionCode: 'EMTB_LIST_SEND'},
+                alter: {
+                    TEST_UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.TEST_UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach2">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    FEEDBACK_STATUS: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['emtbFeedbackStatus'] [value];
+                        }
+                    },
+                    FEEDBACK_DATE: {
+                        type: "date"
+                    },
+                    NORMAL_INVALID: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['invatype'] [value];
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach2', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#l_dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "emTbSend",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+
+                                }
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                }, 'ident2');
+
+                $("#l_dg").datagrid('doCellTip', {'max-width': '400px', 'delay': 500});
+            },
+            onDblClickRow: function (e, rowIndex, rowData) {
+                if (rowData.FEEDBACK_DES) {
+                    MsgAlert({
+                        content: rowData.FEEDBACK_DES,
+                        type: "info"
+                    });
+                }
+            }
+        });
+    }
+
+    //    状态改变时修改代接受人
+    function changeValue(a, b) {
+        if (a != "DJS") {
+            $("#recManName").val("");
+        } else {
+            $("#recManName").val(name)
+        }
+    }
+
+    //查询方法
+    function onSearchFor(identity, fromId, breforSearch) {
+        fromId = fromId || "#ffSearch";
+        var dgopt = getDgOpts(identity);
+        var $dg = $(dgopt.owner);
+        var url = dgopt.url;
+        if ($dg && url) {
+            var queryParams = $(fromId).serializeObject();
+            queryParams = $.extend({}, dgopt.queryParams, dgopt._params, queryParams);
+            if (typeof(breforSearch) == 'function') {
+                breforSearch(queryParams);
+            }
+            clearAdvancedQueryData(queryParams);
+            if (dgopt.treeField) {
+                $dg.treegrid('load', queryParams);
+            } else {
+                $dg.datagrid('load', queryParams);
+            }
+        }
+        InitDataGrid2("-1");
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#u_dg").datagrid("reload");
+    }
+
+    function add() {
+        ShowWindowIframe({
+            width: 940,
+            height: 550,
+            param: {
+                operation: 'add'
+            },
+            title: "TB编写",
+            url: "/views/em/emtb/Add.shtml"
+        });
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+    }
+
+    //字符串转日期
+    function stringToDate(str) {
+        str = str.substr(0, 10);
+        var arr = str.split('-');
+        var date = new Date(arr[0], arr[1] - 1, arr[2]);
+        return date;
+    }
+
+    //计算当前日期和今天差的天数
+    function diffDays(evaDeadLine) {
+        var evaDate = stringToDate(evaDeadLine);
+        var nowDate = new Date();
+        var year = nowDate.getFullYear();
+        var month = nowDate.getMonth();
+        var day = nowDate.getDate();
+        var now = new Date(year, month, day);
+        var time_diff = evaDate.getTime() - now.getTime();
+        var days = Math.floor(time_diff / (24 * 3600 * 1000));
+        // alert('eva:'+evaDate+',now:'+now+',days:'+days);
+        return days;
+    }
+
+    /**
+     * 校验工作流是否已经存在
+     *
+     **/
+    function validWorkFlow(objKey, objNo) {
+        InitFuncCodeRequest_({
+            async: false,
+            data: {objKey: objKey, objNo: objNo, FunctionCode: 'VALID_WORK_FLOW'},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (jdata.data) {
+                        executionId = jdata.data.EXECUTION_ID;
+                    }
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        return executionId;
+    }
+
+    function jcPreview(url) {
+        ShowWindowIframe({
+            width: 1200,
+            height: 650,
+            param: {url: url},
+            title: "TB预览PDF",
+            url: "/views/em/emeo/emeo_add_pdf.shtml"
+        });
+    }
+
+    function hints(mgs) {
+        ShowWindowIframe({
+            width: 300,
+            height: 300,
+            param: {mgs: mgs},
+            title: "TB提示",
+            url: "/views/em/emeo/eoHints.shtml"
+        });
+    }
+
+    function reloadTodo() {
+
+    }
+    function excelExport_(dgId, excelName) {
+        // excelExport(dgId, excelName, {
+        //     queryParams: {
+        //         normalInvalid: "N"
+        //     }
+        // });
+        var args = {
+            functionCode: "EM_TB_SEND_EXPORT",
+            fileName: "反馈数据",
+            jsParam: "",
+            page: 1,
+            rows: 500000
+        };
+        doPost(Constant.BASE_URL + "excel/export", args);
+    }
+
+    function checkQua(rowData) {
+        InitFuncCodeRequest_({
+            data: {pkid: rowData.PKID, FunctionCode: 'EM_TB_CHECK_QUA'},
+            successCallBack: function (jdata) {
+                if (jdata.code === RESULT_CODE.SUCCESS_CODE) {
+                    eflag = jdata.data.eflag;
+                    ifQua = jdata.data.ifQua;
+                    var tips = '';
+                    if (eflag == "NO") {
+                        tips = "当前用户没有该评估单的资质，请提交给有资质的用户！";
+                    } else if (eflag == "PART") {
+                        tips = "当前用户资质不全，请提交给其他有资质的用户进行联合评估！";
+                    }
+                    var flowKey = "tbshenhe";
+                    if (eflag == "ALL") {
+                        let datas = $.extend({}, {}, {FunctionCode: 'EM_TB_CHECKDATA', pkid: rowData.PKID});
+                        InitFuncCodeRequest_({
+                            data: datas,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    common_add_edit_({
+                                        identity: '',
+                                        isEdit: '',
+                                        width: 520,
+                                        height: 300,
+                                        title: $.i18n.t('选择审核人'),
+                                        param: {
+                                            roleId: '',
+                                            otherParam: rowData.PKID,
+                                            FunctionCode_: 'EM_TB_STATUS',
+                                            successCallback: reload_,
+                                            flowKey: flowKey
+                                        },
+                                        url: "/views/flow/work_flow_account_select.shtml"
+                                    });
+                                } else {
+                                    hints(jdata.msgData[0]);
+                                }
+                            }
+                        });
+                    } else {
+                        $.messager.confirm('', tips, function (r) {
+                            if (r) {
+                                ShowWindowIframe({
+                                    width: 550,
+                                    height: 250,
+                                    title: "联合评估",
+                                    param: {
+                                        accId: rowData.WRITE_MAN_ID,
+                                        pkid: rowData.PKID,
+                                        ata: rowData.ATA,
+                                        cflag: "commit",
+                                        fluflag: "list",
+                                        accountId: accountId,
+                                        ifQua: ifQua,
+                                        eflag: eflag
+                                    },
+                                    url: '/views/em/emtb/em_tb_filetrans.shtml'
+                                });
+                            }
+                        });
+                    }
+                } else {
+                    MsgAlert({content: $.i18n.t(jdata.msg), type: 'error'});
+                }
+            }
+        });
+    }
+
+    function tranHis(pkid) {
+        var title_ = $.i18n.t('办理轨迹列表');
+        ShowWindowIframe({
+            width: "790",
+            height: "519",
+            title: title_,
+            param: {pkid: pkid},
+            url: "/views/em/emtb/em_tb_tran_list.shtml"
+        });
+    }
+
+    function turnTb(row) {
+        var evaManId = row.WRITE_MAN_ID;
+        var pkid = row.PKID;
+        var cflag = "turn";
+        ShowWindowIframe({
+            width: 550,
+            height: 250,
+            title: "驳回",
+            param: {
+                accId: evaManId,
+                pkid: pkid,
+                cflag: cflag,
+                fluflag: "list",
+                ata: row.ATA,
+                accountId: accountId
+            },
+            url: '/views/em/emtb/em_tb_filetrans.shtml'
+        });
+    }
+
+    function transTb(row) {
+        var evaManId = row.WRITE_MAN_ID;
+        var pkid = row.PKID;
+        var cflag = "zf";
+        ShowWindowIframe({
+            width: 550,
+            height: 250,
+            title: "转发",
+            param: {
+                accId: evaManId,
+                pkid: pkid,
+                cflag: cflag,
+                fluflag: "list",
+                ata: row.ATA,
+                accountId: accountId
+            },
+            url: '/views/em/emtb/em_tb_filetrans.shtml'
+        });
+    }
+
+    function turnEoAct(row) {
+        var pkid = row.PKID;
+        var objNo = pkid;
+        var objKey = "EM_TB";
+        var taskId = "";
+        var procInstId = "";
+        $.messager.confirm('提示?', "是否确认退回?", function (r) {
+            if (r) {
+                MaskUtil.mask("请求处理中...");
+                InitFuncCodeRequest_({
+                    data: {
+                        FunctionCode: 'WS_FLOW_EXECUTION_QUERY',
+                        objNo: objNo,
+                        objKey: objKey
+                    },
+                    async: false,
+                    successCallBack: function (jdata) {
+                        if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                            taskId = jdata.data["TASK_ID"];
+                            procInstId = jdata.data["PROC_INST_ID_"];
+                            InitFuncCodeRequest_({
+                                data: {pkid: pkid, procInstId: procInstId, FunctionCode: 'EM_TB_TURN_ACT'},
+                                async: false,
+                                successCallBack: function (jdata) {
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        MaskUtil.unmask();
+                                        reload_();
+                                        MsgAlert({content: '操作成功。'});
+                                    } else {
+                                        MaskUtil.unmask();
+                                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                                    }
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    function sendSap() {
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "EM_TB_SEND_SAP"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: '操作成功。'});
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+    function evaAgain() {
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "EM_TB_EVA_AGAIN"},async:false,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: '操作成功。'});
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+
+</script>
+</body>
+</html>

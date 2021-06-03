@@ -1,0 +1,159 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>送修明细编辑</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+    <style type="text/css">
+        td {
+            padding: 2px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+
+        .addBtn {
+            padding: 1px 10px;
+        }
+    </style>
+</head>
+<body>
+<div style="width:95%;margin:0 auto;">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <div id="p0" class="easyui-panel" title="送修明细处置" style="width: 100%"></div>
+                <input type="hidden" id="pkid" name="pkid"/>
+                <input type="hidden" id="modifyUser" name="modifyUser"/>
+                <input type="hidden" id="modifyName" name="modifyName"/>
+                <input type="hidden" id="modifyDate" name="modifyDate"/>
+
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+                        <td colspan="8" align="right" style="padding: 0;">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="处置"/>
+                            <input class="btn btn-primary" type="button" onclick="CloseWindowIframe();" value="关闭"
+                                   style="margin-left:3px;margin-right: 20px;"/>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <th style="width: 120px;">处置方式：</th>
+                        <td class="tdr">
+                            <input class="easyui-combobox" name="deleteFlag" id="deleteFlag"
+                                   data-options="required:true "/>
+                        </td>
+                        <th style="width: 120px;"></th>
+                        <td class="tdr"></td>
+                    </tr>
+
+                    <tr>
+                        <th style="width: 120px;">处置原因：</th>
+                        <td class="tdr" colspan="3">
+                            <input class="easyui-textbox" name="deleteReason" id="deleteReason"
+                                   data-options="multiline:true,required:true " style="width: 490px;height:50px"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    var user;
+    var pkid;
+    var refPkid;
+    var param = {};
+    function i18nCallBack() {
+        param = getParentParam_();
+        pkid = param.pkid;
+        refPkid = param.refPkid;
+        user = getLoginInfo();
+
+        $('#deleteFlag').combobox({
+            data: [{
+                TEXT: '推送SAP组包',
+                VALUE: '1'
+            }, {
+                TEXT: '待定',
+                VALUE: '2'
+            }, {
+                TEXT: '删除',
+                VALUE: '3'
+            }],
+            valueField: 'VALUE',
+            textField: 'TEXT',
+            panelHeight: '150px',
+        });
+
+        InitDataForm(pkid);
+
+        $("#pkid").val(pkid);
+        $("#modifyUser").val(user.accountId);
+        $("#modifyName").val(user.userName);
+        $("#modifyDate").val(new Date().Format("yyyy-MM-dd"));
+    }
+
+    //保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate) {
+            return;
+        }
+        savePlan();
+    }
+
+    function savePlan() {
+
+        if (!confirm("确认处置该记录？")) {
+            return;
+        }
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        InitGatewayRequest_({
+            async: false,
+            path: "/meng-engine/rxRepairPlan/deletePlanDetail",
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    param.OWindow.MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    param.OWindow.InitDataGrid2(refPkid,'1');
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.errorMessage, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataForm(pkid) {
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/rxRepairPlan/selectDetailByPrimaryKey/" + pkid,
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    var flag = jdata.obj.deleteFlag;
+                    if (flag =='N'){
+                        jdata.obj.deleteFlag = "";
+                    }
+                    ParseFormField_(jdata.obj, $("#mform"));
+                } else {
+                    MsgAlert({content: '操作失败', type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

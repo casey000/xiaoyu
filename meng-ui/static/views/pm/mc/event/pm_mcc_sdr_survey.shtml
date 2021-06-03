@@ -1,0 +1,377 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+  <!--#include virtual="/views/items/resource_.shtml"-->
+  <title data-i18n="">使用困难报告</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+  <fieldset class="fieldset_eui">
+    <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+    <form id="ffSearch" class="form-horizontal">
+      <div id="searchBar">
+        <table class="table table-bordered table-info">
+          <tr>
+            <th class="th" style="width:80px;" align="right">编号：</th>
+            <td class="td5">
+              <input class="easyui-textbox" id="surveyNo" name="surveyNo" style="width:120px;"/>
+            </td>
+            <th class="th" style="width:80px;" align="right">飞机号：</th>
+            <td class="td5">
+              <input class="easyui-combobox" id="acno" name="acno" style="width:120px;"/>
+            </td>
+            <th class="th" style="width:80px;" align="right">故障现象：</th>
+            <td class="td5">
+              <input class="easyui-combobox" id="sdrAppear" name="sdrAppear" style="width:120px;"/>
+            </td>
+            <th class="th" style="width:80px;" align="right">状态：</th>
+            <td class="td5">
+              <input class="easyui-combobox" id="status" name="status" style="width:120px;"/>
+            </td>
+            <th class="th" style="width:80px;" align="right">发生地点：</th>
+            <td class="td5">
+              <input class="easyui-textbox" id="sdrPlace" name="sdrPlace" style="width:120px;"/>
+            </td>
+          </tr>
+          <tr>
+            <th class="th" style="width:80px;" align="right">发生日期：</th>
+            <td class="td5">
+              <input class="easyui-datebox" id="sdrDate1" name="sdrDate1" style="width:120px;"/>
+            </td>
+            <th class="th" style="width:80px;" align="right">至：</th>
+            <td class="td5">
+              <input class="easyui-datebox" id="sdrDate2" name="sdrDate2" style="width:120px;"/>
+            </td>
+              <th class="th" style="width:80px;" align="right">机型：</th>
+              <td class="td5">
+                  <input class="easyui-combobox" id="actype" name="actype" style="width:120px;"/>
+              </td>
+
+              <td class="td5" align="right" style="padding-right:20px" colspan="4">
+              <a class="searchBtn" type="button" onclick="searchData()"
+                 data-options="iconCls:'icon-search'" auth="PM_MC_SDR_SURVEY_QUERY">
+                <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+              <a class="ridoBtn" data-options="" auth="PM_MC_SDR_SURVEY_HIGH_QUERY"
+                 onclick="helpQuery('dg', 'PM_MC_SDR_LIST');"><span
+                      data-i18n="">高级查询</span></a>
+              <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+              <a class="excelBtn" id="excelExport"
+                 onclick="excelExport('dg', '使用困难报告调查单')"
+                 data-options="iconCls:'icon-page_excel'" auth="PM_MC_SDR_SURVEY_EXPORT">
+                <span data-i18n="common:COMMON_OPERATION.EXPORT">导出</span>
+              </a>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </form>
+  </fieldset>
+  <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "MSGRP,SDR_SURVEY_STATUS,SDR_APPEAR,DA_FLEET",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //飞机号
+                    $('#acno').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.MSGRP,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //故障现象初始化
+                    $('#sdrAppear').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.SDR_APPEAR,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    //状态初始化
+                    $('#status').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.SDR_SURVEY_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    //机型
+                    $("#actype").combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.DA_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['SDR_SURVEY_STATUS'] = DomainCodeToMap_(jdata.data["SDR_SURVEY_STATUS"]);
+                    PAGE_DATA['SDR_APPEAR'] = DomainCodeToMap_(jdata.data["SDR_APPEAR"]);
+                    InitDataGrid();
+                }else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    //数据表格初始化
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'PM_MC_SDR_SURVEY_LIST'},
+                alter: {
+                    /*REV: {
+                      formatter: function(value){
+                        return "R" + value;
+                      }
+                    },*/
+                    SDR_DATE: {
+                        type: 'datetime'
+                    },
+                    STATUS: {
+                        formatter: function(value){
+                            return PAGE_DATA['SDR_SURVEY_STATUS'][value];
+                        }
+                    },
+                    SDR_APPEAR: {
+                        formatter: function(value){
+                            var result = [];
+                            if(value) {
+                              var keys = value.split(',');
+                              $.each(keys, function(k, v){
+                                result.push(PAGE_DATA['SDR_APPEAR'][v]);
+                              });
+                            }
+
+                            return result.join('|');
+                        }
+                    },
+                    SDR_REMAIN_TIME: {
+                        formatter: function(value){
+                            var result = '';
+                            var orginDate = new Date(value);
+                            //判断日期是否有效
+                            if (orginDate.getDay()){
+                              var tSameTime = orginDate.getTime() + 72 * 3600 * 1000;
+                              if (tSameTime < new Date().getTime()){
+                                tSameTime = orginDate.getTime();
+                              }
+
+                              var remainTime = Math.round((tSameTime - new Date().getTime()) / 1000); //换算成秒
+
+                              var hour = Math.floor(Math.abs(remainTime) / 3600);
+                              var minute = Math.floor((Math.abs(remainTime) - hour * 3600) / 60);
+                              var second = Math.abs(remainTime) - hour * 3600 - minute * 60;
+
+                              result = "".concat(hour).concat(":").concat(minute).concat(":").concat(second);
+                              if (remainTime < 0) {
+                                result = "-".concat(result);
+                              }
+                            }
+
+                            return result;
+                        }
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-detail", i18nText: "浏览", auth: "PM_MC_SDR_SURVEY_VIEW",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetail('view', rowData.PKID);
+                    }
+                },
+                {
+                    id: "m-edit", i18nText: "编辑", auth: "PM_MC_SDR_SURVEY_EDIT",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        openDetail('edit', rowData.PKID);
+                    }
+                },
+                // {
+                //     id: "m-submit", i18nText: "提交", auth: "PM_MC_SDR_SURVEY_SUBMIT_FLOW",
+                //     onclick: function(){
+                //         var rowData = $("#dg").datagrid('getSelected');
+                //         if (!rowData.PKID){
+                //           MsgAlert({content:"请选择数据！", type: 'warning'});
+                //           return;
+                //         }
+                //         if(confirm("确定提交吗？")){
+                //             InitFuncCodeRequest_({
+                //                 data: {pkid:rowData.PKID, FunctionCode: 'PM_MC_SDR_SURVEY_FLOW'},
+                //                 successCallBack: function (jdata) {
+                //                     if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                //                         MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                //                         reload_();
+                //                     } else {
+                //                         MsgAlert({content: jdata.msg, type: 'error'});
+                //                     }
+                //                 }
+                //             });
+                //         }
+                //     }
+                // },
+                {
+                    id: "m-view", i18nText: "办理轨迹",auth:"PM_MC_SDR_SURVEY_BLGJ",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        ShowWindowIframe({
+                            width: 1100,
+                            height: 600,
+                            title: $.i18n.t('审批轨迹'),
+                            param: {objNo: rowData.PKID, objKey: "PM_MC_SDR_SURVEY"},
+                            url: '/views/em/workflow/work_flow_history_task_list.shtml'
+                        });
+                    }
+                },
+                {
+                    id: "m-rev", i18nText: "改版",auth:"PM_MC_SDR_SURVEY_REV",
+                    onclick: function () {
+                      var rowData = getDG('dg').datagrid('getSelected');
+                      if (!rowData.PKID) {
+                          MsgAlert({content: "请选择数据！", type: 'error'});
+                          return;
+                      }
+
+                      InitFuncCodeRequest_({
+                          data: {pkid: rowData.PKID,FunctionCode: 'PM_MC_SDR_SURVEY_REV'},
+                          successCallBack: function (jdata) {
+                              if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                  MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                  reload_();
+                              } else {
+                                  MsgAlert({content: jdata.msg, type: 'error'});
+                              }
+                          }
+                      });
+                    }
+                },
+                {
+                    id: "m-print", i18nText: "打印", auth: "PM_MC_SDR_SURVEY_PRINT",
+                    onclick: function(){
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+
+                        ajaxLoading();
+                        doPost(Constant.API_URL + 'PM_MCC_SDR_SURVEY_PRINT',
+                          {pkid:rowData.PKID, domainCode: 'SDR_APPEAR,SDR_STAGE,SDR_MEASURE'});
+                        ajaxLoadEnd()
+                    }
+                }/*,
+                {
+                    id: "m-delete", i18nText: "删除", auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.PKID) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        var data = {pkid: rowData.PKID, delId: getLoginInfo().userId, delName: getLoginInfo().userName};
+                        InitFuncCodeRequest_({
+                            data: $.extend(data, {FunctionCode: 'PM_MC_SDR_SURVEY_DEL'}),
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                    reload_();
+                                } else {
+                                    MsgAlert({content: jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                    }
+               }*/
+            ],
+            validAuth: function (row, items) {
+                //状态1：Editing 2：Checking 3：Active 4：Confirmed 5：HISTORY';
+                if (row.STATUS != '1') {
+                    items['编辑'].enable = false;
+                    //items['删除'].enable = false;
+                    // items['提交'].enable = false;
+                }
+
+                if (row.STATUS == '1') {
+                    items['办理轨迹'].enable = false;
+                }
+
+                if (row.STATUS != '4'){
+                  items['改版'].enable = false;
+                }
+
+                return items;
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetail("view", value.PKID);
+            },
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 45)
+            }
+        });
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //新增
+    function editDetailData(operation) {
+        openDetail(operation, '');
+    }
+
+    //打开资料类型详细页面
+    function openDetail(operation, pkid) {
+        var title_ = $.i18n.t('使用困难报告调查查看编辑');
+        ShowWindowIframe({
+            width: "1300",
+            height: "620",
+            title: title_,
+            param: {operation: operation, pkid: pkid},
+            url: "/views/pm/mc/event/pm_mcc_sdr_survey_detail.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+</script>
+</body>
+</html>

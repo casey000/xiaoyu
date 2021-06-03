@@ -1,0 +1,168 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="SC_I18N">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.MMlocal _LIST.TITLE">件号库存管理</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width: 100%; height: 100%;">
+    <div title="退租方案评估">
+        <form id="ffSearch1" method="post">
+            <div id="searchBar1">
+                <table cellspacing="0" cellpadding="0" class="table table-bordered table-info">
+                    <tr>
+                        <th data-i18n="" style="width: 60px">机队：</th>
+                        <td style="width:110px;padding-right: 5px;padding-left: 5px">
+                            <input class="easyui-combobox" name="fleet" id="fleet1" data-options=""
+                                   style="width:100px;"/>
+                        </td>
+                        <th data-i18n="" style="width: 100px">退租机号：</th>
+                        <td style="width:110px;padding-right: 5px;padding-left: 5px">
+                            <input class="easyui-combobox" name="acno" id="acno1" style="width:100px;"/>
+                        </td>
+                        <td colspan="2">
+                            <a class="searchBtn" data-options="iconCls:'icon-search'" auth="EM_CMP_ALLOCATE_OUT_QUERY"
+                               onclick="onSearch_('dg1','#ffSearch1')"> <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>
+                        </td>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+        <table id="dg1"></table>
+    </div>
+    <div title="退租飞机方案清单">
+        <form id="ffSearch2" method="post">
+            <div id="searchBar2">
+                <table cellspacing="0" cellpadding="0" class="table table-bordered table-info">
+                    <tr>
+                        <th data-i18n="" style="width: 60px">机队：</th>
+                        <td style="width:110px;padding-right: 5px;padding-left: 5px">
+                            <input class="easyui-combobox" name="fleet" id="fleet2" data-options=""
+                                   style="width:100px;"/>
+                        </td>
+                        <th data-i18n="" style="width: 100px">退租机号：</th>
+                        <td style="width:110px;padding-right: 5px;padding-left: 5px">
+                            <input class="easyui-combobox" name="acno" id="acno2" style="width:100px;"/>
+                        </td>
+                        <td colspan="2">
+                            <a class="searchBtn" data-options="iconCls:'icon-search'" auth="EM_CMP_ALLOCATE_OUT_QUERY"
+                               onclick="onSearch_('dg2','#ffSearch2')"> <span data-i18n="common:COMMON_OPERATION.QUERY">查询</span></a>&nbsp;&nbsp;
+                            <a class="excelBtn"
+                               onclick="excelExport('dg2','退租飞机方案清单',{},function(){return {'PAGE_DATA' : PAGE_DATA}});"
+                               data-options="iconCls:'icon-page_excel'"
+                               auth="emcmpacineval-export"><span>导出清单</span></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+        <table id="dg2"></table>
+    </div>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {domainCode: "EM_MPD_FLEET,DA_ACNO_OUT", FunctionCode: "ANALYSIS_DOMAIN_BYCODE"},
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#fleet1').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MPD_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#acno1').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.DA_ACNO_OUT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#fleet2').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.EM_MPD_FLEET,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#acno2').combobox({
+                        panelHeight: '150px',
+                        data: jdata.data.DA_ACNO_OUT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+
+                    InitDataGrid1();
+                    InitDataGrid2();
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid1() {
+        $("#dg1").MyDataGrid({
+            identity: 'dg1',
+            columns: {
+                param: {FunctionCode: 'EM_CMP_ALLOCATE_EVAL_LIST'},
+                alter: {}
+            },
+            contextMenus: [
+                {
+                    id: "m-eval", i18nText: "评估",
+                    onclick: function () {
+                        var rowdata = getDG("dg1").datagrid('getSelected');
+                        var acno = rowdata.ACNO;
+                        var num;
+                        //判断是否已经全部确认
+                        InitFuncCodeRequest_({
+                            data: {acno: acno, FunctionCode: "EM_CMP_ALLOCATE_ALL_CONFIRM"},
+                            async: false,
+                            successCallBack: function (jdata) {
+                                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                    num = jdata.data.NUM;
+                                } else {
+                                    MsgAlert({content: jdata.data ? jdata.data : jdata.msg, type: 'error'});
+                                }
+                            }
+                        });
+                        if (num <= 0) {
+                            alert("该飞机已经全部确认，不可评估。");
+                            return;
+                        }
+                        common_add_edit_({
+                            identity: 'dg1', isEdit: '1', width: 1000, height: 550, title: $.i18n.t('评估'),
+                            url: "/views/em/emcmp/em_cmp_allocate_eval.shtml"
+                        });
+                    }
+                }/*,
+                {
+                    id: "m-rev", i18nText: "修订方案",
+                    onclick: function () {
+                        alert("修订方案");
+                    }
+                }*/
+            ],
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 50);
+            }
+        });
+    }
+
+    function InitDataGrid2() {
+        $("#dg2").MyDataGrid({
+            identity: 'dg2',
+            columns: {
+                param: {FunctionCode: 'EM_CMP_ALLOCATE_OUT_LIST'},
+                alter: {}
+            },
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 50);
+            }
+        });
+    }
+</script>
+</body>
+</html>

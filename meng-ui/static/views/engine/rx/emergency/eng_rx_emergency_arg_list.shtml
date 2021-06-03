@@ -1,0 +1,157 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">备发数量变更列表</title>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        button {
+            width: 45px;
+            height: 20px;
+            margin-left: 3px;
+            vertical-align: middle;
+            border: 1px solid #cfcfcf;
+            -moz-border-radius: 5px;
+            border-radius: 5px;
+            backgroud: #d5d5d5;
+        }
+    </style>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%; height: 104%">
+    <form id="ffSearch" class="form-horizontal">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <th class="th" style="width:100px;" align="right">发动机型号：</th>
+                    <td style="width: 150px" class="td5">
+                        <input class="easyui-combobox" id="engType" name="engType" style="width:150px;"/>
+                    </td>
+
+                    <td class="td5" align="right">
+                        <a href="javascript:void(0)" class="addBtn" onclick="onSearchClick()"><span>查询</span></a>
+                        <a href="javascript:void(0)" class="addBtn" onclick="addOrEditArg('add')"><span>新增</span></a>
+                        <a href="javascript:void(0)" class="searchBtn" onclick="CloseWindowIframe()"><span>关闭</span></a>
+                    </td>
+                </tr>
+            </table>
+    </form>
+    <table id="dg"></table>
+</div>
+<script>
+    var PAGE_DATA = {};
+    function i18nCallBack() {
+        $('#mlayout').css({
+            height: $(document.body).height() - $("fieldset").height() - 20
+        });
+
+        InitGatewayRequest_({
+            type: "get",
+            async: false,
+            path: "/meng-engine/baseOwn/getEngTypeNew",
+            successCallBack: function (jdata) {
+                if (jdata.success == true) {
+                    $('#engType').combobox({
+                        data: jdata.obj,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        panelHeight: '150px',
+                    });
+                } else {
+                    MsgAlert({content: '获取发动机型号列表失败', type: 'error'});
+                }
+            }
+        });
+        InitDataGrid();
+    }
+
+    function InitDataGrid(){
+        var queryParams = $("#ffSearch").serializeObject();
+        $("#dg").GatewayDataGrid({
+            identity: 'dg',
+            idField: "PKID",
+            queryParams: queryParams,
+            pagination: true,
+            path: "/meng-engine/rxEmergency/listArgByPage",
+            columns: {
+                param: {FunctionCode: 'ENG_RX_EMERGENCY_FORECAST_ARG'},
+                alter: {
+                    forecastDate: {
+                        type: 'date'
+                    },
+                    modifyDate: {
+                        type: 'date'
+                    }
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-view", i18nText: "编辑",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        addOrEditArg('edit',rowData);
+                    }
+                },
+                {
+                    id: "m-view", i18nText: "删除",
+                    auth: "",
+                    onclick: function () {
+                        var rowData = getDG('dg').datagrid('getSelected');
+                        if (!rowData.pkid) {
+                            MsgAlert({content: "请选择数据！", type: 'error'});
+                            return;
+                        }
+                        if (!confirm("确认删除该记录？")) {
+                            return;
+                        }
+                        InitGatewayRequest_({
+                            async: false,
+                            data: rowData,
+                            path: "/meng-engine/rxEmergency/deleteForecastArg",
+                            successCallBack: function (jdata) {
+                                if (jdata.success == true) {
+                                    reload_();
+                                    MsgAlert({content: $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                                } else {
+                                    MsgAlert({content: '操作失败', type: 'error'});
+                                }
+                            }
+                        });
+                    }
+                }
+            ],
+        });
+    }
+
+    function addOrEditArg(operation,rowData) {
+        var title_ = $.i18n.t('备发数量变更');
+        ShowWindowIframe({
+            width: "690",
+            height: "370",
+            title: title_,
+            param: {rowData: rowData,operation:operation},
+            url: "/views/engine/rx/emergency/eng_rx_emergency_arg_edit.shtml"
+        });
+    }
+
+    function reload_() {
+        $("#dg").datagrid('reload');
+    }
+
+    function onSearchClick() {
+        InitDataGrid();
+    }
+
+
+</script>
+</body>
+</html>

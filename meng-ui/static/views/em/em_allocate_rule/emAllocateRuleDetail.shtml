@@ -1,0 +1,281 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>分工规则配置详情</title>
+</head>
+
+<body>
+<div style="">
+    <div class="ibox float-e-margins">
+        <div class="ibox-content">
+            <form class="form-horizontal m-t" id="mform">
+                <input type="hidden" id="pkid" name="pkid"/>
+                <table class="table table-bordered table-info">
+                    <tr>
+                        <td colspan="4" align="right">
+                            <input class="btn btn-primary" type="button" id="saveBtn" onclick="save()" value="保存"/>
+                            <input class="btn btn-primary" type="button" onclick="closeW();" value="关闭"
+                                   style="margin-right: 48px;"/>
+                            <br/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">分工/资质：</th>
+                        <td class="tdr">
+                            <input style="width: 120px" class="easyui-combobox" id="divisionQua" name="divisionQua"
+                                   data-options="required:true,editable:false"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">任务类型：</th>
+                        <td class="tdr">
+                            <input style="width: 120px" class="easyui-combobox" id="taskType" name="taskType"
+                                   data-options="required:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" id="ataTh" align="right" style="width: 80px;">章节 ：</th>
+                        <td class="tdr" id="ataTd">
+                            <input style="width: 120px" class="easyui-combobox" id="ata" name="ata"
+                                   data-options="required:true,editable:false"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">机型/型号：</th>
+                        <td class="tdr">
+                            <input style="width: 120px" id="acengModel" name="acengModel" class="easyui-combobox"
+                                   data-options="required:true,editable:false"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">责任工程师：</th>
+                        <td class="tdr">
+                            <input class="easyui-combogrid" id="engineerId" name="engineerId"
+                                   data-options="required:true,editable:true"/>
+                        </td>
+                        <th class="th" align="right" style="width: 80px;">联系电话：</th>
+                        <td class="tdr">
+                            <input style="width: 120px" class="easyui-textbox" id="phone" name="phone"
+                                   data-options="required:true,editable:true"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" id="spec" align="right" style="width: 80px;">专业 ：</th>
+                        <td class="tdr" id="spec1">
+                            <input style="width: 120px" class="easyui-combobox" id="specialize" name="specialize"
+                                   data-options="editable:false"/>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="th" align="right" style="width: 80px;">备注 ：</th>
+                        <td colspan="3">
+                            <textarea style="width: 89%;height:80px" id="memo" name="memo"></textarea>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var operation;
+    var PAGE_DATA = {};
+    var userId = getLoginInfo().accountId;
+    var pkid = null;//主表PKID
+    function i18nCallBack() {
+        param = getParentParam_();
+        operation = param.operation;
+        pkid = param.pkid;
+        $("#pkid").val(pkid);
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_TASK_TYPE,EM_TASK_SORT,DA_FLEET_ENG,DM_ATA,EM_FILE_SPEC",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    //型号
+                    PAGE_DATA['acengModel'] = DomainCodeToMap_(jdata.data["DA_FLEET"]);
+
+                    $('#taskType').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_TASK_TYPE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (row) {
+                            taskTypeChange(row.VALUE)
+                        }
+                    });
+
+                    $('#divisionQua').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_TASK_SORT,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        onSelect: function (row) {
+                            quaChange(row.VALUE)
+                        }
+                    });
+                    $('#acengModel').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DA_FLEET_ENG,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#ata').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.DM_ATA,
+                        multiple: true,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#specialize').combobox({
+                        panelHeight: '135px',
+                        data: jdata.data.EM_FILE_SPEC,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $("#engineerId").MyComboGrid({
+                        idField: 'ACCOUNTID',
+                        textField: 'NAME', //文本显示值
+                        editable: true,
+                        required: true,
+                        pagination: true,
+                        tipPosition: 'top',
+                        mode: 'remote',
+                        width: 120,
+                        params: {FunctionCode: 'WS_USER'},
+                        url: Constant.API_URL + 'WS_USER',
+                        columns: [[
+                            {field: 'ACCOUNTID', title: '员工编号', width: 50, sortable: true},
+                            {field: 'NAME', title: '名称', width: 50, sortable: true}
+                        ]]
+                    });
+                    if (operation == 'view') {
+                        $("#saveBtn").hide();
+                    }
+                    pkid = $("#pkid").val();
+                    if (pkid) {
+                        InitDataForm(pkid);
+                    }
+                }
+            }
+        })
+    }
+
+    function taskTypeChange(value) {
+        var divQua= $('#divisionQua').combobox('getValue');
+        if(!divQua){
+            $('#taskType').combobox('setValue','');
+            MsgAlert({content: '请先选择分工/资质！', type: 'error'});
+        }else{
+            if(divQua == 'DIVISION' && value == 'EMFILEEVAL'){
+                $('#spec').show();
+                $('#spec1').show();
+                $("#specialize").combobox({required:true});
+            }else{
+                $('#spec').hide();
+                $('#spec1').hide();
+                $("#specialize").combobox({required:false});
+            }
+        }
+    }
+
+    function quaChange(value) {
+        if(value == 'DIVISION'){
+            $('#spec').show();
+            $('#spec1').show();
+        }else{
+            $('#spec').hide();
+            $('#spec1').hide();
+            $("#specialize").combobox({required:false});
+        }
+    }
+
+
+    //回填
+    function InitDataForm(pkid) {
+        InitFuncCodeRequest_({
+            data: {pkid: pkid, FunctionCode: "EM_ALLOCATERULE_PKID"}, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    ParseFormField_(jdata.data, $("#mform"), Constant.CAMEL_CASE);
+                    $('#engineerId').combogrid('grid').datagrid('selectRecord', jdata.data.ENGINEER_ID);
+                    $('#ata').combobox({value: jdata.data.ATA});
+                    var taskType = $('#taskType').combobox('getValue');
+                    var specialize = $('#specialize').combobox('getValue');
+                    taskTypeChange(taskType);
+                    $('#specialize').combobox('setValue',specialize);
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    // 保存
+    function save() {
+        var isValidate = $("#mform").form('validate');
+        if (!isValidate)
+            return;
+
+        var $form = $("#mform");
+        var datas = $form.serializeObject();
+        if (Array.isArray(datas['ata'])) {
+            datas['ata'] = datas['ata'].join(',');
+        }
+        var divisionQua = $("#divisionQua").combobox("getValue")
+        var taskType = $("#taskType").combobox("getValue")
+        if(divisionQua == 'DIVISION' && taskType == 'EMFILEEVAL'){
+            datas = $.extend({}, datas, {FunctionCode: 'EM_FILE_ADD_DIS_TEMP'});
+            InitFuncCodeRequest_({
+                data: datas,
+                async: false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+            var msg = '';
+            if(!pkid){
+                pkid = '-1';
+            }
+            InitFuncCodeRequest_({
+                data: {userId:userId,pkid:pkid,FunctionCode: 'EM_FILE_CHECK_DIS'},
+                async: false,
+                successCallBack: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (jdata.data != null) {
+                            msg = jdata.data.MSG;
+                        }
+                    } else {
+                        MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                    }
+                }
+            });
+            if (msg != '') {
+                MsgAlert({content: "工程文件的分工：型号+章节+专业需要唯一，以下数据有重复["+msg+"]", type: 'error'});
+                return;
+            }
+        }
+        datas = $.extend({}, datas, {FunctionCode: 'EM_ALLOCATERULE_ADD'});
+        InitFuncCodeRequest_({
+            data: datas, successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    if (param.OWindow.onSearch_) {
+                        param.OWindow.onSearch_('dg', '#ffSearch');
+                    }
+                    param.OWindow.MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg ? jdata.msg : jdata.data, type: 'error'});
+                }
+            }
+        });
+    }
+
+</script>
+
+</html>

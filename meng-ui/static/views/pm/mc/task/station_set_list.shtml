@@ -1,0 +1,148 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="tm_hrarchive">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title>航站工时系数列表</title>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs" style="width:100%; height: 100%">
+    <fieldset class="fieldset_eui">
+        <legend>搜索</legend>
+        <form id="ffSearch" method="post">
+            <div id="searchBar">
+                <table class="table table-bordered table-info" cellspacing="0" cellpadding="2">
+                    <tr>
+                        <th style="width: 80px;" align="right">航&nbsp;&nbsp;&nbsp;&nbsp;站：</th>
+                        <td>
+                            <input class="easyui-combogrid" id="station" name="station" data-options=""
+                                   style="width:140px"/>
+                        </td>
+                        <th style="width: 80px;" align="right">管理单位：</th>
+                        <td>
+                            <input class="easyui-combobox" id="mampu" name="mampu" data-options=""
+                                   style="width:120px"/>
+                        </td>
+                        <td style="width:60%;text-align:left; padding-right:5px">
+                            <a class="searchBtn" data-options="iconCls:'icon-search'" auth="PM_MC_STATION_SET_QUERY"
+                               onclick="onSearch_()"><span>查询</span></a>
+                            <!--<a class="clearBtn" data-options="iconCls:'icon-clear'" onclick="onClear_()"><span>重置</span></a>-->
+                            <a class="addBtn" data-options="" onclick="add()" auth="PM_MC_STATION_SET_ADD"><span>新增</span></a>
+                            <a class="excelBtn" data-options="" onclick="excelExport('dg','航站工时系数清单');" auth="PM_MC_STATION_SET_EXPORT"><span>导出</span></a>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </form>
+    </fieldset>
+    <table id="dg"></table>
+</div>
+<script type="text/javascript" src="/views/pm/mc/js/datagrid_utils.js"></script>
+<script type="text/javascript">
+    var param;
+    var identity = 'dg';
+    var PAGE_DATA = {};
+    var selectRow;
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            onSearch_();
+        });
+        param = getParentParam_();
+        InitFuncCodeRequest_({
+            data: {FunctionCode: "ANALYSIS_DOMAIN_BYCODE", domainCode: "PM_MC_MAMPU"},
+            successCallBack: function (jdata) {
+                PAGE_DATA['mampu'] = DomainCodeToMap_(jdata.data.PM_MC_MAMPU);
+                //航站
+                $("#station").MyComboGrid({
+                    idField: 'STATION',  //实际选择值
+                    textField: 'STATION', //文本显示值
+                    panelHeight: '180px',
+                    width: 140,
+                    params: {FunctionCode: 'SELECT_STATION'},
+                    columns: [[
+                        {field: 'STATION', title: '航站三字码', width: 50},
+                        {field: 'STATION_FCODE', title: '航站四字码', width: 50},
+                        {field: 'SHORT_NAME', title: '中文简称', width: 50},
+                        {field: 'FULLNAME_CN', title: '中文全称', width: 50},
+                    ]],
+                    onHidePanel: function () {
+                        var t = $(this).combogrid('getValue');
+                        if (t != null && t != '' & t != undefined) {
+                            if (selectRow == null || t != selectRow.STATION) {//没有选择或者选项不相等时清除内容
+                                alert('请选择，不要直接输入！');
+                                $(this).combogrid({value: ''});
+                            }
+                        }
+                    },
+                    onSelect: function (index, row) {
+                        selectRow = row;
+                    }
+                });
+                $('#mampu').combobox({
+                    panelHeight: '160px',
+                    valueField: 'VALUE',
+                    textField: 'TEXT',
+                    data: jdata.data.PM_MC_MAMPU
+                });
+                InitDataGrid();
+            }
+        });
+    }
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: identity,
+            columns: {
+                param: {FunctionCode: 'PM_MC_STATION_SET_LIST'},
+                alter: {
+                    MODIFY_DATE: {
+                        type: 'date'
+                    }
+                    /*POSITION: {
+                        formatter: function (value, row, index) {
+                            return PAGE_DATA['position'][row.POSITION];
+                        }
+                    }*/
+                }
+            },
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT",auth:"PM_MC_STATION_SET_EDIT",
+                    onclick: function () {
+                        common_add_edit_({
+                            identity: identity, isEdit: 1, width: 650, height: 550,
+                            url: "/views/pm/mc/task/station_set_add_edit.shtml"
+                        })
+                    }
+                }
+                , {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL",auth:"PM_MC_STATION_SET_DEL",
+                    onclick: function () {
+                        var rowData = $("#dg").datagrid('getSelected');
+                        common_delete_({
+                            identity: identity,
+                            cfmI18next: "确认删除吗",
+                            param: {data: {pkid: rowData.PKID}},
+                            FunctionCode: "PM_MC_STATION_SET_DEL"
+                        })
+                    }
+                }
+            ],
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 15)
+            }
+        });
+    }
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    function add() {
+        common_add_edit_({
+            identity: identity, isEdit: 0, width: 650, height: 550,
+            url: "/views/pm/mc/task/station_set_add_edit.shtml"
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_SYSCONFIG_REG.TITLE">系统构型</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<div id="tt" class="easyui-tabs">
+    <div title="历次称重报告查询">
+        <fieldset class="fieldset_eui">
+            <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+            <form id="ffSearch" method="post">
+                <div id="searchBar">
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <th style="width: 70px">机号：</th>
+                            <td style="width: 120px">
+                                <input class="easyui-combobox" name="acno" id="acno" style="width:120px;"/>
+                            </td>
+
+                            <th data-i18n="" style="width: 90px">称重报告编号：</th>
+                            <td style="width: 120px">
+                                <input class="easyui-textbox" name="reportNo" id="reportNo" data-options=""
+                                       style="width:120px;"/>
+                            </td>
+                            <th data-i18n="" style="width: 70px">称重日期：</th>
+                            <td style="width: 260px">
+                                <input class="easyui-datebox" name="startDate" id="startDate" data-options=""
+                                       style="width:120px;"/>至
+                                <input class="easyui-datebox" name="endDate" id="endDate" data-options=""
+                                       style="width:120px;"/>
+
+                            </td>
+                            <th data-i18n="" style="width: 40px">状态：</th>
+                            <td style="width: 120px">
+                                <input class="easyui-combobox" name="status" id="status" data-options=""
+                                       style="width:120px;"/>
+                            </td>
+                            <td>
+                                <a class="searchBtn" data-options="iconCls:'icon-search'"
+                                   data-i18n="common:COMMON_OPERATION.QUERY"
+                                   onclick="onSearch_('dg', '#ffSearch')">查询</a>
+                                <a class="ridoBtn" data-options="iconCls:'icon-search'"
+                                   onclick="helpQuery('dg', 'EM_WB_REPORT_QUERY');" >高级查询</a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </form>
+        </fieldset>
+        <table id="dg"></table>
+    </div>
+    <div title="历次称重变化量查询">
+        <fieldset class="fieldset_eui">
+            <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+            <form id="ffSearch1" method="post">
+                <div id="searchBar1">
+                    <table class="table table-bordered table-info">
+                        <tr>
+                            <th data-i18n="" style="width: 90px">称重报告编号：</th>
+                            <td style="width: 120px">
+                                <input class="easyui-textbox" name="reportNo1" id="reportNo1" data-options=""
+                                       style="width:120px;"/>
+                            </td>
+                            <th style="width: 70px">机号：</th>
+                            <td style="width: 120px">
+                                <input class="easyui-combobox" name="acno1" id="acno1" style="width:120px;"/>
+                            </td>
+                            <th data-i18n="" style="width: 90px">EO/EA编号：</th>
+                            <td style="width:150px;">
+                                <input class="easyui-textbox" name="eoNo" id="eoNo" data-options=""
+                                       style="width:150px;"/>
+                            </td>
+                            <td>
+                                <a class="searchBtn" data-options="iconCls:'icon-search'"
+                                   data-i18n="common:COMMON_OPERATION.QUERY"
+                                   onclick="onSearch_('dg1', '#ffSearch1')">查询</a>
+                                <a class="ridoBtn" data-options="iconCls:'icon-search'"
+                                   onclick="helpQuery('dg1', 'EM_WB_CHANGE_QUERY');" >高级查询</a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </form>
+        </fieldset>
+        <table id="dg1"></table>
+    </div>
+</div>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+        InitFuncCodeRequest_({
+            data: {
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE",
+                domainCode: "DA_ACREG_MAN_ACNO,EM_WB_REPORT_STATUS"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    $('#acno').combobox({
+                        panelHeight: '200',
+                        data: jdata.data.DA_ACREG_MAN_ACNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#acno1').combobox({
+                        panelHeight: '200',
+                        data: jdata.data.DA_ACREG_MAN_ACNO,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    $('#status').combobox({
+                        panelHeight: '140px',
+                        data: jdata.data.EM_WB_REPORT_STATUS,
+                        valueField: 'VALUE',
+                        textField: 'TEXT'
+                    });
+                    PAGE_DATA['status'] = DomainCodeToMap_(jdata.data["EM_WB_REPORT_STATUS"]);
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+        InitDataGrid();
+        InitDataGrid1();
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+
+            columns: {
+                param: {FunctionCode: 'EM_WB_REPORT_QUERY'},
+                alter: {
+                    UPLOAD: {
+                        formatter: function (value, row, index) {
+                            if (row.UPLOAD) {
+                                return '<a href="javascript:void(0);" rowindex="' + index + '" class="attach">' +
+                                    '<img src="/img/edit2.png" border="0" style="width:15px;height:15px;"/></a>'
+                            }
+                        }
+                    },
+                    STATUS: {
+                        formatter: function (value) {
+                            return PAGE_DATA['status'] [value];
+                        }
+                    },
+                }
+            },
+            onLoadSuccess: function () {
+                InitSuspend('a.attach', {
+                    'onmouseover': function (thiz, event, callback) {
+                        var index = $(thiz).attr("rowindex");
+                        var row = $("#dg").datagrid('getRows')[index];
+                        InitFuncCodeRequest_({
+                            data: {
+                                SOURCE_ID: row.PKID,
+                                CATEGORY: "emWbReport",
+                                FunctionCode: 'ATTACHMENT_RSPL_GET'
+                            },
+                            successCallBack: function (jdata) {
+                                var html = "";
+                                for (var i = 0; i < jdata.data.length; i++) {
+                                    //当资料状态为已发布时，不允许删除附件
+                                    if (row.STATUS != 'BXZ') {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a></li>';
+                                    } else {
+                                        html += '<li><a target="_blank" onclick="downFile(' + jdata.data[i].PKID + ',' + jdata.data[i].PKID + ')">' + jdata.data[i].ORG_NAME + '</a><span onclick="deleteFile(\'' + jdata.data[i].PKID + '\');return false;" class="icon-cross"></span></li>';
+                                    }
+
+                                }
+                                callback(html);
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    function InitDataGrid1() {
+        var identity = 'dg1';
+        $("#dg1").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            //queryParams: {appId: "0"},
+            columns: {
+                param: {FunctionCode: 'EM_WB_CHANGE_QUERY'},
+                alter: {}
+            }
+
+        });
+    }
+</script>
+</body>
+</html>

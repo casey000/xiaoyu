@@ -1,0 +1,183 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="pm_mplanconf">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="RES.EM_ALLOCATE_RULE.TITLE">构型配置列表</title>
+    <script type="text/javascript" src="/js/datagrid_utils.js"></script>
+</head>
+<body class="ibody">
+<fieldset class="fieldset_eui">
+    <form id="ffSearch" method="post">
+        <div id="searchBar">
+            <table class="table table-bordered table-info">
+                <tr>
+                    <!--<th data-i18n="" style="width: 70px">类型：</th>-->
+                    <!--<td>-->
+                    <!--<input class="easyui-combobox" name="configType" id="configType" data-options=""-->
+                    <!--style="width:120px;"/>-->
+                    <!--</td>-->
+                    <!--<th data-i18n="" style="width: 70px">编号：</th>-->
+                    <!--<td>-->
+                    <!--<input class="easyui-textbox" name="configNo" id="configNo" data-options=""-->
+                    <!--style="width:120px;"/>-->
+                    <!--</td>-->
+                    <th data-i18n="" style="width: 70px">中文描述：</th>
+                    <td>
+                        <input class="easyui-textbox" name="configDesc" id="configDesc" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <th data-i18n="" style="width: 70px">英文描述：</th>
+                    <td>
+                        <input class="easyui-textbox" name="configDescEn" id="configDescEn" data-options=""
+                               style="width:120px;"/>
+                    </td>
+                    <td>
+                        <a class="searchBtn" data-options="iconCls:'icon-search'"
+                           data-i18n="common:COMMON_OPERATION.QUERY" onclick="onSearch_()"
+                           >查询</a>
+                        <a class="clearBtn" onclick="doClear_()" data-options="iconCls:'icon-clear'">
+                            <span data-i18n="common:COMMON_OPERATION.RESET">重置</span></a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </form>
+</fieldset>
+<table id="dg"></table>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var companyCode;
+
+    // companyCode=getCompanyCode();
+    function i18nCallBack() {
+
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "EM_CONFIG_TYPE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    // $('#configType').combobox({
+                    //     panelHeight: '140px',
+                    //     data: jdata.data.EM_CONFIG_TYPE,
+                    //     valueField: 'VALUE',
+                    //     textField: 'TEXT'
+                    // });
+                    //资料类别
+                    // PAGE_DATA['configType'] = DomainCodeToMap_(jdata.data["EM_CONFIG_TYPE"]);
+                    InitDataGrid();
+
+
+                }
+                else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    function InitDataGrid() {
+        var identity = 'dg';
+        $("#dg").MyDataGrid({
+            identity: identity,
+            sortable: true,
+            singleSelect: true,
+            pageSize: 15,
+            columns: {
+                param: {FunctionCode: 'EM_SYSCONFIG_DESC_SUB_LIST'},
+                alter: {
+                    // CONFIG_TYPE: {
+                    //     formatter: function (value) {
+                    //         return PAGE_DATA['configType'][value];
+                    //     }
+                    // },
+                    CREATE_DATE: {
+                        type: 'date'
+                    },
+                    MODIFY_DATE: {
+                        type: 'date'
+                    },
+                }
+            },
+            onDblClickRow: function (index, field, value) {
+                openDetai("view", value.PKID);
+            },
+            onLoadSuccess: function () {
+            },
+            toolbar: [{
+                id: 'btnAdd',
+                text: $.i18n.t('common:COMMON_OPERATION.ADD'),
+                iconCls: 'icon-add',
+                handler: function () {
+                    openDetai("add", "");//打开新增页面
+                }
+            }, '-', {
+                id: 'btnReload',
+                text: $.i18n.t('common:COMMON_OPERATION.RELOAD'),
+                iconCls: 'icon-reload',
+                handler: function () {
+                    $("#dg").datagrid("reload");
+                }
+            }],
+            contextMenus: [
+                {
+                    id: "m-edit", i18nText: "common:COMMON_OPERATION.EDIT", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        if (!rowdata.PKID) {
+                            MsgAlert({content: '请选择记录！', type: 'error'});
+                            return;
+                        }
+                        openDetai('edit', rowdata.PKID);
+                    }
+                },
+                {
+                    id: "m-delete", i18nText: "common:COMMON_OPERATION.DEL", auth: "",
+                    onclick: function () {
+                        var rowdata = getDG(identity).datagrid('getSelected');
+                        InitFuncCodeRequest_({
+                            data: {
+                                FunctionCode: 'EM_SYSCONFIG_DESC_DEL',
+                                pkid: rowdata.PKID
+                            },
+                            successCallBack: function (jdata) {
+                                reload_();
+                            }
+                        });
+                    }
+                }
+            ]
+
+        });
+    }
+
+
+    /** 刷新列表数据 */
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+
+    //重置
+    function doClear_() {
+        $("#ffSearch").form('clear');
+        searchData();
+    }
+
+    function openDetai(operation, pkid) {
+        ShowWindowIframe({
+            width: 820,
+            height: 415,
+            title: "新增构型配置",
+            param: {operation: operation, pkid: pkid},
+            url: "/views/em/emsysconfigdescsub/em_sysconfig_desc_sub_edit.shtml"
+        });
+    }
+</script>
+</body>
+</html>

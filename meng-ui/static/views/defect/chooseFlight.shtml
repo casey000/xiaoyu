@@ -1,0 +1,958 @@
+<!--
+  ~ Copyright 2019 SF Airlines Co., Ltd. All rights reserved.
+  ~ 本文件仅限于顺丰航空有限公司内部传阅，禁止外泄以及用于其他的商业目的。
+  -->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">航班选择</title>
+    <style type="text/css">
+        button {
+            border: none;
+        }
+
+        .view-btn, .addTaskBtn {
+            -moz-appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            text-decoration: underline;
+            color: #1989FA;
+            background: none;
+        }
+
+        #stationBtn, #acBtn {
+            position: relative;
+            top: 5px;
+            right: 3px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        /*修改datagrid表格樣式*/
+        .datagrid-htable tr, .datagrid-btable tr {
+            height: 30px;
+        }
+
+    </style>
+</head>
+<body class="ibody">
+
+<div id="tt" class="easyui-tabs" style="width:100%">
+    <div id="fltChoose" style="" title="航班选择">
+        <fieldset class="fieldset_eui">
+            <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+            <form class="form-horizontal" id="ffSearch">
+                <table class="table table-bordered table-info" id="flightSelect" style="width: 100%">
+                    <tr>
+                        <th class="param-title">Date Range:</th>
+                        <td class="param-content">
+                            <input class="easyui-combobox" id="dateRange" name="dateRange"
+                                   style="height: 25px;"/>
+                        </td>
+                        <th class="param-title param-title-short">Date:</th>
+                        <td class="param-content">
+                            <input class="easyui-datebox" id="date" name="date" style="height: 25px;"/>
+                        </td>
+                        <th class="param-title param-title-middle">Time:</th>
+                        <td class="param-content">
+                            <input class="easyui-textbox" id="time" name="time" style="height: 25px;"/>
+                        </td>
+                        <td class="searchBtn-wrap">
+                            <a class="searchBtn" data-i18n="common:COMMON_OPERATION.QUERY"
+                               data-options="iconCls:'icon-search'" onClick="searchData()"
+                               type="button">
+                                查询</a>
+                            <a class="clearBtn" data-i18n="common:COMMON_OPERATION.RESET"
+                               data-options="iconCls:'icon-clear'" onClick="doClear_()">
+                                重置</a>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="param-title">Station:</th>
+                        <td class="param-content">
+                            <input class="easyui-textbox" id="station" name="station"
+                                   style="height: 25px;"/>
+                            <img alt="" id="stationBtn" onClick="stationQuery()" src="/img/search.png"/>
+                        </td>
+                        <th class="param-title param-title-short">A/C:</th>
+                        <td class="param-content">
+                            <input class="easyui-textbox" id="ac" name="ac" style="height: 25px;"/>
+                            <img alt="" id="acBtn" onClick="acQuery()" src="/img/search.png"/>
+                        </td>
+                        <th class="param-title param-title-middle">运行限制:</th>
+                        <td class="param-content">
+                            <input class="easyui-textbox" id="limitNames" name="limitNames"
+                                   style="height: 25px;"/>
+                        </td>
+                    </tr>
+                </table>
+            </form>
+            <!-- <div class="frame-header">
+                <div class="float-right add-task">
+                    <a class="searchBtn" data-options="iconCls:'icon-search'" onClick="assignTask()">
+                        <span>分配</span>
+                    </a>
+                </div>
+            </div> -->
+        </fieldset>
+        <table id="dg"></table>
+    </div>
+    <div data-options="" id="staChoose" style="overflow:auto;" title="航站选择">
+        <fieldset class="fieldset_eui" style="margin-bottom: 10px">
+            <legend data-i18n="common:COMMON_OPERATION.SEARCH">搜索</legend>
+            <form class="form-horizontal" id="staSearch">
+                <table class="table table-bordered table-info" style="width: 100%">
+                    <tr>
+
+                        <th class="param-title param-title-short">Date:</th>
+                        <td class="param-content">
+                            <input class="easyui-datebox" id="stationDate" name="stationDate" style="height: 25px;"/>
+                        </td>
+                        <th class="param-title param-title-short">三字码:</th>
+                        <td class="param-content">
+                            <input class="easyui-textbox" id="airport3code" name="airport3code" style="height: 25px;"/>
+                        </td>
+                        <td class="searchBtn-wrap">
+                            <a class="searchBtn" data-i18n="common:COMMON_OPERATION.QUERY"
+                               data-options="iconCls:'icon-search'" onClick="stationData()"
+                               type="button">
+                                查询</a>
+                            <a class="clearBtn" data-i18n="common:COMMON_OPERATION.RESET"
+                               data-options="iconCls:'icon-clear'" onClick="stationClear_()">
+                                重置</a>
+
+                        </td>
+                    </tr>
+
+                </table>
+            </form>
+        </fieldset>
+        <table id="stationDg" ></table>
+
+    </div>
+
+</div>
+
+
+<div id="ACQueryWindow" class="easyui-window" title="A/C Query" data-options="modal:true,closed:true"
+     style="width:46%;height:50%;padding:5px 5px 5px 5px;">
+    <table id="ACDg" pagination="true"></table>
+</div>
+
+<!--<script type="text/javascript" src="/js/datagrid_utils.js"></script>-->
+<script src="/views/pm/mc/js/datagrid_utils.js" type="text/javascript"></script>
+<script type="text/javascript" src="/js/date_format.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+    var COMBOBOX_DATA = {};
+
+    let params = getParentParam_();
+    console.log(params, 'params');
+    //判断是否进行初始化参数查询，避免循环调用searchDate
+    let init = 0;
+
+    function i18nCallBack() {
+        //绑定回车查询事件
+        bindFormonSearch_('#ffSearch', function () {
+            searchData()
+        });
+        setInitialParamValue();
+        //针对新飞机,初始化航班数据时候生成O/G任务，需要多传initOG字段,
+        if(!!params.filter && !!params.filter.initOG){
+            insertInitOG();
+        };
+        if (!params.filter || params.filter.ac || params.filter.ac === null || params.filter.ac === '') {
+            if (params.filter && params.filter.flag && !params.filter.ac) {
+                InitDataGrid();
+                InitStaDataGrid();
+            } else {
+                $('#tt').tabs('getTab', "航站选择").panel('options').tab.hide();//显示tab页
+                $('#staChoose').hide();
+                InitDataGrid();
+            }
+        }else{
+            $('#tt').tabs('getTab',"航班选择").panel('options').tab.hide();//显示tab页
+            $('#tt').tabs('select','航站选择');
+            InitStaDataGrid();
+            $('#fltChoose').hide();
+        }
+        // $('#tt').tabs('getTab',"航站选择").panel('options').tab.hide();//显示tab页
+        // $('#staChoose').hide();
+        InitFuncCodeRequest_({
+            data: {
+                domainCode: "TBM_DATE_RANGE",
+                FunctionCode: "ANALYSIS_DOMAIN_BYCODE"
+            },
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    PAGE_DATA['dateRange'] = DomainCodeToMap_(jdata.data["TBM_DATE_RANGE"]);
+
+                    $('#dateRange').combobox({
+                        panelHeight: '50px',
+                        data: jdata.data.TBM_DATE_RANGE,
+                        valueField: 'VALUE',
+                        textField: 'TEXT',
+                        editable: false, // 是否可编辑
+                        multiple: false, //是否可多选
+                        require: true, //是否必须
+                        onLoadSuccess: function () {
+                            $('#dateRange').combobox('setValue', 1)
+                        }
+                    });
+
+
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+
+    /**
+     * 初始化查询条件
+     * */
+    function setInitialParamValue() {
+        //设置时间
+        var curr_time = new Date();
+        var $date_ = $('#date');
+        var $time_ = $('#time');
+
+        $date_.datebox("setValue", myformatter(curr_time));
+        $('#stationDate').datebox("setValue", myformatter(curr_time));
+        $time_.textbox("setValue", "18:00");
+        $('#dateRange').combobox('setValue', 1);
+    }
+
+
+    function myformatter(date) {
+        var y = date.getFullYear();
+        var m = date.getMonth() + 1;
+        var d = date.getDate();
+        return y + '-' + (m < 10 ? ('0' + m) : m) + '-' + (d < 10 ? ('0' + d) : d);
+    }
+
+
+    function InitDataGrid() {
+        $("#dg").MyDataGrid({
+            identity: 'dg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,     //开启分页
+            fitColumns: true,
+            pageSize:15,        //加入选项卡后 由于datagrid_utils 造成页面有个滚动条 表格部分一个滚动条 暂时想不到解决办法 加上条目限制 优化体验
+            columns: {
+                param: {FunctionCode: 'STATION_TASK_LIST'},
+                alter: {
+                    DATA_RANGE: {
+                        formatter: function (value) {
+                            return PAGE_DATA['dateRange'][value];
+                        }
+                    },
+                    FLIGHT_DATE: {
+                        formatter: formatFlightDate
+                    },
+                    PLAN_TO: {
+                        formatter: format2Time
+                    },
+                    PLAN_LDG: {
+                        formatter: format2Time
+                    },
+                    ETD: {
+                        formatter: format2Time
+                    },
+                    ETA: {
+                        formatter: format2Time
+                    },
+                    TO: {
+                        formatter: format2Time
+                    },
+                    LDG: {
+                        formatter: format2Time
+                    },
+                    AC_STATUS: {
+                        formatter: function (value, rowData) {
+                            return "<button class='view-btn' style='width: 50px; height: 20px;' type='button' onclick='viewStatus(&apos;" + JSONstringify(rowData) + "&apos;)'>view</button>";
+                        }
+                    },
+                    TR_TASK: {
+                        formatter: function (value, rowData, rowIndex) {
+                            var bgColor = bgColorFormat(rowData.status1);
+                            let data = JSON.stringify(rowData);
+                            var btnStr = '';
+                            var str = '';
+                            if (value) {
+                                str =  "<button style='margin:3px 0;width: 50px;padding-top: 4px;padding-bottom: 4px; background-color:" + bgColor + ";' type='button' " +
+                                    "onclick='left_task_click(" + data + ")'>" + value + "</button>";
+                            }
+
+                            if (rowData.TBF && rowData.POF_TASK != "O/G") {
+                                var t = rowData.TBF.split(",");
+                                // 滑回（TBF）任务的放行状态是根据依附的工单放行状态决定的
+                                for (let index in t) {
+                                    data = JSON.stringify(rowData);
+                                    btnStr +=  "<button style='margin:3px 0;width: 50px;padding-top: 4px;padding-bottom: 4px; background-color:" + bgColor + ";' type='button' " +
+                                        "onclick='left_task_click(" + data + ','+ t[index] + ")'>" + 'TBF' + "</button><br>";
+                                }
+                            }
+                            if (rowData.TBFTR && rowData.POF_TASK != "O/G") {
+                                var t1 = rowData.TBFTR.split(",");
+                                // 滑回T/R（TBFTR）任务的放行状态是根据自己本身的工单状态来决定的
+                                for (let index in t1) {
+                                    var bgColor = bgColorFormat(status[index]);
+                                    btnStr +=  "<button style='margin:3px 0;width: 50px;padding-top: 4px;padding-bottom: 4px; background-color:" + bgColor + ";' type='button' " +
+                                        "onclick='left_task_click(" + data + ','+ t1[index] + ")'>" + 'TBFTR' + "</button><br>";
+                                }
+
+                            }
+                            btnStr =  btnStr + str;
+                            return btnStr;
+                        }
+                    },
+                    POF_TASK: {
+                        formatter: function (value, rowData, rowIndex) {
+                            var bgColor = bgColorFormat(rowData.status2);
+                            if (value) {
+                                let data = JSON.stringify(rowData);
+                                return "<button style='width: 50px;padding-top: 4px;padding-bottom: 4px;background-color:" + bgColor + ";' type='button' " +
+                                    "onclick='right_task_click(" + data + ")'>" + value + "</button>";
+                            }
+                        }
+                    }
+                }
+            },
+            onLoadSuccess: function (value, rowData, rowIndex) {
+                //todo 当航班已放行，记录背景颜色有橙色变成绿色
+                if (!init) {
+                    init_filter();
+                }
+
+            },
+            contextMenus: []
+        });
+    }
+    function InitStaDataGrid() {
+        $("#stationDg").MyDataGrid({
+            identity: 'stationDg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,     //开启分页
+            fitColumns: true,
+            pageSize:15,
+            columns: {
+                param: {FunctionCode: 'STATION_LIST'},
+                alter: {
+                    CREATTIME:{
+                        formatter: function (value, rowData) {
+                            var curr_time = new Date($('#stationDate').datebox('getValue'));
+                            var newDate = new Date(curr_time.setDate(curr_time.getDate()));
+
+                            return myformatter(newDate)
+                        }
+                    },
+                    AIRPORT_3CODE: {
+                        formatter: function (value, rowData) {
+                            var bgColor = bgColorFormat(rowData.status1);
+                            if (value) {
+                                let data = JSON.stringify(rowData);
+                                return "<button style='width: 50px;padding-top: 4px;padding-bottom: 4px; background-color:" + bgColor + ";' type='button' " +
+                                    "onclick='chooseSta(" + data + ")'>" + value + "</button>";
+                            }
+                        }
+                    },
+
+                }
+            },
+            onLoadSuccess: function (value, rowData, rowIndex) {
+
+
+            },
+            contextMenus: []
+        });
+    }
+    /**组装滑回按钮**/
+    function btn_tbf(row) {
+
+        var btnStr = "";
+
+        if (row.TBF) {
+            var t = row.TBF.split(",");
+
+            t.forEach(function (v) {
+                btnStr += "<button style='width: 50px;padding-top: 4px;padding-bottom: 4px; background-color:#FFA500;margin-left:10px;'" +
+                    " type='button' onclick='openDetail(&apos;TBF&apos;,&apos;" + v
+                    + "&apos;,&apos;" + row.AC + "&apos;,&apos;" + row.FLIGHT_NO
+                    + "&apos;,&apos;" + row.FLIGHT_DATE + "&apos;,&apos;" + row.flightId
+                    + "&apos;,&apos;" + row.status1 + "&apos;)'>TBF</button>";
+            })
+        }
+        if (row.TBFTR) {
+            var t1 = row.TBFTR.split(",");
+
+            t1.forEach(function (v) {
+                btnStr += "<button style='width: 50px;padding-top: 4px;padding-bottom: 4px; background-color:#FFA500;margin-left:10px;'" +
+                    " type='button' onclick='openDetail(&apos;TBFTR&apos;,&apos;" + v
+                    + "&apos;,&apos;" + row.AC + "&apos;,&apos;" + row.FLIGHT_NO
+                    + "&apos;,&apos;" + row.FLIGHT_DATE + "&apos;,&apos;" + row.flightId
+                    + "&apos;,&apos;" + row.status1 + "&apos;)'>TBFTR</button>";
+            })
+        }
+
+        return btnStr;
+    }
+
+    /** 任务的背景色*/
+    function bgColorFormat(status) {
+        var bgColor;
+        if (status && status === 'RELEASED') {
+            bgColor = '#00FF00';
+        } else {
+            bgColor = '#FFA500';
+        }
+        return bgColor;
+    }
+
+    function formatFlightDate(cellvalue,rowObject) {
+
+        var return_value = "";
+
+        if (cellvalue != null) {
+            return_value =  cellvalue.split(" ")[0];
+        }
+
+        var hours_ = 0;
+
+        if(cellvalue && rowObject.FLIGHT_END_DATE){
+            hours_ = GetNumberOfHours(cellvalue,rowObject.FLIGHT_END_DATE);
+        }
+
+        if(rowObject.FLIGHT_END_DATE != null && rowObject.isOg==1 && rowObject.POF_TASK=='O/G' && hours_ >=24){
+            return_value =  return_value+"</br>"+rowObject.FLIGHT_END_DATE.split(" ")[0];
+        }
+
+        return return_value;
+    }
+
+    function GetNumberOfHours(date1,date2){//获得天数
+        //date1：开始日期，date2结束日期
+        var a1 = Date.parse(new Date(date1));
+        var a2 = Date.parse(new Date(date2));
+        var hours = parseInt((a2-a1)/ (1000 * 60 * 60));//核心：时间戳相减，然后除以天数
+        return hours
+    }
+
+    function format2Date(cellvalue) {
+        if (cellvalue != null) {
+            return cellvalue.split(" ")[0];
+        }
+        return "";
+    }
+
+    /**
+     * 截取时间段
+     * */
+    function format2Time(cellvalue) {
+        if (cellvalue != null) {
+            var t = cellvalue.split(" ")[1];
+            var h = t.split(":")[0];
+            var m = t.split(":")[1];
+            return h + ":" + m;
+        }
+        return "";
+    }
+
+    //刷新
+    function reload_() {
+        $("#dg").datagrid("reload");
+    }
+    function stationClear_() {
+        $("#airport3code").textbox('setValue','');
+        stationData()
+    }
+
+    //打开航站任务详细页面
+    function openDetail(operation, orderId, acReg, flightNo, flightDate, flightId, isReleased) {
+        console.log("flightId:" + flightId);
+        //传递参数到跳转的页面
+        var url = "/views/tbm/flb/flb_station_task_detail.shtml?operation=" + operation + "&orderId=" + orderId +
+            "&acReg=" + acReg + "&flightNo=" + flightNo + "&jobDate=" + flightDate + "&flightId=" + flightId +
+            "&isReleased=" + isReleased;
+        console.log("url:" + url);
+        window.location.href = url;
+    }
+
+    /*打开航线任务添加窗口*/
+    function doAddLineJob_(row) {
+        var row = JSON.parse(row);
+        var title_ = $.i18n.t('添加航段滑回任务');
+        var currentWidth = ($(window).width() * 0.4).toString();
+        var currentHeight = ($(window).height() * 0.4).toString();
+        ShowWindowIframe({
+            width: currentWidth,
+            height: currentHeight,
+            title: title_,
+            param: row,
+            url: "/views/tbm/flb/add_line_job.shtml"
+        });
+    }
+
+    //查询
+    function searchData() {
+        onSearch_('dg', '#ffSearch');
+    }
+    function stationData() {
+        onSearch_('stationDg', '#staSearch');
+
+    }
+
+    //重置
+    function doClear_() {
+
+        $("#ffSearch").form('clear');
+        if(params.filter){
+            if (params.filter.ac) {
+                $("#ac").textbox("setValue", params.filter.ac)
+            }
+        }
+        setInitialParamValue();
+        searchData();
+    }
+
+    //todo 如何传参？？？？
+    function viewStatus(row) {
+        var rowData = JSON.parse(row);
+        var curWidth = $(window).width().toString();
+        var curheight = $(window).height().toString();
+        // var url;
+        // url = "/views/defect/trouble_follow_up.shtml?acReg="+rowData.AC;
+        // window.location.href = url;
+        // window.resizeTo("830", "720");
+        ShowWindowIframe({
+            width: curWidth * 0.8,
+            height: curheight * 0.8,
+            title: '',
+            param: {acReg: rowData.AC},
+            url: " /views/defect/trouble_follow_up.shtml"
+        });
+    }
+
+    // 查询station的点击事件
+    function stationQuery() {
+        var title_ = $.i18n.t('航站查询');
+        var curWidth = ($(window).width() * 0.5).toString();
+        var curheight = ($(window).height() * 0.5).toString();
+        ShowWindowIframe({
+            width: curWidth,
+            height: curheight,
+            title: title_,
+            param: {},
+            url: "/views/tbm/flb/station_query.shtml"
+        });
+    }
+    function chooseSta(rowData) {
+        console.log(rowData);
+        // var $form = $("#staSearch");
+        // var datas = $form.serializeObject();
+        var datas;
+        datas = $.extend({station:rowData.AIRPORT_3CODE,jobDate:$('#stationDate').datebox('getValue')},datas, {FunctionCode: 'CREATE_OR_GET_STATION_TASK'});
+        InitFuncCodeRequest_({
+            data: datas,
+            successCallBack: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    params.success(jdata.data);
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_tip:TIP.COMMON.OPT_SUCCESS')});
+                    window.close()
+                } else {
+                    MsgAlert({content: jdata.msgData[0] ? jdata.msgData[0] : jdata.msg, type: 'error'});
+                }
+            }
+        });
+    }
+    //查询A/C的点击事件
+    function acQuery() {
+        $('#ACQueryWindow').window('open');
+        InitACDataGrid();
+    }
+
+    function InitACDataGrid() {
+        $("#ACDg").MyDataGrid({
+            identity: 'ACDg',
+            sortable: true,
+            singleSelect: true,
+            pagination: true,     //开启分页
+            fitColumns: true,
+            striped: false,
+            showHeader: false,
+            columns: {
+                param: {FunctionCode: 'FLB_AC_LIST'},
+                alter: {}
+            },
+            onLoadSuccess: function () {
+            },
+            // 固定表格所占整个表格高度
+            resize: function () {
+                return tabs_standard_resize($('#tt'), 0.45, 0.54, 140, -6);
+            },
+            contextMenus: [],
+            toolbar: [],
+            onClickRow: function (rowIndex, rowData) {
+            },
+            onDblClickRow: function () {
+                var row = $('#ACDg').datagrid('getSelected'); //获取所选行的数据
+                $("#ac").textbox("setValue", row.tail); //给station控件赋值
+                $('#ACQueryWindow').window('close'); //关闭弹窗
+            }
+        });
+    }
+
+    //当输入框改变了之后做出的动作
+    //校验输入的日期及日期格式
+    $(function () {
+        $("#flight_time_td .validatebox-text").on('blur', function () {
+
+            var flightDate = $("#flight_time_td .validatebox-text").validatebox('getValue');
+
+            //如果输入有误，1）提出警示；2） 确认警示后，要重置输入框；
+            if (isDate(flightDate)) {
+                alert("(" + flightDate + ") Datetime format is wrong. eg：2013-1-1 or 2013-01-01");
+                $("#flight_time_td .validatebox-text").validatebox('setValue', '');
+            }
+        });
+        init_filter();
+    });
+
+    /**
+     * 填入代入的参数
+     */
+    function init_filter() {
+        if (!params.filter) {
+            return
+        }
+        //如果是TO打开航班页面
+        if (params.filter.openPageType == "TO") {
+            if (params.filter.ac) {
+                $("#ac").textbox("setValue", params.filter.ac);
+                $("#ac").textbox('textbox').attr('readonly', true);
+                $("#acBtn").remove();
+            }
+        } else {
+            if (params.filter.ac) {
+                $("#ac").textbox("setValue", params.filter.ac)
+            }
+            if (params.filter.station) {
+                $("#station").textbox("setValue", params.filter.station)
+            }
+            if (params.filter.dateRange) {
+                $("#dateRange").textbox("setValue", params.filter.dateRange)
+            }
+            if (params.filter.date) {
+                $("#date").textbox("setValue", params.filter.date)
+            }
+            if (params.filter.time) {
+                $("#time").textbox("setValue", params.filter.time)
+            }
+        }
+        searchData();
+        init = 1;
+    }
+
+    function isDate(str) {
+        var arr = str.split("-");
+        if (arr.length === 3) {
+            var intYear = parseInt(arr[0], 10);
+            var intMonth = parseInt(arr[1], 10);
+            var intDay = parseInt(arr[2], 10);
+            if (isNaN(intYear) || isNaN(intMonth) || isNaN(intDay)) {
+                return false;
+            }
+            if (intYear > 4200 || intYear < 1900 || intMonth > 12 || intMonth < 0 || intDay > 31 || intDay < 0) {
+                return false;
+            }
+            if ((intMonth === 4 || intMonth === 6 || intMonth === 9 || intMonth === 11) && intDay > 30) {
+                return false;
+            }
+
+            if (intYear % 100 === 0 && intYear % 400 || intYear % 100 && intYear % 4 === 0) {
+                if (intDay > 29) return false;
+            } else {
+                if (intDay > 28) return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    function assignTask() {
+        var title_ = $.i18n.t('任务分配');
+        var currentWidth = ($(window).width() * 0.5).toString();
+        var currentHeight = ($(window).height() * 0.5).toString();
+        ShowWindowIframe({
+            width: currentWidth,
+            height: currentHeight,
+            title: title_,
+            param: {},
+            url: "/views/tbm/flb/assign_flight_station_task.shtml"
+        });
+    }
+
+    /** 以上是原js代码 **/
+
+    window.opener.confirm = window.confirm;
+    const parent = getParentParam_();
+
+    /** 左侧按钮点击事件 **/
+    function left_task_click(rowData,tbfId) {
+        if(rowData.status1=="RELEASED"){
+            if(!parent || !parent.filter || (parent.filter && !parent.filter.includeReleaseFlag)){
+                MsgAlert({type: "error", content: "航班已放行，禁止操作。如需操作，请联系航班放行人员，取消放行后操作。"});
+                return;
+            }
+        }
+        task_click("left", rowData,tbfId)
+    }
+
+    /** 右侧按钮点击事件 **/
+    function right_task_click(rowData) {
+        if(rowData.status2=="RELEASED" && rowData.POF_TASK!="O/G"){
+            if(!parent || !parent.filter || (parent.filter && !parent.filter.includeReleaseFlag)){
+                MsgAlert({type: "error", content: "航班已放行，禁止操作。如需操作，请联系航班放行人员，取消放行后操作。"});
+                return;
+            }
+        }
+
+        if(rowData.POF_TASK=="O/G"){
+            choose_xiafa_time(rowData);
+        }else {
+            task_click("right", rowData);
+        }
+
+        // task_click("right", rowData);
+    }
+
+    //数据返回调用原窗口choose_flight函数
+    function task_click(option, data,tbfId) {
+        let post_data = {
+            AC: data.AC,
+            FLIGHT_NO: data.FLIGHT_NO,
+            MODEL: data.mpAcType,
+            MINOR_MODEL: data.modelSeries,
+            ACID: data.acId,
+            FLIGHT_ID: data.flightId,
+            FLIGHT_DATE: data.FLIGHT_DATE,
+            CHECK_TYPE: "",
+            STATION: "",
+            CURRENT_TASK_ID: "",
+        };
+        if (option === "left") {
+            post_data.STATION = data.DEPARTURE;
+            post_data.CURRENT_TASK_ID = data.WORK_ORDER_ID;
+            post_data.CHECK_TYPE = data.TR_TASK;
+            if(tbfId){
+                post_data.CURRENT_TASK_ID = tbfId;
+                post_data.CHECK_TYPE = "TBFTR";
+            }
+            if (params.filter && params.filter.type) {
+                params.success(post_data);
+                close_window();
+
+            }
+            let url = `/api/v1/defect/defect_base_info/getPreFlightId?flightId=${data.flightId}`;
+            axios.get(url).then(response => {
+                if(response.data.msg.indexOf("SUCCESS") != -1){
+                    if (typeof params.success == "function") {
+                        if (params.fullData) {
+                            data.CHECK_TYPE = data.TR_TASK;
+                            if(tbfId){
+                                data.CHECK_TYPE2 = "TBFTR";
+                            };
+                            params.success(data)
+                        } else {
+                            post_data.STATION = response.data.data.toStation;
+                            post_data.PRE_FLIGHT_NO = response.data.data.flightNo;
+                            post_data.PRE_FLIGHT_ID = response.data.data.flightId;
+                            params.success(post_data)
+                        }
+                    }
+                    close_window()
+                } else if (response.data.msg.indexOf("ERROR") != -1) {
+                    throw new Error(response.data.msgData[0])
+                }
+            }).catch(err => {
+                MsgAlert({type: "error", content: "查询失败" + err
+                })
+            })
+        } else if (option === "right") {
+            post_data.STATION = data.ARRIVAL;
+            post_data.CURRENT_TASK_ID = data.pofWorkOrderId;
+            post_data.FLIGHT_END_DATE = data.FLIGHT_END_DATE;
+            post_data.FLIGHT_DATE =data.FLIGHT_DATE;
+            post_data.CHECK_TYPE = data.POF_TASK;
+            if (params.filter && params.filter.type) {
+                params.success(post_data);
+                close_window();
+                return
+            }
+            if (typeof params.success == "function") {
+                if (params.fullData) {
+                    data.CHECK_TYPE = data.POF_TASK;
+                    params.success(data)
+                } else {
+                    params.success(post_data)
+                }
+            }
+            close_window();
+        }
+
+    }
+
+    //窗口关闭
+    function close_window() {
+        window.opener = null;
+        window.open('', '_self');
+        window.close();
+    }
+
+    //选择时间弹窗
+    // function  selectTime(outData) {
+    //     var title_ = $.i18n.t('时间选择');
+    //     var currentWidth = ($(window).width() * 0.5).toString();
+    //     var currentHeight = ($(window).height() * 0.5).toString();
+    //     ShowWindowIframe({
+    //         width: currentWidth,
+    //         height: currentHeight,
+    //         title: title_,
+    //         param: {
+    //             startData:outData.FLIGHT_DATE,
+    //             endData:outData.FLIGHT_END_DATE,
+    //         },
+    //         url: "/views/defect/monitor/select_time.shtml"
+    //     });
+    // }
+
+    //选择下发时间
+    function choose_xiafa_time(obj) {
+        var xiafa;
+        MsgPrompt({
+            msg: "工作建议！",
+            yesFunc: function (r,selectDate) {
+                if (selectInsideTime(selectDate,obj)=="1") {
+                    return false;
+                }
+                var newObj = obj;
+                newObj.FLIGHT_DATE = selectDate;
+                task_click("right", newObj);
+            }
+        });
+
+    }
+
+    function MsgPrompt(opts) {
+        var time_ = new Date().getTime();
+        var win_key_ = 'win_0_' + time_;
+        opts = $.extend({}, {
+            title: "选择下发时间",
+            msg: "请输入内容:",
+            content: '<input class="messager-input" type="text">',
+
+            yes: function () {
+                if($("#date.other-date").datebox("getValue")==""){
+                    alert("请选择时间");
+                    return false;
+                }
+                var selectDate =$("#date.other-date").datebox("getValue");
+                var r = $("#" + win_key_).find("input:text").val();
+                var isClose_ = true;
+                if (opts.yesFunc) {
+                    isClose_ = opts.yesFunc(r,selectDate);
+                    isClose_ = isClose_ == undefined ? true : false;
+                }
+                if (isClose_) {
+                    $("#" + win_key_).window('destroy');
+                }
+            },
+            no: function () {
+                var r = $("#" + win_key_).find("input:text").val();
+                var isClose_ = true;
+                if (opts.noFunc) {
+                    isClose_ = opts.noFunc(r);
+                    isClose_ = isClose_ == undefined ? true : false;
+                }
+                if (isClose_) {
+                    $("#" + win_key_).window('destroy');
+                }
+            }
+        }, opts);
+        var h = '<div class="messager-body panel-body panel-body-noborder window-body" title="" style="min-height: 36px;">' +
+            '<div class="messager-icon messager-question"></div><div>'
+            + '</div><br><div style="clear:both;"></div>'
+            + '<div style="display: inline-block; margin: 0px 30px 0 41px;">下发日期</div>'
+            +
+            '<input class="easyui-datetimebox other-date" id="date" name="repTime" style="height: 25px;width: 70%"/>'+'</div>' +
+            '<div style="padding: 5px; text-align: center;">' +
+            '<a href="javascript:void(0);" id="_yes" class="easyui-linkbutton" icon="icon-ok">确定</a> ' +
+            '&nbsp;&nbsp;&nbsp;&nbsp;' +
+            '<a href="javascript:void(0);" id="_no" class="easyui-linkbutton"' +
+            ' icon="icon-cancel">取消</a>' +
+            '</div>';
+
+        $("<div id='" + win_key_ + "' />").window({
+            width: opts.width || 380,
+            height: opts.height || 210,
+            minimizable: opts.minimizable || false,
+            maximizable: opts.maximizable || false,
+            modal: opts.modal ? opts.modal : true,
+            title: opts.title,
+            content: h,
+            onClose: function () {
+                $("#" + win_key_).window('destroy');
+            }
+        });
+        $("#" + win_key_).find("#_yes").bind("click", function () {
+            opts.yes()
+        });
+        $("#" + win_key_).find("#_no").bind("click", function () {
+            opts.no()
+        });
+        // $('#date.other-date').datebox('setValue', formatterDate(new Date()));
+    }
+
+    function selectInsideTime(newDate,data) {
+        var flag="";
+        var startData = data.FLIGHT_DATE;
+        var endData = data.FLIGHT_END_DATE;
+        var starTime = new Date(startData);
+        var endTime = new Date(endData);
+        var selectDate = new Date(newDate);
+        if(selectDate==""){
+            alert("请选择对应下发时间");
+            flag = 1;
+        }else if(selectDate>endTime||selectDate<starTime){
+            alert("请选择"+startData+"到"+endData+"范围内的时间");
+            flag = 1;
+        }else {
+            flag = 0;
+        };
+        return flag;
+    }
+
+    function formatterDate(date){
+        var day = date.getDate() > 9 ? date.getDate() : "0" + date.getDate();
+        var month = (date.getMonth() + 1) > 9 ? (date.getMonth() + 1) : "0"
+            + (date.getMonth() + 1);
+        return date.getFullYear() + '-' + month + '-' + day + ' 00:00:00';
+    }
+    //新飞机引进，根据初始化的航班数据生成O/G，增加传参字段，以能选中航班
+    function insertInitOG(){
+        var initOGNode = "<tr style=\"display: none;\">\n" +
+            "                        <th class=\"param-title\">initOG:</th>\n" +
+            "                        <td class=\"param-content\">\n" +
+            "                            <input class=\"easyui-textbox\" id=\"initOG\" name=\"initOG\" value = \"1\"\n" +
+            "                                   style=\"height: 25px;\"/>\n" +
+            "                        </td>\n" +
+            "                    </tr>";
+        $("#flightSelect").append(initOGNode);
+    }
+</script>
+</body>
+</html>

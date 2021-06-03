@@ -1,0 +1,209 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <link rel="stylesheet" href="/css/table.css">
+    <title>角色菜单设置</title>
+    <script type="text/javascript">
+        var param = {};
+        var nodeId = "";
+        $(function () {
+            param = getParentParam_();
+            if (!param || !param.PKID) {
+                layerErrorPage($.i18n.t('msg_err:ERRMSG.COMMON.REQ_PARAM_ERROR'), "500");
+                return;
+            }
+            layerStandardAjaxCall_({
+                url: "/api/v1/sysrole/permAuth",
+                data: {pkid: param.PKID},
+                success: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        var menuData = jdata.data['menuLv12'];
+                        var tdata_ = [];
+                        $.each(menuData['0'], function (k1, v1) {
+                            var r_ = _WarpTreeMenu(menuData, (v1.id + ''), (v1.pid + ''), ['id', "pid"]);
+                            if (r_)
+                                tdata_.push(r_);
+                        });
+                        if (!tdata_) {
+                            return;
+                        }
+                        $("#menuTree").tree({
+                            data: tdata_,
+                            lines: true, animate: true, checkbox: false,
+                            formatter: function (node) {
+                                return node.text; //@todo node.attributes.i18nText ? $.i18n.t("common:"+node.attributes.i18nText) : node.text;
+                            },
+                            onSelect: function (node) {
+                                /*$(".dlGroup").parents("div.datalist").hide();
+                                 $(".group_"+node.id).parents("div.datalist").show();*/
+                                nodeId = node.id;
+                                roleAuthDet(param.PKID, node.id);
+                            }
+                        }).css({padding: '5px'});
+
+                    } else {
+                        layer.msg(jdata.msg, {icon: 5});
+                    }
+                }
+            });
+
+        });
+
+        function findPermData_(pdata, id) {
+            if (!pdata || !id)
+                return null;
+            var result = null;
+            $.each(pdata['0'], function (k, item) {
+                if (id == item.id) {
+                    result = item;
+                    return false;
+                }
+            });
+            return result;
+        }
+
+        function selectItem_(menuId) {
+//            alert(menuId)
+            var $menuTree = $('#menuTree');
+            var node = $menuTree.tree('find', menuId);
+            if (node)
+                $menuTree.tree("select", node.target);
+        }
+
+        //选择菜单显示下面的权限
+        function roleAuthDet(roleId, menuId) {
+            layerStandardAjaxCall_({
+                url: "/api/v1/sysrole/choosePermAuth",
+                data: {pkid: roleId, menuId: menuId},
+                success: function (jdata) {
+                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                        var n = 0;
+                        var firstMenuId = null;
+                        var permMapData = jdata.data['permMap'];
+                        console.log(permMapData)
+                        $("#centerArea").html("");
+                        $("#rightArea").html("");
+                        $.each(permMapData, function (k, item) {
+                            var $p = $("<div id='group_" + k + "' class='dlGroup group_" + item.MENU_ID + "'/>");
+                            if (n % 2 == 0) {
+                                $("#centerArea").append($p);
+                            } else {
+                                $("#rightArea").append($p);
+                            }
+                            //权限组下面的数据、
+                            InitFuncCodeRequest_({
+                                data: {pkid: param.PKID, pid: item.PKID, FunctionCode: "ROUTE_GROUP_PERM"},
+                                success: function (jdata1) {
+                                    console.log(jdata1.data)
+                                    if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                                        $.each(jdata1.data, function (k, group) {
+                                            //var group = findPermData_(permMapData, k);
+                                            //var group = permMapData['0'];
+                                            if (firstMenuId == null) {
+                                                firstMenuId = group.menuId;
+                                            }
+
+                                            $p.datalist({
+                                                data: group, idField: false,
+                                                checkbox: true, singleSelect: false,
+                                                title: item.PERM_NAME, //@todo group && group.i18nText ? $.i18n.t('common:RES.PERM.'+group.i18nText) : item.PERM_NAME,
+                                                lines: true,
+                                                textFormatter: function (value, row, index) {
+                                                    return row.text;//@todo $.i18n.t('common:RES.PERM.'+row.i18nText);
+                                                },
+                                                rowStyler: function (index, row) {
+                                                    if (row.checked == true) {
+                                                        return {'class': "datagrid-row-checked"}; //解决数据checked=true的bug
+                                                    }
+                                                }
+
+                                            });
+
+                                        })
+                                    }
+                                }
+                            })
+                            n++;
+                        });
+                        if (firstMenuId != null) {
+                            selectItem_(firstMenuId);
+                        }
+
+                    } else {
+                        layer.msg(jdata.msg, {icon: 5});
+                    }
+                }
+            });
+        }
+    </script>
+    <style type="text/css">
+        .datalist {
+            margin: 2px;
+        }
+
+        .dlGroup {
+        }
+    </style>
+</head>
+<body>
+
+<div style="">
+
+    <div id="mlayout" class="easyui-layout" style="height: 360px;">
+        <div id="lay_left" data-options="region:'west',split:false" style="width: 30%;">
+            <ul id="menuTree" class="easyui-tree"></ul>
+        </div>
+        <div id="lay_center" data-options="region:'center'" style="width: 35%;">
+            <div id="centerArea">
+            </div>
+        </div>
+        <div id="lay_right" data-options="region:'east'" style="width: 35%;">
+            <div id="rightArea">
+            </div>
+        </div>
+    </div>
+    <div align="center" style="margin-top: 5px;">
+        <input onclick="doSubmit_()" class="bcBtn" type="button" value="确定"/> &nbsp;&nbsp;
+        <input onclick="closeAdd()" class="bcBtn" type="button" value="关闭"/>
+    </div>
+    <br/>
+</div>
+
+<script type="text/javascript">
+    function doSubmit_() {
+        var nodes = [];
+        $('.dlGroup').each(function () {
+            var nodes_ = $(this).datalist('getChecked');
+            $.each(nodes_, function (k, item) {
+                nodes.push(item);
+            });
+        });
+        var ids = ArrayCollect_(nodes, "id");
+        layerStandardAjaxCall_({
+            url: "/api/v1/sysrole/permAuth/update",
+            data: {pkid: param.PKID, permIds: ids, menuIds: nodeId},
+            success: function (jdata) {
+                if (jdata.code == RESULT_CODE.SUCCESS_CODE) {
+                    MsgAlert({content: jdata.msg ? jdata.msg : $.i18n.t('msg_err:ERRMSG.COMMON.COMMON.OPT_SUCCESS')});
+//                    CloseWindowIframe();
+                } else {
+                    MsgAlert({content: jdata.msg, type: 'error'});
+                }
+            }
+        })
+    }
+
+    /** 关闭按钮*/
+    function closeAdd() {
+        $.messager.confirm('', '是否关闭', function (r) {
+            if (r) {
+                param.OWindow.reload_();
+                CloseWindowIframe();
+            } else {
+            }
+        });
+    }
+</script>
+</body>
+</html>

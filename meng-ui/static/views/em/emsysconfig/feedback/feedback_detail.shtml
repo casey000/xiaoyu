@@ -1,0 +1,80 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head id="i18n_" module="">
+    <!--#include virtual="/views/items/resource_.shtml"-->
+    <title data-i18n="">构型反馈确认</title>
+</head>
+<body class="ibody">
+<div class="title">
+    <fieldset class="easyui-panel  " style="width:780px;">
+        <table>
+        <legend>反馈状态确认</legend>
+        <tr  style='align:right;' >
+            <input class="btn btn-primary"  type="button" id="confirm" onclick="feedbackConfirm()" style="float:right;" disabled="disabled" value="确定"/>
+        </tr>
+        <tr>
+            <table id='configFeedbackDetail' class="table table-bordered table-info">
+            </table>
+        </tr>
+        </table>
+    </fieldset>
+</div>
+<script type="text/javascript" src="/js/datagrid_utils.js"></script>
+<script type="text/javascript" src="../../../../js/em/sysconfig/feedbackDetail.js"></script>
+<script type="text/javascript">
+    var PAGE_DATA = {};
+
+    function i18nCallBack() {
+        param = getParentParam_();
+        if (param.recordId) {
+            $.ajax({
+                url: '/api/v1/emSysConfigFeedback/isExitUnFeedback/' + param.recordId,
+                type: 'get',
+                dataType: "json",
+                success: function (data) {
+                    //判断操作是否成功
+                    if (data.code == RESULT_CODE.SUCCESS_CODE) {
+                        if (data.data == 'n') {
+                            $("#confirm").removeAttr("disabled");
+                        }
+                    } else {
+                        MsgAlert({content: data.msg, type: 'error'});
+                    }
+                }
+            });
+
+            initConfigFeedbackDetail("configFeedbackDetail", param.recordId);
+        }
+    }
+
+
+    /*确认反馈*/
+    function feedbackConfirm() {
+
+        if (confirm("是否确认反馈状态？")) {
+            $.ajax({
+                url: '/api/v1/emSysConfigFeedback/feedbackConfirm/' + param.recordId,
+                type: 'get',
+                dataType: "json",
+                success: function (data) {
+                    //判断操作是否成功
+                    if (data.code == RESULT_CODE.SUCCESS_CODE) {
+                        // 关闭窗口
+                        CloseWindowIframe();
+                        if (param.OWindow) {
+                            if (param.OWindow.reload_) {
+                                param.OWindow.reload_()
+                            }
+                            param.OWindow.MsgAlert({content: '操作成功'});
+                        }
+                    } else {
+                        MsgAlert({content: data.msg, type: 'error'});
+                    }
+                }
+            });
+        }
+    }
+
+</script>
+</body>
+</html>
